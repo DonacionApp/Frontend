@@ -25,10 +25,11 @@ export class ButtonComponent {
     const baseClasses = 'font-medium transition-all duration-200 rounded-lg';
     
     const variantClasses: Record<ButtonVariant, string> = {
-      primary: 'bg-orange-400 hover:bg-orange-500 text-white shadow-sm hover:shadow-md',
+      // Cambiado a verde para que coincida con el diseño (Figma)
+      primary: 'bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md',
       secondary: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm hover:shadow-md',
       ghost: 'text-gray-700 hover:text-green-600',
-      disabled: 'bg-orange-400 text-white cursor-not-allowed opacity-75'
+      disabled: 'bg-green-500 text-white cursor-not-allowed opacity-75'
     };
     
     const sizeClasses: Record<ButtonSize, string> = {
