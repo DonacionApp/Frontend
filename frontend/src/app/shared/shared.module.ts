@@ -7,12 +7,9 @@ import { SpinnerComponent } from './components/spinner/spinner.component';
  * Se importa en los módulos de features que lo necesiten
  */
 @NgModule({
-  declarations: [
-    SpinnerComponent
-    // Aquí irán más componentes, directivas y pipes compartidos
-  ],
   imports: [
-    CommonModule
+    CommonModule,
+    SpinnerComponent
     // Aquí se pueden importar otros módulos compartidos como Material
   ],
   exports: [

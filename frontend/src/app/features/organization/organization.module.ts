@@ -1,9 +1,10 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
+import { OrganizationRegisterComponent } from './register/register.component';
 
 const routes: Routes = [
-  // Aquí irán las rutas de la organización
+  { path: 'register', component: OrganizationRegisterComponent },
   // { path: '', component: OrganizationDashboardComponent },
   // { path: 'profile', component: OrganizationProfileComponent },
   // { path: 'campaigns', component: CampaignsComponent },
@@ -12,15 +13,12 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [
-    // Aquí irán los componentes de la organización
-    // OrganizationDashboardComponent,
-    // OrganizationProfileComponent,
-    // CampaignsComponent,
-    // DonationsReceivedComponent
+    // Los componentes standalone no se declaran aquí
   ],
   imports: [
     CommonModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
+    OrganizationRegisterComponent // Importar el componente standalone
   ],
   providers: [
     // Aquí irán los servicios específicos de la organización

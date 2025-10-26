@@ -1,0 +1,33 @@
+<button 
+  [type]="type"
+  [class]="buttonClasses"
+  [disabled]="disabled"
+  (click)="onClick($event)">
+  <div class="flex items-center justify-center gap-2">
+    <!-- Icono izquierdo -->
+    <svg *ngIf="iconLeft" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <ng-container [ngSwitch]="iconLeft">
+        <!-- Icono de corazón -->
+        <path *ngSwitchCase="'heart'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+        <!-- Icono de globo -->
+        <path *ngSwitchCase="'globe'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+        <!-- Icono de información -->
+        <path *ngSwitchCase="'info'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </ng-container>
+    </svg>
+    
+    <!-- Contenido del botón -->
+    <ng-content></ng-content>
+    
+    <!-- Icono derecho -->
+    <svg *ngIf="iconRight" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <ng-container [ngSwitch]="iconRight">
+        <!-- Icono de flecha derecha -->
+        <path *ngSwitchCase="'arrow-right'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        <!-- Icono de flecha abajo -->
+        <path *ngSwitchCase="'arrow-down'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </ng-container>
+    </svg>
+  </div>
+</button>
+
