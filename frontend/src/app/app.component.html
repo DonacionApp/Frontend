@@ -1,15 +1,18 @@
-<!-- Navigation Component -->
-<app-nav 
-  *ngIf="shouldShowNav()"
-  (onHomeClick)="onHomeClick()"
-  (onLoginClick)="onLoginClick()"
-  (onRegisterClick)="onRegisterClick()"
-  (onOrganizationRegisterClick)="onOrganizationRegisterClick()"
-  (onLogoutClick)="onLogoutClick()">
-</app-nav>
+<!-- Main App Container -->
+<div class="min-h-screen flex flex-col">
+  <!-- Navigation Component -->
+  <app-nav 
+    *ngIf="shouldShowNav()"
+    (onHomeClick)="onHomeClick()"
+    (onLoginClick)="onLoginClick()"
+    (onRegisterClick)="onRegisterClick()"
+    (onOrganizationRegisterClick)="onOrganizationRegisterClick()"
+    (onLogoutClick)="onLogoutClick()">
+  </app-nav>
 
-<!-- Main Content -->
-<div class="flex-1">
-  <!-- Router Outlet for all routes -->
-  <router-outlet></router-outlet>
+  <!-- Main Content -->
+  <div class="flex-1">
+    <!-- Router Outlet for all routes -->
+    <router-outlet></router-outlet>
+  </div>
 </div>

@@ -2,28 +2,28 @@
 <div class="min-h-screen bg-white">
   
   <!-- Header/Hero Section -->
-  <section class="hero-section py-20 px-4">
-    <div class="max-w-6xl mx-auto text-center relative z-10">
+  <section class="hero-section py-16 sm:py-20 md:py-24 lg:py-28 xl:py-32 2xl:py-36 px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20 2xl:px-24">
+    <div class="max-w-7xl xl:max-w-8xl 2xl:max-w-9xl mx-auto text-center relative z-10">
       <!-- Título principal -->
-      <h1 class="hero-title text-4xl md:text-5xl lg:text-6xl mb-6 leading-tight animate-slide-in-top">
-        Conectando Corazones a Través<br>de la Donación
+      <h1 class="hero-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl mb-4 sm:mb-6 leading-tight animate-slide-in-top">
+        Conectando Corazones a Través<br class="hidden sm:block">de la Donación
       </h1>
       
       <!-- Descripción -->
-      <p class="text-base md:text-lg text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed animate-fade-in-up">
-        Facilita el proceso de donar bienes materiales a organizaciones<br>
-        benéficas y personas que los necesitan. Juntos construimos un<br>
+      <p class="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl mx-auto leading-relaxed animate-fade-in-up">
+        Facilita el proceso de donar bienes materiales a organizaciones<br class="hidden sm:block">
+        benéficas y personas que los necesitan. Juntos construimos un<br class="hidden sm:block">
         mundo mejor.
       </p>
       
       <!-- Botones de acción -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-stagger-2">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-6 justify-center items-center mb-8 sm:mb-10 md:mb-12 lg:mb-16 animate-stagger-2">
         <app-button 
           variant="primary" 
           size="lg"
           iconLeft="heart"
           (btnClick)="onLoginClick()">
-          Comenzar a Donar
+          <span class="text-sm sm:text-base lg:text-lg">Comenzar a Donar</span>
         </app-button>
         
         <app-button 
@@ -31,33 +31,33 @@
           size="lg"
           iconLeft="globe"
           (btnClick)="openInfoModal()">
-          Conoce Más
+          <span class="text-sm sm:text-base lg:text-lg">Conoce Más</span>
         </app-button>
       </div>
       
       <!-- Imágenes de Donaciones -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24 max-w-6xl xl:max-w-7xl 2xl:max-w-8xl mx-auto">
         <!-- Imagen 1: Personas Donando -->
-        <div class="image-card h-64 md:h-80 animate-stagger-3">
+        <div class="image-card h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 animate-stagger-3">
           <img 
             src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&h=400&fit=crop" 
             alt="Personas donando ropa y alimentos"
             class="w-full h-full object-cover">
-          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-            <p class="text-white font-bold text-xl mb-2">Para Donantes</p>
-            <p class="text-white/90 text-sm">Da nueva vida a tus artículos</p>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 md:p-6">
+            <p class="text-white font-bold text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">Para Donantes</p>
+            <p class="text-white/90 text-xs sm:text-sm md:text-base">Da nueva vida a tus artículos</p>
           </div>
         </div>
         
         <!-- Imagen 2: Caja de Donaciones -->
-        <div class="image-card h-64 md:h-80 animate-stagger-4">
+        <div class="image-card h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 animate-stagger-4">
           <img 
             src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=400&fit=crop" 
             alt="Caja de donaciones"
             class="w-full h-full object-cover">
-          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-            <p class="text-white font-bold text-xl mb-2">Para Organizaciones</p>
-            <p class="text-white/90 text-sm">Encuentra lo que necesitas</p>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 md:p-6">
+            <p class="text-white font-bold text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">Para Organizaciones</p>
+            <p class="text-white/90 text-xs sm:text-sm md:text-base">Encuentra lo que necesitas</p>
           </div>
         </div>
       </div>
@@ -65,91 +65,91 @@
   </section>
 
   <!-- Sección Cómo Funciona -->
-  <section id="como-funciona" class="py-16 px-4 bg-white">
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">¿Cómo Funciona?</h2>
-        <p class="text-base text-gray-600 max-w-2xl mx-auto">
+  <section id="como-funciona" class="py-16 sm:py-20 md:py-24 lg:py-28 xl:py-32 2xl:py-36 px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20 2xl:px-24 bg-white">
+    <div class="max-w-7xl xl:max-w-8xl 2xl:max-w-9xl mx-auto">
+      <div class="text-center mb-12 sm:mb-16 md:mb-20">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-800 mb-4 sm:mb-6">¿Cómo Funciona?</h2>
+        <p class="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl mx-auto">
           Un proceso simple y seguro para conectar donantes con organizaciones
         </p>
       </div>
       
       <!-- Tarjetas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20">
         <!-- Tarjeta 1 -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 md:p-8 lg:p-10 text-center">
+          <div class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+            <svg class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
           </div>
-          <h3 class="text-lg font-bold text-gray-900 mb-2">Dona Fácilmente</h3>
-          <p class="text-sm text-gray-600">Publica fotos y descripción de tus artículos en minutos</p>
+          <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">Dona Fácilmente</h3>
+          <p class="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600">Publica fotos y descripción de tus artículos en minutos</p>
         </div>
         
         <!-- Tarjeta 2 -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 md:p-8 lg:p-10 text-center">
+          <div class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+            <svg class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
           </div>
-          <h3 class="text-lg font-bold text-gray-900 mb-2">Conecta con Organizaciones</h3>
-          <p class="text-sm text-gray-600">Encuentra organizaciones verificadas que necesitan tus donaciones</p>
+          <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">Conecta con Organizaciones</h3>
+          <p class="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600">Encuentra organizaciones verificadas que necesitan tus donaciones</p>
         </div>
         
         <!-- Tarjeta 3 -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 md:p-8 lg:p-10 text-center">
+          <div class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+            <svg class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
             </svg>
           </div>
-          <h3 class="text-lg font-bold text-gray-900 mb-2">Comunicación Directa</h3>
-          <p class="text-sm text-gray-600">Chat integrado para coordinar entregas de manera segura</p>
+          <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">Comunicación Directa</h3>
+          <p class="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600">Chat integrado para coordinar entregas de manera segura</p>
         </div>
         
         <!-- Tarjeta 4 -->
-        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 md:p-8 lg:p-10 text-center">
+          <div class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+            <svg class="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
             </svg>
           </div>
-          <h3 class="text-lg font-bold text-gray-900 mb-2">Organizaciones Verificadas</h3>
-          <p class="text-sm text-gray-600">Todas las organizaciones son revisadas y verificadas</p>
+          <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mb-2">Organizaciones Verificadas</h3>
+          <p class="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600">Todas las organizaciones son revisadas y verificadas</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Sección Nuestro Impacto -->
-  <section id="impacto" class="impact-section py-20 px-4">
-    <div class="max-w-6xl mx-auto relative z-10">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 animate-slide-in-top">Nuestro Impacto</h2>
-        <p class="text-lg text-white/90 max-w-3xl mx-auto animate-fade-in-up">
+  <section id="impacto" class="impact-section py-20 sm:py-24 md:py-28 lg:py-32 xl:py-36 2xl:py-40 px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20 2xl:px-24">
+    <div class="max-w-7xl xl:max-w-8xl 2xl:max-w-9xl mx-auto relative z-10">
+      <div class="text-center mb-16 sm:mb-20 md:mb-24">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-white mb-4 sm:mb-6 animate-slide-in-top">Nuestro Impacto</h2>
+        <p class="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-white/90 max-w-4xl mx-auto animate-fade-in-up">
           Juntos hemos logrado crear un impacto positivo en miles de vidas
         </p>
       </div>
       
       <!-- Métricas -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24">
         <div class="text-center hover-scale animate-stagger-1">
-          <div class="stat-number text-white mb-2">1,200+</div>
-          <div class="stat-label text-white">Donaciones<br>realizadas</div>
+          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">1,200+</div>
+          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Donaciones<br>realizadas</div>
         </div>
         <div class="text-center hover-scale animate-stagger-2">
-          <div class="stat-number text-white mb-2">150+</div>
-          <div class="stat-label text-white">Organizaciones<br>registradas</div>
+          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">150+</div>
+          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Organizaciones<br>registradas</div>
         </div>
         <div class="text-center hover-scale animate-stagger-3">
-          <div class="stat-number text-white mb-2">50+</div>
-          <div class="stat-label text-white">Ciudades<br>cubiertas</div>
+          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">50+</div>
+          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Ciudades<br>cubiertas</div>
         </div>
         <div class="text-center hover-scale animate-stagger-4">
-          <div class="stat-number text-white mb-2">98%</div>
-          <div class="stat-label text-white">Satisfacción de<br>usuarios</div>
+          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">98%</div>
+          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Satisfacción de<br>usuarios</div>
         </div>
       </div>
     </div>
