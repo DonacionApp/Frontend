@@ -40,6 +40,18 @@ export class AuthService {
     }
   }
 
+  /** Solicitar enlace de recuperación */
+  forgotPassword(email: string) {
+    const url = `${this.baseUrl}/forgot-password`;
+    return this.http.post<any>(url, { email });
+  }
+
+  /** Restablecer contraseña usando token recibido por email */
+  resetPassword(token: string, password: string) {
+    const url = `${this.baseUrl}/reset-password`;
+    return this.http.post<any>(url, { token, password });
+  }
+
   login(email: string, password: string): Observable<any> {
     const url = `${this.baseUrl}/login`;
     return this.http.post<any>(url, { email, password }).pipe(
