@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import { VerifyResetTokenComponent } from './verify-reset-token/verify-reset-token.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 
@@ -11,6 +12,7 @@ const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
+  { path: 'reset-password-token', component: VerifyResetTokenComponent },
   // { path: 'register', component: RegisterComponent }
 ];
 
@@ -23,7 +25,8 @@ const routes: Routes = [
     LoginComponent, // import as standalone (if component is standalone)
     ButtonComponent,
   ForgotPasswordComponent, // componente standalone placeholder
-  ResetPasswordComponent
+  ResetPasswordComponent,
+  VerifyResetTokenComponent
   ],
   providers: [
     // Aquí irán los servicios específicos de autenticación

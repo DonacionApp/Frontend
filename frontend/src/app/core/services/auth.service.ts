@@ -52,6 +52,21 @@ export class AuthService {
     return this.http.post<any>(url, { token, password });
   }
 
+  /** Verifica/consume el token corto enviado por email (código) o endpoint que espera token y newPassword
+   * Se añadió soporte para el endpoint `/auth/reset-password-token` que algunos backends usan
+   * Si el backend acepta { token, newPassword } en un solo paso, usar resetWithToken
+   */
+  verifyResetToken(code: string) {
+    const url = `${this.baseUrl}/reset-password-token`;
+    return this.http.post<any>(url, { token: code });
+  }
+
+  /** Alternativa: enviar token y nueva contraseña al endpoint que procesa ambos campos */
+  resetWithToken(code: string, newPassword: string) {
+    const url = `${this.baseUrl}/reset-password-token`;
+    return this.http.post<any>(url, { token: code, newPassword });
+  }
+
   login(email: string, password: string): Observable<any> {
     const url = `${this.baseUrl}/login`;
     return this.http.post<any>(url, { email, password }).pipe(
