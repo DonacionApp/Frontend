@@ -38,7 +38,7 @@
               </svg>
             </button>
           </div>
-          <p *ngIf="password.invalid && (password.dirty || password.touched)" class="text-xs text-red-600 mt-1">La contraseña es requerida (mínimo 4 caracteres)</p>
+          <p *ngIf="password.invalid && (password.dirty || password.touched)" class="text-xs text-red-600 mt-1">La contraseña es requerida (mínimo 8 caracteres)</p>
         </div>
 
         <div *ngIf="serverMessage" class="text-sm text-red-600 text-center">{{ serverMessage }}</div>
