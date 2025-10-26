@@ -56,6 +56,10 @@ import { Subscription, interval } from 'rxjs';
 
             <div *ngIf="serverMessage" class="text-sm text-red-600 text-center">{{ serverMessage }}</div>
 
+            <div class="text-center">
+              <a routerLink="/auth/forgot-password" class="text-sm text-green-600 hover:underline">Has olvidado la contraseña?</a>
+            </div>
+
             <div>
               <app-button [disabled]="isSubmitting || isLocked" variant="primary" size="lg" class="w-full" (btnClick)="onSubmit()">
                 <span *ngIf="!isSubmitting">Iniciar Sesión</span>
