@@ -1,0 +1,110 @@
+<!-- Header -->
+<header class="bg-white shadow-sm border-b border-gray-200 animate-slide-in-top">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <!-- Logo -->
+      <div class="flex items-center">
+        <button (click)="onHomeClick()" class="flex items-center hover:opacity-80 transition-all duration-300 hover:scale-105">
+          <svg class="w-8 h-8 text-green-500 mr-2 animate-pulse-slow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          <span class="text-xl font-bold text-green-500">DonacionApp</span>
+        </button>
+      </div>
+      
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center space-x-8">
+        <!-- Navigation for non-authenticated users -->
+        <ng-container *ngIf="!isAuthenticated">
+          <button 
+            (click)="onAboutClick()"
+            class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105">
+            Acerca de
+          </button>
+          
+          <button 
+            (click)="onLoginClick()"
+            class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105">
+            Iniciar Sesión
+          </button>
+          
+          <button 
+            (click)="onRegisterClick()"
+            class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg">
+            Registrarse
+          </button>
+        
+        </ng-container>
+
+        <!-- Navigation for authenticated users -->
+        <ng-container *ngIf="isAuthenticated">
+          <div class="flex items-center space-x-4">
+            <span class="text-gray-700 text-sm">Hola, {{ user?.name || 'Usuario' }}</span>
+            <button 
+              (click)="onLogoutClick()" 
+              class="text-gray-700 hover:text-red-600 transition-colors px-3 py-2 text-sm font-medium">
+              Cerrar Sesión
+            </button>
+          </div>
+        </ng-container>
+      </nav>
+      
+      <!-- Mobile menu button -->
+      <div class="md:hidden">
+        <button 
+          type="button" 
+          class="mobile-menu-button bg-gray-100 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500"
+          (click)="toggleMobileMenu()">
+          <span class="sr-only">Open main menu</span>
+          <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Mobile Navigation -->
+    <div class="mobile-menu md:hidden transition-all duration-300 ease-in-out" [class.hidden]="!isMobileMenuOpen">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+        <!-- Mobile Navigation for non-authenticated users -->
+        <ng-container *ngIf="!isAuthenticated">
+          <button 
+            (click)="onAboutClick()"
+            class="text-gray-700 hover:text-green-600 block px-3 py-2 text-base font-medium w-full text-left transition-all duration-300 hover:scale-105">
+            Acerca de
+          </button>
+          
+          <button 
+            (click)="onLoginClick()"
+            class="text-gray-700 hover:text-green-600 block px-3 py-2 text-base font-medium w-full text-left transition-all duration-300 hover:scale-105">
+            Iniciar Sesión
+          </button>
+          
+          <button 
+            (click)="onRegisterClick()"
+            class="bg-orange-500 hover:bg-orange-600 text-white block px-3 py-2 text-base font-medium w-full rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg">
+            Registrarse
+          </button>
+          
+          <button 
+            (click)="onOrganizationRegisterClick()"
+            class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 block px-3 py-2 text-base font-medium w-full rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-md">
+            Organización
+          </button>
+        </ng-container>
+
+        <!-- Mobile Navigation for authenticated users -->
+        <ng-container *ngIf="isAuthenticated">
+          <div class="px-3 py-2 text-sm text-gray-500">
+            Hola, {{ user?.name || 'Usuario' }}
+          </div>
+          <button 
+            (click)="onLogoutClick()" 
+            class="text-gray-700 hover:text-red-600 block px-3 py-2 text-base font-medium w-full text-left">
+            Cerrar Sesión
+          </button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</header>

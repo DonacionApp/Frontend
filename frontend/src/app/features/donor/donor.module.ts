@@ -1,9 +1,10 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
+import { DonorRegisterComponent } from './register/register.component';
 
 const routes: Routes = [
-  // Aquí irán las rutas del donante
+  { path: 'register', component: DonorRegisterComponent },
   // { path: '', component: DonorDashboardComponent },
   // { path: 'profile', component: DonorProfileComponent },
   // { path: 'donations', component: DonorDonationsComponent },
@@ -12,15 +13,12 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [
-    // Aquí irán los componentes del donante
-    // DonorDashboardComponent,
-    // DonorProfileComponent,
-    // DonorDonationsComponent,
-    // MakeDonationComponent
+    // Los componentes standalone no se declaran aquí
   ],
   imports: [
     CommonModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
+    DonorRegisterComponent // Importar el componente standalone
   ],
   providers: [
     // Aquí irán los servicios específicos del donante

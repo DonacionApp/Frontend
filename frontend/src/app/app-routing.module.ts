@@ -1,8 +1,10 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { HomeComponent } from './features/home/home.component';
 
 const routes: Routes = [
-  { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
+  { path: '', component: HomeComponent },
+  { path: 'home', component: HomeComponent },
   
   // Lazy loading para cada módulo de feature
   {
@@ -11,22 +13,15 @@ const routes: Routes = [
   },
   {
     path: 'donor',
-    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule),
-    // canActivate: [AuthGuard] // Se agregará cuando se cree el guard
+    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule)
   },
   {
     path: 'organization',
-    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule),
-    // canActivate: [AuthGuard] // Se agregará cuando se cree el guard
-  },
-  {
-    path: 'admin',
-    loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
-    // canActivate: [AuthGuard, AdminGuard] // Se agregará cuando se creen los guards
+    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule)
   },
   
-  // Ruta wildcard para 404
-  { path: '**', redirectTo: '/auth/login' }
+  // Ruta wildcard para 404 - redirigir al home
+  { path: '**', redirectTo: '/' }
 ];
 
 @NgModule({

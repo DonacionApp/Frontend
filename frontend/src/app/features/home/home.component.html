@@ -1,0 +1,369 @@
+<!-- Landing Page - DonanApp -->
+<div class="min-h-screen bg-white">
+  
+  <!-- Header/Hero Section -->
+  <section class="hero-section py-20 px-4">
+    <div class="max-w-6xl mx-auto text-center relative z-10">
+      <!-- Título principal -->
+      <h1 class="hero-title text-4xl md:text-5xl lg:text-6xl mb-6 leading-tight animate-slide-in-top">
+        Conectando Corazones a Través<br>de la Donación
+      </h1>
+      
+      <!-- Descripción -->
+      <p class="text-base md:text-lg text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed animate-fade-in-up">
+        Facilita el proceso de donar bienes materiales a organizaciones<br>
+        benéficas y personas que los necesitan. Juntos construimos un<br>
+        mundo mejor.
+      </p>
+      
+      <!-- Botones de acción -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-stagger-2">
+        <app-button 
+          variant="primary" 
+          size="lg"
+          iconLeft="heart"
+          (btnClick)="onLoginClick()">
+          Comenzar a Donar
+        </app-button>
+        
+        <app-button 
+          variant="secondary" 
+          size="lg"
+          iconLeft="globe"
+          (btnClick)="openInfoModal()">
+          Conoce Más
+        </app-button>
+      </div>
+      
+      <!-- Imágenes de Donaciones -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <!-- Imagen 1: Personas Donando -->
+        <div class="image-card h-64 md:h-80 animate-stagger-3">
+          <img 
+            src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&h=400&fit=crop" 
+            alt="Personas donando ropa y alimentos"
+            class="w-full h-full object-cover">
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+            <p class="text-white font-bold text-xl mb-2">Para Donantes</p>
+            <p class="text-white/90 text-sm">Da nueva vida a tus artículos</p>
+          </div>
+        </div>
+        
+        <!-- Imagen 2: Caja de Donaciones -->
+        <div class="image-card h-64 md:h-80 animate-stagger-4">
+          <img 
+            src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=400&fit=crop" 
+            alt="Caja de donaciones"
+            class="w-full h-full object-cover">
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+            <p class="text-white font-bold text-xl mb-2">Para Organizaciones</p>
+            <p class="text-white/90 text-sm">Encuentra lo que necesitas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sección Cómo Funciona -->
+  <section id="como-funciona" class="py-16 px-4 bg-white">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">¿Cómo Funciona?</h2>
+        <p class="text-base text-gray-600 max-w-2xl mx-auto">
+          Un proceso simple y seguro para conectar donantes con organizaciones
+        </p>
+      </div>
+      
+      <!-- Tarjetas -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Tarjeta 1 -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-2">Dona Fácilmente</h3>
+          <p class="text-sm text-gray-600">Publica fotos y descripción de tus artículos en minutos</p>
+        </div>
+        
+        <!-- Tarjeta 2 -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-2">Conecta con Organizaciones</h3>
+          <p class="text-sm text-gray-600">Encuentra organizaciones verificadas que necesitan tus donaciones</p>
+        </div>
+        
+        <!-- Tarjeta 3 -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-2">Comunicación Directa</h3>
+          <p class="text-sm text-gray-600">Chat integrado para coordinar entregas de manera segura</p>
+        </div>
+        
+        <!-- Tarjeta 4 -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-2">Organizaciones Verificadas</h3>
+          <p class="text-sm text-gray-600">Todas las organizaciones son revisadas y verificadas</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sección Nuestro Impacto -->
+  <section id="impacto" class="impact-section py-20 px-4">
+    <div class="max-w-6xl mx-auto relative z-10">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 animate-slide-in-top">Nuestro Impacto</h2>
+        <p class="text-lg text-white/90 max-w-3xl mx-auto animate-fade-in-up">
+          Juntos hemos logrado crear un impacto positivo en miles de vidas
+        </p>
+      </div>
+      
+      <!-- Métricas -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div class="text-center hover-scale animate-stagger-1">
+          <div class="stat-number text-white mb-2">1,200+</div>
+          <div class="stat-label text-white">Donaciones<br>realizadas</div>
+        </div>
+        <div class="text-center hover-scale animate-stagger-2">
+          <div class="stat-number text-white mb-2">150+</div>
+          <div class="stat-label text-white">Organizaciones<br>registradas</div>
+        </div>
+        <div class="text-center hover-scale animate-stagger-3">
+          <div class="stat-number text-white mb-2">50+</div>
+          <div class="stat-label text-white">Ciudades<br>cubiertas</div>
+        </div>
+        <div class="text-center hover-scale animate-stagger-4">
+          <div class="stat-number text-white mb-2">98%</div>
+          <div class="stat-label text-white">Satisfacción de<br>usuarios</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sección Final -->
+  <section class="py-16 px-4 bg-white">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 animate-fade-in-up">¿Listo para Hacer la Diferencia?</h2>
+      <p class="text-base text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed animate-fade-in-up">
+        Únete a nuestra comunidad de donantes y organizaciones<br>
+        comprometidas con crear un mundo más solidario y sostenible
+      </p>
+      
+      <!-- Botones de registro -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-stagger-2">
+        <app-button 
+          variant="primary" 
+          size="lg"
+          (btnClick)="onDonorRegisterClick()">
+          Registrarse como Donante
+        </app-button>
+        <app-button 
+          variant="secondary" 
+          size="lg"
+          (btnClick)="onOrganizationRegisterClick()">
+          Registrar Organización
+        </app-button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <app-footer></app-footer>
+
+  <!-- Modal de Información -->
+  <app-modal
+    [isOpen]="showInfoModal"
+    title="Conoce DonacionApp"
+    size="xl"
+    (onClose)="closeInfoModal()">
+    
+    <div class="space-y-8">
+      <!-- Hero Section del Modal -->
+      <div class="text-center bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-8">
+        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+        </div>
+        <h4 class="text-2xl font-bold text-gray-900 mb-3">Conectando Corazones a Través de la Donación</h4>
+        <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+          Facilitamos el proceso de donar bienes materiales a organizaciones benéficas y personas que los necesitan. 
+          Juntos construimos un mundo mejor.
+        </p>
+      </div>
+
+      <!-- Beneficios Principales -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center p-6 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+          <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+          </div>
+          <h5 class="font-bold text-gray-900 mb-2">100% Seguro</h5>
+          <p class="text-sm text-gray-600">Todas las organizaciones son verificadas y revisadas.</p>
+        </div>
+
+        <div class="text-center p-6 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </div>
+          <h5 class="font-bold text-gray-900 mb-2">Rápido y Fácil</h5>
+          <p class="text-sm text-gray-600">Publica tus donaciones en minutos.</p>
+        </div>
+
+        <div class="text-center p-6 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+          <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <h5 class="font-bold text-gray-900 mb-2">Impacto Real</h5>
+          <p class="text-sm text-gray-600">Conecta directamente con quienes necesitan ayuda.</p>
+        </div>
+      </div>
+
+      <!-- Proceso Paso a Paso -->
+      <div>
+        <h5 class="text-xl font-bold text-gray-900 mb-6 text-center">¿Cómo Funciona?</h5>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
+            <div>
+              <h6 class="font-semibold text-gray-900 mb-1">Regístrate</h6>
+              <p class="text-sm text-gray-600">Crea tu cuenta como donante o organización en minutos.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
+            <div>
+              <h6 class="font-semibold text-gray-900 mb-1">Publica</h6>
+              <p class="text-sm text-gray-600">Sube fotos y describe los artículos que quieres donar.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
+            <div>
+              <h6 class="font-semibold text-gray-900 mb-1">Conecta</h6>
+              <p class="text-sm text-gray-600">Encuentra organizaciones que necesiten tus donaciones.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">4</div>
+            <div>
+              <h6 class="font-semibold text-gray-900 mb-1">Coordina</h6>
+              <p class="text-sm text-gray-600">Acuerda la entrega y haz realidad tu donación.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Call to Action -->
+      <div class="text-center bg-gradient-to-r from-green-500 to-blue-500 rounded-xl p-8 text-white">
+        <h5 class="text-xl font-bold mb-3">¿Listo para Hacer la Diferencia?</h5>
+        <p class="mb-6 opacity-90">Únete a nuestra comunidad y comienza a donar hoy mismo.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <app-button 
+            variant="primary" 
+            size="lg"
+            (btnClick)="onDonorRegisterClick(); closeInfoModal()"
+            class="bg-white text-green-600 hover:bg-gray-100">
+            Comenzar a Donar
+          </app-button>
+          <app-button 
+            variant="secondary" 
+            size="lg"
+            (btnClick)="onOrganizationRegisterClick(); closeInfoModal()"
+            class="bg-transparent border-white text-white hover:bg-white hover:text-green-600">
+            Registrar Organización
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </app-modal>
+
+  <!-- Modal de Contacto -->
+  <app-modal
+    [isOpen]="showContactModal"
+    title="Contáctanos"
+    size="md"
+    (onClose)="closeContactModal()">
+    
+    <div class="space-y-6">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <h4 class="text-lg font-semibold text-gray-900 mb-2">¿Tienes alguna pregunta?</h4>
+        <p class="text-gray-600">Estamos aquí para ayudarte. Contáctanos por cualquiera de estos medios.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+          <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">Email</p>
+            <p class="text-sm text-gray-600">contacto&#64;donacionapp.com</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+          <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">Teléfono</p>
+            <p class="text-sm text-gray-600">+1 (555) 123-4567</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+          <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">Dirección</p>
+            <p class="text-sm text-gray-600">123 Calle Principal, Ciudad, País</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center pt-4">
+        <p class="text-sm text-gray-500">Horario de atención: Lunes a Viernes, 9:00 AM - 6:00 PM</p>
+      </div>
+    </div>
+  </app-modal>
+
+</div>
+

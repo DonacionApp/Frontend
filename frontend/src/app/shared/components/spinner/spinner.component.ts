@@ -1,7 +1,10 @@
 import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-spinner',
+  standalone: true,
+  imports: [CommonModule],
   template: `
     <div class="spinner-container" [class.overlay]="overlay">
       <div class="spinner" [style.width.px]="size" [style.height.px]="size"></div>
