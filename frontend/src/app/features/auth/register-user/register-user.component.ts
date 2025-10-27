@@ -8,6 +8,7 @@ import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../s
 import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, tap, throwError, finalize } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { Router } from '@angular/router';
 import { Rol } from '../../../shared/model/rol.model';
 import { TypeDniModel } from '../../../shared/model/type.dni.model';
 
@@ -50,6 +51,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     private countriesService: CountriesService,
     private fb: FormBuilder,
     private authService: AuthService,
+    private router: Router,
   ) { }
 
   ngOnInit(): void {
@@ -186,6 +188,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       ).subscribe({
         next: (res) => {
           this.successMessage = 'Cuenta creada, correo de verificacion enviado';
+          // Redirect to the email verification page with the registered email
+          try {
+            const emailTo = payload?.email || this.registerForm.get('email')?.value || '';
+            this.router.navigate(['/auth/email-verification'], { queryParams: { email: emailTo } });
+          } catch (err) {
+            // ignore navigation errors but log
+            console.warn('Navigation to email-verification failed', err);
+          }
         },
         error: (err) => {
           console.error('Error al registrar usuario', err);
