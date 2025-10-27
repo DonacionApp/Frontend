@@ -91,7 +91,7 @@ export class AuthService {
   loadRolesDefault():Observable<any>{
     try {
       return this.http.get<any>(`${this.api}/rol/all/roles`).pipe(
-        tap((data) => console.log('Roles default data:', data)),
+        tap(),
         catchError((error) => {
           console.error('Error fetching default roles:', error);
           return throwError(error);
@@ -105,9 +105,23 @@ export class AuthService {
   loadTypesDni():Observable<any>{
     try {
       return this.http.get<any>(`${this.api}/typedni`).pipe(
-        tap((data) => console.log('TypesDni data:', data)),
+        tap(),
         catchError((error) => {
           console.error('Error fetching TypesDni:', error);
+          return throwError(error);
+        })
+      );
+    } catch (error) {
+      return throwError(error);
+    }
+  }
+
+  registerUser(userData:any):Observable<any>{
+    try {
+      return this.http.post<any>(`${this.api}/auth/register`, userData).pipe(
+        tap((data) => console.log('User registered:', data)),
+        catchError((error) => {
+          console.error('Error registering user:', error);
           return throwError(error);
         })
       );

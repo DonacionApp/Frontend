@@ -19,7 +19,7 @@ export class CountriesService {
 
   countriesList(): Observable<Countris[]> {
     return this.http.get<Countris[]>(`${this.baseUrl}/countries`).pipe(
-      tap((data) => console.log('Countries data:', data)),
+      tap(),
       catchError((error) => {
         console.error('Error fetching countries:', error);
         return throwError(() => error);
@@ -29,7 +29,7 @@ export class CountriesService {
 
   statesByCountry(countryIso2: string): Observable<StatesbyCountrySelect[]> {
     return this.http.get<StatesbyCountrySelect[]>(`${this.baseUrl}/countries/states/iso/${countryIso2}`).pipe(
-      tap((data) => console.log('States data:', data)),
+      tap(),
       catchError((error) => {
         console.error('Error fetching states:', error);
         return throwError(error);
@@ -39,7 +39,7 @@ export class CountriesService {
 
   citiesByState(countryIso2: string, stateIso2: string): Observable<CitiesByStateSelect[]> {
     return this.http.get<CitiesByStateSelect[]>(`${this.baseUrl}/countries/countries/${countryIso2}/states/${stateIso2}/cities`).pipe(
-      tap((data) => console.log('Cities data:', data)),
+      tap(),
       catchError((error) => {
         console.error('Error fetching cities:', error);
         return throwError(error);

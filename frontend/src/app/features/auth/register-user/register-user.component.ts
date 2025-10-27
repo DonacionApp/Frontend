@@ -5,7 +5,7 @@ import { CountriesService } from '../../../core/services/countries.service';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, tap, throwError } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Rol } from '../../../shared/model/rol.model';
@@ -21,11 +21,12 @@ import { TypeDniModel } from '../../../shared/model/type.dni.model';
 export class RegisterUserComponent implements OnInit, OnDestroy {
   registerForm!: FormGroup;
   lastPayload: any = null;
-  rolDefault:string="user";
+  rolDefault: string = "user";
 
-  rolesOptions: Rol[]=[];
-  typeOptions: TypeDniModel[]=[];
+  rolesOptions: Rol[] = [];
+  typeOptions: TypeDniModel[] = [];
   countriesOptions: Countris[] = [];
+  terms: boolean = false;
 
   loadStates: boolean = false;
   loadCities = false;
@@ -35,19 +36,18 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   citiesOptions: CitiesByStateSelect[] = [];
 
+  isFormValid: boolean = false;
+
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private countriesService: CountriesService,
     private fb: FormBuilder,
-    private authService:AuthService,
+    private authService: AuthService,
   ) { }
 
   ngOnInit(): void {
-    // Build empty form (user will fill values)
-    console.log('cities option length', this.citiesOptions.length);
-    console.log('filtered states length', this.statesOptions.length);
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
@@ -71,6 +71,12 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         })
       })
     }, { validators: this.passwordsMatchValidator });
+    // initial valid state
+    this.isFormValid = this.registerForm.valid;
+    // update isFormValid whenever form status changes
+    this.registerForm.statusChanges?.pipe(takeUntil(this.destroy$)).subscribe(status => {
+      this.isFormValid = status === 'VALID';
+    });
     this.registerForm.get('people.municipio.state.iso2')?.disable();
     this.registerForm.get('people.municipio.city.name')?.disable();
 
@@ -86,8 +92,8 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
     this.authService.loadRolesDefault().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
-        data=data.filter((r:Rol)=>{
-          if(r.rol==this.rolDefault){
+        data = data.filter((r: Rol) => {
+          if (r.rol == this.rolDefault) {
             this.registerForm.get('rolId')?.setValue(r.id);
           }
         })
@@ -100,10 +106,8 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       }
     });
 
-    // No client-side filtered suggestion lists: selects will render the full options arrays directly
   }
 
-  // cross-field validator to ensure password and confirmPassword match
   private passwordsMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
     const pass = group.get('password')?.value;
     const confirm = group.get('confirmPassword')?.value;
@@ -113,6 +117,10 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     if (!this.registerForm) { return; }
+    if (!this.terms) {
+      console.warn('Debe aceptar los términos y condiciones');
+      return;
+    }
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       console.warn('Formulario inválido');
@@ -121,7 +129,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
     const fv = this.registerForm.value;
 
-    // Resolve iso2 fallbacks if user typed display but didn't select
     let countryIso = fv.people.municipio.pais.iso2;
     if (!countryIso && fv.people.municipio.pais.display) {
       const foundC = this.countriesOptions.find(c => (c.name || '').toLowerCase() === fv.people.municipio.pais.display.toLowerCase());
@@ -159,7 +166,21 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     };
 
     this.lastPayload = payload;
-    console.log('Payload submitted:', payload);
+    if (this.lastPayload) {
+      this.registerUser();
+    }else{
+      console.log('No hay datos para registrar el usuario');
+    }
+  }
+
+  registerUser(): Observable<any> {
+    try {
+      return this.authService.registerUser(this.lastPayload).pipe(
+        tap((response) => console.log(response))
+      );
+    } catch (error) {
+      return throwError(error);
+    }
   }
 
   selectCountry(country: Countris): void {
@@ -264,6 +285,15 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  termsChange(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    console.log('terms checked:', checked);
+    this.terms = checked;
+    if (checked) {
+
+    }
   }
 
 }
