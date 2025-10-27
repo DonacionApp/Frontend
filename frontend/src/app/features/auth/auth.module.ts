@@ -20,6 +20,7 @@ const routes: Routes = [
   { path: 'email-verification', component: EmailVerificationComponent },
   {path: 'register', component: RegisterUserComponent},
   { path: 'verify-email', component: VerifyEmailComponent },
+  { path: 'verify/email-token', component: VerifyEmailTokenComponent }, // Ruta exacta del correo
   { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
   { path: 'verify-email-token', component: VerifyEmailTokenComponent },
   // { path: 'register', component: RegisterComponent }

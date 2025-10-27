@@ -10,6 +10,7 @@ const routes: Routes = [
   // Rutas directas para enlaces de email (sin prefijo /auth)
   { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
   { path: 'verify-email-token', component: VerifyEmailTokenComponent },
+  { path: 'auth/verify/email-token', component: VerifyEmailTokenComponent }, // Ruta exacta del correo
   
   // Lazy loading para cada módulo de feature
   {
