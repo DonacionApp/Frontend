@@ -6,6 +6,7 @@ import { FooterComponent } from '../../../shared/components/footer/footer.compon
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Rol } from '../../../shared/model/rol.model';
 import { TypeDniModel } from '../../../shared/model/type.dni.model';
@@ -51,6 +52,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
+      confirmPassword: ['', Validators.required],
       rolId: [null],
       profilePhoto: [''],
       people: this.fb.group({
@@ -58,17 +60,17 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         lastName: [''],
         birdthDate: [''],
         // tipoDni field requested
-        tipodDni: [''],
-        dni: [''],
+        tipodDni: ['', Validators.required],
+        dni: ['', Validators.required],
         residencia: [''],
         telefono: [''],
         municipio: this.fb.group({
-          pais: this.fb.group({ iso2: [''], display: [''] }),
-          state: this.fb.group({ iso2: [''], display: [''] }),
-          city: this.fb.group({ name: [''], display: [''] })
+          pais: this.fb.group({ iso2: ['', Validators.required], display: [''] }),
+          state: this.fb.group({ iso2: ['', Validators.required], display: [''] }),
+          city: this.fb.group({ name: ['', Validators.required], display: [''] })
         })
       })
-    });
+    }, { validators: this.passwordsMatchValidator });
     this.registerForm.get('people.municipio.state.iso2')?.disable();
     this.registerForm.get('people.municipio.city.name')?.disable();
 
@@ -99,6 +101,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     });
 
     // No client-side filtered suggestion lists: selects will render the full options arrays directly
+  }
+
+  // cross-field validator to ensure password and confirmPassword match
+  private passwordsMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
+    const pass = group.get('password')?.value;
+    const confirm = group.get('confirmPassword')?.value;
+    if (!pass || !confirm) { return null; }
+    return pass === confirm ? null : { passwordsMismatch: true };
   }
 
   onSubmit(): void {
