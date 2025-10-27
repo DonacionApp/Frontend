@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 
@@ -16,7 +17,7 @@ export interface User {
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  private baseUrl = 'http://localhost:5000/auth'; // backend auth base (ajustable)
+  private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
 
   constructor(private http: HttpClient) {
     // Verificar si hay un usuario en localStorage al iniciar
@@ -38,6 +39,52 @@ export class AuthService {
         this.currentUserSubject.next(user);
       }
     }
+  }
+
+  /** Solicitar enlace de recuperación */
+  forgotPassword(email: string) {
+    const url = `${this.baseUrl}/forgot-password`;
+    return this.http.post<any>(url, { email });
+  }
+
+  /** Restablecer contraseña usando token recibido por email */
+  resetPassword(token: string, password: string) {
+    const url = `${this.baseUrl}/reset-password`;
+    return this.http.post<any>(url, { token, password });
+  }
+
+  /** Verifica/consume el token usando el endpoint de verificación que expone el backend */
+  verifyResetToken(code: string) {
+    const urlVerify = `${this.baseUrl}/verify-reset-passord-token`;
+    return this.http.post<any>(urlVerify, { token: code });
+  }
+
+  /** Alternativa: enviar token y nueva contraseña al endpoint que procesa ambos campos */
+  resetWithToken(code: string, newPassword: string) {
+  const urlVerify = `${this.baseUrl}/verify-reset-passord-token`; // endpoint confirmado por el backend
+    const url1 = `${this.baseUrl}/reset-password-token`;
+    const url2 = `${this.baseUrl}/reset-password`;
+
+    // Intentamos en este orden, intentando adaptarnos al endpoint que el backend expone:
+    // 1) /verify-reset-passsord-token { token, newPassword } (según tu Postman)
+    // 2) /reset-password-token { token, newPassword }
+    // 3) /reset-password { token, password }
+    return this.http.post<any>(urlVerify, { token: code, newPassword }).pipe(
+      catchError((err) => {
+        // if not found or server error, try next
+        if (err?.status === 404 || err?.status === 500) {
+          return this.http.post<any>(url1, { token: code, newPassword }).pipe(
+            catchError((err2) => {
+              if (err2?.status === 404 || err2?.status === 500) {
+                return this.http.post<any>(url2, { token: code, password: newPassword });
+              }
+              throw err2;
+            })
+          );
+        }
+        throw err;
+      })
+    );
   }
 
   login(email: string, password: string): Observable<any> {
