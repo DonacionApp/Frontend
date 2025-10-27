@@ -93,23 +93,25 @@
 										<div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
 													<div formGroupName="pais">
 														<label class="block text-sm font-medium text-gray-700">País</label>
-														<select formControlName="iso2" (change)="onCountryChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" [disabled]="!filteredCountries.length">
+														<select formControlName="iso2" (change)="onCountryChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
 															<option value="">Selecciona un país...</option>
-															<option *ngFor="let c of filteredCountries" [value]="c.iso2">{{ c.name }} ({{ c.iso2 }})</option>
+															<option *ngFor="let c of countriesOptions" [value]="c.iso2">{{ c.name }} ({{ c.iso2 }})</option>
 														</select>
 													</div>
 											<div formGroupName="state">
 												<label class="block text-sm font-medium text-gray-700">Departamento / Estado</label>
-												<select formControlName="iso2" (change)="onStateChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" [disabled]="!filteredStates.length">
+												<select formControlName="iso2" (change)="onStateChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" >
 													<option value="">Selecciona un departamento...</option>
-													<option *ngFor="let s of filteredStates" [value]="s.iso2">{{ s.name }} ({{ s.iso2 }})</option>
+													<option *ngIf="loadStates" disabled>Cargando...</option>
+													<option *ngFor="let s of statesOptions" [value]="s.iso2">{{ s.name }} ({{ s.iso2 }})</option>
 												</select>
 											</div>
 											<div formGroupName="city">
 												<label class="block text-sm font-medium text-gray-700">Municipio / Ciudad</label>
-												<select formControlName="name" (change)="onCityChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" [disabled]="!filteredCities.length">
+												<select formControlName="name" (change)="onCityChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" >
 													<option value="">Selecciona una ciudad...</option>
-													<option *ngFor="let ct of filteredCities" [value]="ct.name">{{ ct.name }}</option>
+													<option *ngIf="loadCities" disabled>Cargando...</option>
+													<option *ngFor="let ct of citiesOptions" [value]="ct.name">{{ ct.name }}</option>
 												</select>
 											</div>
 										</div>

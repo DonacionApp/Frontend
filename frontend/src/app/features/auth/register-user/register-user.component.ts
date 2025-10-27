@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CountriesService } from '../../../core/services/countries.service';
-import { NavComponent } from '../../../shared/components/nav/nav.component';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
@@ -19,25 +18,28 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   registerForm!: FormGroup;
   lastPayload: any = null;
 
-  // Country/state/city options and filtered lists
   countriesOptions: Countris[] = [];
-  filteredCountries: Countris[] = [];
+
+  loadStates: boolean = false;
+  loadCities = false;
 
   statesOptions: StatesbyCountrySelect[] = [];
-  filteredStates: StatesbyCountrySelect[] = [];
+
 
   citiesOptions: CitiesByStateSelect[] = [];
-  filteredCities: CitiesByStateSelect[] = [];
+
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private countriesService: CountriesService,
     private fb: FormBuilder,
-  ){}
+  ) { }
 
   ngOnInit(): void {
     // Build empty form (user will fill values)
+    console.log('cities option length', this.citiesOptions.length);
+    console.log('filtered states length', this.statesOptions.length);
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
@@ -60,37 +62,20 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         })
       })
     });
+    this.registerForm.get('people.municipio.state.iso2')?.disable();
+    this.registerForm.get('people.municipio.city.name')?.disable();
 
     // Load countries once and set up filtering
     this.countriesService.countriesList().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.countriesOptions = data || [];
-        this.filteredCountries = this.countriesOptions;
       },
       error: () => {
         this.countriesOptions = [];
-        this.filteredCountries = [];
       }
     });
 
-    // Watch display inputs for filtering suggestions
-    const countryDisplayControl = this.registerForm.get(['people', 'municipio', 'pais', 'display']);
-    countryDisplayControl?.valueChanges.pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(val => {
-      const q = (val || '').toString().toLowerCase();
-      this.filteredCountries = this.countriesOptions.filter(c => (c.name || '').toLowerCase().includes(q) || (c.iso2 || '').toLowerCase().includes(q));
-    });
-
-    const stateDisplayControl = this.registerForm.get(['people', 'municipio', 'state', 'display']);
-    stateDisplayControl?.valueChanges.pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(val => {
-      const q = (val || '').toString().toLowerCase();
-      this.filteredStates = this.statesOptions.filter(s => (s.name || '').toLowerCase().includes(q) || (s.iso2 || '').toLowerCase().includes(q));
-    });
-
-    const cityDisplayControl = this.registerForm.get(['people', 'municipio', 'city', 'display']);
-    cityDisplayControl?.valueChanges.pipe(debounceTime(250), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(val => {
-      const q = (val || '').toString().toLowerCase();
-      this.filteredCities = this.citiesOptions.filter(c => (c.name || '').toLowerCase().includes(q));
-    });
+    // No client-side filtered suggestion lists: selects will render the full options arrays directly
   }
 
   onSubmit(): void {
@@ -148,34 +133,35 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!country) { return; }
     this.registerForm.get(['people', 'municipio', 'pais', 'iso2'])?.setValue(country.iso2 || '');
     this.registerForm.get(['people', 'municipio', 'pais', 'display'])?.setValue(country.name || '');
-    this.filteredCountries = [];
-
+    // start loading states
+    this.loadStates = true;
     this.countriesService.statesByCountry(country.iso2 || '').pipe(takeUntil(this.destroy$)).subscribe({
       next: (states) => {
         this.statesOptions = states || [];
-        this.filteredStates = this.statesOptions;
-        // clear previous state and city
+        // clear previous state and city values (keeps selects visible)
         this.registerForm.get(['people', 'municipio', 'state', 'iso2'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'state', 'display'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue('');
+        this.registerForm.get('people.municipio.state.iso2')?.enable();
+        this.loadStates = false;
       },
       error: () => {
         this.statesOptions = [];
-        this.filteredStates = [];
+        this.loadStates = false;
       }
     });
   }
 
-  // wrapper to be used from <select> change
   onCountryChange(event: Event): void {
     const iso2 = (event.target as HTMLSelectElement)?.value || '';
     if (!iso2) {
-      // clear states and cities
+      this.registerForm.get('people.municipio.city.name')?.disable();
+      this.registerForm.get('people.municipio.state.iso2')?.disable();
       this.statesOptions = [];
-      this.filteredStates = [];
       this.citiesOptions = [];
-      this.filteredCities = [];
+      this.loadStates = false;
+      this.loadCities = false;
       this.registerForm.get(['people', 'municipio', 'state', 'iso2'])?.setValue('');
       this.registerForm.get(['people', 'municipio', 'state', 'display'])?.setValue('');
       this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
@@ -190,7 +176,8 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!state) { return; }
     this.registerForm.get(['people', 'municipio', 'state', 'iso2'])?.setValue(state.iso2 || '');
     this.registerForm.get(['people', 'municipio', 'state', 'display'])?.setValue(state.name || '');
-    this.filteredStates = [];
+    this.registerForm.get('people.municipio.city.name')?.enable();
+    this.loadCities = true;
 
     const countryIso = this.registerForm.get(['people', 'municipio', 'pais', 'iso2'])?.value;
     if (!countryIso) { return; }
@@ -198,26 +185,26 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     this.countriesService.citiesByState(countryIso, state.iso2 || '').pipe(takeUntil(this.destroy$)).subscribe({
       next: (cities) => {
         this.citiesOptions = cities || [];
-        this.filteredCities = this.citiesOptions;
         // clear city selection
         this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue('');
+        this.loadCities = false;
       },
       error: () => {
         this.citiesOptions = [];
-        this.filteredCities = [];
+        this.loadCities = false;
       }
     });
   }
 
-  // wrapper to be used from <select> change
   onStateChange(event: Event): void {
     const iso2 = (event.target as HTMLSelectElement)?.value || '';
     if (!iso2) {
+      this.registerForm.get('people.municipio.city')?.disable();
       this.citiesOptions = [];
-      this.filteredCities = [];
       this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
       this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue('');
+      this.registerForm.get('people.municipio.city.name')?.enable();
       return;
     }
     const state = this.statesOptions.find(s => s.iso2 === iso2);
@@ -228,7 +215,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!city) { return; }
     this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue(city.name || '');
     this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue(city.name || '');
-    this.filteredCities = [];
   }
 
   onCityChange(event: Event): void {
