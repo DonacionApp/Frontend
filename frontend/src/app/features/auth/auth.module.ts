@@ -7,12 +7,14 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 import { VerifyResetTokenComponent } from './verify-reset-token/verify-reset-token.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../shared/components/button/button.component';
+import { RegisterUserComponent } from './register-user/register-user.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
   { path: 'reset-password-token', component: VerifyResetTokenComponent },
+  {path: 'register-user', component: RegisterUserComponent}
   // { path: 'register', component: RegisterComponent }
 ];
 
@@ -26,7 +28,8 @@ const routes: Routes = [
     ButtonComponent,
   ForgotPasswordComponent, // componente standalone placeholder
   ResetPasswordComponent,
-  VerifyResetTokenComponent
+  VerifyResetTokenComponent,
+  RegisterUserComponent
   ],
   providers: [
     // Aquí irán los servicios específicos de autenticación
