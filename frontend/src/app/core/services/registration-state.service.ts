@@ -1,5 +1,5 @@
-import { Injectable, BehaviorSubject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface RegistrationFormData {
   // Campos comunes
