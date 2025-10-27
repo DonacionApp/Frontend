@@ -1,0 +1,157 @@
+<main class="min-h-[70vh] bg-gray-50 py-12">
+	<div class="max-w-3xl mx-auto px-4">
+		<div class="bg-white rounded-lg shadow-md overflow-hidden">
+			<div class="p-8">
+				<h1 class="text-2xl font-bold text-center">Crear Cuenta</h1>
+				<p class="text-center text-gray-500 mt-2">Únete a nuestra comunidad de donantes y organizaciones</p>
+
+				<div class="mt-6 grid grid-cols-1 gap-6">
+					<!-- Card -->
+					<div class="border border-gray-200 rounded-lg p-6">
+						<!-- Account type toggle -->
+						<div class="flex items-center justify-center mb-4">
+							<div class="bg-gray-100 rounded-full p-1 flex items-center">
+								<button class="px-4 py-2 rounded-full text-sm bg-white shadow-sm">usuario</button>
+								<button class="px-4 py-2 rounded-full text-sm text-gray-600">Organización</button>
+							</div>
+						</div>
+
+						<div class="md:flex md:gap-6">
+							<!-- Left info box -->
+							<div class="md:w-1/3 bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm text-gray-600">
+								<p class="font-semibold text-gray-700 mb-2">Como Donante Podrás:</p>
+								<ul class="list-disc pl-5 space-y-1">
+									<li>Publicar artículos que deseas donar</li>
+									<li>Recibir solicitudes de organizaciones</li>
+									<li>Comunicarte directamente con organizaciones</li>
+									<li>Hacer seguimiento de tus donaciones</li>
+								</ul>
+							</div>
+
+							<!-- Form area -->
+							<div class="md:flex-1 mt-4 md:mt-0">
+								<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">
+									<div>
+										<label class="block text-sm font-medium text-gray-700">Usuario (username) *</label>
+										<input formControlName="username" type="text" placeholder="usuario" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+									</div>
+
+									<div>
+										<label class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
+										<input formControlName="email" type="email" placeholder="tu@email.com" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+									</div>
+
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label class="block text-sm font-medium text-gray-700">Contraseña *</label>
+											<input formControlName="password" type="password" placeholder="Mínimo 8 caracteres" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											<div *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.invalid" class="text-xs text-red-500 mt-1">La contraseña es requerida</div>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-700">Confirmar Contraseña *</label>
+											<input formControlName="confirmPassword" type="password" placeholder="Confirma tu contraseña" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											<div *ngIf="registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.invalid" class="text-xs text-red-500 mt-1">Confirma la contraseña</div>
+											<div *ngIf="registerForm.hasError('passwordsMismatch') && (registerForm.get('confirmPassword')?.touched || registerForm.get('password')?.touched)" class="text-xs text-red-500 mt-1">Las contraseñas no coinciden</div>
+										</div>
+									</div>
+
+									<div formGroupName="people">
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Nombre *</label>
+												<input formControlName="name" type="text" placeholder="Nombre" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','name'])?.touched && registerForm.get(['people','name'])?.invalid" class="text-xs text-red-500 mt-1">El nombre es obligatorio</div>
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Apellido</label>
+												<input formControlName="lastName" type="text" placeholder="Apellido" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+										</div>
+
+										<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
+												<input formControlName="birdthDate" type="date" placeholder="dd-mm-yyyy" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Tipo de DNI</label>
+												<select formControlName="tipodDni" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
+													<option [ngValue]="''">Selecciona tipo de DNI...</option>
+													<option *ngFor="let t of typeOptions" [ngValue]="t.id">{{ t.type }}</option>
+												</select>
+												<div *ngIf="registerForm.get(['people','tipodDni'])?.touched && registerForm.get(['people','tipodDni'])?.invalid" class="text-xs text-red-500 mt-1">Selecciona un tipo de DNI</div>
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">DNI</label>
+												<input formControlName="dni" type="text" maxlength="10" placeholder="DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','dni'])?.touched && registerForm.get(['people','dni'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El DNI no puede tener más de 10 caracteres</div>
+											</div>
+										</div>
+
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Residencia</label>
+												<input formControlName="residencia" type="text" placeholder="Residencia" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Teléfono</label>
+												<input formControlName="telefono" type="tel" maxlength="10" placeholder="Teléfono" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','telefono'])?.touched && registerForm.get(['people','telefono'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El teléfono no puede tener más de 10 caracteres</div>
+											</div>
+										</div>
+
+										<div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+													<div formGroupName="pais">
+														<label class="block text-sm font-medium text-gray-700">País</label>
+														<select formControlName="iso2" (change)="onCountryChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
+															<option value="">Selecciona un país...</option>
+															<option *ngFor="let c of countriesOptions" [value]="c.iso2">{{ c.name }} ({{ c.iso2 }})</option>
+														</select>
+													</div>
+											<div formGroupName="state">
+												<label class="block text-sm font-medium text-gray-700">Departamento / Estado</label>
+												<select formControlName="iso2" (change)="onStateChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" >
+													<option value="">Selecciona un departamento...</option>
+													<option *ngIf="loadStates" disabled>Cargando...</option>
+													<option *ngFor="let s of statesOptions" [value]="s.iso2">{{ s.name }} ({{ s.iso2 }})</option>
+												</select>
+											</div>
+											<div formGroupName="city">
+												<label class="block text-sm font-medium text-gray-700">Municipio / Ciudad</label>
+												<select formControlName="name" (change)="onCityChange($event)" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" >
+													<option value="">Selecciona una ciudad...</option>
+													<option *ngIf="loadCities" disabled>Cargando...</option>
+													<option *ngFor="let ct of citiesOptions" [value]="ct.name">{{ ct.name }}</option>
+												</select>
+											</div>
+										</div>
+									</div>
+
+									<div class="flex items-center gap-3">
+										<input id="terms" type="checkbox" (change)="termsChange($event)" class="h-4 w-4 text-green-500 rounded" />
+										<label for="terms" class="text-sm text-gray-600">Acepto los <a class="text-green-500 underline">términos y condiciones</a> y la <a class="text-green-500 underline">política de privacidad</a></label>
+									</div>
+
+									<!-- Success / Error / Loader messages -->
+									<div class="mt-2">
+										<div *ngIf="successMessage" class="text-sm text-green-600">{{ successMessage }}</div>
+										<div *ngIf="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</div>
+										<div *ngIf="loadingRegister" class="text-sm text-gray-600">Cargando...</div>
+									</div>
+
+									<!-- Buttons -->
+									<div class="flex gap-3 justify-end mt-2 items-center">
+										<app-button variant="ghost" size="md" type="button">Ya tengo cuenta</app-button>
+										<app-button variant="primary" size="md" [disabled]="!terms || !isFormValid || loadingRegister" id="submit_create_acount" type="submit">Crear Cuenta</app-button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</main>
+
+<app-footer></app-footer>

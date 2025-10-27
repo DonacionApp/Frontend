@@ -1,0 +1,13 @@
+/* Minimal styles specific to the register page. Most layout uses Tailwind utility classes. */
+
+:host {
+	display: block;
+}
+
+.mobile-only {
+	display: none;
+}
+
+@media (max-width: 768px) {
+	.mobile-only { display: block; }
+}
