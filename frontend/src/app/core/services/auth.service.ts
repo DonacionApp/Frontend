@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 
@@ -16,7 +17,7 @@ export interface User {
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  private baseUrl = 'http://localhost:5000/auth'; // backend auth base (ajustable)
+  private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
 
   constructor(private http: HttpClient) {
     // Verificar si hay un usuario en localStorage al iniciar
