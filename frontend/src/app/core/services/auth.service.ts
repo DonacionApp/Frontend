@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface User {
   id: string;
@@ -25,9 +26,23 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<User> {
-    // Implementar lógica de login
-    // return this.http.post<User>('/api/auth/login', { email, password });
-    throw new Error('Method not implemented');
+    return this.http.post<User>(`${environment.apiUrl}/auth/login`, { email, password });
+  }
+
+  register(userData: any): Observable<User> {
+    return this.http.post<User>(`${environment.apiUrl}/auth/register`, userData);
+  }
+
+  verifyEmail(token: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/verify-email`, { token });
+  }
+
+  requestPasswordReset(email: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
   }
 
   logout(): void {

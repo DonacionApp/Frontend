@@ -1,0 +1,100 @@
+.hierarchical-location-selector {
+  .relative {
+    position: relative;
+  }
+
+  .absolute {
+    position: absolute;
+  }
+
+  .z-50 {
+    z-index: 50;
+  }
+
+  .max-h-60 {
+    max-height: 15rem;
+  }
+
+  .overflow-y-auto {
+    overflow-y: auto;
+  }
+
+  .transition-transform {
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  .rotate-180 {
+    transform: rotate(180deg);
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  // Estilos personalizados para los dropdowns
+  .dropdown-item {
+    transition: background-color 0.15s ease-in-out;
+    
+    &:hover {
+      background-color: #f9fafb;
+    }
+  }
+
+  // Estilos para el scrollbar en los dropdowns
+  .overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #9ca3af;
+      }
+    }
+  }
+
+  // Animación suave para mostrar/ocultar dropdowns
+  .dropdown-enter {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  }
+
+  .dropdown-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .dropdown-exit {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  }
+
+  .dropdown-exit-active {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}

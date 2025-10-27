@@ -1,0 +1,230 @@
+<div class="hierarchical-location-selector space-y-4">
+  <!-- País -->
+  <div class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700">
+      País <span class="text-red-500">*</span>
+    </label>
+    <div class="relative">
+      <input
+        type="text"
+        [(ngModel)]="countrySearchTerm"
+        (input)="onCountrySearch($event)"
+        (focus)="showCountryDropdown = true"
+        (blur)="onCountryBlur()"
+        [placeholder]="getCountryDisplayText()"
+        [disabled]="isCountryDisabled()"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+      
+      <!-- Botón de limpiar país -->
+      <button
+        *ngIf="selectedCountry"
+        type="button"
+        (click)="clearCountry()"
+        class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      
+      <!-- Botón de dropdown -->
+      <button
+        type="button"
+        (click)="toggleCountryDropdown()"
+        [disabled]="isCountryDisabled()"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+      >
+        <svg class="w-5 h-5 transition-transform duration-200" [class.rotate-180]="showCountryDropdown" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      
+      <!-- Loading spinner -->
+      <div *ngIf="isLoadingCountries" class="absolute right-10 top-1/2 transform -translate-y-1/2">
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
+      </div>
+      
+      <!-- Dropdown de países -->
+      <div
+        *ngIf="showCountryDropdown"
+        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+      >
+        <div *ngIf="filteredCountries.length === 0 && !isLoadingCountries" class="px-4 py-3 text-gray-500 text-sm">
+          No se encontraron países
+        </div>
+        <div
+          *ngFor="let country of filteredCountries"
+          (click)="selectCountry(country)"
+          class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-gray-900">{{ country.name }}</span>
+            <span class="text-xs text-gray-500 uppercase">{{ country.iso2 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado/Departamento -->
+  <div class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700">
+      Estado/Departamento <span class="text-red-500">*</span>
+    </label>
+    <div class="relative">
+      <input
+        type="text"
+        [(ngModel)]="stateSearchTerm"
+        (input)="onStateSearch($event)"
+        (focus)="showStateDropdown = true"
+        (blur)="onStateBlur()"
+        [placeholder]="getStateDisplayText()"
+        [disabled]="isStateDisabled()"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+      
+      <!-- Botón de limpiar estado -->
+      <button
+        *ngIf="selectedState"
+        type="button"
+        (click)="clearState()"
+        class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      
+      <!-- Botón de dropdown -->
+      <button
+        type="button"
+        (click)="toggleStateDropdown()"
+        [disabled]="isStateDisabled()"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+      >
+        <svg class="w-5 h-5 transition-transform duration-200" [class.rotate-180]="showStateDropdown" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      
+      <!-- Loading spinner -->
+      <div *ngIf="isLoadingStates" class="absolute right-10 top-1/2 transform -translate-y-1/2">
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
+      </div>
+      
+      <!-- Dropdown de estados -->
+      <div
+        *ngIf="showStateDropdown && selectedCountry"
+        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+      >
+        <div *ngIf="filteredStates.length === 0 && !isLoadingStates" class="px-4 py-3 text-gray-500 text-sm">
+          No se encontraron estados
+        </div>
+        <div
+          *ngFor="let state of filteredStates"
+          (click)="selectState(state)"
+          class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-gray-900">{{ state.name }}</span>
+            <span class="text-xs text-gray-500 uppercase">{{ state.iso2 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ciudad -->
+  <div class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700">
+      Ciudad <span class="text-red-500">*</span>
+    </label>
+    <div class="relative">
+      <input
+        type="text"
+        [(ngModel)]="citySearchTerm"
+        (input)="onCitySearch($event)"
+        (focus)="showCityDropdown = true"
+        (blur)="onCityBlur()"
+        [placeholder]="getCityDisplayText()"
+        [disabled]="isCityDisabled()"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+      
+      <!-- Botón de limpiar ciudad -->
+      <button
+        *ngIf="selectedCity"
+        type="button"
+        (click)="clearCity()"
+        class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      
+      <!-- Botón de dropdown -->
+      <button
+        type="button"
+        (click)="toggleCityDropdown()"
+        [disabled]="isCityDisabled()"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+      >
+        <svg class="w-5 h-5 transition-transform duration-200" [class.rotate-180]="showCityDropdown" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      
+      <!-- Loading spinner -->
+      <div *ngIf="isLoadingCities" class="absolute right-10 top-1/2 transform -translate-y-1/2">
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
+      </div>
+      
+      <!-- Dropdown de ciudades -->
+      <div
+        *ngIf="showCityDropdown && selectedState"
+        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+      >
+        <div *ngIf="filteredCities.length === 0 && !isLoadingCities" class="px-4 py-3 text-gray-500 text-sm">
+          No se encontraron ciudades
+        </div>
+        <div
+          *ngFor="let city of filteredCities"
+          (click)="selectCity(city)"
+          class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+        >
+          <span class="text-gray-900">{{ city.name }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Información de selección actual -->
+  <div *ngIf="selectedCountry || selectedState || selectedCity" class="p-3 bg-green-50 border border-green-200 rounded-lg">
+    <div class="text-sm text-green-800">
+      <div class="font-medium mb-1">Ubicación seleccionada:</div>
+      <div class="space-y-1">
+        <div *ngIf="selectedCountry" class="flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>{{ selectedCountry.name }}</span>
+        </div>
+        <div *ngIf="selectedState" class="flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+          <span>{{ selectedState.name }}</span>
+        </div>
+        <div *ngIf="selectedCity" class="flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span>{{ selectedCity.name }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

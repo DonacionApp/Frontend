@@ -2,6 +2,8 @@ import { NgModule, Optional, SkipSelf } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AuthService } from './services/auth.service';
+import { CountriesService } from './services/countries.service';
+import { DatabaseTestService } from './services/database-test.service';
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
@@ -14,6 +16,8 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
   imports: [CommonModule],
   providers: [
     AuthService,
+    CountriesService,
+    DatabaseTestService,
     AuthGuard,
     AdminGuard,
     {

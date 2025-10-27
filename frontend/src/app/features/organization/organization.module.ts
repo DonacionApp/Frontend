@@ -1,10 +1,10 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
-import { OrganizationRegisterComponent } from './register/register.component';
 
 const routes: Routes = [
-  { path: 'register', component: OrganizationRegisterComponent },
+  // Las rutas de organización se configurarán cuando se implementen los componentes
+  // { path: 'register', component: OrganizationRegisterComponent },
   // { path: '', component: OrganizationDashboardComponent },
   // { path: 'profile', component: OrganizationProfileComponent },
   // { path: 'campaigns', component: CampaignsComponent },
@@ -17,11 +17,10 @@ const routes: Routes = [
   ],
   imports: [
     CommonModule,
-    RouterModule.forChild(routes),
-    OrganizationRegisterComponent // Importar el componente standalone
+    RouterModule.forChild(routes)
   ],
   providers: [
-    // Aquí irán los servicios específicos de la organización
+    // Aquí irán los servicios específicos de la organización cuando se implementen
   ]
 })
 export class OrganizationModule { }

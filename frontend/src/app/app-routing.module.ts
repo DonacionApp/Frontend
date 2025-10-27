@@ -1,10 +1,12 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
+import { EmailVerificationComponent } from './features/auth/email-verification/email-verification.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'home', component: HomeComponent },
+  { path: 'email-verification', component: EmailVerificationComponent },
   
   // Lazy loading para cada módulo de feature
   {

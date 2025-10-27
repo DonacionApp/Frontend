@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
-import { DonorRegisterComponent } from './register/register.component';
+import { DonorRegisterComponent } from './components/donor-register/donor-register.component';
 
 const routes: Routes = [
   { path: 'register', component: DonorRegisterComponent },

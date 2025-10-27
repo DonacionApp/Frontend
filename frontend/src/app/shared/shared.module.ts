@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SpinnerComponent } from './components/spinner/spinner.component';
+import { HierarchicalLocationSelectorComponent } from './components/hierarchical-location-selector/hierarchical-location-selector.component';
 
 /**
  * SharedModule contiene componentes, directivas y pipes reutilizables
@@ -9,12 +10,10 @@ import { SpinnerComponent } from './components/spinner/spinner.component';
 @NgModule({
   imports: [
     CommonModule,
-    SpinnerComponent
-    // Aquí se pueden importar otros módulos compartidos como Material
+    HierarchicalLocationSelectorComponent
   ],
   exports: [
-    SpinnerComponent
-    // Exportar todo lo que necesiten usar otros módulos
+    HierarchicalLocationSelectorComponent
   ]
 })
 export class SharedModule { }

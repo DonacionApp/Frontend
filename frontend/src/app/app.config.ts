@@ -10,6 +10,13 @@ const routes: Routes = [
     loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent)
   },
   
+  // Ruta de verificación de correo
+  {
+    path: 'email-verification',
+    loadComponent: () => import('./features/auth/email-verification/email-verification.component').then(m => m.EmailVerificationComponent)
+  },
+  
+  
   // Rutas de autenticación (temporales - redirigen a landing page)
   {
     path: 'login',
@@ -26,6 +33,14 @@ const routes: Routes = [
   {
     path: 'auth',
     loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule)
+  },
+  {
+    path: 'donor',
+    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule)
+  },
+  {
+    path: 'organization',
+    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule)
   },
   {
     path: 'admin',
