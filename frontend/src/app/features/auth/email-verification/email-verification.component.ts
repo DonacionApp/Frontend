@@ -15,90 +15,151 @@ import { environment } from '../../../../environments/environment';
       <div class="max-w-md w-full space-y-8">
         <div class="text-center">
           <!-- Icono de verificación -->
-          <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
-            <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full mb-6"
+               [class.bg-green-100]="!isVerified"
+               [class.bg-green-100]="isVerified">
+            <svg *ngIf="!isVerified" class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+            <svg *ngIf="isVerified" class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
           
           <!-- Título principal -->
           <h2 class="text-3xl font-bold text-gray-900 mb-2">
-            ¡Registro Exitoso!
+            {{ isVerified ? '¡Cuenta Verificada!' : '¡Registro Exitoso!' }}
           </h2>
           
           <!-- Subtítulo -->
           <p class="text-lg text-gray-600 mb-8">
-            Te hemos enviado un correo de verificación
+            {{ isVerified ? 'Tu cuenta ha sido verificada exitosamente' : 'Te hemos enviado un correo de verificación' }}
           </p>
         </div>
 
-        <!-- Información del correo -->
+        <!-- Contenido principal - cambia según el estado de verificación -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
           <div class="text-center">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">
-              Verifica tu correo electrónico
-            </h3>
             
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div class="flex items-center justify-center mb-2">
-                <svg class="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
-                </svg>
-                <span class="text-sm font-medium text-blue-800">Correo enviado a:</span>
+            <!-- Vista cuando NO está verificado -->
+            <div *ngIf="!isVerified">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                Verifica tu correo electrónico
+              </h3>
+              
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-center mb-2">
+                  <svg class="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-blue-800">Correo enviado a:</span>
+                </div>
+                <p class="text-lg font-semibold text-blue-900 break-all">{{ userEmail }}</p>
               </div>
-              <p class="text-lg font-semibold text-blue-900 break-all">{{ userEmail }}</p>
+
+              <!-- Verificación por código -->
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <h4 class="text-md font-semibold text-gray-800 mb-3">Verificación por código</h4>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Código de verificación:</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="verificationCode"
+                      (input)="onCodeInput($event)"
+                      placeholder="ABC123"
+                      maxlength="6"
+                      inputmode="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-mono tracking-wider uppercase">
+                  </div>
+                  <button 
+                    (click)="verifyCode()"
+                    [disabled]="!isCodeValid() || isVerifying"
+                    class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                    {{ isVerifying ? 'Verificando...' : 'Verificar Código' }}
+                  </button>
+                </div>
+              </div>
+              
+              <div class="text-sm text-gray-600 space-y-2">
+                <p>• Revisa tu bandeja de entrada</p>
+                <p>• Si no encuentras el correo, revisa la carpeta de spam</p>
+                <p>• Ingresa el código de 6 caracteres (letras y números) que recibiste</p>
+                <p>• Una vez verificado, podrás acceder a la plataforma</p>
+                <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                  <p class="text-xs text-blue-800 font-medium">💡 Tip:</p>
+                  <p class="text-xs text-blue-700">Puedes usar el código de verificación o hacer clic en el enlace del email</p>
+                </div>
+              </div>
             </div>
 
-            <!-- Verificación por código -->
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-              <h4 class="text-md font-semibold text-gray-800 mb-3">Verificación por código</h4>
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Código de verificación:</label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="verificationCode"
-                    (input)="onCodeInput($event)"
-                    placeholder="ABC123"
-                    maxlength="6"
-                    inputmode="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-mono tracking-wider">
+            <!-- Vista cuando YA está verificado -->
+            <div *ngIf="isVerified">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                Verificación Completada
+              </h3>
+              
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-center mb-2">
+                  <svg class="h-5 w-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-green-800">Email verificado:</span>
                 </div>
-                <button 
-                  (click)="verifyCode()"
-                  [disabled]="!isCodeValid() || isVerifying"
-                  class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
-                  {{ isVerifying ? 'Verificando...' : 'Verificar Código' }}
-                </button>
+                <p class="text-lg font-semibold text-green-900 break-all">{{ userEmail }}</p>
               </div>
-            </div>
-            
-            <div class="text-sm text-gray-600 space-y-2">
-              <p>• Revisa tu bandeja de entrada</p>
-              <p>• Si no encuentras el correo, revisa la carpeta de spam</p>
-              <p>• Ingresa el código de 6 caracteres (letras y números) que recibiste</p>
-              <p>• Una vez verificado, podrás iniciar sesión</p>
+
+              <div class="text-sm text-gray-600 space-y-2">
+                <p>✅ Tu cuenta está activa</p>
+                <p>✅ Puedes acceder a la plataforma</p>
+                <p>✅ Tu registro está completo</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Botones de acción -->
+        <!-- Botones de acción - cambian según el estado -->
         <div class="space-y-4">
-          <!-- Botón para reenviar correo -->
-          <button 
-            (click)="resendEmail()"
-            [disabled]="isResending || resendCooldown > 0"
-            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
-            <span *ngIf="isResending" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
-            {{ getResendButtonText() }}
-          </button>
           
-          <!-- Botón para ir al login -->
-          <button 
-            (click)="goToLogin()"
-            class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-            Ir al inicio de sesión
-          </button>
+          <!-- Botones cuando NO está verificado -->
+          <div *ngIf="!isVerified">
+            <!-- Botón para reenviar correo -->
+            <button 
+              (click)="resendEmail()"
+              [disabled]="isResending || resendCooldown > 0"
+              class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+              <span *ngIf="isResending" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></span>
+              {{ getResendButtonText() }}
+            </button>
+            
+            
+            <!-- Botón para ir al inicio -->
+            <button 
+              (click)="goToHome()"
+              class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+              Ir al inicio
+            </button>
+          </div>
+
+          <!-- Botones cuando YA está verificado -->
+          <div *ngIf="isVerified">
+            <!-- Botón principal para iniciar sesión -->
+            <button 
+              (click)="autoLogin()"
+              class="w-full flex justify-center py-4 px-6 border border-transparent rounded-lg shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+              <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Iniciar Sesión
+            </button>
+            
+            <!-- Botón secundario para ir al inicio -->
+            <button 
+              (click)="goToHome()"
+              class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+              Ir al inicio
+            </button>
+          </div>
         </div>
 
         <!-- Mensajes de estado -->
@@ -128,15 +189,27 @@ import { environment } from '../../../../environments/environment';
 
         <!-- Información adicional -->
         <div class="text-center">
-          <p class="text-sm text-gray-500">
-            ¿No recibiste el correo? 
-            <button 
-              (click)="resendEmail()" 
-              [disabled]="resendCooldown > 0"
-              class="text-blue-600 hover:text-blue-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-              Reenviar
-            </button>
-          </p>
+          <!-- Información cuando NO está verificado -->
+          <div *ngIf="!isVerified">
+            <p class="text-sm text-gray-500">
+              ¿No recibiste el correo? 
+              <button 
+                (click)="resendEmail()" 
+                [disabled]="resendCooldown > 0"
+                class="text-blue-600 hover:text-blue-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                Reenviar
+              </button>
+            </p>
+          </div>
+          
+          <!-- Información cuando YA está verificado -->
+          <div *ngIf="isVerified">
+            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p class="text-sm text-green-800">
+                <strong>Nota:</strong> Haz clic en "Iniciar Sesión" para acceder a la plataforma.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -152,6 +225,7 @@ export class EmailVerificationComponent implements OnInit {
   messageType: 'success' | 'error' | 'warning' = 'success';
   resendCooldown: number = 0;
   private cooldownInterval: any;
+  isVerified: boolean = false; // Nuevo estado para controlar si ya está verificado
 
   constructor(
     private route: ActivatedRoute,
@@ -166,27 +240,18 @@ export class EmailVerificationComponent implements OnInit {
       this.userEmail = params['email'] || '';
       
       if (!this.userEmail) {
-        console.error('❌ No se proporcionó email');
         this.message = 'Error: No se encontró el correo electrónico';
         this.messageType = 'error';
-        setTimeout(() => this.router.navigate(['/auth/register']), 3000);
+        setTimeout(() => this.router.navigate(['/donor/register']), 3000);
         return;
       }
 
-      console.log('📧 Email para verificar:', this.userEmail);
-
       // Verificar si hay un token en la URL (verificación por enlace)
       const token = params['token'];
+      
       if (token) {
-        console.log('🔑 Token encontrado, verificando automáticamente...');
-        this.verifyByToken(token);
-      }
-
-      // Modo simulación (para desarrollo)
-      if (params['simulated'] === 'true' && params['code']) {
-        this.message = `Modo simulación activado. Código de prueba: ${params['code']}`;
-        this.messageType = 'warning';
-        console.log('🎭 Modo simulación activado con código:', params['code']);
+        // Verificar en el backend y luego redirigir
+        this.verifyTokenAndRedirect(token);
       }
     });
   }
@@ -198,79 +263,91 @@ export class EmailVerificationComponent implements OnInit {
   }
 
   onCodeInput(event: any): void {
-    // Permitir letras y números
+    // Permitir letras y números, convertir a mayúsculas
     const input = event.target as HTMLInputElement;
-    input.value = input.value.replace(/[^A-Za-z0-9]/g, '');
+    input.value = input.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     this.verificationCode = input.value;
   }
 
   isCodeValid(): boolean {
-    return this.verificationCode.length === 6 && /^[A-Za-z0-9]{6}$/.test(this.verificationCode);
+    return this.verificationCode.length === 6 && /^[A-Z0-9]{6}$/.test(this.verificationCode);
   }
 
-  verifyByToken(token: string): void {
+  // Verificación por token habilitada - maneja enlaces de verificación
+
+  verifyTokenAndRedirect(token: string): void {
     this.isVerifying = true;
-    this.message = 'Verificando tu correo...';
+    this.message = 'Verificando tu cuenta...';
     this.messageType = 'warning';
 
-    console.log('🔍 Verificando con token:', token);
-
-    // Endpoint para verificación por token
-    this.http.post(`${environment.apiUrl}/auth/verify-email`, {
-      token: token
-    }).subscribe({
+    // Llamada al backend para verificar el token
+    this.http.post(`${environment.apiUrl}/auth/verify-email-token`, { token }).subscribe({
       next: (response: any) => {
-        console.log('✅ Verificación por token exitosa:', response);
         this.isVerifying = false;
-        this.message = '¡Correo verificado exitosamente! Redirigiendo al login...';
+        this.isVerified = true;
+        this.message = '¡Cuenta verificada exitosamente!';
         this.messageType = 'success';
         
+        // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
-          this.router.navigate(['/auth/login'], {
-            queryParams: { verified: 'true', email: this.userEmail }
+          this.router.navigate(['/donor/register'], {
+            queryParams: { 
+              verified: 'true', 
+              email: this.userEmail,
+              success: 'verification_completed'
+            }
           });
         }, 2000);
       },
       error: (error: HttpErrorResponse) => {
-        console.error('⚠️ Error en verificación por token:', error);
         this.isVerifying = false;
-        this.handleVerificationError(error);
+        this.message = 'Error al verificar la cuenta. Intenta con el código manual.';
+        this.messageType = 'error';
+        
+        // Mostrar formulario de código como alternativa
+        setTimeout(() => {
+          this.message = '';
+          this.messageType = 'warning';
+        }, 3000);
       }
     });
   }
 
+
   verifyCode(): void {
     if (!this.isCodeValid()) {
-      this.message = 'Por favor ingresa un código válido de 6 dígitos';
+      this.message = 'Por favor ingresa un código válido de 6 caracteres';
       this.messageType = 'error';
       return;
     }
 
     this.isVerifying = true;
-    this.message = '';
+    this.message = 'Verificando código...';
+    this.messageType = 'warning';
 
-    console.log('🔍 Verificando código:', this.verificationCode, 'para:', this.userEmail);
-
-    // Endpoint para verificación por código
+    // Llamada al backend para verificar el código
     this.http.post(`${environment.apiUrl}/auth/verify-email-code`, {
       email: this.userEmail,
       code: this.verificationCode
     }).subscribe({
       next: (response: any) => {
-        console.log('✅ Verificación exitosa:', response);
         this.isVerifying = false;
-        this.message = '¡Correo verificado exitosamente! Ya puedes iniciar sesión.';
+        this.isVerified = true;
+        this.message = '¡Correo verificado exitosamente! Registro completado.';
         this.messageType = 'success';
         
-        // Redirigir al login después de 3 segundos
+        // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
-          this.router.navigate(['/auth/login'], {
-            queryParams: { verified: 'true', email: this.userEmail }
+          this.router.navigate(['/donor/register'], {
+            queryParams: { 
+              verified: 'true', 
+              email: this.userEmail,
+              success: 'verification_completed'
+            }
           });
-        }, 3000);
+        }, 2000);
       },
       error: (error: HttpErrorResponse) => {
-        console.error('⚠️ Error en verificación:', error);
         this.isVerifying = false;
         this.handleVerificationError(error);
       }
@@ -282,21 +359,23 @@ export class EmailVerificationComponent implements OnInit {
       return;
     }
 
+    if (!this.userEmail) {
+      this.message = 'Error: No se encontró el correo electrónico';
+      this.messageType = 'error';
+      return;
+    }
+
     this.isResending = true;
     this.message = '';
-    
-    console.log('📧 Reenviando correo a:', this.userEmail);
-    
+
     this.http.post(`${environment.apiUrl}/auth/resend-verification-email`, {
       email: this.userEmail
     }).subscribe({
       next: (response: any) => {
-        console.log('✅ Correo reenviado:', response);
         this.isResending = false;
         this.message = 'Correo de verificación reenviado exitosamente. Revisa tu bandeja de entrada.';
         this.messageType = 'success';
-        
-        // Iniciar cooldown de 60 segundos
+   
         this.startResendCooldown(60);
         
         // Limpiar mensaje después de 5 segundos
@@ -307,7 +386,6 @@ export class EmailVerificationComponent implements OnInit {
         }, 5000);
       },
       error: (error: HttpErrorResponse) => {
-        console.error('⚠️ Error reenviando correo:', error);
         this.isResending = false;
         this.handleResendError(error);
       }
@@ -333,6 +411,7 @@ export class EmailVerificationComponent implements OnInit {
     }
     return 'Reenviar correo de verificación';
   }
+
 
   private handleVerificationError(error: HttpErrorResponse): void {
     let errorMessage = 'Error al verificar el código. Inténtalo de nuevo.';
@@ -370,7 +449,28 @@ export class EmailVerificationComponent implements OnInit {
     this.messageType = 'error';
   }
 
-  goToLogin(): void {
-    this.router.navigate(['/auth/login']);
+  goToHome(): void {
+    this.router.navigate(['/']);
+  }
+
+  autoLogin(): void {
+    // Simular login automático después de verificación
+    // Simular almacenamiento de datos de usuario en localStorage
+    const userData = {
+      id: 'temp-user-id',
+      email: this.userEmail,
+      role: 'donor',
+      name: this.userEmail.split('@')[0],
+      verified: true,
+      loginTime: new Date().toISOString()
+    };
+    
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    localStorage.setItem('isLoggedIn', 'true');
+    
+    // Redirigir al home después del login
+    setTimeout(() => {
+      this.router.navigate(['/']);
+    }, 1000);
   }
 }

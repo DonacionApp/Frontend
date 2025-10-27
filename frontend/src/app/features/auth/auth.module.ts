@@ -1,12 +1,18 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
-import { LoginComponent } from './login/login.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ButtonComponent } from '../../shared/components/button/button.component';
 
 const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  // { path: 'register', component: RegisterComponent },
-  // { path: 'forgot-password', component: ForgotPasswordComponent }
+  // Rutas de autenticación existentes (de la rama principal)
+  // { path: 'login', component: LoginComponent },
+  // { path: 'forgot-password', component: ForgotPasswordComponent },
+  // { path: 'reset-password/:token', component: ResetPasswordComponent },
+  // { path: 'reset-password-token', component: VerifyResetTokenComponent },
+  
+  // Rutas de verificación de email (nueva funcionalidad)
+  // Las rutas de verificación se manejan en app-routing.module.ts
 ];
 
 @NgModule({
@@ -16,7 +22,8 @@ const routes: Routes = [
   imports: [
     CommonModule,
     RouterModule.forChild(routes),
-    LoginComponent // Importar el componente standalone
+    ReactiveFormsModule,
+    ButtonComponent,
   ],
   providers: [
     // Aquí irán los servicios específicos de autenticación

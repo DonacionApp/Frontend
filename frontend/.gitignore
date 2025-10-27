@@ -194,3 +194,54 @@ TODO.md
 # Temporary files
 *.tmp
 *.temp
+
+# Database scripts (keep local only)
+truncate_database.js
+cleanup_database.js
+
+# Project specific
+instrucciones.txt
+*.zip
+*.tar.gz
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# IDE specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Angular build artifacts
+/.angular/
+.angular/
+*.ngfactory.ts
+*.ngstyle.ts
+*.ngsummary.json
+*.shim.ts
+
+# Testing
+/coverage
+*.lcov
+.nyc_output
+
+# Storybook
+storybook-static/
+
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

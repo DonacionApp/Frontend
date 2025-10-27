@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { DonorService, DonorFormData } from '../../../donor/services/donor.service';
 import { HierarchicalLocationSelectorComponent, LocationSelection } from '../../../../shared/components/hierarchical-location-selector/hierarchical-location-selector.component';
 
@@ -24,11 +24,16 @@ export class DonorRegisterComponent implements OnInit {
   showPassword = false;
   showConfirmPassword = false;
   locationSelection: LocationSelection = { country: null, state: null, city: null };
+  isRegistrationSuccessful = false; // Nuevo estado para controlar la pantalla de éxito
+  registeredEmail = ''; // Email del usuario registrado
+  isVerificationCompleted = false; // Estado para cuando la verificación está completa
+  verifiedEmail = ''; // Email verificado
 
   constructor(
     private fb: FormBuilder,
     private donorService: DonorService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -56,6 +61,14 @@ export class DonorRegisterComponent implements OnInit {
       country: { iso2: 'CO', name: 'Colombia' },
       state: { iso2: 'CO-ANT', name: 'Antioquia' },
       city: { name: 'Medellín' }
+    });
+
+    // Verificar si viene de una verificación exitosa
+    this.route.queryParams.subscribe(params => {
+      if (params['verified'] === 'true' && params['success'] === 'verification_completed') {
+        this.isVerificationCompleted = true;
+        this.verifiedEmail = params['email'] || '';
+      }
     });
   }
 
@@ -106,57 +119,41 @@ export class DonorRegisterComponent implements OnInit {
 
       const formData = this.registerForm.value;
       
-      // 🔍 DEBUG CRÍTICO - Ver qué hay en los campos
-      console.log('=== 🔍 DEBUG FRONTEND ===');
-      console.log('1. FORM DATA COMPLETO:', formData);
-      console.log('2. COUNTRY:', formData.country);
-      console.log('3. COUNTRY ISO2:', formData.country?.iso2);
-      console.log('4. COUNTRY TYPE:', typeof formData.country);
-      console.log('5. STATE:', formData.state);
-      console.log('6. CITY:', formData.city);
-      console.log('7. LOCATION SELECTION:', this.locationSelection);
-      
-      // ⚠️ VALIDACIÓN - Si country no tiene iso2, PARAR
+      // Validar que el país tenga código ISO2
       if (!formData.country || !formData.country.iso2) {
-        console.error('❌ COUNTRY NO TIENE ISO2 - VALOR:', formData.country);
         alert('Por favor selecciona un país válido del listado');
         this.isLoading = false;
         return;
       }
 
-            // Construir el objeto municipio CORRECTAMENTE con códigos validados
+            // Construir el objeto municipio con códigos validados
             let stateCode = formData.state?.iso2 || 'ANT';
             
             // Corregir códigos problemáticos
             if (stateCode.startsWith('CO-')) {
               stateCode = stateCode.replace('CO-', '');
-              console.log(`🔧 Código de estado corregido en frontend: ${formData.state?.iso2} → ${stateCode}`);
             }
             
-            // Validar código de estado (códigos reales del backend)
+            // Validar código de estado
             const validColombiaStates = ['QUI', 'CUN', 'CHO', 'NSA', 'MET', 'RIS', 'ATL', 'ARA', 'GUA', 'TOL', 'CAU', 'VAU', 'MAG', 'CAL', 'GUV', 'LAG', 'ANT', 'CAQ', 'CAS', 'BOL', 'VID', 'AMA', 'PUT', 'NAR', 'COR', 'CES', 'SAP', 'SAN', 'SUC', 'BOY', 'VAC', 'HUI', 'DC'];
             
             if (!validColombiaStates.includes(stateCode)) {
-              console.warn(`⚠️ Código de estado inválido en frontend: ${stateCode}, usando ANT por defecto`);
               stateCode = 'ANT';
             }
             
             const municipioData = {
               pais: {
-                iso2: formData.country.iso2, // ⚠️ Esto debe tener valor
+                iso2: formData.country.iso2,
                 name: formData.country.name
               },
               state: {
-                iso2: stateCode, // Código corregido y validado
+                iso2: stateCode,
                 name: formData.state?.name || 'Antioquia'
               },
               city: {
                 name: formData.city?.name || 'Medellín'
               }
             };
-
-      console.log('8. MUNICIPIO CONSTRUIDO:', municipioData);
-      console.log('9. MUNICIPIO.PAIS.ISO2:', municipioData.pais.iso2);
 
       // Estructurar datos completos del formulario según el formato del backend
       const registerData: DonorFormData = {
@@ -186,49 +183,37 @@ export class DonorRegisterComponent implements OnInit {
         }
       };
 
-      console.log('10. DONOR DATA FINAL:', registerData);
-      console.log('11. JSON ENVIADO:', JSON.stringify(registerData, null, 2));
-      console.log('========================');
 
       this.donorService.registerDonor(registerData).subscribe({
         next: (response: any) => {
           this.isLoading = false;
           
+          // Cambiar estado a registro exitoso
+          this.isRegistrationSuccessful = true;
+          this.registeredEmail = formData.email;
+          
           // Verificar si es una respuesta real o simulada
           if (response.emailNotification) {
             this.successMessage = '¡Registro exitoso! (Modo simulación - Backend con problemas)';
-            console.log('📧 Código de verificación simulado:', response.emailNotification.code);
           } else {
             this.successMessage = '¡Registro exitoso! Revisa tu correo para verificar tu cuenta.';
           }
           
           this.errorMessage = '';
           
-          // Log para desarrollo
-          console.log('✅ Registro exitoso:', response);
-          
-          // Redirigir a la pantalla de verificación de correo
+          // Redirigir a la pantalla de verificación de correo después de mostrar la confirmación
           setTimeout(() => {
-            this.router.navigate(['/email-verification'], {
+            this.router.navigate(['/auth/verify/email'], {
               queryParams: { 
                 email: formData.email,
                 simulated: response.emailNotification ? 'true' : 'false',
                 code: response.emailNotification?.code || null
               }
             });
-          }, 3000);
+          }, 5000); // Aumentar tiempo para que el usuario vea la confirmación
         },
         error: (error: any) => {
           this.isLoading = false;
-          
-          // Log detallado para desarrollo
-          console.error('❌ Error en el registro:', {
-            error: error,
-            status: error.status,
-            message: error.message,
-            url: error.url,
-            timestamp: new Date().toISOString()
-          });
           
           // Manejo de errores amigable para el usuario
           let userMessage = '';
@@ -260,13 +245,6 @@ export class DonorRegisterComponent implements OnInit {
           
           this.errorMessage = userMessage;
           this.successMessage = '';
-          
-          // Log adicional para debugging
-          console.warn('🔍 Información adicional del error:', {
-            userMessage: userMessage,
-            originalError: error.error,
-            headers: error.headers
-          });
         }
       });
     } else {
@@ -404,19 +382,44 @@ export class DonorRegisterComponent implements OnInit {
   onLocationSelectionChange(selection: LocationSelection): void {
     this.locationSelection = selection;
     
-    console.log('🔄 Location selection changed:', selection);
-    
     // Actualizar el formulario con los objetos completos (no solo nombres)
     this.registerForm.patchValue({
       country: selection.country, // Objeto completo con iso2
       state: selection.state,     // Objeto completo con iso2
       city: selection.city         // Objeto completo con name
     });
-    
-    console.log('📝 Form updated with:', {
-      country: selection.country,
-      state: selection.state,
-      city: selection.city
+  }
+
+  goToVerification(): void {
+    // Ir directamente a la verificación sin esperar
+    this.router.navigate(['/auth/verify/email'], {
+      queryParams: { 
+        email: this.registeredEmail,
+        simulated: 'false'
+      }
     });
+  }
+
+  autoLoginAfterVerification(): void {
+    // Simular login automático después de verificación exitosa
+    
+    // Simular almacenamiento de datos de usuario en localStorage
+    const userData = {
+      id: 'temp-user-id',
+      email: this.verifiedEmail,
+      role: 'donor',
+      name: this.verifiedEmail.split('@')[0],
+      verified: true,
+      loginTime: new Date().toISOString()
+    };
+    
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    localStorage.setItem('isLoggedIn', 'true');
+    
+    
+    // Redirigir al home después del login
+    setTimeout(() => {
+      this.router.navigate(['/']);
+    }, 1000);
   }
 }

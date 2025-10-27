@@ -16,6 +16,18 @@ const routes: Routes = [
     loadComponent: () => import('./features/auth/email-verification/email-verification.component').then(m => m.EmailVerificationComponent)
   },
   
+  // Ruta de cuenta verificada
+  {
+    path: 'account-verified',
+    loadComponent: () => import('./features/auth/account-verified/account-verified.component').then(m => m.AccountVerifiedComponent)
+  },
+  
+  // Ruta de verificación de email (para enlaces del correo)
+  {
+    path: 'auth/verify/email',
+    loadComponent: () => import('./features/auth/email-verification/email-verification.component').then(m => m.EmailVerificationComponent)
+  },
+  
   
   // Rutas de autenticación (temporales - redirigen a landing page)
   {
