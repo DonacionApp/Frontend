@@ -76,14 +76,15 @@
 											<div>
 												<label class="block text-sm font-medium text-gray-700">Tipo de DNI</label>
 												<select formControlName="tipodDni" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
-													<option value="">Selecciona tipo de DNI...</option>
-													<option *ngFor="let t of typeOptions" [value]="t.id">{{ t.type }}</option>
+													<option [ngValue]="''">Selecciona tipo de DNI...</option>
+													<option *ngFor="let t of typeOptions" [ngValue]="t.id">{{ t.type }}</option>
 												</select>
 												<div *ngIf="registerForm.get(['people','tipodDni'])?.touched && registerForm.get(['people','tipodDni'])?.invalid" class="text-xs text-red-500 mt-1">Selecciona un tipo de DNI</div>
 											</div>
 											<div>
 												<label class="block text-sm font-medium text-gray-700">DNI</label>
-												<input formControlName="dni" type="text" placeholder="DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<input formControlName="dni" type="text" maxlength="10" placeholder="DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','dni'])?.touched && registerForm.get(['people','dni'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El DNI no puede tener más de 10 caracteres</div>
 											</div>
 										</div>
 
@@ -94,7 +95,8 @@
 											</div>
 											<div>
 												<label class="block text-sm font-medium text-gray-700">Teléfono</label>
-												<input formControlName="telefono" type="tel" placeholder="Teléfono" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<input formControlName="telefono" type="tel" maxlength="10" placeholder="Teléfono" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','telefono'])?.touched && registerForm.get(['people','telefono'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El teléfono no puede tener más de 10 caracteres</div>
 											</div>
 										</div>
 
@@ -130,10 +132,17 @@
 										<label for="terms" class="text-sm text-gray-600">Acepto los <a class="text-green-500 underline">términos y condiciones</a> y la <a class="text-green-500 underline">política de privacidad</a></label>
 									</div>
 
+									<!-- Success / Error / Loader messages -->
+									<div class="mt-2">
+										<div *ngIf="successMessage" class="text-sm text-green-600">{{ successMessage }}</div>
+										<div *ngIf="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</div>
+										<div *ngIf="loadingRegister" class="text-sm text-gray-600">Cargando...</div>
+									</div>
+
 									<!-- Buttons -->
-									<div class="flex gap-3 justify-end mt-2">
+									<div class="flex gap-3 justify-end mt-2 items-center">
 										<app-button variant="ghost" size="md" type="button">Ya tengo cuenta</app-button>
-										<app-button variant="primary" size="md" [disabled]="!terms"  id="submit_create_acount" type="submit">Crear Cuenta</app-button>
+										<app-button variant="primary" size="md" [disabled]="!terms || !isFormValid || loadingRegister" id="submit_create_acount" type="submit">Crear Cuenta</app-button>
 									</div>
 								</form>
 							</div>

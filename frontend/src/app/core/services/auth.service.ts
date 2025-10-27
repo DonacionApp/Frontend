@@ -118,7 +118,7 @@ export class AuthService {
 
   registerUser(userData:any):Observable<any>{
     try {
-      return this.http.post<any>(`${this.api}/auth/register`, userData).pipe(
+      return this.http.post<any>(`${this.api}/auth/register`, userData, { headers: { 'Content-Type': 'application/json' } }).pipe(
         tap((data) => console.log('User registered:', data)),
         catchError((error) => {
           console.error('Error registering user:', error);

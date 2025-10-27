@@ -5,7 +5,7 @@ import { CountriesService } from '../../../core/services/countries.service';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
-import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, tap, throwError } from 'rxjs';
+import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, tap, throwError, finalize } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Rol } from '../../../shared/model/rol.model';
@@ -31,6 +31,11 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   loadStates: boolean = false;
   loadCities = false;
 
+  // register loader / messages
+  loadingRegister: boolean = false;
+  successMessage: string = '';
+  errorMessage: string = '';
+
   statesOptions: StatesbyCountrySelect[] = [];
 
 
@@ -53,7 +58,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
       confirmPassword: ['', Validators.required],
-      rolId: [null],
+      rolId: ['', Validators.required],
       profilePhoto: [''],
       people: this.fb.group({
         name: ['', Validators.required],
@@ -61,9 +66,9 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         birdthDate: [''],
         // tipoDni field requested
         tipodDni: ['', Validators.required],
-        dni: ['', Validators.required],
+        dni: ['', [Validators.required, Validators.maxLength(10)]],
         residencia: [''],
-        telefono: [''],
+        telefono: ['', Validators.maxLength(10)],
         municipio: this.fb.group({
           pais: this.fb.group({ iso2: ['', Validators.required], display: [''] }),
           state: this.fb.group({ iso2: ['', Validators.required], display: [''] }),
@@ -94,7 +99,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       next: (data) => {
         data = data.filter((r: Rol) => {
           if (r.rol == this.rolDefault) {
-            this.registerForm.get('rolId')?.setValue(r.id);
+            this.registerForm.get('rolId')?.setValue(Number(r.id));
           }
         })
       }
@@ -143,6 +148,10 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
     const cityName = fv.people.municipio.city.name || fv.people.municipio.city.display || '';
 
+    // ensure numeric tipodDni is sent (convert string -> number when possible)
+    const tipodDniRaw = fv.people.tipodDni;
+    const tipodDniNum = tipodDniRaw === null || tipodDniRaw === undefined || tipodDniRaw === '' ? null : Number(tipodDniRaw);
+
     const payload = {
       username: fv.username,
       email: fv.email,
@@ -153,7 +162,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         name: fv.people.name,
         lastName: fv.people.lastName,
         birdthDate: fv.people.birdthDate,
-        tipodDni: fv.people.tipodDni,
+        tipodDni: tipodDniNum,
         dni: fv.people.dni,
         residencia: fv.people.residencia,
         telefono: fv.people.telefono,
@@ -166,9 +175,24 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     };
 
     this.lastPayload = payload;
+    // reset messages
+    this.successMessage = '';
+    this.errorMessage = '';
     if (this.lastPayload) {
-      this.registerUser();
-    }else{
+      this.loadingRegister = true;
+      this.registerUser().pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.loadingRegister = false)
+      ).subscribe({
+        next: (res) => {
+          this.successMessage = 'Cuenta creada, correo de verificacion enviado';
+        },
+        error: (err) => {
+          console.error('Error al registrar usuario', err);
+          this.errorMessage = err?.error?.message || err?.message || 'Error al crear la cuenta';
+        }
+      });
+    } else {
       console.log('No hay datos para registrar el usuario');
     }
   }
@@ -289,7 +313,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   termsChange(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    console.log('terms checked:', checked);
     this.terms = checked;
     if (checked) {
 
