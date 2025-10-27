@@ -1,10 +1,15 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
+import { VerifyEmailTokenComponent } from './features/auth/verify-email-token/verify-email-token.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'home', component: HomeComponent },
+  
+  // Rutas directas para enlaces de email (sin prefijo /auth)
+  { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
+  { path: 'verify-email-token', component: VerifyEmailTokenComponent },
   
   // Lazy loading para cada módulo de feature
   {

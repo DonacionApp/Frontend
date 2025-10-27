@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-// ButtonComponent import removed because it's not used in this template
+import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { OrganizationRegistrationService } from '../../../core/services';
 import { RegistrationStateService } from '../../../core/services/registration-state.service';
@@ -17,124 +16,9 @@ type UploadFile = {
 @Component({
   selector: 'app-organization-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
-  template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-8 sm:px-6 lg:px-8">
-      <div class="sm:mx-auto sm:w-full sm:max-w-3xl">
-        <h2 class="text-center text-3xl font-bold text-gray-900 mb-4">Crear Cuenta - Organización</h2>
-        <p class="text-center text-sm text-gray-600 mb-6">Únete a nuestra comunidad de donantes y organizaciones</p>
-
-        <div class="bg-white py-6 px-6 shadow sm:rounded-lg">
-          <!-- Wizard steps -->
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex-1 text-center" [class.font-bold]="step===1">1. Datos</div>
-            <div class="flex-1 text-center" [class.font-bold]="step===2">2. Ubicación</div>
-            <div class="flex-1 text-center" [class.font-bold]="step===3">3. Documentos</div>
-          </div>
-
-          <form [formGroup]="orgForm" (ngSubmit)="onSubmit()">
-            <div *ngIf="step===1">
-              <label class="block text-sm font-medium text-gray-700">Nombre de la Organización *</label>
-              <input formControlName="organizationName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Correo Electrónico *</label>
-              <input formControlName="email" type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-
-              <div class="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Contraseña *</label>
-                  <input formControlName="password" type="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Confirmar Contraseña *</label>
-                  <input formControlName="confirmPassword" type="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                </div>
-              </div>
-
-                <label class="block text-sm font-medium text-gray-700 mt-4">Descripción</label>
-                <textarea formControlName="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
-
-                <div class="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700">Fecha de Constitución / Nacimiento</label>
-                    <input formControlName="birdthDate" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700">Tipo de Documento</label>
-                    <select formControlName="tipodDni" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                      <option [value]="1">NIT</option>
-                      <option [value]="2">Cédula</option>
-                      <option [value]="3">Pasaporte</option>
-                    </select>
-                  </div>
-                </div>
-
-                <label class="block text-sm font-medium text-gray-700 mt-4">Documento (DNI / NIT) (opcional)</label>
-                <input formControlName="dni" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-            </div>
-
-            <div *ngIf="step===2">
-              <label class="block text-sm font-medium text-gray-700">País *</label>
-              <select formControlName="countryIso" (change)="onCountryChange($any($event.target).value)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                <option value="">Seleccione país</option>
-                <option *ngFor="let c of countries" [value]="c.iso2">{{ c.name }} ({{ c.iso2 }})</option>
-              </select>
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Estado/Provincia *</label>
-              <select formControlName="stateIso" (change)="onStateChange($any($event.target).value)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                <option value="">Seleccione estado</option>
-                <option *ngFor="let s of states" [value]="s.iso2">{{ s.name }} ({{ s.iso2 }})</option>
-              </select>
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Ciudad *</label>
-              <select formControlName="cityName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                <option value="">Seleccione ciudad</option>
-                <option *ngFor="let city of cities" [value]="city.name">{{ city.name }}</option>
-              </select>
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Dirección *</label>
-              <input formControlName="address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-            </div>
-
-            <div *ngIf="step===3">
-              <label class="block text-sm font-medium text-gray-700">Teléfono de Contacto *</label>
-              <input formControlName="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Sitio web (opcional)</label>
-              <input formControlName="website" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-
-              <label class="block text-sm font-medium text-gray-700 mt-4">Documentos de soporte (PDF/JPG, máximo 5MB cada uno)</label>
-              <input type="file" (change)="onFilesSelected($event)" multiple class="mt-2" />
-
-              <div *ngIf="uploadFiles.length" class="mt-4 space-y-2">
-                <div *ngFor="let f of uploadFiles" class="p-2 border rounded">
-                  <div class="flex justify-between items-center">
-                    <div class="truncate">{{ f.name }}</div>
-                    <div class="text-sm text-red-600" *ngIf="f.error">{{ f.error }}</div>
-                  </div>
-                  <div class="w-full bg-gray-200 rounded h-2 mt-2">
-                    <div [style.width.%]="f.progress" class="bg-green-500 h-2 rounded"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-6 flex justify-between">
-              <button type="button" class="px-4 py-2 bg-gray-200 rounded" (click)="prev()" [disabled]="step===1">Anterior</button>
-              <div class="flex gap-2">
-                <button type="button" class="px-4 py-2 bg-blue-500 text-white rounded" *ngIf="step<3" (click)="next()" [disabled]="!canProceed()">Siguiente</button>
-                <button type="submit" class="px-4 py-2 bg-orange-500 text-white rounded" *ngIf="step===3" [disabled]="isSubmitting">Registrar Organización</button>
-              </div>
-            </div>
-          </form>
-
-          <div *ngIf="message" class="mt-4 p-3 rounded" [ngClass]="{'bg-green-50 text-green-800': success, 'bg-red-50 text-red-800': !success}">
-            {{ message }}
-          </div>
-        </div>
-      </div>
-    </div>
-  `
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.scss']
 })
 export class OrganizationRegisterComponent implements OnInit {
   step = 1;

@@ -1,0 +1,387 @@
+<div class="registration-container">
+  <div class="registration-card">
+    <!-- Header -->
+    <div class="card-header">
+      <div class="logo-section">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">DonacionApp</span>
+      </div>
+      <h1 class="main-title">Crear Cuenta</h1>
+      <p class="subtitle">Únete a nuestra comunidad de donantes y organizaciones</p>
+    </div>
+
+    <!-- Steps Indicator -->
+    <div class="steps-container">
+      <div class="step-wrapper">
+        <div class="step-item" [class.active]="step >= 1" [class.completed]="step > 1">
+          <div class="step-circle">
+            <span *ngIf="step <= 1">1</span>
+            <svg *ngIf="step > 1" class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="step-label">Datos de la Organización</span>
+        </div>
+        <div class="step-divider" [class.active]="step >= 2"></div>
+        <div class="step-item" [class.active]="step >= 2" [class.completed]="step > 2">
+          <div class="step-circle">
+            <span *ngIf="step <= 2">2</span>
+            <svg *ngIf="step > 2" class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="step-label">Ubicación</span>
+        </div>
+        <div class="step-divider" [class.active]="step >= 3"></div>
+        <div class="step-item" [class.active]="step >= 3">
+          <div class="step-circle">
+            <span>3</span>
+          </div>
+          <span class="step-label">Contacto y Documentos</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Content -->
+    <form [formGroup]="orgForm" (ngSubmit)="onSubmit()" class="form-content">
+      <!-- Step 1: Datos de la Organización -->
+      <div class="form-section" *ngIf="step === 1">
+        <div class="info-box">
+          <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <div>
+            <p class="info-title">Como Organización Podrás:</p>
+            <ul class="info-list">
+              <li>Buscar donaciones disponibles</li>
+              <li>Publicar artículos específicos</li>
+              <li>Publicar necesidades de la organización</li>
+              <li>Comunicarte con donantes</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="organizationName">Nombre de la Organización *</label>
+          <input 
+            id="organizationName"
+            type="text" 
+            formControlName="organizationName" 
+            class="field-input"
+            placeholder="Nombre oficial de la organización"
+            [class.error]="orgForm.get('organizationName')?.touched && orgForm.get('organizationName')?.invalid"
+          />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="email">Correo Electrónico *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+            <input 
+              id="email"
+              type="email" 
+              formControlName="email" 
+              class="field-input with-icon"
+              placeholder="contacto@organizacion.org"
+              [class.error]="orgForm.get('email')?.touched && orgForm.get('email')?.invalid"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label" for="password">Contraseña *</label>
+            <div class="input-with-icon">
+              <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input 
+                id="password"
+                type="password" 
+                formControlName="password" 
+                class="field-input with-icon"
+                placeholder="Mínimo 8 caracteres"
+                [class.error]="orgForm.get('password')?.touched && orgForm.get('password')?.invalid"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="confirmPassword">Confirmar Contraseña *</label>
+            <div class="input-with-icon">
+              <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input 
+                id="confirmPassword"
+                type="password" 
+                formControlName="confirmPassword" 
+                class="field-input with-icon"
+                placeholder="Confirma tu contraseña"
+                [class.error]="orgForm.get('confirmPassword')?.touched && orgForm.get('confirmPassword')?.invalid"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="description">Descripción de la Organización *</label>
+          <textarea 
+            id="description"
+            formControlName="description" 
+            rows="3" 
+            class="field-textarea"
+            placeholder="Describe la misión y actividades de la organización..."
+            [class.error]="orgForm.get('description')?.touched && orgForm.get('description')?.invalid"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label" for="birdthDate">Fecha de Constitución / Nacimiento</label>
+            <input 
+              id="birdthDate"
+              type="date" 
+              formControlName="birdthDate" 
+              class="field-input"
+            />
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="tipodDni">Tipo de Documento</label>
+            <select id="tipodDni" formControlName="tipodDni" class="field-select">
+              <option [value]="1">NIT</option>
+              <option [value]="2">Cédula</option>
+              <option [value]="3">Pasaporte</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="dni">Documento (DNI / NIT) (opcional)</label>
+          <input 
+            id="dni"
+            type="text" 
+            formControlName="dni" 
+            class="field-input"
+            placeholder="Número de identificación"
+          />
+        </div>
+      </div>
+
+      <!-- Step 2: Ubicación -->
+      <div class="form-section" *ngIf="step === 2">
+        <div class="form-field">
+          <label class="field-label" for="countryIso">País *</label>
+          <select 
+            id="countryIso"
+            formControlName="countryIso" 
+            (change)="onCountryChange($any($event.target).value)" 
+            class="field-select"
+            [class.error]="orgForm.get('countryIso')?.touched && !orgForm.get('countryIso')?.value"
+          >
+            <option value="">Seleccione un país</option>
+            <option *ngFor="let c of countries" [value]="c.iso2">{{ c.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="stateIso">Estado / Departamento *</label>
+          <select 
+            id="stateIso"
+            formControlName="stateIso" 
+            (change)="onStateChange($any($event.target).value)" 
+            class="field-select"
+            [class.error]="orgForm.get('stateIso')?.touched && !orgForm.get('stateIso')?.value"
+            [disabled]="!states.length"
+          >
+            <option value="">Seleccione un estado</option>
+            <option *ngFor="let s of states" [value]="s.iso2">{{ s.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="cityName">Ciudad *</label>
+          <select 
+            id="cityName"
+            formControlName="cityName" 
+            class="field-select"
+            [class.error]="orgForm.get('cityName')?.touched && !orgForm.get('cityName')?.value"
+            [disabled]="!cities.length"
+          >
+            <option value="">Seleccione una ciudad</option>
+            <option *ngFor="let city of cities" [value]="city.name">{{ city.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="address">Dirección *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+            </svg>
+            <input 
+              id="address"
+              type="text" 
+              formControlName="address" 
+              class="field-input with-icon"
+              placeholder="Dirección completa de la organización"
+              [class.error]="orgForm.get('address')?.touched && orgForm.get('address')?.invalid"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Contacto y Documentos -->
+      <div class="form-section" *ngIf="step === 3">
+        <div class="form-field">
+          <label class="field-label" for="phone">Teléfono de Contacto *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+            </svg>
+            <input 
+              id="phone"
+              type="tel" 
+              formControlName="phone" 
+              class="field-input with-icon"
+              placeholder="Teléfono principal"
+              [class.error]="orgForm.get('phone')?.touched && orgForm.get('phone')?.invalid"
+            />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="website">Sitio Web (Opcional)</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clip-rule="evenodd"/>
+            </svg>
+            <input 
+              id="website"
+              type="url" 
+              formControlName="website" 
+              class="field-input with-icon"
+              placeholder="www.tuorganizacion.org"
+            />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Documentos de Soporte (PDF/JPG, máx. 5MB)</label>
+          <div class="file-upload-area">
+            <input 
+              type="file" 
+              (change)="onFilesSelected($event)" 
+              multiple 
+              accept=".pdf,.jpg,.jpeg,.png"
+              class="file-input"
+              id="fileInput"
+            />
+            <label for="fileInput" class="file-upload-label">
+              <svg class="upload-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              <span class="upload-text">Haz clic para seleccionar archivos</span>
+              <span class="upload-hint">o arrastra y suelta aquí</span>
+            </label>
+          </div>
+
+          <div *ngIf="uploadFiles.length" class="files-list">
+            <div *ngFor="let f of uploadFiles; let i = index" class="file-item">
+              <div class="file-info">
+                <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                </svg>
+                <div class="file-details">
+                  <span class="file-name">{{ f.name }}</span>
+                  <span class="file-error" *ngIf="f.error">{{ f.error }}</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                (click)="removeFile(i)" 
+                class="remove-file-btn"
+                aria-label="Eliminar archivo"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+              </button>
+              <div class="file-progress" *ngIf="!f.error">
+                <div class="progress-bar" [style.width.%]="f.progress"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box warning">
+          <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <div>
+            <p class="info-title">Proceso de Verificación:</p>
+            <p class="info-text">Tu organización será revisada por nuestro equipo antes de ser aprobada. Este proceso puede tomar de 1 a 3 días hábiles.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          (click)="prev()" 
+          *ngIf="step > 1"
+          [disabled]="isSubmitting"
+        >
+          Anterior
+        </button>
+
+        <div class="action-right">
+          <a routerLink="/auth/login" class="link-text">Ya tengo cuenta</a>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="next()" 
+            *ngIf="step < 3"
+            [disabled]="!canProceed()"
+          >
+            Siguiente
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-submit" 
+            *ngIf="step === 3"
+            [disabled]="isSubmitting || !orgForm.valid"
+          >
+            <span *ngIf="!isSubmitting">Registrar Organización</span>
+            <span *ngIf="isSubmitting">
+              <svg class="spinner-icon" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Registrando...
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Message Display -->
+      <div *ngIf="message" class="message-box" [class.success]="success" [class.error]="!success">
+        <svg *ngIf="success" class="message-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <svg *ngIf="!success" class="message-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ message }}</span>
+      </div>
+    </form>
+  </div>
+</div>

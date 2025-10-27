@@ -20,4 +20,10 @@ export class EmailVerificationService {
     const url = `${this.baseUrl}/verify-email-token`;
     return this.http.post<any>(url, { token });
   }
+
+  /** Endpoint alternativo: recibir código manual desde frontend en /verify/email */
+  verifyEmail(email: string, code: string): Observable<any> {
+    const url = `${this.baseUrl}/verify/email`;
+    return this.http.post<any>(url, { email, code });
+  }
 }

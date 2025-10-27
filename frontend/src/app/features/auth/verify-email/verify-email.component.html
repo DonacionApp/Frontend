@@ -1,39 +1,132 @@
-<div class="verify-email">
-  <h2>Verificación de correo</h2>
-
-  <div *ngIf="verifying">Verificando token, por favor espere...</div>
-
-  <div *ngIf="infoMessage" class="info">{{ infoMessage }}</div>
-  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-
-  <ng-container *ngIf="!token">
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" formControlName="email" />
-        <div class="error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
-          Email inválido
-        </div>
+<div class="verify-email-container">
+  <div class="verify-card">
+    <!-- Header con icono de estado -->
+    <div class="card-header">
+      <div class="icon-container" [ngClass]="{
+        'verifying': verifying,
+        'success': verified && !verifying,
+        'error': !verified && !verifying && (errorMessage || token)
+      }">
+        <svg *ngIf="verifying" class="spinner" viewBox="0 0 50 50">
+          <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+        </svg>
+        <svg *ngIf="verified && !verifying" class="checkmark" viewBox="0 0 52 52">
+          <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+          <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+        <svg *ngIf="!verified && !verifying && errorMessage" class="error-icon" viewBox="0 0 52 52">
+          <circle class="error-circle" cx="26" cy="26" r="25" fill="none"/>
+          <path class="error-cross" fill="none" d="M16 16 36 36 M36 16 16 36"/>
+        </svg>
       </div>
-
-      <div class="field">
-        <label for="code">Código</label>
-        <input id="code" type="text" formControlName="code" />
-        <div class="error" *ngIf="form.get('code')?.touched && form.get('code')?.invalid">
-          Código requerido
-        </div>
-      </div>
-
-      <div class="actions">
-        <button type="submit" [disabled]="loading">Verificar</button>
-      </div>
-    </form>
-  </ng-container>
-
-  <ng-container *ngIf="token">
-    <p>Se detectó un token en la URL. Intentando verificar...</p>
-    <div class="actions">
-      <button (click)="verifyWithToken(token)" [disabled]="verifying">Reintentar verificación</button>
+      
+      <h2 class="card-title">
+        <span *ngIf="verifying">Verificando tu correo</span>
+        <span *ngIf="verified && !verifying">¡Correo verificado!</span>
+        <span *ngIf="!verified && !verifying && !token">Verificación de correo</span>
+        <span *ngIf="!verified && !verifying && errorMessage">Verificación fallida</span>
+      </h2>
     </div>
-  </ng-container>
+
+    <!-- Contenido principal -->
+    <div class="card-body">
+      <!-- Estado: Verificando -->
+      <div *ngIf="verifying" class="status-message verifying-message">
+        <p>Estamos verificando tu correo electrónico...</p>
+        <p class="small">Por favor espera un momento.</p>
+      </div>
+
+      <!-- Estado: Verificado exitosamente -->
+      <div *ngIf="verified && !verifying" class="status-message success-message">
+        <p class="message-text">{{ infoMessage || 'Tu correo ha sido verificado exitosamente.' }}</p>
+        <p class="small">Ya puedes iniciar sesión en tu cuenta.</p>
+      </div>
+
+      <!-- Estado: Error en verificación -->
+      <div *ngIf="!verified && !verifying && errorMessage" class="status-message error-message">
+        <p class="message-text">{{ errorMessage }}</p>
+        <p class="small" *ngIf="errorMessage?.includes('expirado')">
+          Solicita un nuevo enlace de verificación desde tu correo.
+        </p>
+      </div>
+
+      <!-- Formulario manual (sin token) -->
+      <div *ngIf="!token && !verifying" class="manual-form">
+        <p class="form-intro">Ingresa el código de verificación que recibiste en tu correo:</p>
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <input 
+              id="email" 
+              type="email" 
+              formControlName="email"
+              placeholder="tu@email.com"
+              [class.invalid]="form.get('email')?.touched && form.get('email')?.invalid"
+            />
+            <div class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+              Por favor ingresa un correo electrónico válido
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="code">Código de verificación</label>
+            <input 
+              id="code" 
+              type="text" 
+              formControlName="code"
+              placeholder="Ej: ABC123"
+              maxlength="10"
+              [class.invalid]="form.get('code')?.touched && form.get('code')?.invalid"
+            />
+            <div class="field-error" *ngIf="form.get('code')?.touched && form.get('code')?.invalid">
+              El código de verificación es requerido
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" [disabled]="loading || form.invalid">
+            <span *ngIf="!loading">Verificar correo</span>
+            <span *ngIf="loading">Verificando...</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="card-actions">
+      <button 
+        type="button" 
+        *ngIf="verified && !verifying" 
+        class="btn btn-primary btn-large"
+        (click)="goToLogin()"
+      >
+        Ir al inicio de sesión
+      </button>
+
+      <button 
+        type="button" 
+        *ngIf="!verified && !verifying && token" 
+        class="btn btn-secondary"
+        (click)="verifyWithToken(token)"
+      >
+        Reintentar verificación
+      </button>
+
+      <button 
+        type="button" 
+        *ngIf="token && !verified" 
+        class="btn btn-link"
+        (click)="switchToManualEntry()"
+      >
+        Ingresar código manualmente
+      </button>
+
+      <a 
+        *ngIf="!token || (!verified && !verifying)" 
+        routerLink="/auth/login" 
+        class="link-secondary"
+      >
+        Volver al inicio de sesión
+      </a>
+    </div>
+  </div>
 </div>
