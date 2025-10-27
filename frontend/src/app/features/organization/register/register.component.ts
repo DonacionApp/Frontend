@@ -1,75 +1,277 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { Router, RouterModule } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
+import { OrganizationRegistrationService } from '../../../core/services';
+import { RegistrationStateService } from '../../../core/services/registration-state.service';
+import { HttpEventType } from '@angular/common/http';
+
+type UploadFile = {
+  file: File;
+  name: string;
+  progress: number;
+  error?: string | null;
+};
 
 @Component({
   selector: 'app-organization-register',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
-  template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="flex justify-center">
-          <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-          </div>
-        </div>
-        <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
-          Registro de Organización
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          Esta funcionalidad estará disponible próximamente
-        </p>
-      </div>
-
-      <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 text-center">
-          <div class="mb-6">
-            <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">¡Próximamente!</h3>
-            <p class="text-gray-600">
-              Estamos trabajando en el sistema de registro de organizaciones. 
-              Esta funcionalidad estará disponible en la siguiente versión.
-            </p>
-          </div>
-
-          <div class="space-y-4">
-            <app-button
-              variant="primary"
-              size="lg"
-              (btnClick)="goHome()"
-              class="w-full">
-              Volver al Inicio
-            </app-button>
-            
-            <app-button
-              variant="secondary"
-              size="lg"
-              (btnClick)="goToLogin()"
-              class="w-full">
-              Iniciar Sesión
-            </app-button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.scss']
 })
-export class OrganizationRegisterComponent {
-  constructor(private router: Router) {}
+export class OrganizationRegisterComponent implements OnInit {
+  step = 1;
+  orgForm: any;
 
-  goHome(): void {
-    this.router.navigate(['/']);
+  countries: Array<any> = [];
+  states: Array<any> = [];
+  cities: Array<any> = [];
+
+  uploadFiles: UploadFile[] = [];
+  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  maxFileSize = 5 * 1024 * 1024; // 5MB
+
+  isSubmitting = false;
+  message: string | null = null;
+  success = false;
+
+  constructor(
+    private fb: FormBuilder,
+    private regService: OrganizationRegistrationService,
+    private router: Router,
+    private state: RegistrationStateService
+  ) {
+    // Inicializar formulario en el constructor para evitar usar this.fb antes de la inicialización
+    this.orgForm = this.fb.group({
+      organizationName: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required]],
+      description: [''],
+      countryIso: [''],
+      stateIso: [''],
+      cityName: [''],
+      address: ['', Validators.required],
+      phone: ['', Validators.required],
+  // Campos requeridos por el backend (dni ahora opcional)
+  birdthDate: ['', Validators.required],
+  tipodDni: [1, Validators.required],
+  dni: [''],
+      website: ['']
+    });
   }
 
-  goToLogin(): void {
-    this.router.navigate(['/auth/login']);
+  private formatDateToDdMmYyyy(dateStr: string | null | undefined): string {
+    if (!dateStr) return '';
+    // dateStr expected in 'YYYY-MM-DD' from <input type="date">; convert to 'DD-MM-YYYY'
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y}`;
   }
+
+  ngOnInit(): void {
+    this.loadCountries();
+  }
+
+  loadCountries(): void {
+    this.regService.getCountries().subscribe({
+      next: (res: any[]) => this.countries = res || [],
+      error: () => this.countries = []
+    });
+  }
+
+  onCountryChange(iso: string): void {
+    this.orgForm.patchValue({ countryIso: iso, stateIso: '', cityName: '' });
+    if (iso) {
+      this.regService.getStates(iso).subscribe({ next: (s: any[]) => this.states = s || [], error: () => this.states = [] });
+    } else {
+      this.states = [];
+      this.cities = [];
+    }
+  }
+
+  onStateChange(isoState: string): void {
+    const isoCountry = this.orgForm.value.countryIso;
+    this.orgForm.patchValue({ stateIso: isoState, cityName: '' });
+    if (isoCountry && isoState) {
+      this.regService.getCities(isoCountry, isoState).subscribe({ next: (c: any[]) => this.cities = c || [], error: () => this.cities = [] });
+    } else {
+      this.cities = [];
+    }
+  }
+
+  onFilesSelected(event: any): void {
+    const files: FileList = event.target.files;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const fileMeta: UploadFile = { file: f, name: f.name, progress: 0, error: null };
+      const valid = this.validateFile(fileMeta);
+      if (valid) {
+        this.uploadFiles.push(fileMeta);
+      } else {
+        // push with error so UI shows it
+        this.uploadFiles.push(fileMeta);
+      }
+    }
+  }
+
+  validateFile(f: UploadFile): boolean {
+    if (f.file.size > this.maxFileSize) {
+      f.error = 'Archivo demasiado grande (máx 5MB).';
+      return false;
+    }
+    if (!this.allowedTypes.includes(f.file.type)) {
+      f.error = 'Tipo de archivo no permitido.';
+      return false;
+    }
+    f.error = null;
+    return true;
+  }
+
+  removeFile(idx: number): void {
+    this.uploadFiles.splice(idx, 1);
+  }
+
+  canProceed(): boolean {
+    if (this.step === 1) {
+      return !!(this.orgForm.get('organizationName') && this.orgForm.get('organizationName').valid && this.orgForm.get('email') && this.orgForm.get('email').valid && this.orgForm.get('password') && this.orgForm.get('password').valid && this.orgForm.get('confirmPassword') && this.orgForm.get('confirmPassword').valid);
+    }
+    if (this.step === 2) {
+      return !!(this.orgForm.get('countryIso')?.value && this.orgForm.get('stateIso')?.value && this.orgForm.get('cityName')?.value && this.orgForm.get('address') && this.orgForm.get('address').valid);
+    }
+    return true;
+  }
+
+  next(): void {
+    if (this.canProceed()) this.step++;
+  }
+
+  prev(): void {
+    if (this.step > 1) this.step--;
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting) return;
+
+    // Basic password confirm
+    if (this.orgForm.value.password !== this.orgForm.value.confirmPassword) {
+      this.message = 'Las contraseñas no coinciden';
+      this.success = false;
+      return;
+    }
+
+    // Validate files before sending
+    const invalid = this.uploadFiles.find(f => !!f.error);
+    if (invalid) {
+      this.message = 'Corrija los archivos antes de continuar.';
+      this.success = false;
+      return;
+    }
+
+    // Coerce/format fields to match backend expectations
+    const tipod = Number(this.orgForm.value.tipodDni) || 1;
+    const birdth = this.formatDateToDdMmYyyy(this.orgForm.value.birdthDate);
+
+    const payload = {
+      username: this.orgForm.value.organizationName,
+      email: this.orgForm.value.email,
+      password: this.orgForm.value.password,
+      // El backend espera el id de rol para organización. Usamos 3 según el formato del backend.
+      rolId: 3,
+      profilePhoto: this.orgForm.value.website || '',
+      people: {
+        name: this.orgForm.value.organizationName,
+        birdthDate: birdth || '',
+        tipodDni: tipod,
+        dni: this.orgForm.value.dni || '',
+        residencia: this.orgForm.value.address,
+        telefono: this.orgForm.value.phone,
+        supportId: '',
+        municipio: {
+          pais: { iso2: this.orgForm.value.countryIso },
+          state: { iso2: this.orgForm.value.stateIso },
+          city: { name: this.orgForm.value.cityName }
+        }
+      }
+    };
+
+    this.isSubmitting = true;
+    this.message = null;
+
+    // Si no hay archivos, el backend probablemente espera JSON puro.
+    if (!this.uploadFiles.length) {
+      this.regService.registerOrganizationJson(payload).subscribe({
+        next: (res: any) => {
+          // Respuesta esperada: 201 o body con estado 'pending'
+          this.success = true;
+          if (res?.status === 'pending' || res?.message?.toLowerCase?.().includes('pending')) {
+            this.message = 'Registro recibido. Su organización está en estado "pendiente". Le guiaremos al panel de verificación.';
+          } else {
+            this.message = res?.message || 'Registro completado.';
+          }
+          this.state.setSuccessMessage(this.message || '');
+          setTimeout(() => this.router.navigate(['/verification']), 1500);
+          this.isSubmitting = false;
+        },
+        error: (err: any) => {
+          this.isSubmitting = false;
+          this.success = false;
+          // Mostrar mensajes del backend si existen
+          if (err?.status === 400) {
+            // backend puede devolver un array o string de errores
+            const body = err.error;
+            if (typeof body === 'string') {
+              this.message = body;
+            } else if (body?.message) {
+              this.message = body.message;
+            } else if (Array.isArray(body)) {
+              this.message = body.join(',');
+            } else {
+              this.message = 'Datos inválidos. Revise el formulario.';
+            }
+          } else if (err?.status === 409) {
+            this.message = err.error?.message || 'Ya existe una cuenta con esos datos.';
+          } else {
+            this.message = 'Error del servidor. Intente de nuevo más tarde.';
+          }
+        }
+      });
+      return;
+    }
+
+    // Si hay archivos, enviar multipart/form-data
+    const formData = new FormData();
+    formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    this.uploadFiles.forEach((uf) => formData.append('files', uf.file, uf.name));
+
+    this.regService.registerOrganization(formData).subscribe({
+      next: (event: any) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          const percent = event.total ? Math.round(100 * (event.loaded / event.total)) : 0;
+          this.uploadFiles.forEach(f => f.progress = percent);
+        } else if (event.type === HttpEventType.Response) {
+          const res = event.body;
+          this.success = true;
+          this.message = res?.message || 'Registro completado.';
+          this.state.setSuccessMessage(this.message || '');
+          setTimeout(() => this.router.navigate(['/verification']), 1500);
+          this.isSubmitting = false;
+        }
+      },
+      error: (err: any) => {
+        this.isSubmitting = false;
+        this.success = false;
+        if (err?.status === 400) {
+          this.message = err.error?.message || 'Datos inválidos. Revise el formulario.';
+        } else if (err?.status === 409) {
+          this.message = err.error?.message || 'Ya existe una cuenta con esos datos.';
+        } else {
+          this.message = 'Error del servidor. Intente de nuevo más tarde.';
+        }
+      }
+    });
+  }
+
 }

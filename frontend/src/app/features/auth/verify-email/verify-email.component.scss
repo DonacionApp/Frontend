@@ -1,0 +1,364 @@
+/* Contenedor principal */
+.verify-email-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+/* Tarjeta de verificación */
+.verify-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 480px;
+  width: 100%;
+  overflow: hidden;
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header con icono */
+.card-header {
+  padding: 40px 32px 24px;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.icon-container {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* Spinner animado */
+.spinner {
+  width: 50px;
+  height: 50px;
+  animation: rotate 2s linear infinite;
+}
+
+.spinner .path {
+  stroke: white;
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+/* Checkmark animado */
+.checkmark {
+  width: 50px;
+  height: 50px;
+}
+
+.icon-container.success {
+  background: rgba(76, 175, 80, 0.2);
+}
+
+.checkmark-circle {
+  stroke: white;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: white;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Error icon animado */
+.error-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.icon-container.error {
+  background: rgba(244, 67, 54, 0.2);
+}
+
+.error-circle {
+  stroke: white;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.error-cross {
+  stroke: white;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 54;
+  stroke-dashoffset: 54;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+/* Título */
+.card-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Cuerpo de la tarjeta */
+.card-body {
+  padding: 32px;
+}
+
+/* Mensajes de estado */
+.status-message {
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.status-message p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.status-message .small {
+  font-size: 14px;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.verifying-message {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.success-message {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.message-text {
+  font-weight: 500;
+}
+
+/* Formulario manual */
+.manual-form {
+  .form-intro {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+}
+
+.field {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    &.invalid {
+      border-color: #f44336;
+    }
+
+    &::placeholder {
+      color: #bbb;
+    }
+  }
+}
+
+.field-error {
+  color: #f44336;
+  font-size: 13px;
+  margin-top: 6px;
+  display: block;
+}
+
+/* Botones */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(0);
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 100%;
+
+  &:not(:disabled):hover {
+    background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+  }
+}
+
+.btn-large {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 2px solid #e0e0e0;
+
+  &:not(:disabled):hover {
+    background: #eeeeee;
+    border-color: #bdbdbd;
+  }
+}
+
+.btn-link {
+  background: transparent;
+  color: #667eea;
+  padding: 8px 16px;
+
+  &:hover {
+    background: rgba(102, 126, 234, 0.1);
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Acciones */
+.card-actions {
+  padding: 24px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.link-secondary {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #667eea;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .verify-email-container {
+    padding: 12px;
+  }
+
+  .card-header {
+    padding: 32px 24px 20px;
+  }
+
+  .card-title {
+    font-size: 20px;
+  }
+
+  .card-body {
+    padding: 24px;
+  }
+
+  .card-actions {
+    padding: 20px 24px 24px;
+  }
+}
