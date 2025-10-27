@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 
 export interface User {
@@ -18,6 +18,7 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
+  private api=environment.apiBackendUrl;
 
   constructor(private http: HttpClient) {
     // Verificar si hay un usuario en localStorage al iniciar
@@ -87,6 +88,34 @@ export class AuthService {
     );
   }
 
+  loadRolesDefault():Observable<any>{
+    try {
+      return this.http.get<any>(`${this.api}/rol/all/roles`).pipe(
+        tap((data) => console.log('Roles default data:', data)),
+        catchError((error) => {
+          console.error('Error fetching default roles:', error);
+          return throwError(error);
+        })
+      );
+    } catch (error) {
+      return throwError(error);
+    }
+  }
+
+  loadTypesDni():Observable<any>{
+    try {
+      return this.http.get<any>(`${this.api}/typedni`).pipe(
+        tap((data) => console.log('TypesDni data:', data)),
+        catchError((error) => {
+          console.error('Error fetching TypesDni:', error);
+          return throwError(error);
+        })
+      );
+    } catch (error) {
+      return throwError(error);
+    }
+  }
+
   login(email: string, password: string): Observable<any> {
     const url = `${this.baseUrl}/login`;
     return this.http.post<any>(url, { email, password }).pipe(
@@ -139,6 +168,8 @@ export class AuthService {
   hasRole(role: string): boolean {
     return this.currentUserValue?.role === role;
   }
+
+
 
   private decodeToken(token: string): any | null {
     try {

@@ -67,11 +67,14 @@
 										<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
 											<div>
 												<label class="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-												<input formControlName="birdthDate" type="text" placeholder="dd-mm-yyyy" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<input formControlName="birdthDate" type="date" placeholder="dd-mm-yyyy" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
 											</div>
 											<div>
 												<label class="block text-sm font-medium text-gray-700">Tipo de DNI</label>
-												<input formControlName="tipodDni" type="number" placeholder="Tipo DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<select formControlName="tipodDni" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
+													<option value="">Selecciona tipo de DNI...</option>
+													<option *ngFor="let t of typeOptions" [value]="t.id">{{ t.type }}</option>
+												</select>
 											</div>
 											<div>
 												<label class="block text-sm font-medium text-gray-700">DNI</label>

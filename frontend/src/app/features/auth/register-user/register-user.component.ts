@@ -6,6 +6,9 @@ import { FooterComponent } from '../../../shared/components/footer/footer.compon
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
+import { Rol } from '../../../shared/model/rol.model';
+import { TypeDniModel } from '../../../shared/model/type.dni.model';
 
 @Component({
   selector: 'app-register-user',
@@ -17,7 +20,10 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 export class RegisterUserComponent implements OnInit, OnDestroy {
   registerForm!: FormGroup;
   lastPayload: any = null;
+  rolDefault:string="user";
 
+  rolesOptions: Rol[]=[];
+  typeOptions: TypeDniModel[]=[];
   countriesOptions: Countris[] = [];
 
   loadStates: boolean = false;
@@ -34,6 +40,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   constructor(
     private countriesService: CountriesService,
     private fb: FormBuilder,
+    private authService:AuthService,
   ) { }
 
   ngOnInit(): void {
@@ -72,6 +79,22 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.countriesOptions = [];
+      }
+    });
+
+    this.authService.loadRolesDefault().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (data) => {
+        data=data.filter((r:Rol)=>{
+          if(r.rol==this.rolDefault){
+            this.registerForm.get('rolId')?.setValue(r.id);
+          }
+        })
+      }
+    });
+
+    this.authService.loadTypesDni().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (data) => {
+        this.typeOptions = data || [];
       }
     });
 
