@@ -281,7 +281,7 @@ export class EmailVerificationComponent implements OnInit {
     this.messageType = 'warning';
 
     // Llamada al backend para verificar el token
-    this.http.post(`${environment.apiUrl}/auth/verify-email-token`, { token }).subscribe({
+    this.http.post(`${environment.apiBackendUrl}/auth/verify-email-token`, { token }).subscribe({
       next: (response: any) => {
         this.isVerifying = false;
         this.isVerified = true;
@@ -326,7 +326,7 @@ export class EmailVerificationComponent implements OnInit {
     this.messageType = 'warning';
 
     // Llamada al backend para verificar el código
-    this.http.post(`${environment.apiUrl}/auth/verify-email-code`, {
+    this.http.post(`${environment.apiBackendUrl}/auth/verify-email-code`, {
       email: this.userEmail,
       code: this.verificationCode
     }).subscribe({

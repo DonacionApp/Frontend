@@ -26,7 +26,7 @@ import { ButtonComponent } from '../../../shared/components/button/button.compon
             </app-button>
 
             <app-button
-              variant="outline"
+              variant="secondary"
               size="lg"
               (btnClick)="goToOrganizationRegister()"
               class="w-36">
