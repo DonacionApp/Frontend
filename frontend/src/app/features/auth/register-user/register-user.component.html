@@ -30,21 +30,21 @@
 
 							<!-- Form area -->
 							<div class="md:flex-1 mt-4 md:mt-0">
-								<form class="space-y-4">
+								<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">
 									<div>
-										<label class="block text-sm font-medium text-gray-700">Nombre Completo *</label>
-										<input type="text" placeholder="Tu nombre completo" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+										<label class="block text-sm font-medium text-gray-700">Usuario (username) *</label>
+										<input formControlName="username" type="text" placeholder="usuario" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
 									</div>
 
 									<div>
 										<label class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
-										<input type="email" placeholder="tu@email.com" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+										<input formControlName="email" type="email" placeholder="tu@email.com" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
 									</div>
 
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div>
 											<label class="block text-sm font-medium text-gray-700">Contraseña *</label>
-											<input type="password" placeholder="Mínimo 8 caracteres" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											<input formControlName="password" type="password" placeholder="Mínimo 8 caracteres" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
 										</div>
 										<div>
 											<label class="block text-sm font-medium text-gray-700">Confirmar Contraseña *</label>
@@ -52,14 +52,58 @@
 										</div>
 									</div>
 
-									<div>
-										<label class="block text-sm font-medium text-gray-700">Teléfono *</label>
-										<input type="tel" placeholder="Tu número de teléfono" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
-									</div>
+									<div formGroupName="people">
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Nombre *</label>
+												<input formControlName="name" type="text" placeholder="Nombre" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Apellido</label>
+												<input formControlName="lastName" type="text" placeholder="Apellido" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+										</div>
 
-									<div>
-										<label class="block text-sm font-medium text-gray-700">Dirección *</label>
-										<input type="text" placeholder="Tu dirección completa" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+										<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
+												<input formControlName="birdthDate" type="text" placeholder="dd-mm-yyyy" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Tipo de DNI</label>
+												<input formControlName="tipodDni" type="number" placeholder="Tipo DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">DNI</label>
+												<input formControlName="dni" type="text" placeholder="DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+										</div>
+
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Residencia</label>
+												<input formControlName="residencia" type="text" placeholder="Residencia" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-gray-700">Teléfono</label>
+												<input formControlName="telefono" type="tel" placeholder="Teléfono" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+										</div>
+
+										<div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+											<div formGroupName="pais">
+												<label class="block text-sm font-medium text-gray-700">País (ISO2)</label>
+												<input formControlName="iso2" type="text" placeholder="CO" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div formGroupName="state">
+												<label class="block text-sm font-medium text-gray-700">State (ISO2)</label>
+												<input formControlName="iso2" type="text" placeholder="PUT" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+											<div formGroupName="city">
+												<label class="block text-sm font-medium text-gray-700">Ciudad</label>
+												<input formControlName="name" type="text" placeholder="mocoa" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+											</div>
+										</div>
 									</div>
 
 									<div class="flex items-center gap-3">
@@ -69,8 +113,13 @@
 
 									<!-- Buttons -->
 									<div class="flex gap-3 justify-end mt-2">
-										<app-button variant="ghost" size="md">Ya tengo cuenta</app-button>
-										<app-button variant="primary" size="md">Crear Cuenta</app-button>
+										<app-button variant="ghost" size="md" type="button">Ya tengo cuenta</app-button>
+										<app-button variant="primary" size="md" type="submit">Crear Cuenta</app-button>
+									</div>
+
+									<div *ngIf="lastPayload" class="mt-4 bg-gray-50 p-3 rounded border border-gray-100">
+										<p class="text-sm text-gray-600 mb-2">Payload simulado:</p>
+										<pre class="text-xs text-gray-800">{{ lastPayload | json }}</pre>
 									</div>
 								</form>
 							</div>
