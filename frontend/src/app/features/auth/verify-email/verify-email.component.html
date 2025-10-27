@@ -1,0 +1,39 @@
+<div class="verify-email">
+  <h2>Verificación de correo</h2>
+
+  <div *ngIf="verifying">Verificando token, por favor espere...</div>
+
+  <div *ngIf="infoMessage" class="info">{{ infoMessage }}</div>
+  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="!token">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" formControlName="email" />
+        <div class="error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Email inválido
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="code">Código</label>
+        <input id="code" type="text" formControlName="code" />
+        <div class="error" *ngIf="form.get('code')?.touched && form.get('code')?.invalid">
+          Código requerido
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" [disabled]="loading">Verificar</button>
+      </div>
+    </form>
+  </ng-container>
+
+  <ng-container *ngIf="token">
+    <p>Se detectó un token en la URL. Intentando verificar...</p>
+    <div class="actions">
+      <button (click)="verifyWithToken(token)" [disabled]="verifying">Reintentar verificación</button>
+    </div>
+  </ng-container>
+</div>

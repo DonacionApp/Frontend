@@ -6,6 +6,7 @@ import { ForgotPasswordComponent } from './forgot-password/forgot-password.compo
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { VerifyResetTokenComponent } from './verify-reset-token/verify-reset-token.component';
 import { EmailVerificationComponent } from './email-verification/email-verification.component';
+import { VerifyEmailComponent } from './verify-email/verify-email.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { RegisterUserComponent } from './register-user/register-user.component';
@@ -16,7 +17,8 @@ const routes: Routes = [
   { path: 'reset-password/:token', component: ResetPasswordComponent },
   { path: 'reset-password-token', component: VerifyResetTokenComponent },
   { path: 'email-verification', component: EmailVerificationComponent },
-  {path: 'register', component: RegisterUserComponent}
+  {path: 'register', component: RegisterUserComponent},
+  { path: 'verify-email', component: VerifyEmailComponent },
   // { path: 'register', component: RegisterComponent }
 ];
 
@@ -32,7 +34,8 @@ const routes: Routes = [
   ResetPasswordComponent,
   VerifyResetTokenComponent,
   RegisterUserComponent,
-  EmailVerificationComponent
+  EmailVerificationComponent,
+  VerifyEmailComponent
   ],
   providers: [
     // Aquí irán los servicios específicos de autenticación
