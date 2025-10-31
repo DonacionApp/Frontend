@@ -4,3 +4,4 @@ export * from './email-verification.service';
 export * from './user-profile.service';
 export * from './organization-profile.service';
 export * from './auth.service';
+export * from './permission.service';

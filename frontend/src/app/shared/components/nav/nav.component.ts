@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
+import { HasRoleDirective } from '../../directives/has-role.directive';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
   selector: 'app-nav',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, HasRoleDirective],
   templateUrl: './nav.component.html',
   styleUrls: []
 })

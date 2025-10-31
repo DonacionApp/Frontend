@@ -2,10 +2,18 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { VerifyEmailTokenComponent } from './features/auth/verify-email-token/verify-email-token.component';
+import { AccessDeniedComponent } from './shared/components/access-denied/access-denied.component';
+import { AuthGuard } from './core/guards/auth.guard';
+import { DonorGuard } from './core/guards/donor.guard';
+import { OrganizationGuard } from './core/guards/organization.guard';
+import { AdminGuard } from './core/guards/admin.guard';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'home', component: HomeComponent },
+  
+  // Página de acceso denegado
+  { path: 'access-denied', component: AccessDeniedComponent },
   
   // Rutas directas para enlaces de email (sin prefijo /auth)
   { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
@@ -19,11 +27,18 @@ const routes: Routes = [
   },
   {
     path: 'donor',
-    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule)
+    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule),
+    canActivate: [AuthGuard, DonorGuard] // Requiere autenticación Y rol de donante
   },
   {
     path: 'organization',
-    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule)
+    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule),
+    canActivate: [AuthGuard, OrganizationGuard] // Requiere autenticación Y rol de organización
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, AdminGuard] // Requiere autenticación Y rol de admin
   },
   
   // Ruta wildcard para 404 - redirigir al home
