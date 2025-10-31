@@ -153,7 +153,29 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      this.selectedFile = input.files[0];
+      const file = input.files[0];
+      
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+        this.selectedFile = null;
+        input.value = '';
+        return;
+      }
+      
+      // Validar tamaño (máximo 1 MB = 1048576 bytes)
+      const maxSize = 1048576; // 1 MB
+      if (file.size > maxSize) {
+        const sizeMB = (file.size / 1048576).toFixed(2);
+        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB. Por favor, comprime la imagen o selecciona una más pequeña.`;
+        this.selectedFile = null;
+        input.value = '';
+        return;
+      }
+      
+      this.selectedFile = file;
+      this.clearMessages();
       
       // Preview de la imagen
       const reader = new FileReader();
@@ -168,6 +190,8 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     if (!this.selectedFile) return;
 
     this.saving = true;
+    this.clearMessages();
+    
     this.profileService.uploadProfileImage(this.selectedFile).subscribe({
       next: () => {
         this.successMessage = 'Imagen de perfil actualizada exitosamente';
@@ -175,7 +199,18 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
         this.saving = false;
       },
       error: (error) => {
-        this.errorMessage = 'Error al subir la imagen. Por favor, intenta de nuevo.';
+        // Extraer mensaje específico del error
+        let errorMsg = 'Error al subir la imagen. Por favor, intenta de nuevo.';
+        
+        if (error.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error.status === 400) {
+          errorMsg = 'Archivo inválido. Asegúrate de que sea una imagen de menos de 1 MB.';
+        } else if (error.status === 401) {
+          errorMsg = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+        }
+        
+        this.errorMessage = errorMsg;
         this.saving = false;
         console.error('Error uploading image:', error);
       }
@@ -192,13 +227,37 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     this.clearMessages();
 
     const formValues = this.profileForm.getRawValue();
-    const updates = {
-      name: formValues.name,
-      telefono: formValues.telefono,
-      residencia: formValues.residencia,
-      birdthDate: formValues.birdthDate,
-      dni: formValues.dni
+    
+    // Construir el objeto en el formato que espera el backend
+    const updates: any = {
+      people: {}
     };
+
+    // Solo agregar campos que tengan valor Y que hayan cambiado
+    if (formValues.name && formValues.name !== this.profile?.name) {
+      updates.people.name = formValues.name;
+    }
+    if (formValues.telefono && formValues.telefono !== this.profile?.phone) {
+      updates.people.telefono = formValues.telefono;
+    }
+    if (formValues.residencia && formValues.residencia !== this.profile?.address) {
+      updates.people.residencia = formValues.residencia;
+    }
+    if (formValues.birdthDate && formValues.birdthDate !== this.profile?.dateOfBirth) {
+      updates.people.birdthDate = formValues.birdthDate;
+    }
+    // NO enviar DNI a menos que realmente haya cambiado
+    // (generalmente el DNI no debería cambiar)
+    if (formValues.dni && formValues.dni !== this.profile?.dni) {
+      updates.people.dni = formValues.dni;
+    }
+
+    // Si people está vacío, no hay nada que actualizar
+    if (Object.keys(updates.people).length === 0) {
+      this.successMessage = 'No hay cambios que guardar';
+      this.saving = false;
+      return;
+    }
 
     this.profileService.updateProfile(updates).subscribe({
       next: () => {

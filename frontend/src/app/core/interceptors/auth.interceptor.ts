@@ -11,14 +11,16 @@ export class AuthInterceptor implements HttpInterceptor {
     // Obtener el token desde localStorage
     const token = localStorage.getItem('accessToken');
     
-    // Si hay token y la petición es hacia el backend (localhost:5000)
+    // Si hay token y la petición es hacia el backend
     if (token && (req.url.includes('localhost:5000') || req.url.includes('/auth/') || req.url.includes('/api/'))) {
       // Clonar la petición y agregar el header de autorización Bearer
-      req = req.clone({
+      const clonedReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
+      
+      return next.handle(clonedReq);
     }
 
     return next.handle(req);

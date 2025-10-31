@@ -102,7 +102,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Foto de Perfil</label>
           <div class="flex items-center space-x-4">
             <input type="file" 
-                   accept="image/*" 
+                   accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" 
                    (change)="onFileSelected($event)" 
                    #fileInput
                    class="hidden">
@@ -119,6 +119,12 @@
               {{ saving ? 'Subiendo...' : 'Subir Imagen' }}
             </button>
           </div>
+          <p class="mt-2 text-xs text-gray-500">
+            Tamaño máximo: 1 MB. Formatos aceptados: JPG, PNG, GIF, WEBP
+          </p>
+          <p *ngIf="selectedFile" class="mt-1 text-sm text-gray-700">
+            📎 {{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(0) }} KB)
+          </p>
         </div>
 
         <!-- Profile Form -->

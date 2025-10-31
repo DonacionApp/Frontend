@@ -79,15 +79,31 @@ export interface UserProfile {
 }
 
 export interface UpdateUserProfileDTO {
-  name?: string;
-  lastName?: string;
-  telefono?: string;
-  residencia?: string;
-  birdthDate?: string;
-  dni?: string;
-  cityId?: number;
-  stateId?: number;
-  countryId?: number;
+  username?: string;
+  email?: string;
+  password?: string;
+  rolId?: number;
+  people?: {
+    name?: string;
+    lastName?: string;
+    birdthDate?: string;
+    dni?: string;
+    residencia?: string;
+    telefono?: string;
+    supportId?: number | null;
+    municipio?: {
+      pais?: {
+        iso2?: string;
+      };
+      state?: {
+        iso2?: string;
+      };
+      city?: {
+        name?: string;
+      };
+    };
+  };
+  profilePhoto?: string;
 }
 
 export interface ChangePasswordDTO {
@@ -163,14 +179,6 @@ export class UserProfileService {
    * Obtener el perfil del usuario autenticado desde /auth/profile
    */
   getMyProfile(): Observable<UserProfile> {
-    // Verificar si hay token antes de hacer la petición
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      console.error('No hay token de autenticación');
-      this.loadingSubject.next(false);
-      return throwError(() => new Error('No hay token de autenticación'));
-    }
-
     this.loadingSubject.next(true);
     return this.http.get<BackendUserProfile>(`${this.apiUrl}/profile`).pipe(
       map(backendProfile => this.normalizeProfile(backendProfile)),
@@ -181,8 +189,6 @@ export class UserProfileService {
       catchError(error => {
         this.loadingSubject.next(false);
         console.error('Error al cargar perfil:', error);
-        console.error('Status:', error.status);
-        console.error('Response:', error.error);
         return throwError(() => error);
       })
     );
@@ -202,16 +208,16 @@ export class UserProfileService {
     // Actualización optimista: actualizar UI inmediatamente
     const optimisticProfile: UserProfile = { 
       ...currentProfile,
-      name: updates.name || currentProfile.name,
-      phone: updates.telefono || currentProfile.phone,
-      address: updates.residencia || currentProfile.address,
-      dateOfBirth: updates.birdthDate || currentProfile.dateOfBirth,
-      dni: updates.dni || currentProfile.dni
+      name: updates.people?.name || currentProfile.name,
+      phone: updates.people?.telefono || currentProfile.phone,
+      address: updates.people?.residencia || currentProfile.address,
+      dateOfBirth: updates.people?.birdthDate || currentProfile.dateOfBirth,
+      dni: updates.people?.dni || currentProfile.dni
     };
     this.profileSubject.next(optimisticProfile);
     this.loadingSubject.next(true);
 
-    return this.http.patch<BackendUserProfile>(`${this.apiUrl}/profile`, updates).pipe(
+    return this.http.post<BackendUserProfile>(`${this.apiUrl}/update-me`, updates).pipe(
       map(backendProfile => this.normalizeProfile(backendProfile)),
       tap(updatedProfile => {
         // Confirmar con datos del servidor
@@ -266,20 +272,15 @@ export class UserProfileService {
   /**
    * Subir imagen de perfil
    */
-  uploadProfileImage(file: File): Observable<{ imageUrl: string }> {
+  uploadProfileImage(file: File): Observable<any> {
     const formData = new FormData();
     formData.append('profilePhoto', file);
 
-    return this.http.post<{ imageUrl: string }>(`${this.apiUrl}/upload-profile-photo`, formData).pipe(
+    return this.http.post<any>(`${this.apiUrl}/update-me/profile-photo`, formData).pipe(
       tap(response => {
-        const currentProfile = this.profileSubject.value;
-        if (currentProfile) {
-          this.profileSubject.next({
-            ...currentProfile,
-            profileImage: response.imageUrl
-          });
-          this.lastUpdateSubject.next(new Date());
-        }
+        // Recargar el perfil completo después de subir la imagen
+        this.getMyProfile().subscribe();
+        this.lastUpdateSubject.next(new Date());
       }),
       catchError(error => {
         console.error('Error al subir imagen:', error);
