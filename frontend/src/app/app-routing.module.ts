@@ -27,13 +27,13 @@ const routes: Routes = [
   },
   {
     path: 'donor',
-    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule),
-    canActivate: [AuthGuard, DonorGuard] // Requiere autenticación Y rol de donante
+    loadChildren: () => import('./features/donor/donor.module').then(m => m.DonorModule)
+    // Los guards se aplican individualmente en donor.module.ts (register sin guard, profile con guards)
   },
   {
     path: 'organization',
-    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule),
-    canActivate: [AuthGuard, OrganizationGuard] // Requiere autenticación Y rol de organización
+    loadChildren: () => import('./features/organization/organization.module').then(m => m.OrganizationModule)
+    // Los guards se aplican individualmente en organization.module.ts (register sin guard, profile con guards)
   },
   {
     path: 'admin',
