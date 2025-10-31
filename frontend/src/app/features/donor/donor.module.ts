@@ -2,11 +2,13 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { DonorRegisterComponent } from './register/register.component';
+import { DonorProfileComponent } from './profile/donor-profile.component';
+import { AuthGuard } from '../../core/guards/auth.guard';
 
 const routes: Routes = [
   { path: 'register', component: DonorRegisterComponent },
+  { path: 'profile', component: DonorProfileComponent, canActivate: [AuthGuard] },
   // { path: '', component: DonorDashboardComponent },
-  // { path: 'profile', component: DonorProfileComponent },
   // { path: 'donations', component: DonorDonationsComponent },
   // { path: 'donate', component: MakeDonationComponent }
 ];
@@ -18,7 +20,8 @@ const routes: Routes = [
   imports: [
     CommonModule,
     RouterModule.forChild(routes),
-    DonorRegisterComponent // Importar el componente standalone
+    DonorRegisterComponent, // Importar el componente standalone
+    DonorProfileComponent
   ],
   providers: [
     // Aquí irán los servicios específicos del donante

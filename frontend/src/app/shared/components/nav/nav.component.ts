@@ -1,6 +1,8 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { AuthService, User } from '../../../core/services/auth.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-nav',
@@ -9,14 +11,33 @@ import { Router, RouterModule } from '@angular/router';
   templateUrl: './nav.component.html',
   styleUrls: []
 })
-export class NavComponent {
+export class NavComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   isMobileMenuOpen = false;
   
-  // Estado simple para el navbar
+  // Estado del usuario
   isAuthenticated = false;
-  user: any = null;
+  user: User | null = null;
   
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    // Suscribirse al estado del usuario
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.user = user;
+        this.isAuthenticated = !!user;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
@@ -51,12 +72,28 @@ export class NavComponent {
     this.router.navigate(['/organization/register']);
   }
 
+  onProfileClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization/profile']);
+    }
+  }
+
   onLogoutClick(): void {
     this.closeMobileMenu();
-    // Simular logout
-    this.isAuthenticated = false;
-    this.user = null;
+    this.authService.logout();
     this.router.navigate(['/']);
+  }
+
+  getProfileRoute(): string {
+    if (this.user?.role === 'donor') {
+      return '/donor/profile';
+    } else if (this.user?.role === 'organization') {
+      return '/organization/profile';
+    }
+    return '/';
   }
 
   // Cerrar menú móvil al hacer clic fuera

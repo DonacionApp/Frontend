@@ -69,9 +69,11 @@ export class LoginComponent implements OnDestroy {
           if (user?.role === 'admin') {
             this.router.navigate(['/admin']);
           } else if (user?.role === 'organization') {
-            this.router.navigate(['/organization']);
+            // Redirigir al perfil de organización
+            this.router.navigate(['/organization/profile']);
           } else {
-            this.router.navigate(['/']);
+            // Redirigir al perfil de donante (rol 'donor')
+            this.router.navigate(['/donor/profile']);
           }
         },
         error: (err) => {
