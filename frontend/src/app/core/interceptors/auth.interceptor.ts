@@ -1,23 +1,26 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from '../services/auth.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
 
-  constructor(private authService: AuthService) {}
+  constructor() {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const currentUser = this.authService.currentUserValue;
+    // Obtener el token desde localStorage
+    const token = localStorage.getItem('accessToken');
     
-    if (currentUser && req.url.startsWith('/api/')) {
-      // Agregar token de autorización a las requests a la API
-      req = req.clone({
+    // Si hay token y la petición es hacia el backend
+    if (token && (req.url.includes('localhost:5000') || req.url.includes('/auth/') || req.url.includes('/api/'))) {
+      // Clonar la petición y agregar el header de autorización Bearer
+      const clonedReq = req.clone({
         setHeaders: {
-          Authorization: `Bearer ${currentUser.id}` // Ajustar según tu implementación de tokens
+          Authorization: `Bearer ${token}`
         }
       });
+      
+      return next.handle(clonedReq);
     }
 
     return next.handle(req);

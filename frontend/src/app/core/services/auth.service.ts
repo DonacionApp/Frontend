@@ -31,10 +31,13 @@ export class AuthService {
     if (token) {
       const payload = this.decodeToken(token);
       if (payload) {
+        const rawRole = payload.role || payload.roles || 'donor';
+        const normalizedRole = this.normalizeRole(rawRole);
+        
         const user: User = {
           id: payload.sub || payload.id || '',
           email: payload.email || '',
-          role: (payload.role || payload.roles || 'donor') as User['role'],
+          role: normalizedRole,
           name: payload.name || ''
         };
         this.currentUserSubject.next(user);
@@ -147,10 +150,13 @@ export class AuthService {
         // Decodificar token para extraer user
         if (token) {
           const payload = this.decodeToken(token);
+          const rawRole = payload?.role || payload?.roles || 'donor';
+          const normalizedRole = this.normalizeRole(rawRole);
+          
           const user: User = {
             id: payload?.sub || payload?.id || '',
             email: payload?.email || '',
-            role: (payload?.role || payload?.roles || 'donor') as User['role'],
+            role: normalizedRole,
             name: payload?.name || ''
           };
           localStorage.setItem('currentUser', JSON.stringify(user));
@@ -183,7 +189,16 @@ export class AuthService {
     return this.currentUserValue?.role === role;
   }
 
-
+  /**
+   * Normalizar el rol del backend al formato del frontend
+   */
+  private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
+    const normalizedRol = roleName.toLowerCase();
+    if (normalizedRol === 'donante' || normalizedRol === 'donor') return 'donor';
+    if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
+    if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
+    return 'donor'; // default
+  }
 
   private decodeToken(token: string): any | null {
     try {

@@ -1,6 +1,9 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { AuthService, User } from '../../../core/services/auth.service';
+import { UserProfileService } from '../../../core/services/user-profile.service';
+import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
   selector: 'app-nav',
@@ -9,14 +12,92 @@ import { Router, RouterModule } from '@angular/router';
   templateUrl: './nav.component.html',
   styleUrls: []
 })
-export class NavComponent {
+export class NavComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   isMobileMenuOpen = false;
   
-  // Estado simple para el navbar
+  // Estado del usuario
   isAuthenticated = false;
-  user: any = null;
+  user: User | null = null;
+  userProfileImage: string | null = null;
+  userFullName: string = '';
+  isOnProfilePage = false;
   
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private profileService: UserProfileService
+  ) {}
+
+  ngOnInit(): void {
+    // Suscribirse al estado del usuario
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.user = user;
+        this.isAuthenticated = !!user;
+        this.userFullName = user?.name || 'Usuario';
+        
+        // Cargar foto de perfil si el usuario está autenticado
+        if (user) {
+          this.loadUserProfile();
+        } else {
+          this.userProfileImage = null;
+          this.userFullName = '';
+        }
+      });
+    
+    // Detectar cambios de ruta para saber si estamos en la página de perfil
+    this.router.events
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event: any) => {
+        this.isOnProfilePage = event.url.includes('/profile');
+      });
+    
+    // Verificar ruta inicial
+    this.isOnProfilePage = this.router.url.includes('/profile');
+    
+    // Suscribirse a cambios en el perfil para actualizar la foto y nombre
+    this.profileService.profile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(profile => {
+        if (profile) {
+          this.userProfileImage = profile.profileImage || null;
+          this.userFullName = profile.name || this.user?.name || 'Usuario';
+        }
+      });
+  }
+  
+  private loadUserProfile(): void {
+    this.profileService.getMyProfile().subscribe({
+      next: (profile) => {
+        this.userProfileImage = profile.profileImage || null;
+        this.userFullName = profile.name || this.user?.name || 'Usuario';
+      },
+      error: (error) => {
+        console.error('Error loading user profile:', error);
+        // Si falla la carga del perfil, usar el nombre del usuario del auth
+        this.userFullName = this.user?.name || 'Usuario';
+      }
+    });
+  }
+  
+  get displayName(): string {
+    return this.userFullName || this.user?.name || 'Usuario';
+  }
+  
+  get userInitial(): string {
+    const name = this.displayName;
+    return name ? name.charAt(0).toUpperCase() : 'U';
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
@@ -51,12 +132,28 @@ export class NavComponent {
     this.router.navigate(['/organization/register']);
   }
 
+  onProfileClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization/profile']);
+    }
+  }
+
   onLogoutClick(): void {
     this.closeMobileMenu();
-    // Simular logout
-    this.isAuthenticated = false;
-    this.user = null;
+    this.authService.logout();
     this.router.navigate(['/']);
+  }
+
+  getProfileRoute(): string {
+    if (this.user?.role === 'donor') {
+      return '/donor/profile';
+    } else if (this.user?.role === 'organization') {
+      return '/organization/profile';
+    }
+    return '/';
   }
 
   // Cerrar menú móvil al hacer clic fuera
