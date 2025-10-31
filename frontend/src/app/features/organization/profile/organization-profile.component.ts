@@ -35,6 +35,11 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   logoPreview: string | null = null;
   selectedCover: File | null = null;
   coverPreview: string | null = null;
+  
+  // Control de visibilidad de contraseñas
+  showCurrentPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private fb: FormBuilder,
@@ -185,7 +190,27 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   onLogoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      this.selectedLogo = input.files[0];
+      const file = input.files[0];
+      
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+        input.value = '';
+        return;
+      }
+      
+      // Validar tamaño (máximo 1 MB)
+      const maxSize = 1048576; // 1 MB
+      if (file.size > maxSize) {
+        const sizeMB = (file.size / 1048576).toFixed(2);
+        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
+        input.value = '';
+        return;
+      }
+      
+      this.selectedLogo = file;
+      this.clearMessages();
       
       const reader = new FileReader();
       reader.onload = (e: ProgressEvent<FileReader>) => {
@@ -198,7 +223,27 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   onCoverSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      this.selectedCover = input.files[0];
+      const file = input.files[0];
+      
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+        input.value = '';
+        return;
+      }
+      
+      // Validar tamaño (máximo 1 MB)
+      const maxSize = 1048576; // 1 MB
+      if (file.size > maxSize) {
+        const sizeMB = (file.size / 1048576).toFixed(2);
+        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
+        input.value = '';
+        return;
+      }
+      
+      this.selectedCover = file;
+      this.clearMessages();
       
       const reader = new FileReader();
       reader.onload = (e: ProgressEvent<FileReader>) => {
@@ -361,5 +406,17 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     return names.length > 1 
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
+  }
+  
+  toggleCurrentPasswordVisibility(): void {
+    this.showCurrentPassword = !this.showCurrentPassword;
+  }
+  
+  toggleNewPasswordVisibility(): void {
+    this.showNewPassword = !this.showNewPassword;
+  }
+  
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 }

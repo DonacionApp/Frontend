@@ -30,6 +30,11 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   
   selectedFile: File | null = null;
   imagePreview: string | null = null;
+  
+  // Control de visibilidad de contraseñas
+  showCurrentPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private fb: FormBuilder,
@@ -345,5 +350,17 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     return names.length > 1 
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
+  }
+  
+  toggleCurrentPasswordVisibility(): void {
+    this.showCurrentPassword = !this.showCurrentPassword;
+  }
+  
+  toggleNewPasswordVisibility(): void {
+    this.showNewPassword = !this.showNewPassword;
+  }
+  
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 }

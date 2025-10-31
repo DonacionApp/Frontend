@@ -1,8 +1,9 @@
 import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
-import { Subject, takeUntil } from 'rxjs';
+import { UserProfileService } from '../../../core/services/user-profile.service';
+import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
   selector: 'app-nav',
@@ -18,10 +19,14 @@ export class NavComponent implements OnInit, OnDestroy {
   // Estado del usuario
   isAuthenticated = false;
   user: User | null = null;
+  userProfileImage: string | null = null;
+  userFullName: string = '';
+  isOnProfilePage = false;
   
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private profileService: UserProfileService
   ) {}
 
   ngOnInit(): void {
@@ -31,7 +36,62 @@ export class NavComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.user = user;
         this.isAuthenticated = !!user;
+        this.userFullName = user?.name || 'Usuario';
+        
+        // Cargar foto de perfil si el usuario está autenticado
+        if (user) {
+          this.loadUserProfile();
+        } else {
+          this.userProfileImage = null;
+          this.userFullName = '';
+        }
       });
+    
+    // Detectar cambios de ruta para saber si estamos en la página de perfil
+    this.router.events
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event: any) => {
+        this.isOnProfilePage = event.url.includes('/profile');
+      });
+    
+    // Verificar ruta inicial
+    this.isOnProfilePage = this.router.url.includes('/profile');
+    
+    // Suscribirse a cambios en el perfil para actualizar la foto y nombre
+    this.profileService.profile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(profile => {
+        if (profile) {
+          this.userProfileImage = profile.profileImage || null;
+          this.userFullName = profile.name || this.user?.name || 'Usuario';
+        }
+      });
+  }
+  
+  private loadUserProfile(): void {
+    this.profileService.getMyProfile().subscribe({
+      next: (profile) => {
+        this.userProfileImage = profile.profileImage || null;
+        this.userFullName = profile.name || this.user?.name || 'Usuario';
+      },
+      error: (error) => {
+        console.error('Error loading user profile:', error);
+        // Si falla la carga del perfil, usar el nombre del usuario del auth
+        this.userFullName = this.user?.name || 'Usuario';
+      }
+    });
+  }
+  
+  get displayName(): string {
+    return this.userFullName || this.user?.name || 'Usuario';
+  }
+  
+  get userInitial(): string {
+    const name = this.displayName;
+    return name ? name.charAt(0).toUpperCase() : 'U';
   }
 
   ngOnDestroy(): void {

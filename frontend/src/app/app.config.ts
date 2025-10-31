@@ -1,8 +1,7 @@
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter, Routes } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
-import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 const routes: Routes = [
   // Ruta principal - Landing Page
@@ -40,9 +39,7 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideHttpClient(
-      withInterceptors([authInterceptor])
-    ),
+    provideHttpClient(),
     importProvidersFrom(BrowserModule)
   ]
 };
