@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface OrganizationProfile {
@@ -183,7 +183,8 @@ export class OrganizationProfileService {
     this.profileSubject.next(optimisticProfile);
     this.loadingSubject.next(true);
 
-    return this.http.patch<OrganizationProfile>(`${this.apiUrl}/${id}`, updates).pipe(
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, updates).pipe(
+      map(response => this.transformBackendResponse(response)),
       tap(updatedProfile => {
         // Confirmar con datos del servidor
         this.profileSubject.next(updatedProfile);
@@ -204,7 +205,7 @@ export class OrganizationProfileService {
    * Cambiar contraseña de la organización
    */
   changePassword(id: string, data: { currentPassword: string; newPassword: string; confirmPassword: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${id}/change-password`, data).pipe(
+    return this.http.post(`${environment.apiBaseUrl}/change-password`, data).pipe(
       tap(() => {
         this.lastUpdateSubject.next(new Date());
       }),
