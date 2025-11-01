@@ -121,10 +121,10 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadProfile(): void {
-    if (!this.organizationId) return;
-
-    this.profileService.getOrganizationProfile(this.organizationId).subscribe({
-      next: () => {
+    // Usar getMyOrganizationProfile() que llama a /auth/profile
+    this.profileService.getMyOrganizationProfile().subscribe({
+      next: (profile) => {
+        this.populateForm(profile);
         if (this.activeTab === 'activity') {
           this.loadActivity();
         }

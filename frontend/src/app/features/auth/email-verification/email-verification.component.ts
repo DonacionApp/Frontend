@@ -454,23 +454,14 @@ export class EmailVerificationComponent implements OnInit {
   }
 
   autoLogin(): void {
-    // Simular login automático después de verificación
-    // Simular almacenamiento de datos de usuario en localStorage
-    const userData = {
-      id: 'temp-user-id',
-      email: this.userEmail,
-      role: 'donor',
-      name: this.userEmail.split('@')[0],
-      verified: true,
-      loginTime: new Date().toISOString()
-    };
-    
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    localStorage.setItem('isLoggedIn', 'true');
-    
-    // Redirigir al home después del login
-    setTimeout(() => {
-      this.router.navigate(['/']);
-    }, 1000);
+    // Redirigir a la página de login para que el usuario inicie sesión correctamente
+    // El backend ya tiene su cuenta verificada, ahora debe autenticarse
+    this.router.navigate(['/auth/login'], {
+      queryParams: { 
+        email: this.userEmail,
+        verified: 'true',
+        message: 'Tu cuenta ha sido verificada. Por favor inicia sesión.'
+      }
+    });
   }
 }

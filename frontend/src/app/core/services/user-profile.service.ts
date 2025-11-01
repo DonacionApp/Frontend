@@ -62,6 +62,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  lastName?: string;
   phone?: string;
   address?: string;
   city?: string;
@@ -148,6 +149,7 @@ export class UserProfileService {
       id: backendProfile.id.toString(),
       email: backendProfile.email,
       name: backendProfile.people.name,
+      lastName: backendProfile.people.lastName || '',
       phone: backendProfile.people.telefono || '',
       address: backendProfile.people.residencia || '',
       city: backendProfile.people.municipio?.city?.name || '',
@@ -169,7 +171,7 @@ export class UserProfileService {
    */
   private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
     const normalizedRol = roleName.toLowerCase();
-    if (normalizedRol === 'donante' || normalizedRol === 'donor') return 'donor';
+    if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') return 'donor';
     if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
     if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
     return 'donor'; // default
@@ -236,11 +238,18 @@ export class UserProfileService {
   }
 
   /**
-   * Cambiar contraseña del usuario
+   * Cambiar contraseña del usuario usando /auth/update-me
    */
   changePassword(data: ChangePasswordDTO): Observable<any> {
-    return this.http.post(`${this.apiUrl}/change-password`, data).pipe(
-      tap(() => {
+    // Convertir ChangePasswordDTO a UpdateUserProfileDTO
+    const updateData: UpdateUserProfileDTO = {
+      password: data.newPassword
+    };
+    
+    return this.http.post<BackendUserProfile>(`${this.apiUrl}/update-me`, updateData).pipe(
+      map(backendProfile => this.normalizeProfile(backendProfile)),
+      tap(updatedProfile => {
+        this.profileSubject.next(updatedProfile);
         this.lastUpdateSubject.next(new Date());
       }),
       catchError(error => {

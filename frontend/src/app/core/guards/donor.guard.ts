@@ -5,7 +5,7 @@ import { AuthService } from '../services/auth.service';
 @Injectable({
   providedIn: 'root'
 })
-export class AdminGuard implements CanActivate {
+export class DonorGuard implements CanActivate {
 
   constructor(
     private authService: AuthService,
@@ -23,15 +23,15 @@ export class AdminGuard implements CanActivate {
       return false;
     }
 
-    // Verificar si tiene rol de administrador
-    if (user.role === 'admin') {
+    // Verificar si tiene rol de donante
+    if (user.role === 'donor') {
       return true;
     }
 
-    // Si no es admin, redirigir a página de acceso denegado
+    // Si no es donante, redirigir a página de acceso denegado
     this.router.navigate(['/access-denied'], {
       queryParams: { 
-        requiredRole: 'Administrador',
+        requiredRole: 'Donante',
         currentRole: this.getRoleDisplayName(user.role)
       }
     });

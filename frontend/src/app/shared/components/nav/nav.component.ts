@@ -123,6 +123,7 @@ export class NavComponent implements OnInit, OnDestroy {
   }
 
   onRegisterClick(): void {
+    console.log('Navegando a /donor/register...');
     this.closeMobileMenu();
     this.router.navigate(['/donor/register']);
   }

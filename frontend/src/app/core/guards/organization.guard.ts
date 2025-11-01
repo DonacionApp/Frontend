@@ -5,7 +5,7 @@ import { AuthService } from '../services/auth.service';
 @Injectable({
   providedIn: 'root'
 })
-export class AdminGuard implements CanActivate {
+export class OrganizationGuard implements CanActivate {
 
   constructor(
     private authService: AuthService,
@@ -23,15 +23,15 @@ export class AdminGuard implements CanActivate {
       return false;
     }
 
-    // Verificar si tiene rol de administrador
-    if (user.role === 'admin') {
+    // Verificar si tiene rol de organización
+    if (user.role === 'organization') {
       return true;
     }
 
-    // Si no es admin, redirigir a página de acceso denegado
+    // Si no es organización, redirigir a página de acceso denegado
     this.router.navigate(['/access-denied'], {
       queryParams: { 
-        requiredRole: 'Administrador',
+        requiredRole: 'Organización',
         currentRole: this.getRoleDisplayName(user.role)
       }
     });

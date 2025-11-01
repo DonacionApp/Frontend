@@ -4,10 +4,11 @@ import { RouterModule, Routes } from '@angular/router';
 import { DonorRegisterComponent } from './register/register.component';
 import { DonorProfileComponent } from './profile/donor-profile.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
+import { DonorGuard } from '../../core/guards/donor.guard';
 
 const routes: Routes = [
   { path: 'register', component: DonorRegisterComponent },
-  { path: 'profile', component: DonorProfileComponent, canActivate: [AuthGuard] },
+  { path: 'profile', component: DonorProfileComponent, canActivate: [AuthGuard, DonorGuard] },
   // { path: '', component: DonorDashboardComponent },
   // { path: 'donations', component: DonorDonationsComponent },
   // { path: 'donate', component: MakeDonationComponent }

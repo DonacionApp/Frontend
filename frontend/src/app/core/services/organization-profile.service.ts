@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface OrganizationProfile {
@@ -72,6 +72,7 @@ export interface OrganizationActivityLog {
 })
 export class OrganizationProfileService {
   private apiUrl = `${environment.apiBackendUrl}/api/orgs`;
+  private authProfileUrl = `${environment.apiBaseUrl}/profile`; // Nuevo endpoint unificado
 
   // Estado del perfil con actualizaciones optimistas
   private profileSubject = new BehaviorSubject<OrganizationProfile | null>(null);
@@ -110,10 +111,13 @@ export class OrganizationProfileService {
    */
   getMyOrganizationProfile(): Observable<OrganizationProfile> {
     this.loadingSubject.next(true);
-    return this.http.get<OrganizationProfile>(`${this.apiUrl}/me`).pipe(
-      tap(profile => {
+    return this.http.get<any>(`${this.authProfileUrl}`).pipe(
+      map(response => {
+        // Transformar respuesta del backend al formato del frontend
+        const profile = this.transformBackendResponse(response);
         this.profileSubject.next(profile);
         this.loadingSubject.next(false);
+        return profile; // ← Retornar el perfil transformado
       }),
       catchError(error => {
         this.loadingSubject.next(false);
@@ -121,6 +125,41 @@ export class OrganizationProfileService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Transformar la respuesta del backend al formato OrganizationProfile
+   */
+  private transformBackendResponse(response: any): OrganizationProfile {
+    return {
+      id: response.id?.toString() || '',
+      name: response.people?.name || response.username || '',
+      email: response.email || '',
+      phone: response.people?.telefono || '',
+      address: response.people?.residencia || '',
+      city: response.people?.municipio?.city?.name || '',
+      state: response.people?.municipio?.state?.name || '',
+      country: response.people?.municipio?.country?.name || '',
+      postalCode: '',
+      taxId: response.people?.dni || '',
+      website: '',
+      description: '',
+      missionStatement: '',
+      logo: response.profilePhoto || '',
+      coverImage: '',
+      registrationNumber: response.people?.dni || '',
+      registrationDate: response.createdAt || '',
+      legalRepresentative: '',
+      bankAccount: '',
+      isVerified: response.verified || false,
+      verificationDate: response.emailVerified ? response.lastLogin : undefined,
+      socialMedia: {
+        facebook: '',
+        twitter: '',
+        instagram: '',
+        linkedin: ''
+      }
+    };
   }
 
   /**
@@ -145,7 +184,8 @@ export class OrganizationProfileService {
     this.profileSubject.next(optimisticProfile);
     this.loadingSubject.next(true);
 
-    return this.http.patch<OrganizationProfile>(`${this.apiUrl}/${id}`, updates).pipe(
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, updates).pipe(
+      map(response => this.transformBackendResponse(response)),
       tap(updatedProfile => {
         // Confirmar con datos del servidor
         this.profileSubject.next(updatedProfile);
@@ -163,10 +203,20 @@ export class OrganizationProfileService {
   }
 
   /**
-   * Cambiar contraseña de la organización
+   * Cambiar contraseña de la organización usando /auth/update-me
    */
   changePassword(id: string, data: { currentPassword: string; newPassword: string; confirmPassword: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${id}/change-password`, data).pipe(
+    // Usar /auth/update-me con el campo password
+    const updateData = {
+      password: data.newPassword
+    };
+    
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, updateData).pipe(
+      map(response => {
+        const profile = this.transformBackendResponse(response);
+        this.profileSubject.next(profile);
+        return profile;
+      }),
       tap(() => {
         this.lastUpdateSubject.next(new Date());
       }),
