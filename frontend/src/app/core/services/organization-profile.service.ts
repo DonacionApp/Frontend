@@ -112,11 +112,12 @@ export class OrganizationProfileService {
   getMyOrganizationProfile(): Observable<OrganizationProfile> {
     this.loadingSubject.next(true);
     return this.http.get<any>(`${this.authProfileUrl}`).pipe(
-      tap(response => {
+      map(response => {
         // Transformar respuesta del backend al formato del frontend
         const profile = this.transformBackendResponse(response);
         this.profileSubject.next(profile);
         this.loadingSubject.next(false);
+        return profile; // ← Retornar el perfil transformado
       }),
       catchError(error => {
         this.loadingSubject.next(false);
