@@ -203,10 +203,20 @@ export class OrganizationProfileService {
   }
 
   /**
-   * Cambiar contraseña de la organización
+   * Cambiar contraseña de la organización usando /auth/update-me
    */
   changePassword(id: string, data: { currentPassword: string; newPassword: string; confirmPassword: string }): Observable<any> {
-    return this.http.post(`${environment.apiBaseUrl}/change-password`, data).pipe(
+    // Usar /auth/update-me con el campo password
+    const updateData = {
+      password: data.newPassword
+    };
+    
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, updateData).pipe(
+      map(response => {
+        const profile = this.transformBackendResponse(response);
+        this.profileSubject.next(profile);
+        return profile;
+      }),
       tap(() => {
         this.lastUpdateSubject.next(new Date());
       }),

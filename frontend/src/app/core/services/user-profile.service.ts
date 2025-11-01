@@ -238,11 +238,18 @@ export class UserProfileService {
   }
 
   /**
-   * Cambiar contraseña del usuario
+   * Cambiar contraseña del usuario usando /auth/update-me
    */
   changePassword(data: ChangePasswordDTO): Observable<any> {
-    return this.http.post(`${this.apiUrl}/change-password`, data).pipe(
-      tap(() => {
+    // Convertir ChangePasswordDTO a UpdateUserProfileDTO
+    const updateData: UpdateUserProfileDTO = {
+      password: data.newPassword
+    };
+    
+    return this.http.post<BackendUserProfile>(`${this.apiUrl}/update-me`, updateData).pipe(
+      map(backendProfile => this.normalizeProfile(backendProfile)),
+      tap(updatedProfile => {
+        this.profileSubject.next(updatedProfile);
         this.lastUpdateSubject.next(new Date());
       }),
       catchError(error => {
