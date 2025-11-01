@@ -72,6 +72,7 @@ export interface OrganizationActivityLog {
 })
 export class OrganizationProfileService {
   private apiUrl = `${environment.apiBackendUrl}/api/orgs`;
+  private authProfileUrl = `${environment.apiBaseUrl}/profile`; // Nuevo endpoint unificado
 
   // Estado del perfil con actualizaciones optimistas
   private profileSubject = new BehaviorSubject<OrganizationProfile | null>(null);
@@ -110,8 +111,10 @@ export class OrganizationProfileService {
    */
   getMyOrganizationProfile(): Observable<OrganizationProfile> {
     this.loadingSubject.next(true);
-    return this.http.get<OrganizationProfile>(`${this.apiUrl}/me`).pipe(
-      tap(profile => {
+    return this.http.get<any>(`${this.authProfileUrl}`).pipe(
+      tap(response => {
+        // Transformar respuesta del backend al formato del frontend
+        const profile = this.transformBackendResponse(response);
         this.profileSubject.next(profile);
         this.loadingSubject.next(false);
       }),
@@ -121,6 +124,41 @@ export class OrganizationProfileService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Transformar la respuesta del backend al formato OrganizationProfile
+   */
+  private transformBackendResponse(response: any): OrganizationProfile {
+    return {
+      id: response.id?.toString() || '',
+      name: response.people?.name || response.username || '',
+      email: response.email || '',
+      phone: response.people?.telefono || '',
+      address: response.people?.residencia || '',
+      city: response.people?.municipio?.city?.name || '',
+      state: response.people?.municipio?.state?.name || '',
+      country: response.people?.municipio?.country?.name || '',
+      postalCode: '',
+      taxId: response.people?.dni || '',
+      website: '',
+      description: '',
+      missionStatement: '',
+      logo: response.profilePhoto || '',
+      coverImage: '',
+      registrationNumber: response.people?.dni || '',
+      registrationDate: response.createdAt || '',
+      legalRepresentative: '',
+      bankAccount: '',
+      isVerified: response.verified || false,
+      verificationDate: response.emailVerified ? response.lastLogin : undefined,
+      socialMedia: {
+        facebook: '',
+        twitter: '',
+        instagram: '',
+        linkedin: ''
+      }
+    };
   }
 
   /**
