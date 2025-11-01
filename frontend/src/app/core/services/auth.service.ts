@@ -31,7 +31,7 @@ export class AuthService {
     if (token) {
       const payload = this.decodeToken(token);
       if (payload) {
-        const rawRole = payload.role || payload.roles || 'donor';
+        const rawRole = payload.role || payload.roles || payload.rol || 'donor';
         const normalizedRole = this.normalizeRole(rawRole);
         
         const user: User = {
@@ -150,8 +150,11 @@ export class AuthService {
         // Decodificar token para extraer user
         if (token) {
           const payload = this.decodeToken(token);
-          const rawRole = payload?.role || payload?.roles || 'donor';
+          console.log('🔍 JWT Payload del backend:', payload);
+          const rawRole = payload?.role || payload?.roles || payload?.rol || 'donor';
+          console.log('🎭 Rol extraído del token:', rawRole);
           const normalizedRole = this.normalizeRole(rawRole);
+          console.log('✅ Rol normalizado:', normalizedRole);
           
           const user: User = {
             id: payload?.sub || payload?.id || '',
@@ -159,6 +162,7 @@ export class AuthService {
             role: normalizedRole,
             name: payload?.name || ''
           };
+          console.log('👤 Usuario final guardado:', user);
           localStorage.setItem('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
         }
@@ -194,7 +198,7 @@ export class AuthService {
    */
   private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
     const normalizedRol = roleName.toLowerCase();
-    if (normalizedRol === 'donante' || normalizedRol === 'donor') return 'donor';
+    if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') return 'donor';
     if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
     if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
     return 'donor'; // default
