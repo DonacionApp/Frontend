@@ -60,8 +60,9 @@ export interface BackendUserProfile {
 // Interface normalizada para el frontend
 export interface UserProfile {
   id: string;
+  username: string; // Username de la tabla 'user'
   email: string;
-  name: string;
+  name: string; // Nombre de la tabla 'people'
   lastName?: string;
   phone?: string;
   address?: string;
@@ -143,26 +144,38 @@ export class UserProfileService {
 
   /**
    * Normalizar la respuesta del backend al formato del frontend
+   * 
+   * Mapea datos de las tablas 'user' y 'people' del backend a la interfaz UserProfile.
+   * Campos mapeados:
+   * - De tabla 'user': id, email, profilePhoto, rol, createdAt, lastLogin, emailVerified
+   * - De tabla 'people': name, lastName, telefono, residencia, birdthDate, dni, typeDni, municipio
    */
   private normalizeProfile(backendProfile: BackendUserProfile): UserProfile {
+    // Helper para limpiar valores "[null]" que vienen del backend
+    const cleanValue = (value: any): string => {
+      if (!value || value === '[null]' || value === 'null') return '';
+      return String(value).trim();
+    };
+
     return {
       id: backendProfile.id.toString(),
-      email: backendProfile.email,
-      name: backendProfile.people.name,
-      lastName: backendProfile.people.lastName || '',
-      phone: backendProfile.people.telefono || '',
-      address: backendProfile.people.residencia || '',
-      city: backendProfile.people.municipio?.city?.name || '',
-      state: backendProfile.people.municipio?.state?.name || '',
-      country: backendProfile.people.municipio?.country?.name || '',
-      dateOfBirth: backendProfile.people.birdthDate || '',
-      profileImage: backendProfile.profilePhoto || '',
-      role: this.normalizeRole(backendProfile.rol.rol),
-      createdAt: backendProfile.createdAt,
-      lastLogin: backendProfile.lastLogin,
-      isEmailVerified: backendProfile.emailVerified,
-      dni: backendProfile.people.dni,
-      typeDni: backendProfile.people.typeDni?.type
+      username: backendProfile.username || '', // Username de la tabla 'user'
+      email: backendProfile.email || '',
+      name: cleanValue(backendProfile.people?.name), // Nombre de la tabla 'people'
+      lastName: cleanValue(backendProfile.people?.lastName),
+      phone: cleanValue(backendProfile.people?.telefono),
+      address: cleanValue(backendProfile.people?.residencia),
+      city: cleanValue(backendProfile.people?.municipio?.city?.name),
+      state: cleanValue(backendProfile.people?.municipio?.state?.name),
+      country: cleanValue(backendProfile.people?.municipio?.country?.name),
+      dateOfBirth: cleanValue(backendProfile.people?.birdthDate),
+      profileImage: cleanValue(backendProfile.profilePhoto),
+      role: this.normalizeRole(backendProfile.rol?.rol || 'donor'),
+      createdAt: backendProfile.createdAt || '',
+      lastLogin: backendProfile.lastLogin || '',
+      isEmailVerified: backendProfile.emailVerified || false,
+      dni: cleanValue(backendProfile.people?.dni),
+      typeDni: cleanValue(backendProfile.people?.typeDni?.type)
     };
   }
 
@@ -265,14 +278,15 @@ export class UserProfileService {
   getActivityLog(): Observable<ActivityLog[]> {
     return this.http.get<ActivityLog[]>(`${this.apiUrl}/activity`).pipe(
       catchError(error => {
-        console.error('Error al cargar actividad:', error);
-        // Si el endpoint no existe, retornar array vacío
+        // Si el endpoint no existe (404), retornar array vacío silenciosamente
         if (error.status === 404) {
           return new Observable<ActivityLog[]>(observer => {
             observer.next([]);
             observer.complete();
           });
         }
+        // Solo mostrar error si no es 404
+        console.error('Error al cargar actividad:', error);
         return throwError(() => error);
       })
     );

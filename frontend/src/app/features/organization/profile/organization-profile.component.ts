@@ -125,9 +125,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.profileService.getMyOrganizationProfile().subscribe({
       next: (profile) => {
         this.populateForm(profile);
-        if (this.activeTab === 'activity') {
-          this.loadActivity();
-        }
       },
       error: (error) => {
         this.errorMessage = 'Error al cargar el perfil. Por favor, intenta de nuevo.';
@@ -136,6 +133,23 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Poblar el formulario con los datos del perfil de la organización
+   * 
+   * Campos editables:
+   * - name: Nombre de la organización
+   * - phone: Teléfono de contacto
+   * - address: Dirección física
+   * - postalCode: Código postal
+   * - website: Sitio web
+   * - description: Descripción breve
+   * - missionStatement: Declaración de misión
+   * - legalRepresentative: Representante legal
+   * - facebookUrl, twitterUrl, instagramUrl, linkedinUrl: Redes sociales
+   * 
+   * Campos de solo lectura (disabled):
+   * - email: No se puede cambiar (definido en el registro)
+   */
   private populateForm(profile: OrganizationProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
@@ -165,26 +179,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadActivity(): void {
-    if (!this.organizationId) return;
-
-    this.profileService.getActivityLog(this.organizationId).subscribe({
-      next: (logs) => {
-        this.activityLog = logs;
-      },
-      error: (error) => {
-        console.error('Error loading activity:', error);
-        this.activityLog = [];
-      }
-    });
+    // Endpoint de actividad no implementado en el backend
+    // El historial de actividad se implementará en el futuro
+    this.activityLog = [];
   }
 
   setActiveTab(tab: 'general' | 'security' | 'activity'): void {
     this.activeTab = tab;
     this.clearMessages();
-    
-    if (tab === 'activity' && this.activityLog.length === 0) {
-      this.loadActivity();
-    }
   }
 
   onLogoSelected(event: Event): void {

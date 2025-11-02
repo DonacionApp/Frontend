@@ -6,7 +6,8 @@ import { environment } from '../../../environments/environment';
 
 export interface OrganizationProfile {
   id: string;
-  name: string;
+  username: string; // Username de la tabla 'user'
+  name: string; // Nombre de la organización de la tabla 'people'
   email: string;
   phone?: string;
   address?: string;
@@ -133,7 +134,8 @@ export class OrganizationProfileService {
   private transformBackendResponse(response: any): OrganizationProfile {
     return {
       id: response.id?.toString() || '',
-      name: response.people?.name || response.username || '',
+      username: response.username || '', // Username de la tabla 'user'
+      name: response.people?.name || response.username || '', // Nombre de la tabla 'people'
       email: response.email || '',
       phone: response.people?.telefono || '',
       address: response.people?.residencia || '',
@@ -153,6 +155,8 @@ export class OrganizationProfileService {
       bankAccount: '',
       isVerified: response.verified || false,
       verificationDate: response.emailVerified ? response.lastLogin : undefined,
+      createdAt: response.createdAt || '',
+      lastLogin: response.lastLogin || '',
       socialMedia: {
         facebook: '',
         twitter: '',
@@ -229,18 +233,20 @@ export class OrganizationProfileService {
 
   /**
    * Obtener historial de actividad de la organización
+   * Nota: Este endpoint aún no está implementado en el backend
    */
   getActivityLog(id: string): Observable<OrganizationActivityLog[]> {
     return this.http.get<OrganizationActivityLog[]>(`${this.apiUrl}/${id}/activity`).pipe(
       catchError(error => {
-        console.error('Error al cargar actividad:', error);
-        // Si el endpoint no existe, retornar array vacío
+        // Si el endpoint no existe (404), retornar array vacío silenciosamente
         if (error.status === 404) {
           return new Observable<OrganizationActivityLog[]>(observer => {
             observer.next([]);
             observer.complete();
           });
         }
+        // Solo mostrar error si no es 404
+        console.error('Error al cargar actividad:', error);
         return throwError(() => error);
       })
     );
