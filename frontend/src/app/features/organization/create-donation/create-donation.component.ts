@@ -180,7 +180,7 @@ export class CreateDonationComponent implements OnInit {
         
         // Redirigir a la lista de donaciones después de 2 segundos
         setTimeout(() => {
-          this.router.navigate(['/donor/donations']);
+          this.router.navigate(['/organization/donations']);
         }, 2000);
       },
       error: (error) => {
@@ -203,7 +203,7 @@ export class CreateDonationComponent implements OnInit {
   // Cancelar y volver
   onCancel(): void {
     if (confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')) {
-      this.router.navigate(['/donor/donations']);
+      this.router.navigate(['/organization/donations']);
     }
   }
 

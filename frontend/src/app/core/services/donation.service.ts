@@ -35,7 +35,8 @@ export interface Donation extends CreateDonationDTO {
   providedIn: 'root'
 })
 export class DonationService {
-  private apiUrl = `${environment.apiBackendUrl}/donation`;
+  // Intentar con /api/donation si el endpoint requiere el prefijo
+  private apiUrl = `${environment.apiBackendUrl}/api/donation`;
 
   // Estado de las donaciones
   private donationsSubject = new BehaviorSubject<Donation[]>([]);
