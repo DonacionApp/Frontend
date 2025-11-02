@@ -1,0 +1,56 @@
+// Animaciones
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+form {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+// Spinner
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Transiciones suaves en botones
+button {
+  transition: all 0.2s ease-in-out;
+  
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+// Inputs con foco
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
+// Campos inválidos
+.border-red-500 {
+  border-color: #ef4444 !important;
+}
+
+// Responsive
+@media (max-width: 640px) {
+  .grid-cols-1 {
+    gap: 1rem;
+  }
+}

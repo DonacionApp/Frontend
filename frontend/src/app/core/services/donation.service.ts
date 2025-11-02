@@ -115,7 +115,7 @@ export class DonationService {
    */
   updateDonation(id: string, updates: Partial<CreateDonationDTO>): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.put<Donation>(`${this.apiUrl}/${id}`, updates).pipe(
+    return this.http.post<Donation>(`${this.apiUrl}/${id}`, updates).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;
@@ -158,7 +158,7 @@ export class DonationService {
    * Extender fecha máxima de entrega en 10 días
    */
   extendDeliveryDate(id: string): Observable<Donation> {
-    return this.http.patch<Donation>(`${this.apiUrl}/${id}/extend-date`, {}).pipe(
+    return this.http.post<Donation>(`${this.apiUrl}/${id}/extend-date`, {}).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;
