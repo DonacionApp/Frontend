@@ -38,6 +38,12 @@ export class NavComponent implements OnInit, OnDestroy {
         this.isAuthenticated = !!user;
         this.userFullName = user?.name || 'Usuario';
         
+        // Debug: Verificar el rol del usuario
+        if (user) {
+          console.log('👤 Usuario autenticado:', user);
+          console.log('🎭 Rol del usuario:', user.role);
+        }
+        
         // Cargar foto de perfil si el usuario está autenticado
         if (user) {
           this.loadUserProfile();
@@ -131,6 +137,11 @@ export class NavComponent implements OnInit, OnDestroy {
   onOrganizationRegisterClick(): void {
     this.closeMobileMenu();
     this.router.navigate(['/organization/register']);
+  }
+
+  onPublicationsClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/donations/feed']);
   }
 
   onProfileClick(): void {

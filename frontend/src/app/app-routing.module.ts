@@ -40,6 +40,11 @@ const routes: Routes = [
     loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
     canActivate: [AuthGuard, AdminGuard] // Requiere autenticación Y rol de admin
   },
+  {
+    path: 'donations',
+    loadChildren: () => import('./features/donations/donations.module').then(m => m.DonationsModule)
+    // Acceso público sin guards
+  },
   
   // Ruta wildcard para 404 - redirigir al home
   { path: '**', redirectTo: '/' }

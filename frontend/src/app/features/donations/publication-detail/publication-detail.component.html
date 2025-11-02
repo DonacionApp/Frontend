@@ -1,0 +1,236 @@
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <!-- Loading -->
+    <div *ngIf="loading" class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-sm text-red-700">{{ errorMessage }}</p>
+        <button 
+          (click)="onBack()"
+          class="ml-auto text-sm text-red-600 hover:text-red-800 font-medium"
+        >
+          Volver
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="!loading && donation" class="space-y-6">
+      <!-- Back button -->
+      <button 
+        (click)="onBack()"
+        class="inline-flex items-center text-gray-600 hover:text-gray-900"
+      >
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver al feed
+      </button>
+
+      <!-- Main card -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <img 
+                [src]="profilePhotoUrl" 
+                [alt]="username"
+                class="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                (error)="$any($event.target).src='assets/default-avatar.svg'"
+              />
+              <div>
+                <h2 class="text-xl font-bold text-gray-900">{{ username }}</h2>
+                <p class="text-sm text-gray-500">{{ formatTimeAgo(donation.createdAt) }}</p>
+                <span *ngIf="donation.donationType" class="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                  {{ donation.donationType.name }}
+                </span>
+              </div>
+            </div>
+
+            <button 
+              *ngIf="isOwner"
+              (click)="onEdit()"
+              class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              Editar
+            </button>
+          </div>
+        </div>
+
+        <!-- Image gallery -->
+        <div *ngIf="getImages().length > 0" class="border-b border-gray-200">
+          <!-- Main image -->
+          <div class="relative bg-black">
+            <img 
+              [src]="selectedImage || getImages()[0].url" 
+              alt="Imagen de la donación"
+              class="w-full h-96 object-contain"
+            />
+          </div>
+
+          <!-- Thumbnails -->
+          <div *ngIf="getImages().length > 1" class="p-4 bg-gray-50 flex gap-2 overflow-x-auto">
+            <button
+              *ngFor="let image of getImages()"
+              (click)="onImageSelect(image.url)"
+              class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors"
+              [class.border-blue-600]="selectedImage === image.url"
+              [class.border-gray-200]="selectedImage !== image.url"
+            >
+              <img [src]="image.url" [alt]="image.name" class="w-full h-full object-cover" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 space-y-6">
+          <!-- Description -->
+          <div *ngIf="donation.description">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Descripción</h3>
+            <p class="text-gray-700 whitespace-pre-wrap">{{ donation.description }}</p>
+          </div>
+
+          <!-- Location info -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Información de ubicación</h3>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <svg class="w-5 h-5 mr-3 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-700">Comunidad</p>
+                  <p class="text-gray-900">{{ donation.comunity }}</p>
+                </div>
+              </div>
+
+              <div class="flex items-start">
+                <svg class="w-5 h-5 mr-3 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-700">Lugar de recogida</p>
+                  <p class="text-gray-900">{{ donation.lugarRecogida }}</p>
+                </div>
+              </div>
+
+              <div class="flex items-start">
+                <svg class="w-5 h-5 mr-3 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-700">Lugar de donación</p>
+                  <p class="text-gray-900">{{ donation.lugarDonacion }}</p>
+                </div>
+              </div>
+
+              <div class="flex items-start">
+                <svg class="w-5 h-5 mr-3 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-700">Fecha límite</p>
+                  <p class="text-gray-900">{{ formatDate(donation.fechaMaximaEntrega) }}</p>
+                  <span class="inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium" [ngClass]="urgencyClass">
+                    <span *ngIf="daysRemaining >= 0">{{ daysRemaining }} días restantes</span>
+                    <span *ngIf="daysRemaining < 0">Vencido</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Articles -->
+          <div *ngIf="donation.articles && donation.articles.length > 0" class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Artículos necesarios</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div *ngFor="let article of donation.articles" 
+                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span class="font-medium text-gray-900">{{ article.name }}</span>
+                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  x{{ article.quantity }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comments -->
+          <div *ngIf="donation.comments && donation.comments.length > 0" class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Instrucciones y comentarios</h3>
+            <div class="space-y-2">
+              <div *ngFor="let comment of donation.comments" 
+                   class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                <p class="text-gray-700">{{ comment.text }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Videos -->
+          <div *ngIf="getVideos().length > 0" class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Videos</h3>
+            <div class="space-y-3">
+              <video 
+                *ngFor="let video of getVideos()"
+                [src]="video.url" 
+                controls 
+                class="w-full rounded-lg"
+              ></video>
+            </div>
+          </div>
+
+          <!-- PDFs -->
+          <div *ngIf="getPdfs().length > 0" class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Documentos PDF</h3>
+            <div class="space-y-2">
+              <a 
+                *ngFor="let pdf of getPdfs()"
+                [href]="pdf.url" 
+                target="_blank"
+                class="flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <div class="flex items-center">
+                  <svg class="w-6 h-6 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                  </svg>
+                  <div>
+                    <p class="font-medium text-gray-900">{{ pdf.name }}</p>
+                    <p class="text-sm text-gray-500">{{ formatFileSize(pdf.size) }}</p>
+                  </div>
+                </div>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer with likes -->
+        <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
+          <div class="flex items-center justify-between">
+            <button 
+              (click)="onLikeToggle()"
+              class="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors"
+              [class.text-red-600]="donation.isLikedByCurrentUser"
+            >
+              <svg class="w-7 h-7" [class.fill-current]="donation.isLikedByCurrentUser" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+              <span class="text-lg font-medium">{{ donation.likesCount || 0 }} Me gusta</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

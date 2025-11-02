@@ -1,0 +1,133 @@
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header Simple -->
+    <div class="mb-8">
+      <div class="bg-white rounded-lg shadow p-6 sm:p-8 border border-gray-200">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center space-x-4">
+            <!-- Icono simple -->
+            <div class="hidden sm:flex items-center justify-center w-12 h-12 bg-green-500 rounded-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">
+                Publicaciones de Donaciones
+              </h1>
+              <p class="mt-2 text-sm sm:text-base text-gray-600 flex items-center">
+                <svg class="w-4 h-4 mr-1.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                </svg>
+                Explora las donaciones disponibles en tu comunidad
+              </p>
+            </div>
+          </div>
+          
+          <!-- Botón simple para crear nueva publicación -->
+          <button 
+            *ngIf="isOrganization"
+            (click)="onCreateNewDonation()"
+            class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 shadow font-semibold"
+            aria-label="Crear nueva publicación de donación"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nueva Publicación
+          </button>
+        </div>
+
+        <!-- Estadísticas simples -->
+        <div class="mt-6 grid grid-cols-3 gap-4">
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-green-700">{{ donations.length }}</p>
+            <p class="text-xs text-green-600 mt-1">Publicaciones</p>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-blue-700">{{ totalLikes }}</p>
+            <p class="text-xs text-blue-600 mt-1">Me gusta</p>
+          </div>
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-purple-700">{{ activeCount }}</p>
+            <p class="text-xs text-purple-600 mt-1">Activas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensajes de error simples -->
+    <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4" role="alert">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-sm font-medium text-red-800">Error al cargar</h3>
+          <p class="mt-1 text-sm text-red-700">{{ errorMessage }}</p>
+        </div>
+        <button 
+          (click)="onRefresh()"
+          class="ml-auto flex-shrink-0 px-4 py-2 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+          aria-label="Reintentar carga de publicaciones"
+        >
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Reintentar
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading simple -->
+    <div *ngIf="loading" class="flex flex-col justify-center items-center py-20" role="status" aria-live="polite">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-green-500"></div>
+      <p class="mt-4 text-gray-600 font-medium">Cargando publicaciones...</p>
+    </div>
+
+    <!-- Lista de publicaciones -->
+    <div *ngIf="!loading && donations.length > 0" class="space-y-6">
+      <app-donation-card
+        *ngFor="let donation of donations; trackBy: trackByDonationId"
+        [donation]="donation"
+        [showActions]="true"
+        [currentUserId]="currentUserId"
+        (likeToggled)="onLikeToggled($event)"
+        (donationClicked)="onDonationClicked($event)"
+      ></app-donation-card>
+    </div>
+
+    <!-- Estado vacío simple -->
+    <div *ngIf="!loading && donations.length === 0" class="text-center py-16">
+      <div class="max-w-md mx-auto bg-white rounded-lg shadow p-10 border border-gray-200">
+        <!-- Ilustración vacío -->
+        <div class="mb-6">
+          <div class="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+          </div>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">No hay publicaciones</h3>
+        <p class="text-gray-600 mb-6">
+          <span *ngIf="isOrganization">Sé el primero en compartir una publicación de donación con tu comunidad</span>
+          <span *ngIf="!isOrganization">Aún no hay publicaciones disponibles. Vuelve pronto para ver nuevas donaciones.</span>
+        </p>
+        <button 
+          *ngIf="isOrganization"
+          (click)="onCreateNewDonation()"
+          class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 shadow font-semibold"
+          aria-label="Crear primera publicación"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Crear Publicación
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -1,0 +1,176 @@
+<article class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200" 
+         role="article"
+         [attr.aria-label]="'Publicación de ' + username">
+  <!-- Header con foto de perfil y nombre de usuario -->
+  <header class="p-4 border-b border-gray-200 bg-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <!-- Foto de perfil simple -->
+        <div class="relative">
+          <img 
+            [src]="profilePhotoUrl" 
+            [alt]="username"
+            class="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+            (error)="$any($event.target).src='assets/default-avatar.svg'"
+          />
+          <!-- Badge verificado -->
+          <div *ngIf="donation.user?.verified" 
+               class="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-white"
+               title="Usuario verificado">
+            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Información del usuario -->
+        <div>
+          <h3 class="font-semibold text-gray-900">{{ username }}</h3>
+          <p class="text-sm text-gray-500 flex items-center">
+            <svg class="w-3.5 h-3.5 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+            </svg>
+            {{ formatTimeAgo(donation.createdAt) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Badge de tipo de donación simple -->
+      <div *ngIf="donation.donationType" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-semibold">
+        {{ donation.donationType.name }}
+      </div>
+    </div>
+  </header>
+
+  <!-- Imagen principal (si existe) -->
+  <div *ngIf="firstImage" class="relative cursor-pointer" (click)="onCardClick()">
+    <img 
+      [src]="firstImage" 
+      [alt]="donation.comunity"
+      class="w-full h-64 object-cover"
+    />
+    
+    <!-- Badge de archivos adicionales -->
+    <div *ngIf="(donation.files?.length || 0) > 1" 
+         class="absolute bottom-3 right-3 bg-black/70 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-1.5">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+      </svg>
+      <span>+{{ (donation.files?.length || 0) - 1 }}</span>
+    </div>
+  </div>
+
+  <!-- Contenido -->
+  <div class="p-6 space-y-4">
+    <!-- Descripción mejorada -->
+    <div *ngIf="donation.description" class="text-gray-700 text-base leading-relaxed line-clamp-3">
+      {{ donation.description }}
+    </div>
+
+    <!-- Información de ubicación y comunidad simple -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="flex items-center bg-green-50 border border-green-200 rounded-lg p-3">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-xs text-green-600 font-medium">Comunidad</p>
+          <p class="text-sm font-semibold text-gray-900">{{ donation.comunity }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center border rounded-lg p-3" [ngClass]="{
+        'bg-red-50 border-red-200': daysRemaining < 0,
+        'bg-orange-50 border-orange-200': daysRemaining >= 0 && daysRemaining <= 3,
+        'bg-yellow-50 border-yellow-200': daysRemaining > 3 && daysRemaining <= 7,
+        'bg-blue-50 border-blue-200': daysRemaining > 7
+      }">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5" [ngClass]="{
+            'text-red-600': daysRemaining < 0,
+            'text-orange-600': daysRemaining >= 0 && daysRemaining <= 3,
+            'text-yellow-600': daysRemaining > 3 && daysRemaining <= 7,
+            'text-blue-600': daysRemaining > 7
+          }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-xs font-medium" [ngClass]="{
+            'text-red-600': daysRemaining < 0,
+            'text-orange-600': daysRemaining >= 0 && daysRemaining <= 3,
+            'text-yellow-600': daysRemaining > 3 && daysRemaining <= 7,
+            'text-blue-600': daysRemaining > 7
+          }">Fecha límite</p>
+          <p class="text-sm font-semibold" [ngClass]="{
+            'text-red-700': daysRemaining < 0,
+            'text-orange-700': daysRemaining >= 0 && daysRemaining <= 3,
+            'text-yellow-700': daysRemaining > 3 && daysRemaining <= 7,
+            'text-blue-700': daysRemaining > 7
+          }">
+            <span *ngIf="daysRemaining >= 0">{{ daysRemaining }} días</span>
+            <span *ngIf="daysRemaining < 0">Vencido</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Artículos (preview) simples -->
+    <div *ngIf="donation.articles && donation.articles.length > 0" class="border-t border-gray-200 pt-4">
+      <p class="text-sm font-semibold text-gray-700 mb-2">Artículos necesarios ({{ donation.articles.length }})</p>
+      <div class="flex flex-wrap gap-2">
+        <span *ngFor="let article of donation.articles.slice(0, 4)" 
+              class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-sm font-medium">
+          {{ article.name }}
+          <span class="ml-1.5 text-xs font-bold">({{ article.quantity }})</span>
+        </span>
+        <span *ngIf="donation.articles.length > 4" 
+              class="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-sm font-medium">
+          +{{ donation.articles.length - 4 }} más
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer con acciones simple -->
+  <footer *ngIf="showActions" class="border-t border-gray-200 bg-gray-50 px-4 py-3">
+    <div class="flex items-center justify-between">
+      <!-- Likes simple -->
+      <button 
+        (click)="onLikeToggle()"
+        class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+        [class.bg-red-50]="donation.isLikedByCurrentUser"
+        [attr.aria-label]="donation.isLikedByCurrentUser ? 'Quitar me gusta' : 'Dar me gusta'"
+      >
+        <svg class="w-6 h-6" 
+             [class.text-red-600]="donation.isLikedByCurrentUser"
+             [class.fill-current]="donation.isLikedByCurrentUser"
+             [class.text-gray-400]="!donation.isLikedByCurrentUser"
+             fill="none" 
+             stroke="currentColor" 
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        <span class="text-sm font-semibold" [class.text-red-600]="donation.isLikedByCurrentUser" [class.text-gray-700]="!donation.isLikedByCurrentUser">
+          {{ donation.likesCount || 0 }}
+        </span>
+      </button>
+
+      <!-- Ver detalles simple -->
+      <button 
+        (click)="onCardClick()"
+        class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+        aria-label="Ver detalles de la publicación"
+      >
+        <span>Ver detalles</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </footer>
+</article>
+

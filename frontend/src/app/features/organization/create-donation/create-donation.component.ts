@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DonationService, CreateDonationDTO, Article, Comment } from '../../../core/services/donation.service';
+import { DonationTypeService } from '../../../core/services/donation-type.service';
+import { DonationType } from '../../../shared/model/donation-type.model';
 
 @Component({
   selector: 'app-create-donation',
@@ -16,15 +18,25 @@ export class CreateDonationComponent implements OnInit {
   loading = false;
   successMessage = '';
   errorMessage = '';
+  
+  // File upload properties
+  selectedFiles: File[] = [];
+  fileErrors: string[] = [];
+  
+  // Donation types
+  donationTypes: DonationType[] = [];
+  loadingTypes = false;
 
   constructor(
     private fb: FormBuilder,
     private donationService: DonationService,
+    private donationTypeService: DonationTypeService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.initializeForm();
+    this.loadDonationTypes();
   }
 
   private initializeForm(): void {
@@ -33,6 +45,8 @@ export class CreateDonationComponent implements OnInit {
       lugarDonacion: ['', [Validators.required, Validators.minLength(5)]],
       comunity: ['', [Validators.required, Validators.minLength(3)]],
       fechaMaximaEntrega: ['', [Validators.required]],
+      donationTypeId: ['', [Validators.required]],
+      description: ['', [Validators.maxLength(1000)]],
       articles: this.fb.array([this.createArticleFormGroup()]),
       comments: this.fb.array([this.createCommentFormGroup()])
     });
@@ -40,6 +54,21 @@ export class CreateDonationComponent implements OnInit {
     // Establecer fecha mínima (hoy)
     const today = new Date().toISOString().split('T')[0];
     this.donationForm.get('fechaMaximaEntrega')?.setValue(today);
+  }
+
+  private loadDonationTypes(): void {
+    this.loadingTypes = true;
+    this.donationTypeService.getAllDonationTypes().subscribe({
+      next: (types) => {
+        this.donationTypes = types;
+        this.loadingTypes = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar tipos de donación:', error);
+        this.loadingTypes = false;
+        // Continuar sin tipos si falla
+      }
+    });
   }
 
   // FormArrays getters
@@ -160,6 +189,8 @@ export class CreateDonationComponent implements OnInit {
       lugarDonacion: formValue.lugarDonacion.trim(),
       comunity: formValue.comunity.trim(),
       fechaMaximaEntrega: fechaDate.toISOString(),
+      donationTypeId: formValue.donationTypeId,
+      description: formValue.description?.trim() || '',
       articles: formValue.articles.map((article: Article) => ({
         name: article.name.trim(),
         quantity: article.quantity
@@ -169,7 +200,12 @@ export class CreateDonationComponent implements OnInit {
       }))
     };
 
-    this.donationService.createDonation(donationData).subscribe({
+    // Si hay archivos, usar el endpoint con archivos
+    const createObservable = this.selectedFiles.length > 0
+      ? this.donationService.createDonationWithFiles(donationData, this.selectedFiles)
+      : this.donationService.createDonation(donationData);
+
+    createObservable.subscribe({
       next: (newDonation) => {
         this.loading = false;
         this.successMessage = '¡Donación creada exitosamente!';
@@ -216,5 +252,46 @@ export class CreateDonationComponent implements OnInit {
   clearMessages(): void {
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  // Manejo de archivos
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files) return;
+
+    const files = Array.from(input.files);
+    
+    // Validar archivos
+    const validation = this.donationService.validateFiles([...this.selectedFiles, ...files]);
+    
+    if (!validation.valid) {
+      this.fileErrors = validation.errors;
+      return;
+    }
+
+    // Agregar archivos válidos
+    this.selectedFiles = [...this.selectedFiles, ...files];
+    this.fileErrors = [];
+    
+    // Limpiar input
+    input.value = '';
+  }
+
+  removeFile(index: number): void {
+    this.selectedFiles.splice(index, 1);
+    this.fileErrors = [];
+  }
+
+  getFileIcon(file: File): string {
+    if (file.type.startsWith('image/')) return '🖼️';
+    if (file.type.startsWith('video/')) return '🎥';
+    if (file.type === 'application/pdf') return '📄';
+    return '📎';
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
 }

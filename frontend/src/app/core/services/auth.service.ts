@@ -198,11 +198,24 @@ export class AuthService {
    * Normalizar el rol del backend al formato del frontend
    */
   private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
+    console.log('🔄 Normalizando rol recibido del backend:', roleName);
     const normalizedRol = roleName.toLowerCase();
-    if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') return 'donor';
-    if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
-    if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
-    return 'donor'; // default
+    
+    let finalRole: 'donor' | 'organization' | 'admin';
+    
+    if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') {
+      finalRole = 'donor';
+    } else if (normalizedRol === 'organizacion' || normalizedRol === 'organization' || normalizedRol === 'org') {
+      finalRole = 'organization';
+    } else if (normalizedRol === 'admin' || normalizedRol === 'administrador') {
+      finalRole = 'admin';
+    } else {
+      console.warn('⚠️ Rol no reconocido, usando "donor" por defecto. Rol recibido:', roleName);
+      finalRole = 'donor';
+    }
+    
+    console.log('✅ Rol normalizado:', finalRole);
+    return finalRole;
   }
 
   private decodeToken(token: string): any | null {
