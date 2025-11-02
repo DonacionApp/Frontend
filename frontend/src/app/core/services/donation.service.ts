@@ -174,4 +174,25 @@ export class DonationService {
       })
     );
   }
+
+  /**
+   * Verificar si el usuario actual es el propietario de la donación
+   */
+  isOwner(donation: Donation, currentUserId: string): boolean {
+    return donation.userId === currentUserId;
+  }
+
+  /**
+   * Verificar si el usuario puede editar una donación
+   */
+  canEdit(donation: Donation, currentUserId: string): boolean {
+    return this.isOwner(donation, currentUserId);
+  }
+
+  /**
+   * Verificar si el usuario puede eliminar una donación
+   */
+  canDelete(donation: Donation, currentUserId: string): boolean {
+    return this.isOwner(donation, currentUserId);
+  }
 }

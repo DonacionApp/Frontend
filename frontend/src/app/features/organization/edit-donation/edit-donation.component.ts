@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { DonationService } from '../../../core/services/donation.service';
+import { DonationService, Donation } from '../../../core/services/donation.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -18,11 +19,13 @@ export class EditDonationComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
   donationId = '';
+  currentDonation: Donation | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
     private donationService: DonationService,
+    private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -73,6 +76,19 @@ export class EditDonationComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (donation) => {
+          this.currentDonation = donation;
+
+          // Verificar si el usuario actual es el propietario
+          const currentUser = this.authService.currentUserValue;
+          if (!currentUser || !this.donationService.canEdit(donation, currentUser.id)) {
+            this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
+            this.loading = false;
+            setTimeout(() => {
+              this.router.navigate(['/organization/donations', id]);
+            }, 2000);
+            return;
+          }
+
           // Limpiar los FormArrays antes de rellenar
           this.articles.clear();
           this.comments.clear();
@@ -113,6 +129,11 @@ export class EditDonationComponent implements OnInit, OnDestroy {
           } else {
             this.errorMessage = 'Error al cargar la donación. Intenta nuevamente.';
           }
+          
+          // Redirigir después de mostrar el error
+          setTimeout(() => {
+            this.router.navigate(['/organization/donations']);
+          }, 2000);
         }
       });
   }

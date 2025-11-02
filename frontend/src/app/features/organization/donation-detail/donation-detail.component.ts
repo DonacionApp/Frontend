@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DonationService, Donation } from '../../../core/services/donation.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-donation-detail',
@@ -14,11 +15,14 @@ export class DonationDetailComponent implements OnInit {
   donation: Donation | null = null;
   loading = false;
   errorMessage = '';
+  canEditDonation = false;
+  canDeleteDonation = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private donationService: DonationService
+    private donationService: DonationService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -39,6 +43,9 @@ export class DonationDetailComponent implements OnInit {
       next: (donation) => {
         this.donation = donation;
         this.loading = false;
+        
+        // Verificar si el usuario actual puede editar/eliminar
+        this.checkPermissions();
       },
       error: (error) => {
         this.loading = false;
@@ -55,16 +62,46 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * Verificar permisos del usuario actual sobre la donación
+   */
+  private checkPermissions(): void {
+    if (!this.donation) return;
+
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      this.canEditDonation = false;
+      this.canDeleteDonation = false;
+      return;
+    }
+
+    // Solo el creador puede editar o eliminar
+    this.canEditDonation = this.donationService.canEdit(this.donation, currentUser.id);
+    this.canDeleteDonation = this.donationService.canDelete(this.donation, currentUser.id);
+  }
+
   // Navegar a editar
   onEdit(): void {
-    if (this.donation) {
-      this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
+    if (!this.donation) return;
+
+    if (!this.canEditDonation) {
+      this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
     }
+
+    this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
   }
 
   // Eliminar donación
   onDelete(): void {
     if (!this.donation) return;
+
+    if (!this.canDeleteDonation) {
+      this.errorMessage = 'No tienes permiso para eliminar esta donación. Solo el creador puede eliminarla.';
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
 
     if (confirm('¿Estás seguro de eliminar esta donación? Esta acción no se puede deshacer.')) {
       this.loading = true;
@@ -75,7 +112,12 @@ export class DonationDetailComponent implements OnInit {
         error: (error) => {
           this.loading = false;
           console.error('Error al eliminar:', error);
-          this.errorMessage = 'Error al eliminar la donación. Por favor intenta nuevamente.';
+          
+          if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para eliminar esta donación.';
+          } else {
+            this.errorMessage = 'Error al eliminar la donación. Por favor intenta nuevamente.';
+          }
         }
       });
     }
