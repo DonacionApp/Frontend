@@ -14,6 +14,17 @@ export interface Comment {
   text: string;
 }
 
+export interface DonationUser {
+  id: string;
+  username: string;
+  email: string;
+  profilePhoto?: string;
+  verified: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateDonationDTO {
   lugarRecogida: string;
   lugarDonacion: string;
@@ -26,9 +37,10 @@ export interface CreateDonationDTO {
 export interface Donation extends CreateDonationDTO {
   id: string;
   userId: string;
+  user?: DonationUser; // Información del usuario que creó la donación
+  statusDonation?: string;
   createdAt: string;
   updatedAt: string;
-  status?: string;
 }
 
 @Injectable({
