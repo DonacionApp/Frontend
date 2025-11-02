@@ -43,6 +43,13 @@ export interface Donation extends CreateDonationDTO {
   updatedAt: string;
 }
 
+export interface OrganizationStats {
+  activeDonations: number;      // Donaciones con estado disponible
+  totalDonations: number;        // Total de donaciones creadas
+  requestsReceived: number;      // Solicitudes de donantes (futuro)
+  unreadMessages: number;        // Mensajes sin leer (futuro)
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -85,7 +92,7 @@ export class DonationService {
    */
   getMyDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<Donation[]>(`${this.apiUrl}/my-donations`).pipe(
+    return this.http.get<Donation[]>(`${this.apiUrl}/me/all`).pipe(
       tap(donations => {
         this.donationsSubject.next(donations);
         this.loadingSubject.next(false);
@@ -194,5 +201,33 @@ export class DonationService {
    */
   canDelete(donation: Donation, currentUserId: string): boolean {
     return this.isOwner(donation, currentUserId);
+  }
+
+  /**
+   * Obtener estadísticas de la organización
+   */
+  getOrganizationStats(): Observable<OrganizationStats> {
+    return this.getMyDonations().pipe(
+      map(donations => {
+        // Calcular estadísticas basadas en las donaciones del usuario
+        // statusDonation null o undefined se considera como "disponible"
+        const activeDonations = donations.filter(d => 
+          !d.statusDonation || 
+          d.statusDonation.toLowerCase() === 'disponible'
+        ).length;
+
+        return {
+          activeDonations,
+          totalDonations: donations.length,
+          requestsReceived: 0, // Implementación futura
+          unreadMessages: 0    // Implementación futura
+        };
+      }),
+      catchError(error => {
+        console.error('Error al obtener estadísticas:', error);
+        // Retornar estadísticas vacías en caso de error
+        return throwError(() => error);
+      })
+    );
   }
 }

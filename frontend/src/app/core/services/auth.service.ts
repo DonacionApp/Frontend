@@ -9,6 +9,7 @@ export interface User {
   email: string;
   role: 'donor' | 'organization' | 'admin';
   name: string;
+  username?: string;
 }
 
 @Injectable({
