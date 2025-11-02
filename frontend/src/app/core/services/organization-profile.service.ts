@@ -6,7 +6,8 @@ import { environment } from '../../../environments/environment';
 
 export interface OrganizationProfile {
   id: string;
-  name: string;
+  username: string; // Username de la tabla 'user'
+  name: string; // Nombre de la organización de la tabla 'people'
   email: string;
   phone?: string;
   address?: string;
@@ -133,7 +134,8 @@ export class OrganizationProfileService {
   private transformBackendResponse(response: any): OrganizationProfile {
     return {
       id: response.id?.toString() || '',
-      name: response.people?.name || response.username || '',
+      username: response.username || '', // Username de la tabla 'user'
+      name: response.people?.name || response.username || '', // Nombre de la tabla 'people'
       email: response.email || '',
       phone: response.people?.telefono || '',
       address: response.people?.residencia || '',

@@ -21,7 +21,8 @@
             
             <!-- User Info -->
             <div>
-              <h1 class="text-2xl font-bold text-gray-900">{{ profile?.name || 'Usuario' }}</h1>
+              <h1 class="text-2xl font-bold text-gray-900">{{ profile?.username || 'Usuario' }}</h1>
+              <p class="text-sm text-gray-500 mt-1">{{ profile?.name }}</p>
               <p class="text-sm text-gray-600 flex items-center mt-1">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">

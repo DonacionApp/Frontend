@@ -136,6 +136,23 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Poblar el formulario con los datos del perfil de la organización
+   * 
+   * Campos editables:
+   * - name: Nombre de la organización
+   * - phone: Teléfono de contacto
+   * - address: Dirección física
+   * - postalCode: Código postal
+   * - website: Sitio web
+   * - description: Descripción breve
+   * - missionStatement: Declaración de misión
+   * - legalRepresentative: Representante legal
+   * - facebookUrl, twitterUrl, instagramUrl, linkedinUrl: Redes sociales
+   * 
+   * Campos de solo lectura (disabled):
+   * - email: No se puede cambiar (definido en el registro)
+   */
   private populateForm(profile: OrganizationProfile): void {
     this.profileForm.patchValue({
       name: profile.name,

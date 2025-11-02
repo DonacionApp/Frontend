@@ -115,6 +115,21 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Poblar el formulario con los datos del perfil
+   * 
+   * Campos editables:
+   * - name: Nombre completo del usuario
+   * - telefono: Teléfono de contacto
+   * - dni: Número de documento
+   * - residencia: Dirección de residencia
+   * - birdthDate: Fecha de nacimiento
+   * 
+   * Campos de solo lectura (disabled):
+   * - email: No se puede cambiar (definido en el registro)
+   * - typeDni: Tipo de documento (definido en el registro)
+   * - city, state, country: Ubicación geográfica (definida en el registro)
+   */
   private populateForm(profile: UserProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
