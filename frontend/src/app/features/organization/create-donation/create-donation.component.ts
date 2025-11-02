@@ -191,10 +191,15 @@ export class CreateDonationComponent implements OnInit {
           this.errorMessage = 'Datos inválidos. Por favor verifica los campos.';
         } else if (error.status === 401) {
           this.errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
+        } else if (error.status === 403) {
+          // Organización no verificada
+          this.errorMessage = error.error?.message || 'Solo organizaciones verificadas pueden crear donaciones. Por favor espera a que tu cuenta sea verificada por un administrador.';
+        } else if (error.status === 404) {
+          this.errorMessage = 'Endpoint no encontrado. Verifica la configuración del servidor.';
         } else if (error.status === 500) {
           this.errorMessage = 'Error del servidor. Por favor intenta más tarde.';
         } else {
-          this.errorMessage = 'Error al crear la donación. Por favor intenta nuevamente.';
+          this.errorMessage = error.error?.message || 'Error al crear la donación. Por favor intenta nuevamente.';
         }
       }
     });
