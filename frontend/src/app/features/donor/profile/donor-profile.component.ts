@@ -104,9 +104,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   private loadProfile(): void {
     this.profileService.getMyProfile().subscribe({
       next: () => {
-        if (this.activeTab === 'activity') {
-          this.loadActivity();
-        }
+        // Perfil cargado exitosamente
       },
       error: (error) => {
         this.errorMessage = 'Error al cargar el perfil. Por favor, intenta de nuevo.';
@@ -150,24 +148,14 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadActivity(): void {
-    this.profileService.getActivityLog().subscribe({
-      next: (logs) => {
-        this.activityLog = logs;
-      },
-      error: (error) => {
-        console.error('Error loading activity:', error);
-        this.activityLog = [];
-      }
-    });
+    // Endpoint de actividad no implementado en el backend
+    // El historial de actividad se implementará en el futuro
+    this.activityLog = [];
   }
 
   setActiveTab(tab: 'general' | 'security' | 'activity'): void {
     this.activeTab = tab;
     this.clearMessages();
-    
-    if (tab === 'activity' && this.activityLog.length === 0) {
-      this.loadActivity();
-    }
   }
 
   onFileSelected(event: Event): void {

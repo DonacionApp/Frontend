@@ -278,14 +278,15 @@ export class UserProfileService {
   getActivityLog(): Observable<ActivityLog[]> {
     return this.http.get<ActivityLog[]>(`${this.apiUrl}/activity`).pipe(
       catchError(error => {
-        console.error('Error al cargar actividad:', error);
-        // Si el endpoint no existe, retornar array vacío
+        // Si el endpoint no existe (404), retornar array vacío silenciosamente
         if (error.status === 404) {
           return new Observable<ActivityLog[]>(observer => {
             observer.next([]);
             observer.complete();
           });
         }
+        // Solo mostrar error si no es 404
+        console.error('Error al cargar actividad:', error);
         return throwError(() => error);
       })
     );

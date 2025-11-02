@@ -125,9 +125,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.profileService.getMyOrganizationProfile().subscribe({
       next: (profile) => {
         this.populateForm(profile);
-        if (this.activeTab === 'activity') {
-          this.loadActivity();
-        }
       },
       error: (error) => {
         this.errorMessage = 'Error al cargar el perfil. Por favor, intenta de nuevo.';
@@ -182,26 +179,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadActivity(): void {
-    if (!this.organizationId) return;
-
-    this.profileService.getActivityLog(this.organizationId).subscribe({
-      next: (logs) => {
-        this.activityLog = logs;
-      },
-      error: (error) => {
-        console.error('Error loading activity:', error);
-        this.activityLog = [];
-      }
-    });
+    // Endpoint de actividad no implementado en el backend
+    // El historial de actividad se implementará en el futuro
+    this.activityLog = [];
   }
 
   setActiveTab(tab: 'general' | 'security' | 'activity'): void {
     this.activeTab = tab;
     this.clearMessages();
-    
-    if (tab === 'activity' && this.activityLog.length === 0) {
-      this.loadActivity();
-    }
   }
 
   onLogoSelected(event: Event): void {
