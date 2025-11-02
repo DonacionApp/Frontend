@@ -1,0 +1,262 @@
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Crear Nueva Donación</h1>
+      <p class="mt-2 text-sm text-gray-600">
+        Completa el formulario para crear una nueva donación
+      </p>
+    </div>
+
+    <!-- Mensajes de éxito/error -->
+    <div *ngIf="successMessage" class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <p class="ml-3 text-sm text-green-700">{{ successMessage }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <p class="ml-3 text-sm text-red-700">{{ errorMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="donationForm" (ngSubmit)="onSubmit()" class="bg-white shadow-sm rounded-lg p-6 space-y-6">
+      
+      <!-- Información General -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-semibold text-gray-900 border-b pb-2">Información General</h2>
+        
+        <!-- Lugar de Recogida -->
+        <div>
+          <label for="lugarRecogida" class="block text-sm font-medium text-gray-700 mb-1">
+            Lugar de Recogida <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="lugarRecogida"
+            formControlName="lugarRecogida"
+            placeholder="Ej: Av. Colombia, 123"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="hasError('lugarRecogida')"
+          />
+          <p *ngIf="hasError('lugarRecogida')" class="mt-1 text-sm text-red-600">
+            {{ getErrorMessage('lugarRecogida') }}
+          </p>
+        </div>
+
+        <!-- Lugar de Donación -->
+        <div>
+          <label for="lugarDonacion" class="block text-sm font-medium text-gray-700 mb-1">
+            Lugar de Donación <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="lugarDonacion"
+            formControlName="lugarDonacion"
+            placeholder="Ej: Centro Comunitario Los Olivos"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="hasError('lugarDonacion')"
+          />
+          <p *ngIf="hasError('lugarDonacion')" class="mt-1 text-sm text-red-600">
+            {{ getErrorMessage('lugarDonacion') }}
+          </p>
+        </div>
+
+        <!-- Comunidad -->
+        <div>
+          <label for="comunity" class="block text-sm font-medium text-gray-700 mb-1">
+            Comunidad <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="comunity"
+            formControlName="comunity"
+            placeholder="Ej: Comunidad A"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="hasError('comunity')"
+          />
+          <p *ngIf="hasError('comunity')" class="mt-1 text-sm text-red-600">
+            {{ getErrorMessage('comunity') }}
+          </p>
+        </div>
+
+        <!-- Fecha Máxima de Entrega -->
+        <div>
+          <label for="fechaMaximaEntrega" class="block text-sm font-medium text-gray-700 mb-1">
+            Fecha Máxima de Entrega <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="fechaMaximaEntrega"
+            formControlName="fechaMaximaEntrega"
+            [min]="donationForm.get('fechaMaximaEntrega')?.value"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="hasError('fechaMaximaEntrega')"
+          />
+          <p *ngIf="hasError('fechaMaximaEntrega')" class="mt-1 text-sm text-red-600">
+            {{ getErrorMessage('fechaMaximaEntrega') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Artículos -->
+      <div class="space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-lg font-semibold text-gray-900">Artículos a Donar</h2>
+          <button
+            type="button"
+            (click)="addArticle()"
+            [disabled]="articles.length >= 10"
+            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Agregar Artículo
+          </button>
+        </div>
+
+        <div formArrayName="articles" class="space-y-3">
+          <div
+            *ngFor="let article of articles.controls; let i = index"
+            [formGroupName]="i"
+            class="flex gap-3 items-start bg-gray-50 p-3 rounded-md"
+          >
+            <!-- Nombre del artículo -->
+            <div class="flex-1">
+              <label [for]="'articleName' + i" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                [id]="'articleName' + i"
+                formControlName="name"
+                placeholder="Ej: Ropa"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                [class.border-red-500]="article.get('name')?.invalid && article.get('name')?.touched"
+              />
+            </div>
+
+            <!-- Cantidad -->
+            <div class="w-32">
+              <label [for]="'articleQuantity' + i" class="block text-sm font-medium text-gray-700 mb-1">
+                Cantidad <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                [id]="'articleQuantity' + i"
+                formControlName="quantity"
+                min="1"
+                max="1000"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                [class.border-red-500]="article.get('quantity')?.invalid && article.get('quantity')?.touched"
+              />
+            </div>
+
+            <!-- Botón eliminar -->
+            <button
+              type="button"
+              (click)="removeArticle(i)"
+              [disabled]="articles.length === 1"
+              class="mt-7 p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              title="Eliminar artículo"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comentarios -->
+      <div class="space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-lg font-semibold text-gray-900">Comentarios e Instrucciones</h2>
+          <button
+            type="button"
+            (click)="addComment()"
+            [disabled]="comments.length >= 5"
+            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Agregar Comentario
+          </button>
+        </div>
+
+        <div formArrayName="comments" class="space-y-3">
+          <div
+            *ngFor="let comment of comments.controls; let i = index"
+            [formGroupName]="i"
+            class="flex gap-3 items-start bg-gray-50 p-3 rounded-md"
+          >
+            <!-- Texto del comentario -->
+            <div class="flex-1">
+              <label [for]="'commentText' + i" class="block text-sm font-medium text-gray-700 mb-1">
+                Comentario {{ i + 1 }} <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                [id]="'commentText' + i"
+                formControlName="text"
+                rows="2"
+                placeholder="Ej: Entregar entre 9-12"
+                maxlength="500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 resize-none"
+                [class.border-red-500]="comment.get('text')?.invalid && comment.get('text')?.touched"
+              ></textarea>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ comment.get('text')?.value?.length || 0 }}/500 caracteres
+              </p>
+            </div>
+
+            <!-- Botón eliminar -->
+            <button
+              type="button"
+              (click)="removeComment(i)"
+              [disabled]="comments.length === 1"
+              class="mt-7 p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              title="Eliminar comentario"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="flex gap-4 pt-6 border-t">
+        <button
+          type="button"
+          (click)="onCancel()"
+          [disabled]="loading"
+          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="loading || donationForm.invalid"
+          class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          <svg *ngIf="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          {{ loading ? 'Creando...' : 'Crear Donación' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
