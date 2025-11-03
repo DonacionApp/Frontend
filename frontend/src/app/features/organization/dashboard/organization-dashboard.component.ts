@@ -178,14 +178,34 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   /**
    * Obtener badge de estado
    */
-  getStatusBadge(statusDonation: string | null | undefined): { text: string; class: string } {
+  getStatusBadge(statusDonation: string | number | null | undefined): { text: string; class: string } {
+    // Si es null, undefined o 0
     if (!statusDonation) {
       return { text: 'Disponible', class: 'bg-green-100 text-green-800' };
     }
     
-    const status = statusDonation.toLowerCase();
+    // Si es un número, convertir a texto
+    if (typeof statusDonation === 'number') {
+      switch (statusDonation) {
+        case 1:
+          return { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' };
+        case 2:
+          return { text: 'Aceptada', class: 'bg-green-100 text-green-800' };
+        case 3:
+          return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
+        default:
+          return { text: `Estado ${statusDonation}`, class: 'bg-gray-100 text-gray-800' };
+      }
+    }
+    
+    // Aquí TypeScript ya sabe que es string (no puede ser number porque se manejó arriba)
+    // Pero para estar seguros, convertimos a string
+    const statusStr = String(statusDonation);
+    const status = statusStr.toLowerCase();
+    
     switch (status) {
       case 'disponible':
+      case 'pendiente':
         return { text: 'Disponible', class: 'bg-green-100 text-green-800' };
       case 'recogida':
       case 'en-progreso':
@@ -193,7 +213,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       case 'completada':
         return { text: 'Completada', class: 'bg-gray-100 text-gray-800' };
       default:
-        return { text: statusDonation, class: 'bg-gray-100 text-gray-800' };
+        return { text: statusStr, class: 'bg-gray-100 text-gray-800' };
     }
   }
 
