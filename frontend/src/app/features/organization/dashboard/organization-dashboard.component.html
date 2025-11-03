@@ -177,18 +177,18 @@
           <!-- Grid de Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div *ngFor="let donation of recentDonations" 
-                 class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                 class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
               
-              <!-- Imagen de la donación -->
-              <div class="relative h-48 bg-gradient-to-br from-green-400 to-blue-500 overflow-hidden">
-                <img 
-                  [src]="getDonationImage(donation)"
-                  [alt]="donation.comunity"
-                  loading="lazy"
-                  class="w-full h-full object-cover"
-                  (error)="onImageError($event)">
+              <!-- Header con gradiente y badge -->
+              <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
+                <div class="absolute inset-0 bg-pattern opacity-10"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                  </svg>
+                </div>
                 
-                <!-- Badge de estado sobre la imagen -->
+                <!-- Badge de estado -->
                 <div class="absolute top-3 right-3">
                   <span [class]="getStatusBadge(donation.statusDonation).class"
                         class="px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
@@ -292,12 +292,12 @@
 
         <!-- Loading Spinner -->
         <div *ngIf="loadingDonations" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div *ngFor="let item of [1,2,3,4,5,6]" class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-            <div class="h-48 bg-gray-200"></div>
-            <div class="p-4">
+          <div *ngFor="let item of [1,2,3,4,5,6]" class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse border border-gray-200">
+            <div class="h-32 bg-gray-200"></div>
+            <div class="p-5">
               <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
               <div class="h-3 bg-gray-200 rounded w-full mb-4"></div>
-              <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+              <div class="h-8 bg-gray-200 rounded w-full"></div>
             </div>
           </div>
         </div>
@@ -306,18 +306,18 @@
         <div *ngIf="!loadingDonations && donations.length > 0" 
              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div *ngFor="let donation of donations" 
-               class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+               class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
             
-            <!-- Imagen de la donación -->
-            <div class="relative h-48 bg-gradient-to-br from-green-400 to-blue-500 overflow-hidden">
-              <img 
-                [src]="getDonationImage(donation)"
-                [alt]="donation.comunity"
-                loading="lazy"
-                class="w-full h-full object-cover"
-                (error)="onImageError($event)">
+            <!-- Header con gradiente y badge -->
+            <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
+              <div class="absolute inset-0 bg-pattern opacity-10"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                </svg>
+              </div>
               
-              <!-- Badge de estado sobre la imagen -->
+              <!-- Badge de estado -->
               <div class="absolute top-3 right-3">
                 <span [class]="getStatusBadge(donation.statusDonation).class"
                       class="px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
