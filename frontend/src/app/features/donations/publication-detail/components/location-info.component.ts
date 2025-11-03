@@ -28,7 +28,7 @@ import { CommonModule } from '@angular/common';
           </svg>
           <div>
             <p class="text-sm font-medium text-gray-700">Lugar de recogida</p>
-            <p class="text-gray-900">{{ lugarRecogida }}</p>
+            <p class="text-gray-900">{{ lugarRecogida || 'Por definir' }}</p>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ import { CommonModule } from '@angular/common';
           </svg>
           <div>
             <p class="text-sm font-medium text-gray-700">Lugar de donación</p>
-            <p class="text-gray-900">{{ lugarDonacion }}</p>
+            <p class="text-gray-900">{{ lugarDonacion || 'Por definir' }}</p>
           </div>
         </div>
 

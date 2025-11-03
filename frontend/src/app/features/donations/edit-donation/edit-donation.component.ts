@@ -84,7 +84,7 @@ export class EditDonationComponent implements OnInit, OnDestroy {
             this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
             this.loading = false;
             setTimeout(() => {
-              this.router.navigate(['/organization/donations', id]);
+              this.router.navigate(['/donations/manage', id]);
             }, 2000);
             return;
           }
@@ -136,7 +136,7 @@ export class EditDonationComponent implements OnInit, OnDestroy {
           
           // Redirigir después de mostrar el error
           setTimeout(() => {
-            this.router.navigate(['/organization/donations']);
+            this.router.navigate(['/organization']);
           }, 2000);
         }
       });
@@ -242,15 +242,21 @@ export class EditDonationComponent implements OnInit, OnDestroy {
           
           // Redirigir al detalle después de 1.5 segundos
           setTimeout(() => {
-            this.router.navigate(['/organization/donations', this.donationId]);
+            this.router.navigate(['/donations/manage', this.donationId]);
           }, 1500);
         },
         error: (error) => {
           this.loading = false;
           console.error('Error al actualizar donación:', error);
+          console.error('Detalles del error:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url,
+            error: error.error
+          });
 
           if (error.status === 400) {
-            this.errorMessage = 'Datos inválidos. Verifica el formulario.';
+            this.handleValidationErrors(error.error);
           } else if (error.status === 401) {
             this.errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
             setTimeout(() => this.router.navigate(['/auth/login']), 2000);
@@ -258,8 +264,12 @@ export class EditDonationComponent implements OnInit, OnDestroy {
             this.errorMessage = 'No tienes permiso para editar esta donación.';
           } else if (error.status === 404) {
             this.errorMessage = 'Donación no encontrada.';
+          } else if (error.status === 413) {
+            this.errorMessage = 'Los archivos son demasiado grandes. El tamaño máximo total permitido es 5MB.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Error del servidor. Por favor intenta más tarde.';
           } else {
-            this.errorMessage = 'Error al actualizar la donación. Intenta nuevamente.';
+            this.errorMessage = error.error?.message || 'Error al actualizar la donación. Intenta nuevamente.';
           }
         }
       });
@@ -269,7 +279,7 @@ export class EditDonationComponent implements OnInit, OnDestroy {
    * Cancelar y volver al detalle
    */
   onCancel(): void {
-    this.router.navigate(['/organization/donations', this.donationId]);
+    this.router.navigate(['/donations/manage', this.donationId]);
   }
 
   /**
@@ -278,13 +288,119 @@ export class EditDonationComponent implements OnInit, OnDestroy {
   getFieldError(fieldName: string): string {
     const field = this.donationForm.get(fieldName);
     
+    // Primero verificar si hay un error del backend para este campo
+    if (field?.hasError('serverError')) {
+      return field.errors?.['serverError'] || 'Error en este campo';
+    }
+    
+    // Luego verificar errores de validación del frontend
     if (field?.hasError('required')) {
       return 'Este campo es requerido';
+    }
+    if (field?.hasError('minlength')) {
+      const minLength = field.errors?.['minlength'].requiredLength;
+      return `Mínimo ${minLength} caracteres`;
     }
     if (field?.hasError('maxlength')) {
       const maxLength = field.errors?.['maxlength'].requiredLength;
       return `Máximo ${maxLength} caracteres`;
     }
+    if (field?.hasError('min')) {
+      return 'La cantidad debe ser mayor a 0';
+    }
+    if (field?.hasError('max')) {
+      return 'La cantidad es demasiado grande';
+    }
     return '';
+  }
+
+  /**
+   * Manejar errores de validación del backend
+   */
+  private handleValidationErrors(errorResponse: any): void {
+    const errorMessages: string[] = [];
+    
+    // Mapeo de nombres de campos del backend al frontend
+    const fieldMapping: { [key: string]: string } = {
+      'title': 'title',
+      'message': 'description',
+      'description': 'description',
+      'lugarRecogida': 'lugarRecogida',
+      'lugarDonacion': 'lugarDonacion',
+      'comunity': 'comunity',
+      'fechaMaximaEntrega': 'fechaMaximaEntrega',
+      'typePostId': 'donationTypeId',
+      'typePost': 'donationTypeId',
+      'articles': 'articles',
+      'comments': 'comments'
+    };
+    
+    // Si el backend devuelve un objeto 'errors' con campos específicos
+    if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
+      Object.keys(errorResponse.errors).forEach(backendField => {
+        const frontendField = fieldMapping[backendField] || backendField;
+        const fieldControl = this.donationForm.get(frontendField);
+        
+        if (fieldControl) {
+          // Obtener el mensaje de error (puede ser string o array)
+          const errorMessage = Array.isArray(errorResponse.errors[backendField])
+            ? errorResponse.errors[backendField][0]
+            : errorResponse.errors[backendField];
+          
+          // Establecer el error en el campo
+          fieldControl.setErrors({ serverError: errorMessage });
+          fieldControl.markAsTouched();
+          
+          // Agregar al mensaje general
+          const fieldLabel = this.getFieldLabel(frontendField);
+          errorMessages.push(`${fieldLabel}: ${errorMessage}`);
+        } else {
+          // Si el campo no existe en el formulario, agregarlo al mensaje general
+          errorMessages.push(`${backendField}: ${errorResponse.errors[backendField]}`);
+        }
+      });
+    }
+    
+    // Si hay un mensaje general
+    if (errorResponse?.message) {
+      errorMessages.unshift(errorResponse.message);
+    }
+    
+    // Construir mensaje final
+    if (errorMessages.length > 0) {
+      if (errorMessages.length === 1) {
+        this.errorMessage = errorMessages[0];
+      } else {
+        this.errorMessage = `Errores en los siguientes campos:\n${errorMessages.join('\n')}`;
+      }
+    } else {
+      this.errorMessage = 'Datos inválidos. Por favor verifica los campos marcados.';
+    }
+    
+    // Marcar todos los campos como touched para mostrar errores
+    Object.keys(this.donationForm.controls).forEach(key => {
+      const control = this.donationForm.get(key);
+      if (control && !control.valid) {
+        control.markAsTouched();
+      }
+    });
+  }
+
+  /**
+   * Obtener etiqueta amigable para un campo
+   */
+  private getFieldLabel(fieldName: string): string {
+    const labels: { [key: string]: string } = {
+      'title': 'Título',
+      'description': 'Descripción',
+      'lugarRecogida': 'Lugar de Recogida',
+      'lugarDonacion': 'Lugar de Donación',
+      'comunity': 'Comunidad',
+      'fechaMaximaEntrega': 'Fecha Máxima de Entrega',
+      'donationTypeId': 'Tipo de Donación',
+      'articles': 'Artículos',
+      'comments': 'Comentarios'
+    };
+    return labels[fieldName] || fieldName;
   }
 }

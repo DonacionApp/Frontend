@@ -164,7 +164,20 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
   // ===== Getters =====
 
   get profilePhotoUrl(): string {
-    return this.donation?.user?.profilePhoto || 'assets/default-avatar.svg';
+    return this.donation?.user?.profilePhoto || this.getDefaultAvatar();
+  }
+
+  private getDefaultAvatar(): string {
+    // SVG inline como data URI para evitar problemas de carga
+    return 'data:image/svg+xml;base64,' + btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+        <circle cx="50" cy="50" r="50" fill="#e5e7eb"/>
+        <g fill="#9ca3af">
+          <circle cx="50" cy="35" r="15"/>
+          <path d="M 25 70 Q 25 55 35 52 L 65 52 Q 75 55 75 70 L 75 85 Q 75 90 70 90 L 30 90 Q 25 90 25 85 Z"/>
+        </g>
+      </svg>
+    `);
   }
 
   get username(): string {
@@ -208,7 +221,7 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
 
   onEdit(): void {
     if (this.donation?.id) {
-      this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
+      this.router.navigate(['/donations/manage', this.donation.id, 'edit']);
     }
   }
 
@@ -227,16 +240,91 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const isLiked = this.donation.isLikedByCurrentUser || false;
+    // Prevenir múltiples clics si ya está en proceso
+    if (this.donationService.isLikeInProgress(this.donation.id)) {
+      return;
+    }
 
+    const isLiked = this.donation.isLikedByCurrentUser || false;
+    const previousState = {
+      isLiked: this.donation.isLikedByCurrentUser || false,
+      likesCount: this.donation.likesCount || 0
+    };
+
+    // Actualización optimista: actualizar inmediatamente en la UI
+    if (isLiked) {
+      // Quitar like
+      this.donation.isLikedByCurrentUser = false;
+      this.donation.likesCount = Math.max((this.donation.likesCount || 0) - 1, 0);
+    } else {
+      // Agregar like
+      this.donation.isLikedByCurrentUser = true;
+      this.donation.likesCount = (this.donation.likesCount || 0) + 1;
+    }
+
+    // Llamar al servicio para sincronizar con el backend
     this.donationService.toggleLike(this.donation.id, isLiked)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (updatedDonation) => {
-          this.donation = updatedDonation;
+          // Sincronizar con la respuesta del servidor preservando datos existentes
+          if (updatedDonation && this.donation) {
+            // Solo actualizar campos relacionados con likes, preservar el resto
+            this.donation.likes = updatedDonation.likes || this.donation.likes;
+            this.donation.likesCount = updatedDonation.likesCount ?? this.donation.likesCount ?? 0;
+            this.donation.isLikedByCurrentUser = updatedDonation.isLikedByCurrentUser ?? this.donation.isLikedByCurrentUser ?? false;
+            this.donation.updatedAt = updatedDonation.updatedAt || this.donation.updatedAt;
+          } else if (updatedDonation) {
+            this.donation = updatedDonation;
+          }
         },
         error: (error) => {
-          console.error('Error al cambiar el like:', error);
+          console.error('❌ Error al cambiar el like:', error);
+          console.error('📋 Detalles completos del error:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url,
+            errorBody: error.error,
+            message: error.error?.message || error.message
+          });
+
+          // Si es error 400, mostrar mensaje más específico
+          if (error.status === 400) {
+            const errorMessage = error.error?.message || 'El backend rechazó la petición';
+            console.warn('⚠️ Error 400 - Posibles causas:', errorMessage);
+            
+            // Si el mensaje indica que ya existe el like, sincronizar el estado
+            if (errorMessage.toLowerCase().includes('ya le ha dado like') ||
+                errorMessage.toLowerCase().includes('already') || 
+                errorMessage.toLowerCase().includes('ya existe') ||
+                errorMessage.toLowerCase().includes('duplicate')) {
+              console.warn('⚠️ El like ya existe. Sincronizando estado con el backend...');
+              if (this.donation) {
+                // Recargar los datos del servidor para sincronizar correctamente
+                this.donationService.getDonationById(this.donation.id)
+                  .pipe(takeUntil(this.destroy$))
+                  .subscribe(updatedDonation => {
+                    if (this.donation) {
+                      // Preservar datos existentes y solo actualizar likes
+                      this.donation.likes = updatedDonation.likes || this.donation.likes;
+                      this.donation.likesCount = updatedDonation.likesCount ?? this.donation.likesCount ?? 0;
+                      this.donation.isLikedByCurrentUser = updatedDonation.isLikedByCurrentUser ?? this.donation.isLikedByCurrentUser ?? false;
+                      this.donation.updatedAt = updatedDonation.updatedAt || this.donation.updatedAt;
+                    } else {
+                      this.donation = updatedDonation;
+                    }
+                    console.log('✅ Estado sincronizado correctamente preservando datos');
+                  });
+              }
+              return; // No revertir en este caso
+            }
+          }
+
+          // Revertir la actualización optimista en caso de error
+          if (this.donation) {
+            this.donation.isLikedByCurrentUser = previousState.isLiked;
+            this.donation.likesCount = previousState.likesCount;
+          }
         }
       });
   }

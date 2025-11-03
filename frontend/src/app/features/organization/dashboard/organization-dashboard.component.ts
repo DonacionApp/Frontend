@@ -139,14 +139,14 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    * Navegar a crear nueva donación
    */
   onCreateDonation(): void {
-    this.router.navigate(['/organization/donations/create']);
+    this.router.navigate(['/donations/create']);
   }
 
   /**
    * Navegar al detalle de una donación
    */
   viewDonation(donationId: string): void {
-    this.router.navigate(['/organization/donations', donationId]);
+    this.router.navigate(['/donations/manage', donationId]);
   }
 
   /**

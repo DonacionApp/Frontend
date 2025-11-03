@@ -1,4 +1,4 @@
-<article class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-200 overflow-hidden border border-gray-200" 
+<article class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-emerald-300 transform hover:-translate-y-1" 
          role="article"
          [attr.aria-label]="'Publicación de ' + username">
   <!-- Header con foto de perfil y nombre de usuario -->
@@ -11,11 +11,11 @@
             [src]="profilePhotoUrl" 
             [alt]="username"
             class="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-            (error)="$any($event.target).src='assets/default-avatar.svg'"
+            (error)="$any($event.target).src = getDefaultAvatar()"
           />
           <!-- Badge verificado -->
           <div *ngIf="donation.user?.verified" 
-               class="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-white"
+               class="absolute -bottom-1 -right-1 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full p-0.5 border-2 border-white shadow-sm"
                title="Usuario verificado">
             <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -25,7 +25,13 @@
         
         <!-- Información del usuario -->
         <div>
-          <h3 class="font-semibold text-gray-900">{{ username }}</h3>
+          <h3 
+            class="font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors"
+            (click)="onUserClick($event)"
+            [title]="'Ver todas las publicaciones de ' + username"
+          >
+            {{ username }}
+          </h3>
           <p class="text-sm text-gray-500 flex items-center">
             <svg class="w-3.5 h-3.5 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
@@ -35,8 +41,20 @@
         </div>
       </div>
 
-      <!-- Badge de tipo de donación simple -->
-      <div *ngIf="donation.donationType" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-semibold">
+      <!-- Tags de la donación -->
+      <div *ngIf="donation.tags && donation.tags.length > 0" class="flex flex-wrap gap-2">
+        <span 
+          *ngFor="let tag of donation.tags; let i = index" 
+          [ngClass]="{
+            'bg-gradient-to-r from-emerald-500 to-green-600': true
+          }"
+          class="px-3 py-1.5 text-white rounded-full text-xs font-semibold shadow-sm hover:shadow-md transition-shadow">
+          {{ tag.tag }}
+        </span>
+      </div>
+      <!-- Fallback: mostrar donationType si no hay tags -->
+      <div *ngIf="(!donation.tags || donation.tags.length === 0) && donation.donationType" 
+           class="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-full text-xs font-semibold shadow-sm">
         {{ donation.donationType.name }}
       </div>
     </div>
@@ -48,6 +66,7 @@
       [src]="firstImage" 
       [alt]="donation.comunity"
       class="w-full h-64 object-cover"
+      (error)="$any($event.target).src = 'assets/default-avatar.svg'"
     />
     
     <!-- Badge de archivos adicionales -->
@@ -69,48 +88,28 @@
 
     <!-- Información de ubicación y comunidad simple -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="flex items-center bg-green-50 border border-green-200 rounded-lg p-3">
+      <div class="flex items-center bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex-shrink-0">
-          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-xs text-green-600 font-medium">Comunidad</p>
-          <p class="text-sm font-semibold text-gray-900">{{ donation.comunity }}</p>
+          <p class="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Comunidad</p>
+          <p class="text-sm font-bold text-gray-900">{{ donation.comunity }}</p>
         </div>
       </div>
 
-      <div class="flex items-center border rounded-lg p-3" [ngClass]="{
-        'bg-red-50 border-red-200': daysRemaining < 0,
-        'bg-orange-50 border-orange-200': daysRemaining >= 0 && daysRemaining <= 3,
-        'bg-yellow-50 border-yellow-200': daysRemaining > 3 && daysRemaining <= 7,
-        'bg-blue-50 border-blue-200': daysRemaining > 7
-      }">
+      <div class="flex items-center border rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-300">
         <div class="flex-shrink-0">
-          <svg class="w-5 h-5" [ngClass]="{
-            'text-red-600': daysRemaining < 0,
-            'text-orange-600': daysRemaining >= 0 && daysRemaining <= 3,
-            'text-yellow-600': daysRemaining > 3 && daysRemaining <= 7,
-            'text-blue-600': daysRemaining > 7
-          }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-xs font-medium" [ngClass]="{
-            'text-red-600': daysRemaining < 0,
-            'text-orange-600': daysRemaining >= 0 && daysRemaining <= 3,
-            'text-yellow-600': daysRemaining > 3 && daysRemaining <= 7,
-            'text-blue-600': daysRemaining > 7
-          }">Fecha límite</p>
-          <p class="text-sm font-semibold" [ngClass]="{
-            'text-red-700': daysRemaining < 0,
-            'text-orange-700': daysRemaining >= 0 && daysRemaining <= 3,
-            'text-yellow-700': daysRemaining > 3 && daysRemaining <= 7,
-            'text-blue-700': daysRemaining > 7
-          }">
+          <p class="text-xs font-medium text-emerald-700">Fecha límite</p>
+          <p class="text-sm font-semibold text-emerald-800">
             <span *ngIf="daysRemaining >= 0">{{ daysRemaining }} días</span>
             <span *ngIf="daysRemaining < 0">Vencido</span>
           </p>
@@ -136,35 +135,101 @@
   </div>
 
   <!-- Footer con acciones simple -->
-  <footer *ngIf="showActions" class="border-t border-gray-200 bg-gray-50 px-4 py-3">
+  <footer *ngIf="showActions" class="border-t border-gray-200 bg-gray-50 px-4 py-3 relative">
+    <!-- Mensaje toast para like duplicado -->
+    <div *ngIf="duplicateLikeMessage" 
+         class="absolute bottom-full left-4 mb-2 bg-amber-500 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg z-50 animate-fade-in"
+         style="animation: fadeIn 0.3s ease-in;">
+      <div class="flex items-center space-x-2">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ duplicateLikeMessage }}</span>
+      </div>
+    </div>
+    
     <div class="flex items-center justify-between gap-3">
-      <!-- Likes simple -->
+      <!-- Likes simple: Todo ROJO cuando liked (1), normal cuando no liked (0) -->
       <button 
         (click)="onLikeToggle()"
-        class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
-        [class.bg-red-50]="donation.isLikedByCurrentUser"
+        [disabled]="isLikeInProgress"
+        class="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 relative"
+        [class.bg-emerald-50]="donation.isLikedByCurrentUser"
+        [class.bg-emerald-100]="donation.isLikedByCurrentUser"
+        [class.bg-transparent]="!donation.isLikedByCurrentUser"
+        [class.hover:bg-emerald-200]="donation.isLikedByCurrentUser && !isLikeInProgress"
+        [class.hover:bg-emerald-50]="!donation.isLikedByCurrentUser && !isLikeInProgress"
+        [class.border-2]="donation.isLikedByCurrentUser"
+        [class.border-emerald-500]="donation.isLikedByCurrentUser"
+        [class.border-emerald-400]="donation.isLikedByCurrentUser"
+        [class.opacity-50]="isLikeInProgress"
+        [class.cursor-not-allowed]="isLikeInProgress"
+        [class.cursor-pointer]="!isLikeInProgress"
         [attr.aria-label]="donation.isLikedByCurrentUser ? 'Quitar me gusta' : 'Dar me gusta'"
+        [attr.aria-busy]="isLikeInProgress"
       >
-        <svg class="w-6 h-6" 
-             [class.text-red-600]="donation.isLikedByCurrentUser"
-             [class.fill-current]="donation.isLikedByCurrentUser"
-             [class.text-gray-400]="!donation.isLikedByCurrentUser"
-             fill="none" 
-             stroke="currentColor" 
-             viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        <!-- Spinner durante carga -->
+        <svg *ngIf="isLikeInProgress" class="animate-spin h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="text-sm font-semibold" [class.text-red-600]="donation.isLikedByCurrentUser" [class.text-gray-700]="!donation.isLikedByCurrentUser">
+        
+        <!-- Icono de corazón: ROJO relleno cuando liked (1), BLANCO/GRIS cuando no liked (0) -->
+        <svg *ngIf="!isLikeInProgress" class="w-6 h-6 transition-all duration-200" 
+             [class.text-emerald-600]="donation.isLikedByCurrentUser"
+             [class.text-gray-400]="!donation.isLikedByCurrentUser"
+             [class.scale-110]="donation.isLikedByCurrentUser"
+             [class.drop-shadow-sm]="donation.isLikedByCurrentUser"
+             [attr.fill]="donation.isLikedByCurrentUser ? '#059669' : 'none'"
+             [attr.stroke]="donation.isLikedByCurrentUser ? '#059669' : '#9ca3af'"
+             [attr.stroke-width]="donation.isLikedByCurrentUser ? '0' : '2'"
+             viewBox="0 0 24 24">
+          <path 
+            *ngIf="donation.isLikedByCurrentUser"
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            fill="#059669"
+          />
+          <path 
+            *ngIf="!donation.isLikedByCurrentUser"
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            stroke="#9ca3af"
+            stroke-width="2"
+            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            fill="none"
+          />
+        </svg>
+        
+        <span 
+          class="text-sm font-semibold transition-colors duration-200" 
+          [class.cursor-pointer]="!isLikeInProgress && (donation.likesCount || 0) > 0"
+          [class.hover:underline]="!isLikeInProgress && (donation.likesCount || 0) > 0"
+          [class.text-emerald-600]="donation.isLikedByCurrentUser" 
+          [class.text-emerald-700]="donation.isLikedByCurrentUser"
+          [class.text-gray-700]="!donation.isLikedByCurrentUser"
+          (click)="onLikesCountClick($event)"
+          [title]="(donation.likesCount || 0) > 0 ? 'Ver quién dio like' : ''"
+        >
           {{ donation.likesCount || 0 }}
         </span>
       </button>
+
+      <!-- Modal de usuarios que dieron like -->
+      <app-likes-modal
+        [isOpen]="showLikesModal"
+        [donationId]="donation.id"
+        [likesCount]="donation.likesCount || 0"
+        (onClose)="showLikesModal = false"
+      ></app-likes-modal>
 
       <div class="flex items-center gap-2 ml-auto">
         <!-- Botón Donar (solo para donadores) -->
         <button 
           *ngIf="canDonate"
           (click)="onDonateClick($event)"
-          class="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+          class="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
           aria-label="Donar para esta necesidad"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +241,7 @@
         <!-- Ver detalles simple -->
         <button 
           (click)="onCardClick()"
-          class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+          class="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 flex items-center space-x-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
           aria-label="Ver detalles de la publicación"
         >
           <span>Ver detalles</span>

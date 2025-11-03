@@ -90,7 +90,7 @@ export class DonationDetailComponent implements OnInit {
       return;
     }
 
-    this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
+    this.router.navigate(['/donations/manage', this.donation.id, 'edit']);
   }
 
   // Eliminar donación
@@ -107,7 +107,7 @@ export class DonationDetailComponent implements OnInit {
       this.loading = true;
       this.donationService.deleteDonation(this.donation.id).subscribe({
         next: () => {
-          this.router.navigate(['/organization/donations']);
+          this.router.navigate(['/organization']);
         },
         error: (error) => {
           this.loading = false;
@@ -146,7 +146,7 @@ export class DonationDetailComponent implements OnInit {
 
   // Volver a la lista
   onBack(): void {
-    this.router.navigate(['/organization/donations']);
+          this.router.navigate(['/organization']);
   }
 
   // Formatear fecha

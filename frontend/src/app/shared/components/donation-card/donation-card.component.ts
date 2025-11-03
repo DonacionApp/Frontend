@@ -1,12 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { Donation } from '../../../core/services/donation.service';
+import { RouterModule, Router } from '@angular/router';
+import { Donation, DonationService } from '../../../core/services/donation.service';
+import { LikesModalComponent } from '../likes-modal/likes-modal.component';
 
 @Component({
   selector: 'app-donation-card',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, LikesModalComponent],
   templateUrl: './donation-card.component.html',
   styleUrls: ['./donation-card.component.scss']
 })
@@ -19,6 +20,20 @@ export class DonationCardComponent {
   @Output() likeToggled = new EventEmitter<{ donationId: string; isLiked: boolean }>();
   @Output() donationClicked = new EventEmitter<string>();
   @Output() donateClicked = new EventEmitter<string>();
+  @Output() userClicked = new EventEmitter<string>();
+
+  showLikesModal = false;
+  isLikeLoading = false;
+  duplicateLikeMessage: string | null = null;
+
+  constructor(
+    private donationService: DonationService,
+    private router: Router
+  ) {}
+
+  get isLikeInProgress(): boolean {
+    return this.donationService.isLikeInProgress(this.donation.id);
+  }
 
   get isOwner(): boolean {
     return this.currentUserId === this.donation.userId;
@@ -34,7 +49,20 @@ export class DonationCardComponent {
   }
 
   get profilePhotoUrl(): string {
-    return this.donation.user?.profilePhoto || 'assets/default-avatar.svg';
+    return this.donation.user?.profilePhoto || this.getDefaultAvatar();
+  }
+
+  getDefaultAvatar(): string {
+    // SVG inline como data URI para evitar problemas de carga
+    return 'data:image/svg+xml;base64,' + btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+        <circle cx="50" cy="50" r="50" fill="#e5e7eb"/>
+        <g fill="#9ca3af">
+          <circle cx="50" cy="35" r="15"/>
+          <path d="M 25 70 Q 25 55 35 52 L 65 52 Q 75 55 75 70 L 75 85 Q 75 90 70 90 L 30 90 Q 25 90 25 85 Z"/>
+        </g>
+      </svg>
+    `);
   }
 
   get username(): string {
@@ -63,15 +91,64 @@ export class DonationCardComponent {
   }
 
   onLikeToggle(): void {
-    if (!this.showActions) return;
+    if (!this.showActions || this.isLikeInProgress) return;
+    
+    // Prevenir like duplicado: si ya le dio like, mostrar mensaje y no hacer nada
+    if (this.donation.isLikedByCurrentUser) {
+      this.showDuplicateLikeMessage();
+      return;
+    }
+    
+    this.isLikeLoading = true;
+    this.duplicateLikeMessage = null; // Limpiar mensaje anterior
+    const donationId = this.donation.id;
     this.likeToggled.emit({
-      donationId: this.donation.id,
+      donationId: donationId,
       isLiked: this.donation.isLikedByCurrentUser || false
     });
+    
+    // Verificar periódicamente si el proceso terminó
+    const checkInterval = setInterval(() => {
+      if (!this.donationService.isLikeInProgress(donationId)) {
+        this.isLikeLoading = false;
+        clearInterval(checkInterval);
+      }
+    }, 100);
+    
+    // Timeout de seguridad (máximo 5 segundos)
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      this.isLikeLoading = false;
+    }, 5000);
+  }
+
+  showDuplicateLikeMessage(): void {
+    this.duplicateLikeMessage = 'Ya has dado like a esta publicación';
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      this.duplicateLikeMessage = null;
+    }, 3000);
+  }
+
+  onLikesCountClick(event: Event): void {
+    event.stopPropagation(); // Evitar que se active el click de la tarjeta
+    if ((this.donation.likesCount || 0) > 0) {
+      this.showLikesModal = true;
+    }
   }
 
   onCardClick(): void {
     this.donationClicked.emit(this.donation.id);
+  }
+
+  onUserClick(event: Event): void {
+    event.stopPropagation(); // Evitar que se active el click de la tarjeta
+    if (this.donation.userId) {
+      // Navegar a las publicaciones del usuario usando query params para ocultar el userId
+      this.router.navigate(['/donations/user/publications'], {
+        queryParams: { userId: this.donation.userId }
+      });
+    }
   }
 
   onDonateClick(event: Event): void {

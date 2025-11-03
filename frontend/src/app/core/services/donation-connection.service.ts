@@ -16,7 +16,7 @@ export interface DonationConnectionStatus {
 })
 export class DonationConnectionService {
   private readonly TIMEOUT_MS = 5000; // 5 segundos
-  private readonly apiUrl = `${environment.apiBackendUrl}/post`;
+  private readonly apiUrl = `${environment.apiBackendUrl}/post`; // ⚠️ Endpoint actual del backend
 
   constructor(private http: HttpClient) {}
 

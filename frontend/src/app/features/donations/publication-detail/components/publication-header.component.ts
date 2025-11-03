@@ -18,8 +18,18 @@ import { CommonModule } from '@angular/common';
           <div>
             <h2 class="text-xl font-bold text-gray-900">{{ username }}</h2>
             <p class="text-sm text-gray-500">{{ formatTimeAgo(createdAt) }}</p>
+            <!-- Tags de la donación -->
+            <div *ngIf="tags && tags.length > 0" class="flex flex-wrap gap-2 mt-2">
+              <span 
+                *ngFor="let tag of tags" 
+                class="inline-block px-3 py-1 bg-gradient-to-r from-orange-100 to-pink-100 text-orange-700 rounded-full text-xs font-medium shadow-sm"
+              >
+                {{ tag.tag }}
+              </span>
+            </div>
+            <!-- Fallback: mostrar donationType si no hay tags -->
             <span 
-              *ngIf="donationType" 
+              *ngIf="(!tags || tags.length === 0) && donationType" 
               class="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
             >
               {{ donationType.name }}
@@ -30,7 +40,7 @@ import { CommonModule } from '@angular/common';
         <button 
           *ngIf="isOwner"
           (click)="onEdit.emit()"
-          class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200 hover:shadow-md"
         >
           Editar
         </button>
@@ -43,11 +53,25 @@ export class PublicationHeaderComponent {
   @Input() username: string = '';
   @Input() createdAt: string = '';
   @Input() donationType: any;
+  @Input() tags: Array<{ id: number; tag: string; description?: string }> | null = null;
   @Input() isOwner: boolean = false;
   @Output() onEdit = new EventEmitter<void>();
 
   onImageError(event: any): void {
-    event.target.src = 'assets/default-avatar.svg';
+    event.target.src = this.getDefaultAvatar();
+  }
+
+  private getDefaultAvatar(): string {
+    // SVG inline como data URI para evitar problemas de carga
+    return 'data:image/svg+xml;base64,' + btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+        <circle cx="50" cy="50" r="50" fill="#e5e7eb"/>
+        <g fill="#9ca3af">
+          <circle cx="50" cy="35" r="15"/>
+          <path d="M 25 70 Q 25 55 35 52 L 65 52 Q 75 55 75 70 L 75 85 Q 75 90 70 90 L 30 90 Q 25 90 25 85 Z"/>
+        </g>
+      </svg>
+    `);
   }
 
   formatTimeAgo(dateString: string): string {

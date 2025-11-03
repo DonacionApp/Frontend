@@ -23,6 +23,7 @@
           [username]="username"
           [createdAt]="donation.createdAt"
           [donationType]="donation.donationType"
+          [tags]="donation.tags || null"
           [isOwner]="isOwner"
           (onEdit)="onEdit()"
         ></app-publication-header>
@@ -82,6 +83,7 @@
         <app-publication-footer
           [likesCount]="donation.likesCount || 0"
           [isLiked]="donation.isLikedByCurrentUser || false"
+          [donationId]="donation.id"
           (onLikeToggle)="onLikeToggle()"
         ></app-publication-footer>
       </div>

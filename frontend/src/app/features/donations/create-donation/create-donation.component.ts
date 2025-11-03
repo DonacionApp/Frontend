@@ -5,6 +5,9 @@ import { Router } from '@angular/router';
 import { DonationService, CreateDonationDTO, Article, Comment } from '../../../core/services/donation.service';
 import { DonationTypeService } from '../../../core/services/donation-type.service';
 import { DonationType } from '../../../shared/model/donation-type.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-create-donation',
@@ -26,17 +29,41 @@ export class CreateDonationComponent implements OnInit {
   // Donation types
   donationTypes: DonationType[] = [];
   loadingTypes = false;
+  
+  // Organization info
+  organizationName: string = 'Tu Organización';
 
   constructor(
     private fb: FormBuilder,
     private donationService: DonationService,
     private donationTypeService: DonationTypeService,
-    private router: Router
+    private router: Router,
+    private authService: AuthService,
+    private organizationProfileService: OrganizationProfileService
   ) {}
 
   ngOnInit(): void {
     this.initializeForm();
     this.loadDonationTypes();
+    this.loadOrganizationName();
+  }
+
+  private loadOrganizationName(): void {
+    // Intentar obtener el nombre de la organización desde el perfil
+    this.authService.currentUser$.pipe(take(1)).subscribe(user => {
+      if (user) {
+        // Intentar obtener el nombre del perfil de organización
+        this.organizationProfileService.getMyOrganizationProfile().pipe(take(1)).subscribe({
+          next: (profile) => {
+            this.organizationName = profile.name || profile.username || user.username || 'Tu Organización';
+          },
+          error: () => {
+            // Si falla, usar el username del usuario actual
+            this.organizationName = user.username || 'Tu Organización';
+          }
+        });
+      }
+    });
   }
 
   private initializeForm(): void {
@@ -46,28 +73,53 @@ export class CreateDonationComponent implements OnInit {
       lugarRecogida: ['', [Validators.required, Validators.minLength(5)]],
       lugarDonacion: ['', [Validators.required, Validators.minLength(5)]],
       comunity: ['', [Validators.required, Validators.minLength(3)]],
-      fechaMaximaEntrega: ['', [Validators.required]],
-      donationTypeId: [''],
+      fechaMaximaEntrega: [''], // Opcional según el Figma
+      donationTypeId: [{ value: '', disabled: false }], // Opcional
       articles: this.fb.array([this.createArticleFormGroup()]),
       comments: this.fb.array([this.createCommentFormGroup()])
     });
-
-    // Establecer fecha mínima (hoy)
-    const today = new Date().toISOString().split('T')[0];
-    this.donationForm.get('fechaMaximaEntrega')?.setValue(today);
   }
 
   private loadDonationTypes(): void {
     this.loadingTypes = true;
+    
+    // 🔄 Deshabilitar el campo mientras carga
+    this.donationForm.get('donationTypeId')?.disable();
+    
     this.donationTypeService.getAllDonationTypes().subscribe({
       next: (types) => {
+        // ✅ Éxito: tipos cargados (pueden ser del backend o del fallback)
         this.donationTypes = types;
         this.loadingTypes = false;
+        
+        if (types.length > 0) {
+          console.log('✅ Tipos de donación disponibles:', types.length);
+        }
+        
+        // 🔄 Habilitar el campo cuando termine de cargar
+        this.donationForm.get('donationTypeId')?.enable();
       },
       error: (error) => {
-        console.error('Error al cargar tipos de donación:', error);
+        // ⚠️ Este bloque NO debería ejecutarse porque el servicio siempre retorna éxito (of())
+        // Pero por si acaso, manejamos el error sin mostrar alarmas
+        console.log('ℹ️ Usando tipos por defecto del servicio');
+        
         this.loadingTypes = false;
-        // Continuar sin tipos si falla
+        // Obtener tipos del servicio (que ya deberían estar en el fallback)
+        this.donationTypes = this.donationTypeService.currentDonationTypes;
+        
+        // 🔄 Habilitar el campo
+        this.donationForm.get('donationTypeId')?.enable();
+        
+        // Si aún no hay tipos, esperar un momento para que el servicio los cargue
+        if (this.donationTypes.length === 0) {
+          setTimeout(() => {
+            this.donationTypes = this.donationTypeService.currentDonationTypes;
+            if (this.donationTypes.length > 0) {
+              console.log('✅ Tipos de donación por defecto disponibles:', this.donationTypes.length);
+            }
+          }, 200);
+        }
       }
     });
   }
@@ -133,12 +185,23 @@ export class CreateDonationComponent implements OnInit {
   // Obtener mensaje de error
   getErrorMessage(fieldName: string): string {
     const field = this.donationForm.get(fieldName);
+    
+    // Primero verificar si hay un error del backend para este campo
+    if (field?.hasError('serverError')) {
+      return field.errors?.['serverError'] || 'Error en este campo';
+    }
+    
+    // Luego verificar errores de validación del frontend
     if (field?.hasError('required')) {
       return 'Este campo es requerido';
     }
     if (field?.hasError('minlength')) {
       const minLength = field.errors?.['minlength'].requiredLength;
       return `Mínimo ${minLength} caracteres`;
+    }
+    if (field?.hasError('maxlength')) {
+      const maxLength = field.errors?.['maxlength'].requiredLength;
+      return `Máximo ${maxLength} caracteres`;
     }
     if (field?.hasError('min')) {
       return 'La cantidad debe ser mayor a 0';
@@ -147,6 +210,104 @@ export class CreateDonationComponent implements OnInit {
       return 'La cantidad es demasiado grande';
     }
     return '';
+  }
+
+  /**
+   * Manejar errores de validación del backend
+   */
+  private handleValidationErrors(errorResponse: any): void {
+    const errorMessages: string[] = [];
+    
+    // Mapeo de nombres de campos del backend al frontend
+    const fieldMapping: { [key: string]: string } = {
+      'title': 'title',
+      'message': 'description',
+      'description': 'description',
+      'lugarRecogida': 'lugarRecogida',
+      'lugarDonacion': 'lugarDonacion',
+      'comunity': 'comunity',
+      'fechaMaximaEntrega': 'fechaMaximaEntrega',
+      'typePostId': 'donationTypeId',
+      'typePost': 'donationTypeId',
+      'typePostId inválido': 'donationTypeId',
+      'El tipo de post es invalido': 'donationTypeId',
+      'articles': 'articles',
+      'comments': 'comments'
+    };
+    
+    // Si el backend devuelve un objeto 'errors' con campos específicos
+    if (errorResponse?.errors && typeof errorResponse.errors === 'object') {
+      Object.keys(errorResponse.errors).forEach(backendField => {
+        const frontendField = fieldMapping[backendField] || backendField;
+        const fieldControl = this.donationForm.get(frontendField);
+        
+        if (fieldControl) {
+          // Obtener el mensaje de error (puede ser string o array)
+          const errorMessage = Array.isArray(errorResponse.errors[backendField])
+            ? errorResponse.errors[backendField][0]
+            : errorResponse.errors[backendField];
+          
+          // Establecer el error en el campo
+          fieldControl.setErrors({ serverError: errorMessage });
+          fieldControl.markAsTouched();
+          
+          // Agregar al mensaje general
+          const fieldLabel = this.getFieldLabel(frontendField);
+          errorMessages.push(`${fieldLabel}: ${errorMessage}`);
+        } else {
+          // Si el campo no existe en el formulario, agregarlo al mensaje general
+          errorMessages.push(`${backendField}: ${errorResponse.errors[backendField]}`);
+        }
+      });
+    }
+    
+    // Si el backend devuelve un mensaje de error directo (no en errors)
+    if (errorResponse?.message && typeof errorResponse.message === 'string') {
+      errorMessages.push(errorResponse.message);
+    }
+    
+    // Si hay un mensaje general (objeto message)
+    if (errorResponse?.message && typeof errorResponse.message === 'object') {
+      errorMessages.unshift(errorResponse.message);
+    }
+    
+    // Construir mensaje final
+    if (errorMessages.length > 0) {
+      if (errorMessages.length === 1) {
+        this.errorMessage = errorMessages[0];
+      } else {
+        this.errorMessage = `Errores en los siguientes campos:\n${errorMessages.join('\n')}`;
+      }
+    } else {
+      this.errorMessage = 'Datos inválidos. Por favor verifica los campos marcados.';
+    }
+    
+    // Marcar todos los campos como touched para mostrar errores
+    Object.keys(this.donationForm.controls).forEach(key => {
+      const control = this.donationForm.get(key);
+      if (control && !control.valid) {
+        control.markAsTouched();
+      }
+    });
+  }
+
+  /**
+   * Obtener etiqueta amigable para un campo
+   */
+  private getFieldLabel(fieldName: string): string {
+    const labels: { [key: string]: string } = {
+      'title': 'Título',
+      'description': 'Descripción',
+      'lugarRecogida': 'Lugar de Recogida',
+      'lugarDonacion': 'Lugar de Donación',
+      'comunity': 'Comunidad',
+      'fechaMaximaEntrega': 'Fecha Máxima de Entrega',
+      'donationTypeId': 'Tipo de Donación',
+      
+      'articles': 'Artículos',
+      'comments': 'Comentarios'
+    };
+    return labels[fieldName] || fieldName;
   }
 
   // Enviar formulario
@@ -181,9 +342,13 @@ export class CreateDonationComponent implements OnInit {
     // Preparar datos para enviar
     const formValue = this.donationForm.value;
     
-    // Convertir la fecha a formato ISO con hora
-    const fechaDate = new Date(formValue.fechaMaximaEntrega);
-    fechaDate.setHours(23, 59, 59, 999); // Establecer a las 23:59:59
+    // Convertir la fecha a formato ISO con hora (solo si existe)
+    let fechaMaximaEntrega: string | undefined = undefined;
+    if (formValue.fechaMaximaEntrega) {
+      const fechaDate = new Date(formValue.fechaMaximaEntrega);
+      fechaDate.setHours(23, 59, 59, 999); // Establecer a las 23:59:59
+      fechaMaximaEntrega = fechaDate.toISOString();
+    }
     
     const donationData: CreateDonationDTO = {
       title: formValue.title?.trim() || '',
@@ -192,8 +357,10 @@ export class CreateDonationComponent implements OnInit {
       lugarRecogida: formValue.lugarRecogida?.trim() || '',
       lugarDonacion: formValue.lugarDonacion?.trim() || '',
       comunity: formValue.comunity?.trim() || '',
-      fechaMaximaEntrega: fechaDate.toISOString(),
-      donationTypeId: formValue.donationTypeId || undefined,
+      fechaMaximaEntrega: fechaMaximaEntrega,
+      donationTypeId: (formValue.donationTypeId && formValue.donationTypeId !== '' && formValue.donationTypeId !== '0') 
+        ? formValue.donationTypeId 
+        : undefined,
       articles: formValue.articles.map((article: Article) => ({
         name: article.name.trim(),
         quantity: article.quantity
@@ -256,7 +423,7 @@ export class CreateDonationComponent implements OnInit {
         
         // Redirigir a la lista de donaciones después de 2 segundos
         setTimeout(() => {
-          this.router.navigate(['/organization/donations']);
+          this.router.navigate(['/organization']);
         }, 2000);
       },
       error: (error) => {
@@ -269,6 +436,33 @@ export class CreateDonationComponent implements OnInit {
         console.log('🚨 ERROR RECIBIDO DEL BACKEND:');
         console.log('═══════════════════════════════════════════════════════════');
         console.log('\n📊 Información del Error:');
+        console.log('  • Status:', error.status);
+        console.log('  • Status Text:', error.statusText);
+        console.log('  • URL:', error.url);
+        
+        // Mostrar el cuerpo completo del error
+        if (error.error) {
+          console.log('\n📋 CUERPO COMPLETO DEL ERROR (error.error):');
+          console.log(JSON.stringify(error.error, null, 2));
+          
+          // Mensaje general
+          if (error.error.message) {
+            console.log('\n💬 Mensaje del backend:', error.error.message);
+          }
+          
+          // Errores de validación por campo
+          if (error.error.errors && typeof error.error.errors === 'object') {
+            console.log('\n🔍 ERRORES DE VALIDACIÓN POR CAMPO:');
+            Object.keys(error.error.errors).forEach(field => {
+              const fieldError = Array.isArray(error.error.errors[field])
+                ? error.error.errors[field].join(', ')
+                : error.error.errors[field];
+              console.log(`  • ${field}:`, fieldError);
+            });
+          }
+        }
+        
+        console.log('\n📋 Error completo (objeto):', error);
         console.log('  • Status HTTP:', error.status);
         console.log('  • Status Text:', error.statusText);
         console.log('  • URL:', error.url);
@@ -278,8 +472,9 @@ export class CreateDonationComponent implements OnInit {
         console.log(error);
         console.log('═══════════════════════════════════════════════════════════\n');
         
+        // Manejar errores de validación del backend (400)
         if (error.status === 400) {
-          this.errorMessage = 'Datos inválidos. Por favor verifica los campos.';
+          this.handleValidationErrors(error.error);
         } else if (error.status === 401) {
           this.errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
         } else if (error.status === 403) {
@@ -287,6 +482,8 @@ export class CreateDonationComponent implements OnInit {
           this.errorMessage = error.error?.message || 'Solo organizaciones verificadas pueden crear donaciones. Por favor espera a que tu cuenta sea verificada por un administrador.';
         } else if (error.status === 404) {
           this.errorMessage = 'Endpoint no encontrado. Verifica la configuración del servidor.';
+        } else if (error.status === 413) {
+          this.errorMessage = 'Los archivos son demasiado grandes. El tamaño máximo total permitido es 5MB.';
         } else if (error.status === 500) {
           this.errorMessage = 'Error del servidor. Por favor intenta más tarde.';
         } else {
@@ -298,9 +495,9 @@ export class CreateDonationComponent implements OnInit {
 
   // Cancelar y volver
   onCancel(): void {
-    if (confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')) {
-      this.router.navigate(['/organization/donations']);
-    }
+      if (confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')) {
+        this.router.navigate(['/organization']);
+      }
   }
 
   // Limpiar mensajes
