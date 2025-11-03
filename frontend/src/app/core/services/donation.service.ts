@@ -32,13 +32,27 @@ export interface CreateDonationDTO {
   comments: Comment[];
   comunity: string;
   fechaMaximaEntrega: string; // ISO 8601 format
+  statusDonation?: number; // Estado de la donación (opcional, por defecto 1)
 }
 
-export interface Donation extends CreateDonationDTO {
+export interface StatusDonation {
+  id: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Donation {
   id: string;
   userId: string;
   user?: DonationUser; // Información del usuario que creó la donación
-  statusDonation?: string;
+  lugarRecogida: string;
+  lugarDonacion: string;
+  articles: Article[];
+  comments: Comment[];
+  comunity: string;
+  fechaMaximaEntrega: string;
+  statusDonation?: string | number | StatusDonation; // Puede ser string, number o objeto
   createdAt: string;
   updatedAt: string;
 }
@@ -72,7 +86,12 @@ export class DonationService {
    */
   createDonation(donationData: CreateDonationDTO): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.post<Donation>(`${this.apiUrl}/create`, donationData).pipe(
+    // Agregar statusDonation: 1 por defecto si no está presente
+    const dataToSend = {
+      ...donationData,
+      statusDonation: donationData.statusDonation ?? 1
+    };
+    return this.http.post<Donation>(`${this.apiUrl}/create`, dataToSend).pipe(
       tap(newDonation => {
         // Agregar la nueva donación al estado local
         const currentDonations = this.donationsSubject.value;
@@ -122,7 +141,8 @@ export class DonationService {
    */
   updateDonation(id: string, updates: Partial<CreateDonationDTO>): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.post<Donation>(`${this.apiUrl}/${id}`, updates).pipe(
+    const url = `${this.apiUrl}/update/${id}`;
+    return this.http.post<Donation>(url, updates).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;
@@ -211,10 +231,23 @@ export class DonationService {
       map(donations => {
         // Calcular estadísticas basadas en las donaciones del usuario
         // statusDonation null o undefined se considera como "disponible"
-        const activeDonations = donations.filter(d => 
-          !d.statusDonation || 
-          d.statusDonation.toLowerCase() === 'disponible'
-        ).length;
+        const activeDonations = donations.filter(d => {
+          if (!d.statusDonation) return true;
+          
+          // Si es un objeto con propiedad status
+          if (typeof d.statusDonation === 'object' && 'status' in d.statusDonation) {
+            const status = d.statusDonation.status.toLowerCase();
+            return status === 'pendiente' || status === 'aceptada';
+          }
+          
+          // Si es string
+          if (typeof d.statusDonation === 'string') {
+            return d.statusDonation.toLowerCase() === 'disponible' || d.statusDonation.toLowerCase() === 'pendiente';
+          }
+          
+          // Si es number
+          return d.statusDonation === 1 || d.statusDonation === 2;
+        }).length;
 
         return {
           activeDonations,

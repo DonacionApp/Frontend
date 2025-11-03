@@ -178,22 +178,62 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   /**
    * Obtener badge de estado
    */
-  getStatusBadge(statusDonation: string | null | undefined): { text: string; class: string } {
+  getStatusBadge(statusDonation: any): { text: string; class: string } {
+    // Si es null o undefined
     if (!statusDonation) {
       return { text: 'Disponible', class: 'bg-green-100 text-green-800' };
     }
     
-    const status = statusDonation.toLowerCase();
+    // Si es un objeto con propiedad status (respuesta del backend)
+    if (typeof statusDonation === 'object' && statusDonation.status) {
+      const status = statusDonation.status.toLowerCase();
+      switch (status) {
+        case 'pendiente':
+          return { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' };
+        case 'aceptada':
+          return { text: 'Aceptada', class: 'bg-green-100 text-green-800' };
+        case 'rechazada':
+          return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
+        case 'entregada':
+          return { text: 'Entregada', class: 'bg-blue-100 text-blue-800' };
+        default:
+          return { text: statusDonation.status, class: 'bg-gray-100 text-gray-800' };
+      }
+    }
+    
+    // Si es un número, convertir a texto
+    if (typeof statusDonation === 'number') {
+      switch (statusDonation) {
+        case 1:
+          return { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' };
+        case 2:
+          return { text: 'Aceptada', class: 'bg-green-100 text-green-800' };
+        case 3:
+          return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
+        case 4:
+          return { text: 'Entregada', class: 'bg-blue-100 text-blue-800' };
+        default:
+          return { text: `Estado ${statusDonation}`, class: 'bg-gray-100 text-gray-800' };
+      }
+    }
+    
+    // Si es string
+    const statusStr = String(statusDonation);
+    const status = statusStr.toLowerCase();
+    
     switch (status) {
+      case 'pendiente':
+        return { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' };
+      case 'aceptada':
       case 'disponible':
         return { text: 'Disponible', class: 'bg-green-100 text-green-800' };
-      case 'recogida':
-      case 'en-progreso':
-        return { text: 'Recogida', class: 'bg-blue-100 text-blue-800' };
+      case 'rechazada':
+        return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
+      case 'entregada':
       case 'completada':
-        return { text: 'Completada', class: 'bg-gray-100 text-gray-800' };
+        return { text: 'Entregada', class: 'bg-blue-100 text-blue-800' };
       default:
-        return { text: statusDonation, class: 'bg-gray-100 text-gray-800' };
+        return { text: statusStr, class: 'bg-gray-100 text-gray-800' };
     }
   }
 

@@ -80,7 +80,13 @@ export class EditDonationComponent implements OnInit, OnDestroy {
 
           // Verificar si el usuario actual es el propietario
           const currentUser = this.authService.currentUserValue;
-          if (!currentUser || !this.donationService.canEdit(donation, currentUser.id)) {
+          
+          // Obtener el ID del creador (con fallback)
+          const donationCreatorId = donation.userId || donation.user?.id;
+          const currentUserId = String(currentUser?.id || '');
+          const creatorId = String(donationCreatorId || '');
+          
+          if (!currentUser || currentUserId !== creatorId) {
             this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
             this.loading = false;
             setTimeout(() => {
