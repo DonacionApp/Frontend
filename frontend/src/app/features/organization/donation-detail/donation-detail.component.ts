@@ -75,9 +75,18 @@ export class DonationDetailComponent implements OnInit {
       return;
     }
 
+    // Obtener el ID del usuario creador de la donación
+    // Priorizar donation.userId, si no existe usar donation.user?.id
+    const donationCreatorId = this.donation.userId || this.donation.user?.id;
+    
+    // Convertir ambos IDs a string para comparación consistente
+    const currentUserId = String(currentUser.id);
+    const creatorId = String(donationCreatorId);
+
     // Solo el creador puede editar o eliminar
-    this.canEditDonation = this.donationService.canEdit(this.donation, currentUser.id);
-    this.canDeleteDonation = this.donationService.canDelete(this.donation, currentUser.id);
+    // Comparar como strings para evitar problemas de tipo (string vs number)
+    this.canEditDonation = currentUserId === creatorId;
+    this.canDeleteDonation = currentUserId === creatorId;
   }
 
   // Navegar a editar
