@@ -168,128 +168,225 @@
     <div *ngIf="!loading" class="tab-content">
       <!-- Tab: Resumen -->
       <div *ngIf="activeTab === 'resumen'" class="animate-fade-in">
-        <div class="bg-white rounded-lg shadow-sm p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6">Donaciones Recientes</h2>
-          
-          <div *ngIf="recentDonations.length > 0; else noRecentDonations">
-            <div class="space-y-4">
-              <div *ngFor="let donation of recentDonations" 
-                   class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                   (click)="viewDonation(donation.id)">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900">{{ donation.comunity }}</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                      {{ getArticlesSummary(donation.articles) }}
-                    </p>
-                    <div class="mt-3 flex items-center space-x-4 text-sm text-gray-600">
-                      <span class="flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        {{ formatDate(donation.createdAt) }}
-                      </span>
-                      <span class="flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        {{ donation.lugarRecogida }}
-                      </span>
-                    </div>
-                  </div>
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Donaciones Recientes</h2>
+          <p class="text-gray-600">Últimas 3 donaciones creadas</p>
+        </div>
+        
+        <div *ngIf="recentDonations.length > 0; else noRecentDonations">
+          <!-- Grid de Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div *ngFor="let donation of recentDonations" 
+                 class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
+              
+              <!-- Header con gradiente y badge -->
+              <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
+                <div class="absolute inset-0 bg-pattern opacity-10"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                  </svg>
+                </div>
+                
+                <!-- Badge de estado -->
+                <div class="absolute top-3 right-3">
                   <span [class]="getStatusBadge(donation.statusDonation).class"
-                        class="px-3 py-1 rounded-full text-xs font-medium">
+                        class="px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
                     {{ getStatusBadge(donation.statusDonation).text }}
                   </span>
                 </div>
               </div>
-            </div>
-            
-            <div class="mt-6 text-center">
-              <button (click)="setActiveTab('mis-donaciones')"
-                      class="text-green-600 hover:text-green-700 font-medium text-sm">
-                Ver todas las donaciones →
-              </button>
-            </div>
-          </div>
 
-          <ng-template #noRecentDonations>
-            <div class="text-center py-12">
-              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-              </svg>
-              <h3 class="mt-2 text-sm font-medium text-gray-900">No hay donaciones</h3>
-              <p class="mt-1 text-sm text-gray-500">Comienza creando tu primera donación</p>
-              <div class="mt-6">
-                <button (click)="onCreateDonation()"
-                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                  Nueva Donación
+              <!-- Contenido de la card -->
+              <div class="p-5">
+                <!-- Título -->
+                <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-1">
+                  {{ donation.comunity }}
+                </h3>
+
+                <!-- Descripción de artículos -->
+                <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                  {{ getArticlesSummary(donation.articles) }}
+                </p>
+
+                <!-- Información adicional -->
+                <div class="space-y-2 mb-4">
+                  <div class="flex items-center text-xs text-gray-500">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="truncate">{{ donation.lugarRecogida }}</span>
+                  </div>
+                  <div class="flex items-center text-xs text-gray-500">
+                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>{{ formatDate(donation.createdAt) }}</span>
+                  </div>
+                </div>
+
+                <!-- Botón Ver Detalle -->
+                <button 
+                  (click)="viewDonation(donation.id)"
+                  class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-colors flex items-center justify-center">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  Ver Detalle
                 </button>
               </div>
             </div>
-          </ng-template>
+          </div>
+          
+          <!-- Botón Ver Todas -->
+          <div class="mt-8 text-center">
+            <button (click)="setActiveTab('mis-donaciones')"
+                    class="inline-flex items-center px-6 py-3 bg-white text-green-600 border-2 border-green-600 font-semibold rounded-lg hover:bg-green-50 transition-colors">
+              Ver todas las donaciones
+              <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+              </svg>
+            </button>
+          </div>
         </div>
+
+        <ng-template #noRecentDonations>
+          <div class="bg-white rounded-lg shadow-sm p-12 text-center">
+            <div class="max-w-md mx-auto">
+              <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">No tienes donaciones aún</h3>
+              <p class="text-gray-500 mb-6">Comienza a ayudar creando tu primera donación. Es rápido y fácil.</p>
+              <button (click)="onCreateDonation()"
+                      class="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Crear Primera Donación
+              </button>
+            </div>
+          </div>
+        </ng-template>
       </div>
 
       <!-- Tab: Mis Donaciones -->
       <div *ngIf="activeTab === 'mis-donaciones'" class="animate-fade-in">
-        <div class="bg-white rounded-lg shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-gray-900">Todas mis Donaciones</h2>
-            <span class="text-sm text-gray-500">{{ donations.length }} donaciones</span>
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-900">Mis Donaciones</h2>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-500">{{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
+            <button (click)="onCreateDonation()"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Nueva Donación
+            </button>
           </div>
+        </div>
 
-          <div *ngIf="loadingDonations" class="flex justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <!-- Loading Spinner -->
+        <div *ngIf="loadingDonations" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let item of [1,2,3,4,5,6]" class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse border border-gray-200">
+            <div class="h-32 bg-gray-200"></div>
+            <div class="p-5">
+              <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div class="h-3 bg-gray-200 rounded w-full mb-4"></div>
+              <div class="h-8 bg-gray-200 rounded w-full"></div>
+            </div>
           </div>
+        </div>
 
-          <div *ngIf="!loadingDonations && donations.length > 0" class="space-y-4">
-            <div *ngFor="let donation of donations" 
-                 class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                 (click)="viewDonation(donation.id)">
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <h3 class="text-lg font-medium text-gray-900">{{ donation.comunity }}</h3>
-                  <p class="text-sm text-gray-500 mt-1 line-clamp-2">
-                    {{ getArticlesSummary(donation.articles) }}
-                  </p>
-                  <div class="mt-3 flex items-center space-x-4 text-sm text-gray-600">
-                    <span class="flex items-center">
-                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      {{ formatDate(donation.createdAt) }}
-                    </span>
-                    <span class="flex items-center">
-                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      </svg>
-                      {{ donation.lugarRecogida }}
-                    </span>
-                  </div>
-                </div>
+        <!-- Grid de Cards de Donaciones -->
+        <div *ngIf="!loadingDonations && donations.length > 0" 
+             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let donation of donations" 
+               class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
+            
+            <!-- Header con gradiente y badge -->
+            <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
+              <div class="absolute inset-0 bg-pattern opacity-10"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                </svg>
+              </div>
+              
+              <!-- Badge de estado -->
+              <div class="absolute top-3 right-3">
                 <span [class]="getStatusBadge(donation.statusDonation).class"
-                      class="px-3 py-1 rounded-full text-xs font-medium">
+                      class="px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
                   {{ getStatusBadge(donation.statusDonation).text }}
                 </span>
               </div>
             </div>
-          </div>
 
-          <div *ngIf="!loadingDonations && donations.length === 0" class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No hay donaciones</h3>
-            <p class="mt-1 text-sm text-gray-500">Comienza creando tu primera donación</p>
-            <div class="mt-6">
-              <button (click)="onCreateDonation()"
-                      class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                Nueva Donación
+            <!-- Contenido de la card -->
+            <div class="p-5">
+              <!-- Título -->
+              <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-1">
+                {{ donation.comunity }}
+              </h3>
+
+              <!-- Descripción de artículos -->
+              <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                {{ getArticlesSummary(donation.articles) }}
+              </p>
+
+              <!-- Información adicional -->
+              <div class="space-y-2 mb-4">
+                <div class="flex items-center text-xs text-gray-500">
+                  <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span class="truncate">{{ donation.lugarRecogida }}</span>
+                </div>
+                <div class="flex items-center text-xs text-gray-500">
+                  <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <span>{{ formatDate(donation.createdAt) }}</span>
+                </div>
+              </div>
+
+              <!-- Botón Ver Detalle -->
+              <button 
+                (click)="viewDonation(donation.id)"
+                class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-colors flex items-center justify-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                Ver Detalle
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Estado Vacío -->
+        <div *ngIf="!loadingDonations && donations.length === 0" 
+             class="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div class="max-w-md mx-auto">
+            <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No tienes donaciones aún</h3>
+            <p class="text-gray-500 mb-6">Comienza a ayudar creando tu primera donación. Es rápido y fácil.</p>
+            <button (click)="onCreateDonation()"
+                    class="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Crear Primera Donación
+            </button>
           </div>
         </div>
       </div>
