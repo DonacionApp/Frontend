@@ -207,4 +207,41 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     
     return `${articleNames} (${totalItems} artículos)`;
   }
+
+  /**
+   * Obtener imagen de la donación (placeholder por ahora)
+   */
+  getDonationImage(donation: Donation): string {
+    // Por ahora retornamos una imagen placeholder basada en la categoría
+    // En el futuro esto podría venir del backend
+    const category = donation.articles && donation.articles.length > 0 
+      ? donation.articles[0].name.toLowerCase() 
+      : 'default';
+    
+    // Mapeo de categorías a imágenes placeholder
+    if (category.includes('ropa') || category.includes('vestimenta')) {
+      return 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=300&fit=crop';
+    } else if (category.includes('alimento') || category.includes('comida')) {
+      return 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400&h=300&fit=crop';
+    } else if (category.includes('juguete') || category.includes('juego')) {
+      return 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&h=300&fit=crop';
+    } else if (category.includes('libro') || category.includes('educación')) {
+      return 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=300&fit=crop';
+    } else if (category.includes('mueble') || category.includes('hogar')) {
+      return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop';
+    } else if (category.includes('electrónico') || category.includes('tecnología')) {
+      return 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop';
+    }
+    
+    // Imagen por defecto
+    return 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=300&fit=crop';
+  }
+
+  /**
+   * Manejar error de carga de imagen
+   */
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=300&fit=crop';
+  }
 }
