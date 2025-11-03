@@ -122,7 +122,8 @@ export class DonationService {
    */
   updateDonation(id: string, updates: Partial<CreateDonationDTO>): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.post<Donation>(`${this.apiUrl}/${id}`, updates).pipe(
+    const url = `${this.apiUrl}/update/${id}`;
+    return this.http.post<Donation>(url, updates).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;
