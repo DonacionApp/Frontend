@@ -14,8 +14,9 @@
         </div>
         <button
           (click)="onCreateDonation()"
-          class="inline-flex items-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-md hover:shadow-lg">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          aria-label="Crear nueva donación"
+          class="inline-flex items-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 focus-ring btn-ripple">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
           Nueva Donación
@@ -25,18 +26,31 @@
 
     <!-- Error Message -->
     <div *ngIf="errorMessage && !loading" 
-         class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+         role="alert"
+         aria-live="assertive"
+         class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 error-shake">
+      <div class="flex items-start">
+        <svg class="h-5 w-5 text-red-400 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
         </svg>
-        <p class="text-sm text-red-800">{{ errorMessage }}</p>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-red-800">Error</p>
+          <p class="text-sm text-red-700 mt-1">{{ errorMessage }}</p>
+        </div>
+        <button 
+          (click)="clearError()"
+          aria-label="Cerrar mensaje de error"
+          class="ml-3 flex-shrink-0 text-red-400 hover:text-red-600 focus-ring rounded">
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
       </div>
     </div>
 
     <!-- Loading Skeleton -->
     <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div *ngFor="let item of [1,2,3,4]" class="bg-white rounded-lg shadow-md p-6 animate-pulse">
+      <div *ngFor="let item of [1,2,3,4]" class="bg-white rounded-lg shadow-md p-6 skeleton-shimmer">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-gray-200 rounded-full"></div>
           <div class="w-8 h-8 bg-gray-200 rounded"></div>
@@ -47,70 +61,71 @@
     </div>
 
     <!-- Stats Cards -->
-    <div *ngIf="!loading && stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div *ngIf="!loading && stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" role="region" aria-label="Estadísticas del dashboard">
       
       <!-- Card 1: Donaciones Activas -->
-      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
           </div>
-          <span class="text-green-600 text-2xl">📦</span>
+          <span class="text-green-600 text-2xl" aria-hidden="true"></span>
         </div>
         <p class="text-sm text-gray-600 mb-1">Donaciones Activas</p>
-        <p class="text-3xl font-bold text-gray-900">{{ stats.activeDonations }}</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation" [attr.aria-label]="stats.activeDonations + ' donaciones activas'">{{ stats.activeDonations }}</p>
       </div>
 
       <!-- Card 2: Total Donaciones -->
-      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <span class="text-blue-600 text-2xl">📊</span>
+          <span class="text-blue-600 text-2xl" aria-hidden="true"></span>
         </div>
         <p class="text-sm text-gray-600 mb-1">Total Donaciones</p>
-        <p class="text-3xl font-bold text-gray-900">{{ stats.totalDonations }}</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation" [attr.aria-label]="stats.totalDonations + ' donaciones en total'">{{ stats.totalDonations }}</p>
       </div>
 
       <!-- Card 3: Solicitudes Recibidas -->
-      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring opacity-75" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
           </div>
-          <span class="text-orange-600 text-2xl">👥</span>
+          <span class="text-orange-600 text-2xl" aria-hidden="true"></span>
         </div>
         <p class="text-sm text-gray-600 mb-1">Solicitudes Recibidas</p>
-        <p class="text-3xl font-bold text-gray-900">{{ stats.requestsReceived }}</p>
-        <p class="text-xs text-gray-500 mt-1">Próximamente</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation">{{ stats.requestsReceived }}</p>
+        <p class="text-xs text-orange-600 font-semibold mt-1">Próximamente</p>
       </div>
 
       <!-- Card 4: Mensajes -->
-      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow relative">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring opacity-75 relative" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
           </div>
           <div class="relative">
-            <span class="text-purple-600 text-2xl">💬</span>
+            <span class="text-purple-600 text-2xl" aria-hidden="true"></span>
             <span *ngIf="stats.unreadMessages > 0" 
-                  class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                  class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold badge-glow"
+                  [attr.aria-label]="stats.unreadMessages + ' mensajes sin leer'">
               {{ stats.unreadMessages }}
             </span>
           </div>
         </div>
         <p class="text-sm text-gray-600 mb-1">Mensajes</p>
-        <p class="text-3xl font-bold text-gray-900">{{ stats.unreadMessages }}</p>
-        <p class="text-xs text-gray-500 mt-1">Próximamente</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation">{{ stats.unreadMessages }}</p>
+        <p class="text-xs text-purple-600 font-semibold mt-1">Próximamente</p>
       </div>
 
     </div>
@@ -118,13 +133,16 @@
     <!-- Tab Navigation -->
     <div *ngIf="!loading" class="bg-white rounded-lg shadow-sm mb-6">
       <div class="border-b border-gray-200">
-        <nav class="flex -mb-px">
+        <nav class="flex -mb-px" role="tablist" aria-label="Secciones del dashboard">
           <button
             (click)="setActiveTab('resumen')"
             [class]="activeTab === 'resumen' 
               ? 'border-green-500 text-green-600' 
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200">
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring"
+            role="tab"
+            [attr.aria-selected]="activeTab === 'resumen'"
+            [attr.aria-controls]="'resumen-panel'">
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -138,7 +156,10 @@
             [class]="activeTab === 'mis-donaciones' 
               ? 'border-green-500 text-green-600' 
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200">
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring"
+            role="tab"
+            [attr.aria-selected]="activeTab === 'mis-donaciones'"
+            [attr.aria-controls]="'mis-donaciones-panel'">
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
@@ -152,7 +173,11 @@
             [class]="activeTab === 'solicitudes' 
               ? 'border-green-500 text-green-600' 
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors duration-200">
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring opacity-75"
+            role="tab"
+            [attr.aria-selected]="activeTab === 'solicitudes'"
+            [attr.aria-controls]="'solicitudes-panel'"
+            disabled>
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -177,13 +202,15 @@
           <!-- Grid de Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div *ngFor="let donation of recentDonations" 
-                 class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
+                 class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
+                 [attr.aria-label]="'Donación ' + donation.comunity + ', estado ' + getStatusBadge(donation.statusDonation).text"
+                 tabindex="0">
               
               <!-- Header con gradiente y badge -->
               <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
                 <div class="absolute inset-0 bg-pattern opacity-10"></div>
                 <div class="absolute inset-0 flex items-center justify-center">
-                  <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
                   </svg>
                 </div>
@@ -229,8 +256,9 @@
                 <!-- Botón Ver Detalle -->
                 <button 
                   (click)="viewDonation(donation.id)"
-                  class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-colors flex items-center justify-center">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple hover:scale-105"
+                  [attr.aria-label]="'Ver detalles de la donación ' + donation.comunity">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                   </svg>
@@ -292,7 +320,7 @@
 
         <!-- Loading Spinner -->
         <div *ngIf="loadingDonations" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div *ngFor="let item of [1,2,3,4,5,6]" class="bg-white rounded-lg shadow-md overflow-hidden animate-pulse border border-gray-200">
+          <div *ngFor="let item of [1,2,3,4,5,6]" class="bg-white rounded-lg shadow-md overflow-hidden skeleton-shimmer border border-gray-200">
             <div class="h-32 bg-gray-200"></div>
             <div class="p-5">
               <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -306,13 +334,15 @@
         <div *ngIf="!loadingDonations && donations.length > 0" 
              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div *ngFor="let donation of donations" 
-               class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200">
+               class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
+               [attr.aria-label]="'Donación ' + donation.comunity + ', estado ' + getStatusBadge(donation.statusDonation).text"
+               tabindex="0">
             
             <!-- Header con gradiente y badge -->
             <div class="relative h-32 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
               <div class="absolute inset-0 bg-pattern opacity-10"></div>
               <div class="absolute inset-0 flex items-center justify-center">
-                <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
                 </svg>
               </div>
@@ -358,8 +388,9 @@
               <!-- Botón Ver Detalle -->
               <button 
                 (click)="viewDonation(donation.id)"
-                class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-colors flex items-center justify-center">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-100 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple hover:scale-105"
+                [attr.aria-label]="'Ver detalles de la donación ' + donation.comunity">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
