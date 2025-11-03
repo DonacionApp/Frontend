@@ -35,6 +35,13 @@ export interface CreateDonationDTO {
   statusDonation?: number; // Estado de la donación (opcional, por defecto 1)
 }
 
+export interface StatusDonation {
+  id: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Donation {
   id: string;
   userId: string;
@@ -45,7 +52,7 @@ export interface Donation {
   comments: Comment[];
   comunity: string;
   fechaMaximaEntrega: string;
-  statusDonation?: string | number; // Puede ser string o number dependiendo del backend
+  statusDonation?: string | number | StatusDonation; // Puede ser string, number o objeto
   createdAt: string;
   updatedAt: string;
 }
@@ -224,11 +231,23 @@ export class DonationService {
       map(donations => {
         // Calcular estadísticas basadas en las donaciones del usuario
         // statusDonation null o undefined se considera como "disponible"
-        const activeDonations = donations.filter(d => 
-          !d.statusDonation || 
-          (typeof d.statusDonation === 'string' && d.statusDonation.toLowerCase() === 'disponible') ||
-          d.statusDonation === 1
-        ).length;
+        const activeDonations = donations.filter(d => {
+          if (!d.statusDonation) return true;
+          
+          // Si es un objeto con propiedad status
+          if (typeof d.statusDonation === 'object' && 'status' in d.statusDonation) {
+            const status = d.statusDonation.status.toLowerCase();
+            return status === 'pendiente' || status === 'aceptada';
+          }
+          
+          // Si es string
+          if (typeof d.statusDonation === 'string') {
+            return d.statusDonation.toLowerCase() === 'disponible' || d.statusDonation.toLowerCase() === 'pendiente';
+          }
+          
+          // Si es number
+          return d.statusDonation === 1 || d.statusDonation === 2;
+        }).length;
 
         return {
           activeDonations,
