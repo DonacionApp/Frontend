@@ -150,6 +150,13 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Limpiar mensaje de error
+   */
+  clearError(): void {
+    this.errorMessage = '';
+  }
+
+  /**
    * Obtener nombre de la organización
    */
   get organizationName(): string {
