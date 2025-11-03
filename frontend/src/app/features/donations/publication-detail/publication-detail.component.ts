@@ -1,24 +1,63 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+ 
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+// Services
 import { DonationService, Donation, DonationFile } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
+
+// Shared Components
+import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
+import { ErrorMessageComponent } from '../../../shared/components/error-message/error-message.component';
+import { BackButtonComponent } from '../../../shared/components/back-button/back-button.component';
+
+// Publication Components
+import { PublicationHeaderComponent } from './components/publication-header.component';
+import { ImageGalleryComponent } from './components/image-gallery.component';
+import { PublicationDescriptionComponent } from './components/publication-description.component';
+import { LocationInfoComponent } from './components/location-info.component';
+import { ArticlesListComponent } from './components/articles-list.component';
+import { CommentsSectionComponent } from './components/comments-section.component';
+import { VideosSectionComponent } from './components/videos-section.component';
+import { PdfsSectionComponent } from './components/pdfs-section.component';
+import { PublicationFooterComponent } from './components/publication-footer.component';
 
 @Component({
   selector: 'app-publication-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [
+    CommonModule,
+    SpinnerComponent,
+    ErrorMessageComponent,
+    BackButtonComponent,
+    PublicationHeaderComponent,
+    ImageGalleryComponent,
+    PublicationDescriptionComponent,
+    LocationInfoComponent,
+    ArticlesListComponent,
+    CommentsSectionComponent,
+    VideosSectionComponent,
+    PdfsSectionComponent,
+    PublicationFooterComponent
+  ],
   templateUrl: './publication-detail.component.html',
   styleUrls: ['./publication-detail.component.scss']
 })
 export class PublicationDetailComponent implements OnInit, OnDestroy {
+  // State
   donation: Donation | null = null;
-  loading = false;
+  loading = true;
   errorMessage = '';
-  currentUserId: string | null = null;
   selectedImage: string | null = null;
   
+  // Computed properties
+  daysRemaining = 0;
+  urgencyClass = '';
+  
+  // Destroy subject for cleanup
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -29,18 +68,7 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Obtener usuario actual
-    this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
-      this.currentUserId = user?.id || null;
-    });
-
-    // Obtener ID de la donación desde la URL
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.loadDonation(id);
-    } else {
-      this.errorMessage = 'ID de donación no válido';
-    }
+    this.loadDonation();
   }
 
   ngOnDestroy(): void {
@@ -48,72 +76,140 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  loadDonation(id: string): void {
+  /**
+   * Load donation data
+   */
+  private loadDonation(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    
+    if (!id) {
+      this.handleError('ID de donación no válido');
+      return;
+    }
+
     this.loading = true;
     this.errorMessage = '';
-
-    this.donationService.getDonationById(id).subscribe({
-      next: (donation) => {
-        this.donation = donation;
-        this.loading = false;
-        
-        // Establecer la primera imagen como seleccionada
-        const firstImage = this.getImages()[0];
-        if (firstImage) {
-          this.selectedImage = firstImage.url;
+    
+    this.donationService.getDonationById(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (donation) => {
+          this.handleDonationLoaded(donation);
+        },
+        error: (error) => {
+          if (error.status === 404) {
+            this.handleError('Donación no encontrada');
+          } else {
+            this.handleError('Error al cargar la donación. Por favor intenta nuevamente.');
+          }
         }
-      },
-      error: (error) => {
-        this.loading = false;
-        console.error('Error al cargar donación:', error);
-        
-        if (error.status === 404) {
-          this.errorMessage = 'Donación no encontrada';
-        } else {
-          this.errorMessage = 'Error al cargar la donación. Por favor intenta nuevamente.';
-        }
-      }
-    });
+      });
   }
 
-  get isOwner(): boolean {
-    return this.currentUserId === this.donation?.userId;
+  /**
+   * Handle successful donation load
+   */
+  private handleDonationLoaded(donation: Donation): void {
+    this.donation = donation;
+    this.calculateDaysRemaining();
+    this.setUrgencyClass();
+    
+    // Establecer la primera imagen como seleccionada
+    const firstImage = this.getImages()[0];
+    if (firstImage) {
+      this.selectedImage = firstImage.url;
+    }
+    
+    this.loading = false;
   }
+
+  /**
+   * Handle error
+   */
+  private handleError(message: string): void {
+    this.errorMessage = message;
+    this.loading = false;
+  }
+
+  /**
+   * Calculate days remaining until deadline
+   */
+  private calculateDaysRemaining(): void {
+    if (!this.donation?.fechaMaximaEntrega) {
+      this.daysRemaining = 0;
+      return;
+    }
+
+    const deadline = new Date(this.donation.fechaMaximaEntrega);
+    const today = new Date();
+    const diffTime = deadline.getTime() - today.getTime();
+    this.daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  /**
+   * Set urgency class based on days remaining
+   */
+  private setUrgencyClass(): void {
+    if (this.daysRemaining < 0) {
+      this.urgencyClass = 'bg-red-100 text-red-700';
+    } else if (this.daysRemaining <= 3) {
+      this.urgencyClass = 'bg-orange-100 text-orange-700';
+    } else if (this.daysRemaining <= 7) {
+      this.urgencyClass = 'bg-yellow-100 text-yellow-700';
+    } else {
+      this.urgencyClass = 'bg-green-100 text-green-700';
+    }
+  }
+
+  // ===== Getters =====
 
   get profilePhotoUrl(): string {
     return this.donation?.user?.profilePhoto || 'assets/default-avatar.svg';
   }
 
   get username(): string {
-    return this.donation?.user?.username || 'Usuario';
+    return this.donation?.user?.username || 'Usuario desconocido';
   }
 
-  get daysRemaining(): number {
-    if (!this.donation?.fechaMaximaEntrega) return 0;
-    const today = new Date();
-    const maxDate = new Date(this.donation.fechaMaximaEntrega);
-    const diff = maxDate.getTime() - today.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  get isOwner(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return this.donation?.userId === currentUser?.id;
   }
 
-  get urgencyClass(): string {
-    const days = this.daysRemaining;
-    if (days < 0) return 'text-red-700 bg-red-100';
-    if (days <= 3) return 'text-orange-700 bg-orange-100';
-    if (days <= 7) return 'text-yellow-700 bg-yellow-100';
-    return 'text-green-700 bg-green-100';
+  // ===== File Getters =====
+
+  getImages(): Array<{ url: string; name: string }> {
+    return this.donation?.files?.filter(f => f.type === 'image').map(f => ({
+      url: f.url,
+      name: f.name
+    })) || [];
   }
 
-  getImages(): DonationFile[] {
-    return this.donation?.files?.filter(f => f.type === 'image') || [];
+  getVideos(): Array<{ url: string; name: string }> {
+    return this.donation?.files?.filter(f => f.type === 'video').map(f => ({
+      url: f.url,
+      name: f.name
+    })) || [];
   }
 
-  getVideos(): DonationFile[] {
-    return this.donation?.files?.filter(f => f.type === 'video') || [];
+  getPdfs(): Array<{ url: string; name: string; size: number }> {
+    return this.donation?.files?.filter(f => f.type === 'pdf').map(f => ({
+      url: f.url,
+      name: f.name,
+      size: f.size || 0
+    })) || [];
   }
 
-  getPdfs(): DonationFile[] {
-    return this.donation?.files?.filter(f => f.type === 'pdf') || [];
+  // ===== Event Handlers =====
+
+  onBack(): void {
+    this.router.navigate(['/donations/feed']);
+  }
+
+  onEdit(): void {
+    if (this.donation?.id) {
+      this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
+    }
   }
 
   onImageSelect(imageUrl: string): void {
@@ -121,67 +217,28 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
   }
 
   onLikeToggle(): void {
-    if (!this.currentUserId) {
+    if (!this.donation?.id) return;
+
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
       this.router.navigate(['/auth/login'], { 
         queryParams: { returnUrl: this.router.url } 
       });
       return;
     }
 
-    if (!this.donation) return;
-
     const isLiked = this.donation.isLikedByCurrentUser || false;
-    
-    this.donationService.toggleLike(this.donation.id, isLiked).subscribe({
-      next: (updatedDonation) => {
-        this.donation = updatedDonation;
-      },
-      error: (error) => {
-        console.error('Error al actualizar like:', error);
-      }
-    });
-  }
 
-  onBack(): void {
-    this.router.navigate(['/donations/feed']);
-  }
-
-  onEdit(): void {
-    if (this.donation && this.isOwner) {
-      this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
-    }
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return 'No especificado';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
-  formatTimeAgo(dateString: string): string {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Hace un momento';
-    if (diffMins < 60) return `Hace ${diffMins} minutos`;
-    if (diffHours < 24) return `Hace ${diffHours} horas`;
-    if (diffDays < 30) return `Hace ${diffDays} días`;
-    return this.formatDate(dateString);
-  }
-
-  formatFileSize(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    this.donationService.toggleLike(this.donation.id, isLiked)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedDonation) => {
+          this.donation = updatedDonation;
+        },
+        error: (error) => {
+          console.error('Error al cambiar el like:', error);
+        }
+      });
   }
 }
 

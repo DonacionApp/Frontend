@@ -14,12 +14,23 @@ export class DonationCardComponent {
   @Input() donation!: Donation;
   @Input() showActions: boolean = true;
   @Input() currentUserId: string | null = null;
+  @Input() currentUserRole: string | null = null;
   
   @Output() likeToggled = new EventEmitter<{ donationId: string; isLiked: boolean }>();
   @Output() donationClicked = new EventEmitter<string>();
+  @Output() donateClicked = new EventEmitter<string>();
 
   get isOwner(): boolean {
     return this.currentUserId === this.donation.userId;
+  }
+
+  get isDonor(): boolean {
+    return this.currentUserRole === 'donor';
+  }
+
+  get canDonate(): boolean {
+    // Solo donadores pueden donar, y no pueden donar a sus propias publicaciones
+    return this.isDonor && !this.isOwner;
   }
 
   get profilePhotoUrl(): string {
@@ -61,6 +72,12 @@ export class DonationCardComponent {
 
   onCardClick(): void {
     this.donationClicked.emit(this.donation.id);
+  }
+
+  onDonateClick(event: Event): void {
+    event.stopPropagation(); // Evitar que se active el click de la tarjeta
+    if (!this.showActions || !this.canDonate) return;
+    this.donateClicked.emit(this.donation.id);
   }
 
   formatDate(dateString: string): string {

@@ -42,27 +42,50 @@ export interface DonationLike {
 }
 
 export interface CreateDonationDTO {
-  lugarRecogida: string;
-  lugarDonacion: string;
-  articles: Article[];
-  comments: Comment[];
-  comunity: string;
-  fechaMaximaEntrega: string; // ISO 8601 format
-  donationTypeId?: string; // Tipo de donación
-  description?: string; // Descripción adicional
+  // 🔄 Campos que acepta el backend
+  title?: string; // Título de la publicación
+  message: string; // Mensaje/descripción principal (campo principal del backend)
+  typePostId?: number; // ID del tipo de post (tags en el backend)
+  
+  // Campos opcionales que podemos enviar como JSON en message o ignorar
+  lugarRecogida?: string;
+  lugarDonacion?: string;
+  articles?: Article[];
+  comments?: Comment[];
+  comunity?: string;
+  fechaMaximaEntrega?: string; // ISO 8601 format
+  donationTypeId?: string; // Alias para typePostId
+  description?: string; // Alias para message
 }
 
-export interface Donation extends CreateDonationDTO {
+export interface Donation {
   id: string;
   userId: string;
-  user?: DonationUser; // Información del usuario que creó la donación
+  user?: DonationUser;
+  
+  // Campos principales del backend
+  title?: string;
+  message: string; // Campo obligatorio del backend
+  typePostId?: number;
+  
+  // Campos adicionales opcionales
+  lugarRecogida?: string;
+  lugarDonacion?: string;
+  articles?: Article[];
+  comments?: Comment[];
+  comunity?: string;
+  fechaMaximaEntrega?: string;
+  donationTypeId?: string;
+  description?: string;
+  
+  // Metadata
   statusDonation?: string;
   createdAt: string;
   updatedAt: string;
-  files?: DonationFile[]; // Archivos adjuntos
-  likes?: DonationLike[]; // Likes de la publicación
-  likesCount?: number; // Contador de likes
-  isLikedByCurrentUser?: boolean; // Si el usuario actual le dio like
+  files?: DonationFile[];
+  likes?: DonationLike[];
+  likesCount?: number;
+  isLikedByCurrentUser?: boolean;
   donationType?: {
     id: string;
     name: string;
@@ -95,11 +118,29 @@ export class DonationService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Crear una nueva donación
+   * Crear una nueva donación (sin archivos)
+   * 🔄 ADAPTADO: Usa el formato del backend
    */
   createDonation(donationData: CreateDonationDTO): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.post<Donation>(`${this.apiUrl}/create`, donationData).pipe(
+    
+    // Preparar datos en formato que el backend espera
+    const backendData: any = {
+      message: this.buildFullMessage(donationData)
+    };
+    
+    if (donationData.title) {
+      backendData.title = donationData.title;
+    }
+    
+    if (donationData.typePostId) {
+      backendData.typePostId = donationData.typePostId;
+    } else if (donationData.donationTypeId) {
+      backendData.typePostId = parseInt(donationData.donationTypeId);
+    }
+    
+    return this.http.post<any>(`${this.apiUrl}/create`, backendData).pipe(
+      map(response => this.mapBackendPostsToFrontend([response])[0]),
       tap(newDonation => {
         // Agregar la nueva donación al estado local
         const currentDonations = this.donationsSubject.value;
@@ -269,15 +310,89 @@ export class DonationService {
    */
   getAllPublicDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<any[]>(`${this.apiUrl}/all`).pipe(
-      map(posts => this.mapBackendPostsToFrontend(posts)),
+    // Limpiar datos anteriores del BehaviorSubject
+    this.donationsSubject.next([]);
+    
+    console.log('🌐 Haciendo petición HTTP a:', `${this.apiUrl}/all`);
+    console.log('🗑️ Limpiando datos de prueba anteriores...');
+    
+    // Forzar petición sin caché agregando timestamp
+    const timestamp = new Date().getTime();
+    const urlWithCacheBust = `${this.apiUrl}/all?_t=${timestamp}`;
+    
+    return this.http.get<any[]>(urlWithCacheBust, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    }).pipe(
+      tap(rawResponse => {
+        console.log('📥 Respuesta RAW del backend:', rawResponse);
+        console.log('📥 Tipo de respuesta:', Array.isArray(rawResponse) ? 'Array' : typeof rawResponse);
+        console.log('📥 Cantidad de posts recibidos:', Array.isArray(rawResponse) ? rawResponse.length : 0);
+      }),
+      map(posts => {
+        // Filtrar datos de prueba/demo
+        const realPosts = Array.isArray(posts) 
+          ? posts.filter(post => {
+              const id = post?.id?.toString() || '';
+              const userId = post?.user?.id?.toString() || '';
+              const username = post?.user?.username || '';
+              const email = post?.user?.email || '';
+              
+              // Nombres de organizaciones de prueba conocidas
+              const demoOrganizations = [
+                'Fundación Ayuda Verde',
+                'Comedor Solidario',
+                'Biblioteca Comunitaria',
+                'contacto@ayudaverde.org',
+                'info@comedorsolidario.org',
+                'biblioteca@comunidad.org'
+              ];
+              
+              // Eliminar cualquier post que tenga "demo" en el ID o sea claramente de prueba
+              const isDemo = id.toLowerCase().includes('demo') || 
+                           userId.toLowerCase().includes('demo') ||
+                           id.startsWith('demo-') ||
+                           userId.startsWith('demo-') ||
+                           demoOrganizations.some(demoOrg => 
+                             username.includes(demoOrg) || 
+                             email.includes(demoOrg) ||
+                             username.toLowerCase().includes('ayuda verde') ||
+                             username.toLowerCase().includes('comedor solidario') ||
+                             username.toLowerCase().includes('biblioteca comunitaria')
+                           );
+              
+              if (isDemo) {
+                console.warn('🚫 Ignorando post de prueba:', { id, username, email });
+              }
+              return !isDemo;
+            })
+          : [];
+        
+        console.log('📋 Posts reales (después de filtrar demos):', realPosts.length);
+        
+        const mappedDonations = this.mapBackendPostsToFrontend(realPosts);
+        console.log('🔄 Donaciones mapeadas:', mappedDonations);
+        return mappedDonations;
+      }),
       tap(donations => {
+        console.log('✅ Donaciones finales para el componente:', donations);
         this.donationsSubject.next(donations);
         this.loadingSubject.next(false);
       }),
       catchError(error => {
         this.loadingSubject.next(false);
-        console.error('Error al obtener donaciones públicas:', error);
+        console.error('❌ Error al obtener donaciones públicas:', error);
+        console.error('Detalles:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        // Limpiar en caso de error
+        this.donationsSubject.next([]);
         return throwError(() => error);
       })
     );
@@ -299,6 +414,9 @@ export class DonationService {
         createdAt: post.user?.createdAt || new Date().toISOString(),
         updatedAt: post.user?.updatedAt || new Date().toISOString(),
       },
+      // Campo obligatorio del backend
+      message: post.message || post.description || '',
+      title: post.title || '',
       // Mapear campos del backend al frontend
       comunity: post.comunity || 'Comunidad',
       lugarRecogida: post.lugarRecogida || 'Por definir',
@@ -345,21 +463,35 @@ export class DonationService {
 
   /**
    * Crear donación con archivos
+   * 🔄 ADAPTADO: Usa el formato del backend (/post/create con FormData)
    */
   createDonationWithFiles(donationData: CreateDonationDTO, files: File[]): Observable<Donation> {
     this.loadingSubject.next(true);
     
     const formData = new FormData();
     
-    // Agregar datos de la donación como JSON string
-    formData.append('data', JSON.stringify(donationData));
+    // 🔄 Preparar mensaje que incluya toda la información
+    const fullMessage = this.buildFullMessage(donationData);
+    
+    // Agregar campos individuales que el backend espera
+    if (donationData.title) {
+      formData.append('title', donationData.title);
+    }
+    formData.append('message', fullMessage);
+    
+    if (donationData.typePostId) {
+      formData.append('typePostId', donationData.typePostId.toString());
+    } else if (donationData.donationTypeId) {
+      formData.append('typePostId', donationData.donationTypeId);
+    }
     
     // Agregar archivos
-    files.forEach((file, index) => {
+    files.forEach((file) => {
       formData.append('files', file, file.name);
     });
 
-    return this.http.post<Donation>(`${this.apiUrl}/create-with-files`, formData).pipe(
+    return this.http.post<any>(`${this.apiUrl}/create`, formData).pipe(
+      map(response => this.mapBackendPostsToFrontend([response])[0]),
       tap(newDonation => {
         const currentDonations = this.donationsSubject.value;
         this.donationsSubject.next([newDonation, ...currentDonations]);
@@ -371,6 +503,52 @@ export class DonationService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Construir mensaje completo con toda la información estructurada
+   */
+  private buildFullMessage(data: CreateDonationDTO): string {
+    let message = data.message || data.description || '';
+    
+    // Agregar información estructurada al mensaje
+    const details: string[] = [];
+    
+    if (data.comunity) {
+      details.push(`📍 Comunidad: ${data.comunity}`);
+    }
+    if (data.lugarRecogida) {
+      details.push(`🏠 Lugar de Recogida: ${data.lugarRecogida}`);
+    }
+    if (data.lugarDonacion) {
+      details.push(`🎯 Lugar de Donación: ${data.lugarDonacion}`);
+    }
+    if (data.fechaMaximaEntrega) {
+      const fecha = new Date(data.fechaMaximaEntrega).toLocaleDateString('es-ES');
+      details.push(`📅 Fecha Máxima: ${fecha}`);
+    }
+    
+    // Agregar artículos
+    if (data.articles && data.articles.length > 0) {
+      details.push(`\n📦 Artículos necesarios:`);
+      data.articles.forEach(article => {
+        details.push(`  • ${article.name}: ${article.quantity}`);
+      });
+    }
+    
+    // Agregar comentarios
+    if (data.comments && data.comments.length > 0) {
+      details.push(`\n💬 Información adicional:`);
+      data.comments.forEach(comment => {
+        details.push(`  • ${comment.text}`);
+      });
+    }
+    
+    if (details.length > 0) {
+      message += '\n\n' + details.join('\n');
+    }
+    
+    return message;
   }
 
   /**

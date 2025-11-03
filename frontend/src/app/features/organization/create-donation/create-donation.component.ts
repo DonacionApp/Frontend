@@ -41,12 +41,13 @@ export class CreateDonationComponent implements OnInit {
 
   private initializeForm(): void {
     this.donationForm = this.fb.group({
+      title: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(100)]],
+      description: ['', [Validators.required, Validators.minLength(20), Validators.maxLength(1000)]],
       lugarRecogida: ['', [Validators.required, Validators.minLength(5)]],
       lugarDonacion: ['', [Validators.required, Validators.minLength(5)]],
       comunity: ['', [Validators.required, Validators.minLength(3)]],
       fechaMaximaEntrega: ['', [Validators.required]],
-      donationTypeId: ['', [Validators.required]],
-      description: ['', [Validators.maxLength(1000)]],
+      donationTypeId: [''],
       articles: this.fb.array([this.createArticleFormGroup()]),
       comments: this.fb.array([this.createCommentFormGroup()])
     });
@@ -185,12 +186,14 @@ export class CreateDonationComponent implements OnInit {
     fechaDate.setHours(23, 59, 59, 999); // Establecer a las 23:59:59
     
     const donationData: CreateDonationDTO = {
-      lugarRecogida: formValue.lugarRecogida.trim(),
-      lugarDonacion: formValue.lugarDonacion.trim(),
-      comunity: formValue.comunity.trim(),
-      fechaMaximaEntrega: fechaDate.toISOString(),
-      donationTypeId: formValue.donationTypeId,
+      title: formValue.title?.trim() || '',
+      message: formValue.description?.trim() || '',
       description: formValue.description?.trim() || '',
+      lugarRecogida: formValue.lugarRecogida?.trim() || '',
+      lugarDonacion: formValue.lugarDonacion?.trim() || '',
+      comunity: formValue.comunity?.trim() || '',
+      fechaMaximaEntrega: fechaDate.toISOString(),
+      donationTypeId: formValue.donationTypeId || undefined,
       articles: formValue.articles.map((article: Article) => ({
         name: article.name.trim(),
         quantity: article.quantity
@@ -199,6 +202,43 @@ export class CreateDonationComponent implements OnInit {
         text: comment.text.trim()
       }))
     };
+
+    // ============================================
+    // 📋 LOG DETALLADO PARA DEBUG
+    // ============================================
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('📤 DATOS QUE SE ENVIARÁN AL BACKEND:');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('\n🔍 JSON COMPLETO:');
+    console.log(JSON.stringify(donationData, null, 2));
+    console.log('\n📊 DESGLOSE POR CAMPO:');
+    console.log('  ✓ title:', donationData.title, `(${donationData.title?.length || 0} caracteres)`);
+    console.log('  ✓ message:', donationData.message, `(${donationData.message?.length || 0} caracteres)`);
+    console.log('  ✓ lugarRecogida:', donationData.lugarRecogida);
+    console.log('  ✓ lugarDonacion:', donationData.lugarDonacion);
+    console.log('  ✓ comunity:', donationData.comunity);
+    console.log('  ✓ fechaMaximaEntrega:', donationData.fechaMaximaEntrega);
+    console.log('  ✓ donationTypeId:', donationData.donationTypeId || 'Sin tipo');
+    console.log('  ✓ articles:', donationData.articles);
+    console.log('  ✓ comments:', donationData.comments);
+    console.log('\n📁 ARCHIVOS:');
+    console.log('  ✓ Cantidad:', this.selectedFiles.length);
+    if (this.selectedFiles.length > 0) {
+      this.selectedFiles.forEach((file, i) => {
+        console.log(`    ${i + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      });
+    }
+    console.log('\n✅ Estado del formulario:', this.donationForm.valid ? 'VÁLIDO' : 'INVÁLIDO');
+    if (!this.donationForm.valid) {
+      console.log('❌ Errores de validación:');
+      Object.keys(this.donationForm.controls).forEach(key => {
+        const control = this.donationForm.get(key);
+        if (control?.invalid) {
+          console.log(`  • ${key}:`, control.errors);
+        }
+      });
+    }
+    console.log('═══════════════════════════════════════════════════════════\n');
 
     // Si hay archivos, usar el endpoint con archivos
     const createObservable = this.selectedFiles.length > 0
@@ -221,7 +261,22 @@ export class CreateDonationComponent implements OnInit {
       },
       error: (error) => {
         this.loading = false;
-        console.error('Error al crear donación:', error);
+        
+        // ============================================
+        // 🚨 LOG DETALLADO DEL ERROR DEL BACKEND
+        // ============================================
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('🚨 ERROR RECIBIDO DEL BACKEND:');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('\n📊 Información del Error:');
+        console.log('  • Status HTTP:', error.status);
+        console.log('  • Status Text:', error.statusText);
+        console.log('  • URL:', error.url);
+        console.log('\n📋 Respuesta del servidor:');
+        console.log(JSON.stringify(error.error, null, 2));
+        console.log('\n🔍 Error completo:');
+        console.log(error);
+        console.log('═══════════════════════════════════════════════════════════\n');
         
         if (error.status === 400) {
           this.errorMessage = 'Datos inválidos. Por favor verifica los campos.';

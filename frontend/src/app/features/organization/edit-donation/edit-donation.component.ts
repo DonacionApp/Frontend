@@ -95,26 +95,30 @@ export class EditDonationComponent implements OnInit, OnDestroy {
 
           // Llenar el formulario con los datos existentes
           this.donationForm.patchValue({
-            lugarRecogida: donation.lugarRecogida,
-            lugarDonacion: donation.lugarDonacion,
-            comunity: donation.comunity,
-            fechaMaximaEntrega: this.formatDateForInput(donation.fechaMaximaEntrega)
+            lugarRecogida: donation.lugarRecogida || '',
+            lugarDonacion: donation.lugarDonacion || '',
+            comunity: donation.comunity || '',
+            fechaMaximaEntrega: donation.fechaMaximaEntrega ? this.formatDateForInput(donation.fechaMaximaEntrega) : ''
           });
 
           // Agregar artículos existentes
-          donation.articles.forEach(article => {
-            this.articles.push(this.fb.group({
-              name: [article.name, [Validators.required, Validators.maxLength(100)]],
-              quantity: [article.quantity, [Validators.required, Validators.min(1)]]
-            }));
-          });
+          if (donation.articles && donation.articles.length > 0) {
+            donation.articles.forEach(article => {
+              this.articles.push(this.fb.group({
+                name: [article.name, [Validators.required, Validators.maxLength(100)]],
+                quantity: [article.quantity, [Validators.required, Validators.min(1)]]
+              }));
+            });
+          }
 
           // Agregar comentarios existentes
-          donation.comments.forEach(comment => {
-            this.comments.push(this.fb.group({
-              text: [comment.text, [Validators.required, Validators.maxLength(500)]]
-            }));
-          });
+          if (donation.comments && donation.comments.length > 0) {
+            donation.comments.forEach(comment => {
+              this.comments.push(this.fb.group({
+                text: [comment.text, [Validators.required, Validators.maxLength(500)]]
+              }));
+            });
+          }
 
           this.loading = false;
         },

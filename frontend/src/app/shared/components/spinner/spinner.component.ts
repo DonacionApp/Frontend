@@ -6,15 +6,26 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="spinner-container" [class.overlay]="overlay">
-      <div class="spinner" [style.width.px]="size" [style.height.px]="size"></div>
-      <p *ngIf="message" class="spinner-message">{{ message }}</p>
+    <div 
+      class="flex flex-col items-center justify-center py-12"
+      [class.fixed]="overlay"
+      [class.inset-0]="overlay"
+      [class.bg-white]="overlay"
+      [class.bg-opacity-80]="overlay"
+      [class.z-50]="overlay"
+    >
+      <div 
+        class="animate-spin rounded-full border-b-2 border-green-600"
+        [style.width.px]="size"
+        [style.height.px]="size"
+        [style.border-width]="size >= 40 ? '4px' : '3px'"
+      ></div>
+      <p *ngIf="message" class="mt-3 text-sm text-gray-600">{{ message }}</p>
     </div>
-  `,
-  styleUrl: './spinner.component.scss'
+  `
 })
 export class SpinnerComponent {
-  @Input() size: number = 40;
+  @Input() size: number = 48;
   @Input() message?: string;
   @Input() overlay: boolean = false;
 }

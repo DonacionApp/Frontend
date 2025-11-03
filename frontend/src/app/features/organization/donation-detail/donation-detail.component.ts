@@ -150,7 +150,7 @@ export class DonationDetailComponent implements OnInit {
   }
 
   // Formatear fecha
-  formatDate(dateString: string): string {
+  formatDate(dateString: string | undefined): string {
     if (!dateString) return 'No especificado';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {

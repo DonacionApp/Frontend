@@ -137,7 +137,7 @@
 
   <!-- Footer con acciones simple -->
   <footer *ngIf="showActions" class="border-t border-gray-200 bg-gray-50 px-4 py-3">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <!-- Likes simple -->
       <button 
         (click)="onLikeToggle()"
@@ -159,17 +159,32 @@
         </span>
       </button>
 
-      <!-- Ver detalles simple -->
-      <button 
-        (click)="onCardClick()"
-        class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
-        aria-label="Ver detalles de la publicación"
-      >
-        <span>Ver detalles</span>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      </button>
+      <div class="flex items-center gap-2 ml-auto">
+        <!-- Botón Donar (solo para donadores) -->
+        <button 
+          *ngIf="canDonate"
+          (click)="onDonateClick($event)"
+          class="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+          aria-label="Donar para esta necesidad"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          <span>Donar</span>
+        </button>
+
+        <!-- Ver detalles simple -->
+        <button 
+          (click)="onCardClick()"
+          class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+          aria-label="Ver detalles de la publicación"
+        >
+          <span>Ver detalles</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </footer>
 </article>

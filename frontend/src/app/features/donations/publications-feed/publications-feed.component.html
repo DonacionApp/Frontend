@@ -94,8 +94,10 @@
         [donation]="donation"
         [showActions]="true"
         [currentUserId]="currentUserId"
+        [currentUserRole]="currentUserRole"
         (likeToggled)="onLikeToggled($event)"
         (donationClicked)="onDonationClicked($event)"
+        (donateClicked)="onDonateClicked($event)"
       ></app-donation-card>
     </div>
 
