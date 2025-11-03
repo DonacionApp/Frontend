@@ -32,13 +32,20 @@ export interface CreateDonationDTO {
   comments: Comment[];
   comunity: string;
   fechaMaximaEntrega: string; // ISO 8601 format
+  statusDonation?: number; // Estado de la donación (opcional, por defecto 1)
 }
 
-export interface Donation extends CreateDonationDTO {
+export interface Donation {
   id: string;
   userId: string;
   user?: DonationUser; // Información del usuario que creó la donación
-  statusDonation?: string;
+  lugarRecogida: string;
+  lugarDonacion: string;
+  articles: Article[];
+  comments: Comment[];
+  comunity: string;
+  fechaMaximaEntrega: string;
+  statusDonation?: string | number; // Puede ser string o number dependiendo del backend
   createdAt: string;
   updatedAt: string;
 }
@@ -72,7 +79,12 @@ export class DonationService {
    */
   createDonation(donationData: CreateDonationDTO): Observable<Donation> {
     this.loadingSubject.next(true);
-    return this.http.post<Donation>(`${this.apiUrl}/create`, donationData).pipe(
+    // Agregar statusDonation: 1 por defecto si no está presente
+    const dataToSend = {
+      ...donationData,
+      statusDonation: donationData.statusDonation ?? 1
+    };
+    return this.http.post<Donation>(`${this.apiUrl}/create`, dataToSend).pipe(
       tap(newDonation => {
         // Agregar la nueva donación al estado local
         const currentDonations = this.donationsSubject.value;
@@ -214,7 +226,8 @@ export class DonationService {
         // statusDonation null o undefined se considera como "disponible"
         const activeDonations = donations.filter(d => 
           !d.statusDonation || 
-          d.statusDonation.toLowerCase() === 'disponible'
+          (typeof d.statusDonation === 'string' && d.statusDonation.toLowerCase() === 'disponible') ||
+          d.statusDonation === 1
         ).length;
 
         return {
