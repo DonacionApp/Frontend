@@ -255,20 +255,15 @@ export class OrganizationProfileService {
   /**
    * Subir logo de la organización
    */
-  uploadLogo(id: string, file: File): Observable<{ logoUrl: string }> {
+  uploadLogo(id: string, file: File): Observable<any> {
     const formData = new FormData();
-    formData.append('logo', file);
+    formData.append('profilePhoto', file);
 
-    return this.http.post<{ logoUrl: string }>(`${this.apiUrl}/${id}/upload-logo`, formData).pipe(
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me/profile-photo`, formData).pipe(
       tap(response => {
-        const currentProfile = this.profileSubject.value;
-        if (currentProfile) {
-          this.profileSubject.next({
-            ...currentProfile,
-            logo: response.logoUrl
-          });
-          this.lastUpdateSubject.next(new Date());
-        }
+        // Recargar el perfil completo después de subir la imagen
+        this.getMyOrganizationProfile().subscribe();
+        this.lastUpdateSubject.next(new Date());
       }),
       catchError(error => {
         console.error('Error al subir logo:', error);
@@ -279,21 +274,17 @@ export class OrganizationProfileService {
 
   /**
    * Subir imagen de portada de la organización
+   * Nota: El backend actual solo soporta profilePhoto, esta funcionalidad será implementada en el futuro
    */
-  uploadCoverImage(id: string, file: File): Observable<{ coverImageUrl: string }> {
+  uploadCoverImage(id: string, file: File): Observable<any> {
     const formData = new FormData();
-    formData.append('coverImage', file);
+    formData.append('profilePhoto', file);
 
-    return this.http.post<{ coverImageUrl: string }>(`${this.apiUrl}/${id}/upload-cover`, formData).pipe(
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me/profile-photo`, formData).pipe(
       tap(response => {
-        const currentProfile = this.profileSubject.value;
-        if (currentProfile) {
-          this.profileSubject.next({
-            ...currentProfile,
-            coverImage: response.coverImageUrl
-          });
-          this.lastUpdateSubject.next(new Date());
-        }
+        // Recargar el perfil completo después de subir la imagen
+        this.getMyOrganizationProfile().subscribe();
+        this.lastUpdateSubject.next(new Date());
       }),
       catchError(error => {
         console.error('Error al subir imagen de portada:', error);

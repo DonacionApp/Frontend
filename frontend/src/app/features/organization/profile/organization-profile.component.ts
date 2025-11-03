@@ -262,15 +262,10 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.clearMessages();
     
     this.profileService.uploadLogo(this.organizationId, this.selectedLogo).subscribe({
-      next: (updatedProfile) => {
+      next: (response) => {
         this.successMessage = '✓ Logo actualizado exitosamente';
         this.selectedLogo = null;
         this.saving = false;
-        
-        // Actualizar el preview con la nueva imagen del servidor
-        if (updatedProfile.logoUrl) {
-          this.logoPreview = updatedProfile.logoUrl;
-        }
         
         // Recargar el perfil completo
         this.loadProfile();
@@ -279,7 +274,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = 'Error al subir el logo. Por favor, intenta de nuevo.';
+        this.errorMessage = error.error?.message || 'Error al subir el logo. Por favor, intenta de nuevo.';
         this.saving = false;
         console.error('Error uploading logo:', error);
       }
@@ -293,15 +288,10 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.clearMessages();
     
     this.profileService.uploadCoverImage(this.organizationId, this.selectedCover).subscribe({
-      next: (updatedProfile) => {
+      next: (response) => {
         this.successMessage = '✓ Imagen de portada actualizada exitosamente';
         this.selectedCover = null;
         this.saving = false;
-        
-        // Actualizar el preview con la nueva imagen del servidor
-        if (updatedProfile.coverImageUrl) {
-          this.coverPreview = updatedProfile.coverImageUrl;
-        }
         
         // Recargar el perfil completo
         this.loadProfile();
@@ -310,7 +300,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = 'Error al subir la imagen. Por favor, intenta de nuevo.';
+        this.errorMessage = error.error?.message || 'Error al subir la imagen. Por favor, intenta de nuevo.';
         this.saving = false;
         console.error('Error uploading cover:', error);
       }
