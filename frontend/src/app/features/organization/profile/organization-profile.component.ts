@@ -259,11 +259,24 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (!this.selectedLogo || !this.organizationId) return;
 
     this.saving = true;
+    this.clearMessages();
+    
     this.profileService.uploadLogo(this.organizationId, this.selectedLogo).subscribe({
-      next: () => {
-        this.successMessage = 'Logo actualizado exitosamente';
+      next: (updatedProfile) => {
+        this.successMessage = '✓ Logo actualizado exitosamente';
         this.selectedLogo = null;
         this.saving = false;
+        
+        // Actualizar el preview con la nueva imagen del servidor
+        if (updatedProfile.logoUrl) {
+          this.logoPreview = updatedProfile.logoUrl;
+        }
+        
+        // Recargar el perfil completo
+        this.loadProfile();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
         this.errorMessage = 'Error al subir el logo. Por favor, intenta de nuevo.';
@@ -277,11 +290,24 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (!this.selectedCover || !this.organizationId) return;
 
     this.saving = true;
+    this.clearMessages();
+    
     this.profileService.uploadCoverImage(this.organizationId, this.selectedCover).subscribe({
-      next: () => {
-        this.successMessage = 'Imagen de portada actualizada exitosamente';
+      next: (updatedProfile) => {
+        this.successMessage = '✓ Imagen de portada actualizada exitosamente';
         this.selectedCover = null;
         this.saving = false;
+        
+        // Actualizar el preview con la nueva imagen del servidor
+        if (updatedProfile.coverImageUrl) {
+          this.coverPreview = updatedProfile.coverImageUrl;
+        }
+        
+        // Recargar el perfil completo
+        this.loadProfile();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
         this.errorMessage = 'Error al subir la imagen. Por favor, intenta de nuevo.';
