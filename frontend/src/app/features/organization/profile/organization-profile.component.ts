@@ -259,14 +259,22 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (!this.selectedLogo || !this.organizationId) return;
 
     this.saving = true;
+    this.clearMessages();
+    
     this.profileService.uploadLogo(this.organizationId, this.selectedLogo).subscribe({
-      next: () => {
-        this.successMessage = 'Logo actualizado exitosamente';
+      next: (response) => {
+        this.successMessage = '✓ Logo actualizado exitosamente';
         this.selectedLogo = null;
         this.saving = false;
+        
+        // Recargar el perfil completo
+        this.loadProfile();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = 'Error al subir el logo. Por favor, intenta de nuevo.';
+        this.errorMessage = error.error?.message || 'Error al subir el logo. Por favor, intenta de nuevo.';
         this.saving = false;
         console.error('Error uploading logo:', error);
       }
@@ -277,14 +285,22 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (!this.selectedCover || !this.organizationId) return;
 
     this.saving = true;
+    this.clearMessages();
+    
     this.profileService.uploadCoverImage(this.organizationId, this.selectedCover).subscribe({
-      next: () => {
-        this.successMessage = 'Imagen de portada actualizada exitosamente';
+      next: (response) => {
+        this.successMessage = '✓ Imagen de portada actualizada exitosamente';
         this.selectedCover = null;
         this.saving = false;
+        
+        // Recargar el perfil completo
+        this.loadProfile();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = 'Error al subir la imagen. Por favor, intenta de nuevo.';
+        this.errorMessage = error.error?.message || 'Error al subir la imagen. Por favor, intenta de nuevo.';
         this.saving = false;
         console.error('Error uploading cover:', error);
       }
