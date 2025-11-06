@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 import { PostsService, TypePost } from '../../../core/services/posts.service';
 import { ArticlesService, Article } from '../../../core/services/articles.service';
 import { Tag } from '../../../core/services/posts.service';
@@ -61,6 +61,13 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   showTagSuggestions = false;
   private tagQuery$ = new Subject<string>();
 
+  // AI tags
+  aiTagsSuggested: string[] = [];
+  isLoadingAiTags = false;
+  aiTagsError = '';
+  autoAddAiTags = false; // default OFF
+  private aiTagsFetch$ = new Subject<void>();
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -82,7 +89,6 @@ export class CreateEditComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Debounced tag suggestions stream
     this.tagQuery$
       .pipe(
         takeUntil(this.destroy$),
@@ -104,6 +110,58 @@ export class CreateEditComponent implements OnInit, OnDestroy {
         error: () => {
           this.tagSuggestions = [];
           this.showTagSuggestions = false;
+        }
+      });
+    this.aiTagsFetch$
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(400),
+        switchMap(() => {
+          if (this.imagePreviews.length === 0) {
+            this.aiTagsSuggested = [];
+            return of<string[]>([]);
+          }
+          const fd = new FormData();
+          let appended = 0;
+          this.imagePreviews.forEach(p => {
+            if (p.file.type.startsWith('image/')) {
+              fd.append('files', p.file);
+              appended++;
+            }
+          });
+          if (appended === 0) {
+            this.aiTagsSuggested = [];
+            return of<string[]>([]);
+          }
+          this.isLoadingAiTags = true;
+          this.aiTagsError = '';
+          return this.postsService.getTagsFromImages(fd).pipe(
+            catchError((err) => {
+              console.error('AI tags error:', err);
+              this.aiTagsError = 'No se pudieron generar etiquetas con IA';
+              return of<string[]>([]);
+            })
+          );
+        })
+      )
+      .subscribe((tags: string[]) => {
+        this.isLoadingAiTags = false;
+        if (!tags || tags.length === 0) {
+          this.aiTagsSuggested = [];
+          return;
+        }
+        const unique = (tags as Array<string | undefined | null>)
+          .map((t: string | undefined | null) => (t ? t.toString().trim() : ''))
+          .filter((v: string) => !!v)
+          .filter((t: string, i: number, arr: string[]) => arr.findIndex((x: string) => x.toLowerCase() === t.toLowerCase()) === i)
+          .filter((t: string) => !this.tags.some((ex: string) => ex.toLowerCase() === t.toLowerCase()))
+          .slice(0, 15);
+
+        if (this.autoAddAiTags) {
+          unique.forEach(u => this.addTag(u));
+          this.aiTagsSuggested = [];
+        } else {
+          this.aiTagsSuggested = unique;
         }
       });
   }
@@ -330,12 +388,16 @@ export class CreateEditComponent implements OnInit, OnDestroy {
     }
     
     input.value = '';
+    // Trigger AI tags fetch after images updated
+    this.queueAiTagsFetch();
   }
 
   removeImage(index: number): void {
     URL.revokeObjectURL(this.imagePreviews[index].url);
     this.imagePreviews.splice(index, 1);
     this.errorMessage = '';
+    // Recompute AI suggestions when images change
+    this.queueAiTagsFetch();
   }
 
   async onSubmit(): Promise<void> {
@@ -456,6 +518,37 @@ export class CreateEditComponent implements OnInit, OnDestroy {
     // If last char is space/comma, finalize after updating suggestions
     if (/[ ,]$/.test(value)) {
       this.finalizeCurrentTag();
+    }
+  }
+
+  // ===================== AI TAGS =====================
+  private queueAiTagsFetch(): void {
+    this.aiTagsFetch$.next();
+  }
+
+  acceptAiTag(tag: string): void {
+    this.addTag(tag);
+    // remove from suggestions
+    this.aiTagsSuggested = this.aiTagsSuggested.filter(t => t.toLowerCase() !== tag.toLowerCase());
+  }
+
+  acceptAllAiTags(): void {
+    this.aiTagsSuggested.forEach(t => this.addTag(t));
+    this.aiTagsSuggested = [];
+  }
+
+  dismissAiTags(): void {
+    this.aiTagsSuggested = [];
+  }
+
+  retryAiTags(): void {
+    this.queueAiTagsFetch();
+  }
+
+  toggleAutoAddAiTags(): void {
+    this.autoAddAiTags = !this.autoAddAiTags;
+    if (this.autoAddAiTags && this.aiTagsSuggested.length > 0) {
+      this.acceptAllAiTags();
     }
   }
 
