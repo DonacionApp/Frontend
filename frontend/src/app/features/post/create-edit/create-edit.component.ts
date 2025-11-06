@@ -13,6 +13,11 @@ interface SelectedArticle {
   quantity: number;
 }
 
+interface ArticleChecklistItem extends Article {
+  isChecked: boolean;
+  quantity: number;
+}
+
 interface ImagePreview {
   file: File;
   url: string;
@@ -38,8 +43,12 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   selectedTypeId: number | null = null;
   
   typesPosts: TypePost[] = [];
-  availableArticles: Article[] = [];
-  selectedArticles: SelectedArticle[] = [];
+  articleChecklistItems: ArticleChecklistItem[] = [];
+  searchArticleText = '';
+  showArticlePanel = false;
+  newArticleName = '';
+  newArticleDescription = '';
+  showNewArticleForm = false;
   
   imagePreviews: ImagePreview[] = [];
   maxImages = 5;
@@ -91,7 +100,11 @@ export class CreateEditComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (articles) => {
-          this.availableArticles = articles;
+          this.articleChecklistItems = articles.map(article => ({
+            ...article,
+            isChecked: false,
+            quantity: 1
+          }));
         },
         error: (err) => {
           console.error('Error loading articles:', err);
@@ -111,11 +124,13 @@ export class CreateEditComponent implements OnInit, OnDestroy {
           this.selectedTypeId = post.typePost?.id || null;
           
           if (post.postArticle && post.postArticle.length > 0) {
-            this.selectedArticles = post.postArticle.map(pa => ({
-              articleId: pa.article.id,
-              articleName: pa.article.name,
-              quantity: Number(pa.quantity)
-            }));
+            post.postArticle.forEach(pa => {
+              const item = this.articleChecklistItems.find(a => a.id === pa.article.id);
+              if (item) {
+                item.isChecked = true;
+                item.quantity = Number(pa.quantity);
+              }
+            });
           }
           
           this.isLoading = false;
@@ -138,13 +153,122 @@ export class CreateEditComponent implements OnInit, OnDestroy {
            typeName.includes('articulos para donar');
   }
 
+  get filteredArticles(): ArticleChecklistItem[] {
+    if (!this.searchArticleText.trim()) {
+      return this.articleChecklistItems;
+    }
+    
+    const search = this.searchArticleText.toLowerCase();
+    return this.articleChecklistItems.filter(article => 
+      article.name.toLowerCase().includes(search) ||
+      (article.descripcion && article.descripcion.toLowerCase().includes(search))
+    );
+  }
+
+  get selectedArticlesCount(): number {
+    return this.articleChecklistItems.filter(a => a.isChecked).length;
+  }
+
+  get selectedArticles(): SelectedArticle[] {
+    return this.articleChecklistItems
+      .filter(a => a.isChecked)
+      .map(a => ({
+        articleId: a.id,
+        articleName: a.name,
+        quantity: a.quantity
+      }));
+  }
+
   onTypeChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
     this.selectedTypeId = select.value ? +select.value : null;
     
     if (!this.requiresArticles) {
-      this.selectedArticles = [];
+      this.articleChecklistItems.forEach(item => {
+        item.isChecked = false;
+        item.quantity = 1;
+      });
     }
+  }
+
+  toggleArticlePanel(): void {
+    this.showArticlePanel = !this.showArticlePanel;
+    if (!this.showArticlePanel) {
+      this.searchArticleText = '';
+      this.showNewArticleForm = false;
+    }
+  }
+
+  toggleArticle(article: ArticleChecklistItem): void {
+    article.isChecked = !article.isChecked;
+    if (!article.isChecked) {
+      article.quantity = 1;
+    }
+  }
+
+  updateQuantity(article: ArticleChecklistItem, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const quantity = +input.value;
+    
+    if (quantity > 0) {
+      article.quantity = quantity;
+    } else {
+      article.quantity = 1;
+      input.value = '1';
+    }
+  }
+
+  clearArticleSelection(): void {
+    this.articleChecklistItems.forEach(item => {
+      item.isChecked = false;
+      item.quantity = 1;
+    });
+  }
+
+  toggleNewArticleForm(): void {
+    this.showNewArticleForm = !this.showNewArticleForm;
+    if (!this.showNewArticleForm) {
+      this.newArticleName = '';
+      this.newArticleDescription = '';
+    }
+  }
+
+  createNewArticle(): void {
+    if (!this.newArticleName.trim()) {
+      this.errorMessage = 'El nombre del artículo es obligatorio';
+      return;
+    }
+
+    this.isLoading = true;
+    this.articlesService.createArticle({ 
+      name: this.newArticleName.trim(),
+      description: this.newArticleDescription.trim() || undefined
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (newArticle) => {
+          this.articleChecklistItems.push({
+            ...newArticle,
+            isChecked: true,
+            quantity: 1
+          });
+          
+          this.newArticleName = '';
+          this.newArticleDescription = '';
+          this.showNewArticleForm = false;
+          this.successMessage = 'Artículo creado exitosamente';
+          this.isLoading = false;
+          
+          setTimeout(() => {
+            this.successMessage = '';
+          }, 3000);
+        },
+        error: (err) => {
+          console.error('Error creating article:', err);
+          this.errorMessage = err.error?.message || 'Error al crear el artículo';
+          this.isLoading = false;
+        }
+      });
   }
 
   onImageSelect(event: Event): void {
@@ -179,44 +303,6 @@ export class CreateEditComponent implements OnInit, OnDestroy {
     URL.revokeObjectURL(this.imagePreviews[index].url);
     this.imagePreviews.splice(index, 1);
     this.errorMessage = '';
-  }
-
-  addArticle(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const articleId = +select.value;
-    
-    if (!articleId) return;
-    
-    const article = this.availableArticles.find(a => a.id === articleId);
-    if (!article) return;
-    
-    const alreadySelected = this.selectedArticles.find(a => a.articleId === articleId);
-    if (alreadySelected) {
-      this.errorMessage = 'Este artículo ya está agregado';
-      return;
-    }
-    
-    this.selectedArticles.push({
-      articleId: article.id,
-      articleName: article.name,
-      quantity: 1
-    });
-    
-    select.value = '';
-    this.errorMessage = '';
-  }
-
-  updateArticleQuantity(index: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const quantity = +input.value;
-    
-    if (quantity > 0) {
-      this.selectedArticles[index].quantity = quantity;
-    }
-  }
-
-  removeArticle(index: number): void {
-    this.selectedArticles.splice(index, 1);
   }
 
   async onSubmit(): Promise<void> {
