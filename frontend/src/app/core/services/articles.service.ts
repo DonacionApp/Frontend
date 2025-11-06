@@ -50,8 +50,8 @@ export interface UpdateQuantityDTO {
   providedIn: 'root'
 })
 export class ArticlesService {
-  private apiUrl = `${environment.apiUrl}/article`;
-  private userArticleUrl = `${environment.apiUrl}/userarticle`;
+  private apiUrl = `${environment.apiBackendUrl}/article`;
+  private userArticleUrl = `${environment.apiBackendUrl}/userarticle`;
 
   constructor(private http: HttpClient) { }
 
