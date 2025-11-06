@@ -34,6 +34,10 @@ export class ListComponent implements OnInit, OnDestroy {
   currentImages: string[] = [];
   currentImageIndex = 0;
 
+  // Dropdown state for owner actions
+  showDropdownId: number | null = null;
+  currentUserId: number | null = null;
+
   constructor(
     private postsService: PostsService,
     private router: Router,
@@ -47,11 +51,16 @@ export class ListComponent implements OnInit, OnDestroy {
     // Verificar autenticación
     this.isAuthenticated = this.authService.isAuthenticated();
     
+    // Obtener el ID del usuario actual
+    const currentUser = this.authService.currentUserValue;
+    this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
+    
     // Suscribirse a cambios en el usuario
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
+      .subscribe((user) => {
         this.isAuthenticated = this.authService.isAuthenticated();
+        this.currentUserId = user?.id ? Number(user.id) : null;
       });
   }
 
@@ -202,6 +211,33 @@ export class ListComponent implements OnInit, OnDestroy {
     window.open(imageUrl, '_blank');
   }
 
+  // Dropdown methods for owner actions
+  toggleDropdown(postId: number, event: Event): void {
+    event.stopPropagation();
+    this.showDropdownId = this.showDropdownId === postId ? null : postId;
+  }
+
+  closeDropdown(): void {
+    this.showDropdownId = null;
+  }
+
+  isPostOwner(post: Post): boolean {
+    if (!post || !this.currentUserId) return false;
+    return post.user.id === this.currentUserId;
+  }
+
+  editPost(post: Post): void {
+    console.log('Editar post:', post.id);
+    this.closeDropdown();
+    // TODO: this.router.navigate(['/post/edit', post.id]);
+  }
+
+  deletePost(post: Post): void {
+    console.log('Eliminar post:', post.id);
+    this.closeDropdown();
+    // TODO: Confirmation dialog and delete logic
+  }
+
   toggleLike(post: Post): void {
     if (post.userHasLiked) {
       this.postsService.removeLikeFromPost(post.id)
@@ -270,6 +306,14 @@ export class ListComponent implements OnInit, OnDestroy {
       this.previousImage();
     } else if (event.key === 'Escape') {
       this.closeImageGallery();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (this.showDropdownId && !target.closest('.dropdown-container')) {
+      this.closeDropdown();
     }
   }
 
