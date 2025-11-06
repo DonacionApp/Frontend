@@ -6,6 +6,7 @@ import { ListComponent } from './list/list.component';
 import { CreateEditComponent } from './create-edit/create-edit.component';
 import { DetailsComponent } from './details/details.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
+import { EditComponent } from './edit/edit.component';
 
 const routes: Routes = [
   {
@@ -19,7 +20,7 @@ const routes: Routes = [
   },
   {
     path: 'edit/:id',
-    component: CreateEditComponent,
+    component: EditComponent,
     canActivate: [AuthGuard]
   },
   {
