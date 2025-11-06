@@ -11,6 +11,10 @@ import { AdminGuard } from './core/guards/admin.guard';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'home', component: HomeComponent },
+  {
+    path: 'post', 
+    loadChildren:()=>import('./features/post/post.module').then(m=>m.PostModule)
+  },
   
   // Página de acceso denegado
   { path: 'access-denied', component: AccessDeniedComponent },

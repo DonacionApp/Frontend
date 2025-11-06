@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ListComponent } from './list/list.component';
 import { CreateEditComponent } from './create-edit/create-edit.component';
+import { AuthGuard } from '../../core/guards/auth.guard';
 
 const routes: Routes = [
   {
@@ -12,11 +13,13 @@ const routes: Routes = [
   },
   {
     path: 'create',
-    component: CreateEditComponent
+    component: CreateEditComponent,
+    canActivate: [AuthGuard]
   },
   {
     path: 'edit/:id',
-    component: CreateEditComponent
+    component: CreateEditComponent,
+    canActivate: [AuthGuard]
   }
 ];
 
