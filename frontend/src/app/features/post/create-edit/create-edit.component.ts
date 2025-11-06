@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { PostsService, TypePost } from '../../../core/services/posts.service';
 import { ArticlesService, Article } from '../../../core/services/articles.service';
+import { Tag } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 
 interface SelectedArticle {
@@ -53,6 +54,13 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   imagePreviews: ImagePreview[] = [];
   maxImages = 5;
 
+  // Tags state
+  tags: string[] = [];
+  tagInput = '';
+  tagSuggestions: Tag[] = [];
+  showTagSuggestions = false;
+  private tagQuery$ = new Subject<string>();
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -71,6 +79,31 @@ export class CreateEditComponent implements OnInit, OnDestroy {
           this.isEditMode = true;
           this.postId = +params['id'];
           this.loadPostData(this.postId);
+        }
+      });
+
+    // Debounced tag suggestions stream
+    this.tagQuery$
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((q) => {
+          const query = q.trim();
+          if (query.length < 2) {
+            return of([] as Tag[]);
+          }
+          return this.postsService.searchByNameSearc(query);
+        })
+      )
+      .subscribe({
+        next: (list) => {
+          this.tagSuggestions = list;
+          this.showTagSuggestions = list.length > 0;
+        },
+        error: () => {
+          this.tagSuggestions = [];
+          this.showTagSuggestions = false;
         }
       });
   }
@@ -334,6 +367,11 @@ export class CreateEditComponent implements OnInit, OnDestroy {
         formData.append('articles', JSON.stringify(articles));
       }
 
+      // Send tags by names separated by commas if any
+      if (this.tags.length > 0) {
+        formData.append('tags', this.tags.join(','));
+      }
+
       if (this.isEditMode && this.postId) {
         const updateData = {
           title: this.title,
@@ -405,5 +443,99 @@ export class CreateEditComponent implements OnInit, OnDestroy {
 
   cancel(): void {
     this.router.navigate(['/post']);
+  }
+
+  // ===================== TAGS =====================
+  onTagInputChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.tagInput = value;
+
+    // Emit query to suggestions always while typing
+    this.tagQuery$.next(value);
+
+    // If last char is space/comma, finalize after updating suggestions
+    if (/[ ,]$/.test(value)) {
+      this.finalizeCurrentTag();
+    }
+  }
+
+  onTagKeydown(event: KeyboardEvent): void {
+    const key = event.key;
+    if (key === 'Enter') {
+      event.preventDefault();
+      if (this.tagInput.trim()) this.finalizeCurrentTag();
+      return;
+    }
+    if (key === ' ' || key === ',' ) {
+      // space or comma should finalize
+      event.preventDefault();
+      if (this.tagInput.trim()) this.finalizeCurrentTag();
+      return;
+    }
+    if (key === 'Backspace' && !this.tagInput && this.tags.length > 0) {
+      event.preventDefault();
+      this.tags.pop();
+      return;
+    }
+  }
+
+  finalizeCurrentTag(): void {
+    const raw = this.tagInput.replace(/[, ]+$/g, '');
+    const tokens = raw.split(/[ ,]+/).map(t => t.trim()).filter(Boolean);
+    tokens.forEach(t => this.addTag(t));
+    this.tagInput = '';
+    this.tagSuggestions = [];
+    this.showTagSuggestions = false;
+  }
+
+  onTagEnter(event: Event): void {
+    event.preventDefault();
+    if (this.tagInput.trim()) {
+      this.finalizeCurrentTag();
+    }
+  }
+
+  onTagBackspace(event: Event): void {
+    if (!this.tagInput && this.tags.length > 0) {
+      event.preventDefault();
+      this.tags.pop();
+    }
+  }
+
+  addTag(name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    // Avoid duplicates (case-insensitive)
+    const exists = this.tags.some(t => t.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) this.tags.push(trimmed);
+  }
+
+  addTagFromSuggestion(s: Tag): void {
+    this.addTag(s.tag);
+    this.tagInput = '';
+    this.tagSuggestions = [];
+    this.showTagSuggestions = false;
+  }
+
+  removeTag(index: number): void {
+    this.tags.splice(index, 1);
+  }
+
+  onTagBlur(): void {
+    if (this.tagInput.trim()) {
+      this.finalizeCurrentTag();
+    }
+    this.showTagSuggestions = false;
+  }
+
+  highlightMatch(text: string): string {
+    const q = this.tagInput.trim();
+    if (!q) return `#${text}`;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return `#${text}`;
+    const before = text.substring(0, idx);
+    const match = text.substring(idx, idx + q.length);
+    const after = text.substring(idx + q.length);
+    return `#${before}<mark class="bg-yellow-200">${match}</mark>${after}`;
   }
 }

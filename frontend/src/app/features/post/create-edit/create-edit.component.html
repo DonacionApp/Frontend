@@ -178,6 +178,50 @@
           </p>
         </div>
 
+        <!-- TAGS INPUT (moved inside the card) -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Etiquetas (separadas por comas)</label>
+          <div class="w-full border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-green-500 bg-white relative">
+            <!-- Existing tags as chips -->
+            <div *ngFor="let t of tags; let i = index" class="relative pr-5 flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+              <span>#{{ t }}</span>
+              <button type="button" (click)="removeTag(i)" class="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-white text-gray-600 border border-gray-300 rounded-full hover:bg-red-500 hover:text-white transition-colors" aria-label="Eliminar etiqueta">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Input for typing tags -->
+            <input
+              type="text"
+              name="tagInput"
+              [(ngModel)]="tagInput"
+              [ngModelOptions]="{standalone: true}"
+              (input)="onTagInputChange($event)"
+              (keydown)="onTagKeydown($event)"
+              (blur)="onTagBlur()"
+              placeholder="Escribe y presiona espacio o coma..."
+              class="flex-1 min-w-[120px] outline-none px-1 py-1 text-sm"
+            />
+
+            <!-- Suggestions dropdown -->
+            <div *ngIf="showTagSuggestions" class="absolute left-0 top-full mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg z-20">
+              <button
+                *ngFor="let s of tagSuggestions"
+                type="button"
+                (click)="addTagFromSuggestion(s)"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-green-50 flex items-center justify-between"
+              >
+                <span [innerHTML]="highlightMatch(s.tag)"></span>
+                <span class="text-xs text-gray-400">Agregar</span>
+              </button>
+              <div *ngIf="tagSuggestions.length === 0" class="px-3 py-2 text-sm text-gray-500">No hay coincidencias</div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500">Ej: ropa, niños, invierno (usa espacio o coma para separar)</p>
+        </div>
+
         <div class="flex flex-col sm:flex-row gap-3 pt-4">
           <app-button
             type="submit"

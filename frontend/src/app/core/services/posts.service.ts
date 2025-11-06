@@ -139,7 +139,7 @@ export class PostsService {
 
   getAllPosts(params?: PaginationParams): Observable<Post[]> {
     let httpParams = new HttpParams();
-    
+
     if (params?.limit) {
       httpParams = httpParams.set('limit', params.limit.toString());
     }
@@ -152,7 +152,7 @@ export class PostsService {
 
   getPostsWithFilters(filters: FilterPostDTO): Observable<Post[]> {
     const body: any = {};
-    
+
     if (filters.userName) body.userName = filters.userName;
     if (filters.search) body.search = filters.search;
     if (filters.orderBy) body.orderBy = filters.orderBy;
@@ -205,6 +205,14 @@ export class PostsService {
 
   getTagByName(name: string): Observable<Tag> {
     return this.http.get<Tag>(`${this.tagsEndpoint}/name/${name}`);
+  }
+
+
+
+
+  searchByNameSearc(name: string): Observable<Tag[]> {
+    const encoded = encodeURIComponent(name.trim());
+    return this.http.get<Tag[]>(`${this.tagsEndpoint}/name/search/${encoded}`);
   }
 
   createTag(tag: string): Observable<Tag> {
