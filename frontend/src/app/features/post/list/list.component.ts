@@ -182,8 +182,4 @@ export class ListComponent implements OnInit, OnDestroy {
     };
     return typeColors[typeId] || 'bg-gray-100 text-gray-800';
   }
-
-  getTypeName(post: Post): string {
-    return this.typesPosts.find(t => t.id === post.id)?.type || 'publicación';
-  }
 }

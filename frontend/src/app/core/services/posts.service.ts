@@ -72,6 +72,7 @@ export interface Post {
   title: string;
   message: string;
   user: PostUser;
+  typePost: TypePost;
   tags: PostTag[];
   imagePost: ImagePost[];
   postArticle?: PostArticle[];

@@ -1,1 +1,175 @@
-<p>list works!</p>
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Publicaciones</h1>
+        <p class="text-sm text-gray-600 mt-1">Explora todas las donaciones y solicitudes</p>
+      </div>
+      <app-button variant="primary" size="md" (btnClick)="goToCreate()">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Nueva Publicación
+      </app-button>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+          <input 
+            type="text" 
+            [value]="searchTerm"
+            (input)="onSearchChange($event)"
+            placeholder="Buscar por título o mensaje..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-gray-50"
+          />
+        </div>
+
+        <!-- Type Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de publicación</label>
+          <select 
+            (change)="onTypeFilterChange($event.target.value === '' ? null : +$event.target.value)"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-gray-50"
+          >
+            <option value="">Todas</option>
+            <option *ngFor="let type of typesPosts" [value]="type.id">{{ type.type }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading && posts.length === 0" class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+      <p class="text-gray-600 mt-4">Cargando publicaciones...</p>
+    </div>
+
+    <!-- Posts Grid -->
+    <div *ngIf="!isLoading || posts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div *ngFor="let post of posts" class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        
+        <!-- Image -->
+        <div class="relative h-48 bg-gray-200">
+          <img 
+            *ngIf="post.imagePost && post.imagePost.length > 0"
+            [src]="post.imagePost[0].image" 
+            [alt]="post.title"
+            class="w-full h-full object-cover"
+          />
+          <div *ngIf="!post.imagePost || post.imagePost.length === 0" class="w-full h-full flex items-center justify-center">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          
+          <!-- Type Badge -->
+          <div class="absolute top-2 right-2">
+            <span [class]="'px-2 py-1 rounded-full text-xs font-semibold ' + getTypeColor(post.typePost.id)">
+              {{ post.typePost.type }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4">
+          
+          <!-- User Info -->
+          <div class="flex items-center mb-3">
+            <img 
+              [src]="post.user.profilePhoto || 'assets/default-avatar.png'" 
+              [alt]="post.user.username"
+              class="w-8 h-8 rounded-full mr-2"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">{{ post.user.username }}</p>
+              <p class="text-xs text-gray-500">{{ post.createdAt | date: 'dd/MM/yyyy' }}</p>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{{ post.title }}</h3>
+          
+          <!-- Message -->
+          <p class="text-sm text-gray-600 mb-4 line-clamp-3">{{ post.message }}</p>
+
+          <!-- Tags -->
+          <div *ngIf="post.tags && post.tags.length > 0" class="flex flex-wrap gap-1 mb-4">
+            <span 
+              *ngFor="let postTag of post.tags.slice(0, 3)" 
+              class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+            >
+              #{{ postTag.tag.tag }}
+            </span>
+            <span *ngIf="post.tags.length > 3" class="px-2 py-1 text-gray-500 text-xs">
+              +{{ post.tags.length - 3 }}
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between pt-4 border-t">
+            
+            <!-- Like Button -->
+            <button 
+              (click)="toggleLike(post)"
+              [class]="post.userHasLiked ? 'text-red-500' : 'text-gray-500'"
+              class="flex items-center gap-1 hover:scale-110 transition-transform"
+            >
+              <svg class="w-5 h-5" [class.fill-current]="post.userHasLiked" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+              <span class="text-sm font-medium">{{ post.likesCount }}</span>
+            </button>
+
+            <!-- View Details -->
+            <button 
+              [routerLink]="['/post', post.id]"
+              class="text-sm text-green-600 hover:text-green-700 font-medium"
+            >
+              Ver detalles
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && posts.length === 0" class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No hay publicaciones</h3>
+      <p class="mt-1 text-sm text-gray-500">Comienza creando una nueva publicación.</p>
+      <div class="mt-6">
+        <app-button variant="primary" size="md" (btnClick)="goToCreate()">
+          Nueva Publicación
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Load More -->
+    <div *ngIf="hasMore && posts.length > 0" class="text-center mt-8">
+      <app-button 
+        variant="secondary" 
+        size="md" 
+        [disabled]="isLoading"
+        (btnClick)="loadMore()"
+      >
+        <span *ngIf="!isLoading">Cargar más</span>
+        <span *ngIf="isLoading">Cargando...</span>
+      </app-button>
+    </div>
+
+  </div>
+</div>
