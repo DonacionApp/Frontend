@@ -53,6 +53,7 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   
   imagePreviews: ImagePreview[] = [];
   maxImages = 5;
+  isDragging = false;
 
   // Tags state
   tags: string[] = [];
@@ -365,8 +366,36 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   onImageSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files) return;
+    this.processFiles(Array.from(input.files));
+    input.value = '';
+  }
 
-    const files = Array.from(input.files);
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.imagePreviews.length < this.maxImages) {
+      this.isDragging = true;
+    }
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+
+    if (!event.dataTransfer?.files) return;
+    if (this.isLoading || this.imagePreviews.length >= this.maxImages) return;
+
+    this.processFiles(Array.from(event.dataTransfer.files));
+  }
+
+  private processFiles(files: File[]): void {
     const remainingSlots = this.maxImages - this.imagePreviews.length;
     
     if (remainingSlots <= 0) {
@@ -387,7 +416,6 @@ export class CreateEditComponent implements OnInit, OnDestroy {
       this.errorMessage = `Solo se agregaron ${remainingSlots} de ${files.length} archivos (máximo ${this.maxImages})`;
     }
     
-    input.value = '';
     // Trigger AI tags fetch after images updated
     this.queueAiTagsFetch();
   }
@@ -413,17 +441,21 @@ export class CreateEditComponent implements OnInit, OnDestroy {
       formData.append('title', this.title);
       formData.append('message', this.message);
       
-      if (this.selectedTypeId) {
-        formData.append('typePostId', this.selectedTypeId.toString());
+      if (this.selectedTypeId != null) {
+        const typeIdNum = Number(this.selectedTypeId);
+        formData.append('typePostId', typeIdNum.toString());
+        // Some backends expect 'typePost' instead of 'typePostId'. Send both defensively.
+        formData.append('typePost', typeIdNum.toString());
       }
       
       this.imagePreviews.forEach((preview) => {
-        formData.append('images', preview.file);
+        // Backend expects field name 'files' for create post
+        formData.append('files', preview.file);
       });
       
       if (this.requiresArticles && this.selectedArticles.length > 0) {
         const articles = this.selectedArticles.map(a => ({
-          articleId: a.articleId,
+          idArticle: a.articleId,
           quantity: a.quantity
         }));
         formData.append('articles', JSON.stringify(articles));
@@ -456,6 +488,13 @@ export class CreateEditComponent implements OnInit, OnDestroy {
             }
           });
       } else {
+        // Debug: list FormData entries to verify field names
+        try {
+          /*console.log('FormData entries before submit:');
+          for (const [k, v] of (formData as any).entries()) {
+            console.log(k, v);
+          }*/
+        } catch {}
         this.postsService.createPost(formData)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
