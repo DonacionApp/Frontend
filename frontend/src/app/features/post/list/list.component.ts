@@ -5,6 +5,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, TypePost, FilterPostDTO } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-list',
@@ -19,6 +20,7 @@ export class ListComponent implements OnInit, OnDestroy {
   typesPosts: TypePost[] = [];
   isLoading = false;
   errorMessage = '';
+  isAuthenticated = false;
   
   selectedTypeId: number | null = null;
   searchTerm = '';
@@ -29,12 +31,23 @@ export class ListComponent implements OnInit, OnDestroy {
 
   constructor(
     private postsService: PostsService,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadTypePosts();
     this.loadPosts();
+    
+    // Verificar autenticación
+    this.isAuthenticated = this.authService.isAuthenticated();
+    
+    // Suscribirse a cambios en el usuario
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.isAuthenticated = this.authService.isAuthenticated();
+      });
   }
 
   ngOnDestroy(): void {
@@ -198,6 +211,13 @@ export class ListComponent implements OnInit, OnDestroy {
 
   handleCreatePost(): void {
     this.router.navigate(['/post/create']);
+  }
+
+  requestDonation(post: Post): void {
+    // TODO: Implementar lógica de solicitud de donación
+    console.log('Solicitar donación para el post:', post.id);
+    // Por ahora solo muestra un mensaje en consola
+    alert(`Solicitud de donación para "${post.title}" registrada (funcionalidad en desarrollo)`);
   }
 
   getTypeColor(typeName: string): string {
