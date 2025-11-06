@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -28,6 +28,11 @@ export class ListComponent implements OnInit, OnDestroy {
   cursor: number | null = null;
   limit = 10;
   hasMore = true;
+
+  // Image gallery modal
+  showImageModal = false;
+  currentImages: string[] = [];
+  currentImageIndex = 0;
 
   constructor(
     private postsService: PostsService,
@@ -218,6 +223,47 @@ export class ListComponent implements OnInit, OnDestroy {
     console.log('Solicitar donación para el post:', post.id);
     // Por ahora solo muestra un mensaje en consola
     alert(`Solicitud de donación para "${post.title}" registrada (funcionalidad en desarrollo)`);
+  }
+
+  openImageGallery(images: any[], index: number): void {
+    this.currentImages = images.map(img => img.image);
+    this.currentImageIndex = index;
+    this.showImageModal = true;
+    document.body.style.overflow = 'hidden'; // Prevent scroll
+  }
+
+  closeImageGallery(): void {
+    this.showImageModal = false;
+    document.body.style.overflow = 'auto'; // Restore scroll
+  }
+
+  nextImage(): void {
+    if (this.currentImageIndex < this.currentImages.length - 1) {
+      this.currentImageIndex++;
+    }
+  }
+
+  previousImage(): void {
+    if (this.currentImageIndex > 0) {
+      this.currentImageIndex--;
+    }
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (!this.showImageModal) return;
+    
+    if (event.key === 'ArrowRight') {
+      this.nextImage();
+    } else if (event.key === 'ArrowLeft') {
+      this.previousImage();
+    } else if (event.key === 'Escape') {
+      this.closeImageGallery();
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    this.onKeyDown(event);
   }
 
   getTypeColor(typeName: string): string {
