@@ -72,7 +72,7 @@ export interface Post {
   title: string;
   message: string;
   user: PostUser;
-  typePost: TypePost;
+  typePost?: TypePost;
   tags: PostTag[];
   imagePost: ImagePost[];
   postArticle?: PostArticle[];
@@ -151,9 +151,16 @@ export class PostsService {
   }
 
   getPostsWithFilters(filters: FilterPostDTO): Observable<Post[]> {
-    return this.http.get<Post[]>(`${this.postEndpoint}/all/filters`, {
-      params: filters as any
-    });
+    const body: any = {};
+    
+    if (filters.userName) body.userName = filters.userName;
+    if (filters.search) body.search = filters.search;
+    if (filters.orderBy) body.orderBy = filters.orderBy;
+    if (filters.orderDirection) body.orderDirection = filters.orderDirection;
+    if (filters.tags && filters.tags.length > 0) body.tags = filters.tags;
+    if (filters.typePost) body.typePost = filters.typePost;
+
+    return this.http.post<Post[]>(`${this.postEndpoint}/all/filters`, body);
   }
 
   getPostsByUserId(userId: number): Observable<Post[]> {

@@ -4,10 +4,11 @@ import { RouterModule, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, TypePost, FilterPostDTO } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 @Component({
   selector: 'app-list',
-  imports: [CommonModule, RouterModule, ButtonComponent],
+  imports: [CommonModule, RouterModule, ButtonComponent, SidebarComponent],
   templateUrl: './list.component.html',
   styleUrl: './list.component.scss'
 })
@@ -72,6 +73,7 @@ export class ListComponent implements OnInit, OnDestroy {
           } else {
             this.posts = posts;
           }
+          console.log('Loaded posts:', posts);
           
           this.hasMore = posts.length === this.limit;
           if (posts.length > 0) {
@@ -81,24 +83,36 @@ export class ListComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: (err) => {
+          console.error('Error loading posts:', err);
           this.errorMessage = 'Error al cargar las publicaciones';
           this.isLoading = false;
-          console.error('Error loading posts:', err);
         }
       });
   }
 
   filterPosts(): void {
+    if (!this.searchTerm && !this.selectedTypeId) {
+      this.loadPosts();
+      return;
+    }
+
     this.isLoading = true;
     this.errorMessage = '';
     this.cursor = null;
+    this.hasMore = false;
 
-    const filters: FilterPostDTO = {
-      search: this.searchTerm || undefined,
-      typePost: this.selectedTypeId || undefined,
-      orderBy: 'createdAt',
-      orderDirection: 'DESC'
-    };
+    const filters: FilterPostDTO = {};
+    
+    if (this.searchTerm && this.searchTerm.trim()) {
+      filters.search = this.searchTerm.trim();
+    }
+    
+    if (this.selectedTypeId) {
+      filters.typePost = this.selectedTypeId;
+    }
+    
+    filters.orderBy = 'createdAt';
+    filters.orderDirection = 'DESC';
 
     this.postsService.getPostsWithFilters(filters)
       .pipe(takeUntil(this.destroy$))
@@ -106,7 +120,6 @@ export class ListComponent implements OnInit, OnDestroy {
         next: (posts) => {
           this.posts = posts;
           this.isLoading = false;
-          this.hasMore = false;
         },
         error: (err) => {
           this.errorMessage = 'Error al filtrar las publicaciones';
@@ -116,9 +129,12 @@ export class ListComponent implements OnInit, OnDestroy {
       });
   }
 
-  onTypeFilterChange(typeId: number | null): void {
-    this.selectedTypeId = typeId;
-    if (typeId === null) {
+  onTypeFilterChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const value = select.value;
+    this.selectedTypeId = value === '' ? null : +value;
+    
+    if (this.selectedTypeId === null && !this.searchTerm) {
       this.loadPosts();
     } else {
       this.filterPosts();
@@ -127,9 +143,13 @@ export class ListComponent implements OnInit, OnDestroy {
 
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.searchTerm = input.value;
+    this.searchTerm = input.value.trim();
     
-    if (this.searchTerm.length >= 3 || this.searchTerm.length === 0) {
+    if (this.searchTerm.length >= 3) {
+      this.filterPosts();
+    } else if (this.searchTerm.length === 0 && !this.selectedTypeId) {
+      this.loadPosts();
+    } else if (this.searchTerm.length === 0 && this.selectedTypeId) {
       this.filterPosts();
     }
   }
@@ -146,6 +166,10 @@ export class ListComponent implements OnInit, OnDestroy {
 
   goToEdit(postId: number): void {
     this.router.navigate(['/post/edit', postId]);
+  }
+
+  viewImage(imageUrl: string): void {
+    window.open(imageUrl, '_blank');
   }
 
   toggleLike(post: Post): void {
@@ -172,14 +196,18 @@ export class ListComponent implements OnInit, OnDestroy {
     }
   }
 
-  getTypeColor(typeId: number): string {
-    const typeColors: { [key: number]: string } = {
-      1: 'bg-blue-100 text-blue-800',        // donacion
-      2: 'bg-purple-100 text-purple-800',    // publicacion
-      6: 'bg-green-100 text-green-800',      // donacion completada
-      7: 'bg-orange-100 text-orange-800',    // solicitud de donacion
-      8: 'bg-pink-100 text-pink-800'         // articulos para donar
+  handleCreatePost(): void {
+    this.router.navigate(['/post/create']);
+  }
+
+  getTypeColor(typeName: string): string {
+    const typeColors: { [key: string]: string } = {
+      'donacion': 'bg-blue-100 text-blue-800',
+      'publicacion': 'bg-purple-100 text-purple-800',
+      'donacion completada': 'bg-green-100 text-green-800',
+      'solicitud de donacion': 'bg-orange-100 text-orange-800',
+      'articulos para donar': 'bg-pink-100 text-pink-800'
     };
-    return typeColors[typeId] || 'bg-gray-100 text-gray-800';
+    return typeColors[typeName] || 'bg-gray-100 text-gray-800';
   }
 }
