@@ -143,10 +143,8 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   editPost(): void {
     if (!this.post) return;
-    console.log('Editar post:', this.post.id);
     this.closeDropdown();
-    // TODO: Navegar a edición
-    // this.router.navigate(['/post/edit', this.post.id]);
+    this.router.navigate(['/post/edit', this.post.id]);
   }
 
   deletePost(): void {

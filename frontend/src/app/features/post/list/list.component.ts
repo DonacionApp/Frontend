@@ -227,9 +227,8 @@ export class ListComponent implements OnInit, OnDestroy {
   }
 
   editPost(post: Post): void {
-    console.log('Editar post:', post.id);
     this.closeDropdown();
-    // TODO: this.router.navigate(['/post/edit', post.id]);
+    this.router.navigate(['/post/edit', post.id]);
   }
 
   deletePost(post: Post): void {
