@@ -140,7 +140,13 @@ export class ListComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         },
         error: (err) => {
-          this.errorMessage = 'Error al filtrar las publicaciones';
+          // Si es 404, significa que no hay resultados con ese filtro
+          if (err.status === 404) {
+            this.posts = [];
+            this.errorMessage = '';
+          } else {
+            this.errorMessage = 'Error al filtrar las publicaciones';
+          }
           this.isLoading = false;
           console.error('Error filtering posts:', err);
         }
@@ -176,6 +182,12 @@ export class ListComponent implements OnInit, OnDestroy {
     if (!this.isLoading && this.hasMore) {
       this.loadPosts(true);
     }
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.selectedTypeId = null;
+    this.loadPosts();
   }
 
   goToCreate(): void {
