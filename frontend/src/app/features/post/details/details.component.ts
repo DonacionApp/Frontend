@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, PostLiked } from '../../../core/services/posts.service';
@@ -43,7 +43,8 @@ export class DetailsComponent implements OnInit, OnDestroy {
     private router: Router,
     private postsService: PostsService,
     private authService: AuthService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -216,7 +217,7 @@ export class DetailsComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    this.router.navigate(['/post']);
+    this.location.back();
   }
 
   // Image Gallery Methods

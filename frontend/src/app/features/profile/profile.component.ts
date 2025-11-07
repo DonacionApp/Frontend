@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, PostUser } from '../../core/services/posts.service';
+import { ScrollRestorationService } from '../../core/services/scroll-restoration.service';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
 import { ProfileTabsComponent, ProfileTab } from '../../shared/components/profile-tabs/profile-tabs.component';
 import { UserPostsListComponent } from '../../shared/components/user-posts-list/user-posts-list.component';
@@ -36,7 +37,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private postsService: PostsService
+    private postsService: PostsService,
+    private scrollService: ScrollRestorationService
   ) {}
 
   ngOnInit(): void {
@@ -71,10 +73,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
             this.user = posts[0].user;
             this.isLoadingUser = false;
             this.isLoadingPosts = false;
+            // Restaurar el scroll (perfil suele demorar un poco más en renderizar)
+            this.scrollService.restorePosition('profileScrollPosition', 600);
           } else {
             // Usuario sin posts - aún necesitamos mostrar algo
             this.isLoadingUser = false;
             this.isLoadingPosts = false;
+            // Restaurar scroll incluso si no hay posts
+            this.scrollService.restorePosition('profileScrollPosition', 600);
             // No marcar como error si simplemente no tiene posts
             if (posts.length === 0) {
               // Crear un usuario temporal con datos mínimos
@@ -102,6 +108,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
           
           this.isLoadingUser = false;
           this.isLoadingPosts = false;
+          // Intentar restaurar scroll aunque haya error en la carga
+          this.scrollService.restorePosition('profileScrollPosition', 600);
         }
       });
   }
