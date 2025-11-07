@@ -180,13 +180,18 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
       id: user?.id || null,
       role: user?.role || null
     };
-    
-    this.currentUser$.next(userInfo);
-    
-    
 
-        if (!this.hasInitialLoadTriggered) {
-          this.hasInitialLoadTriggered = true;
+    const previousUserId = this.currentUser$.value.id;
+    this.currentUser$.next(userInfo);
+
+    // Si el usuario ID cambió, recalcular los estados de like
+    if (previousUserId !== userInfo.id) {
+      console.log('🔄 Usuario cambió:', { anterior: previousUserId, nuevo: userInfo.id });
+      this.recalculateLikeStates(userInfo.id);
+    }
+
+    if (!this.hasInitialLoadTriggered) {
+      this.hasInitialLoadTriggered = true;
       this.performInitialLoad(userInfo.role);
     }
   }
@@ -435,14 +440,19 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
    * Maneja la carga exitosa de publicaciones
    */
   private handleLoadSuccess(donations: Donation[]): void {
-        
-        
-        this.donations = donations || [];
+    this.donations = donations || [];
     this.setLoadingState(false);
-        
-        if (this.donations.length === 0) {
-          
-        }
+
+    // Recalcular estados de like basándose en el usuario actual
+    const currentUserId = this.currentUser$.value.id;
+    if (currentUserId) {
+      console.log('🔄 Recalculando likes después de cargar publicaciones para usuario:', currentUserId);
+      this.recalculateLikeStates(currentUserId);
+    }
+
+    if (this.donations.length === 0) {
+      console.log('ℹ️ No hay publicaciones disponibles');
+    }
   }
 
   /**
@@ -513,54 +523,166 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
    * Ejecuta el toggle de like - instantáneo con confirmación del backend
    */
   private performLikeToggle(donation: Donation, event: { donationId: string; isLiked: boolean }): void {
-    // Guardar estado anterior para rollback si es necesario
-    const previousLiked = donation.isLikedByCurrentUser;
-    const previousCount = donation.likesCount || 0;
+    // Lógica simple de interruptor (switch):
+    // Si está OFF (no liked) -> Encender (liked) y sumar 1
+    // Si está ON (liked) -> Apagar (no liked) y restar 1
 
-    // Actualización instantánea en la UI
-    donation.isLikedByCurrentUser = !previousLiked;
-    donation.likesCount = previousLiked ? previousCount - 1 : previousCount + 1;
+    const donationIndex = this.donations.findIndex(d => d.id === event.donationId);
+    if (donationIndex === -1) return;
+
+    const previousLiked = this.normalizeBoolean(donation.isLikedByCurrentUser);
+    const previousCount = this.normalizeNumber(donation.likesCount);
+    const newLikeState = !previousLiked;
+
+    // IMPORTANTE: Calcular el contador optimista que SABEMOS es correcto
+    const optimisticCount = Math.max(0, previousCount + (newLikeState ? 1 : -1));
+
+    // Actualización optimista - crear nuevo objeto y reemplazar en array
+    const optimisticDonation = {
+      ...this.donations[donationIndex],
+      isLikedByCurrentUser: newLikeState,
+      likesCount: optimisticCount
+    };
+
+    this.donations[donationIndex] = optimisticDonation;
     this.donations = [...this.donations];
 
-    // Enviar al backend - solo actualizar el contador, confiar en la UI optimista
-    this.donationService.toggleLike(event.donationId, event.isLiked)
+    console.log('📝 Actualización optimista:', {
+      donationId: event.donationId,
+      wasLiked: previousLiked,
+      isNowLiked: newLikeState,
+      countChanged: `${previousCount} → ${optimisticCount}`
+    });
+
+    // Enviar al backend
+    this.donationService.toggleLike(event.donationId, previousLiked)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (updatedDonation: Donation) => {
-          // Solo actualizar el contador del servidor, mantener isLikedByCurrentUser de la UI
-          if (updatedDonation && updatedDonation.likesCount !== undefined) {
-            donation.likesCount = updatedDonation.likesCount;
+          // Backend confirmó el like/unlike
+          console.log('✅ Backend confirmó - Like procesado:', {
+            donationId: event.donationId,
+            isLiked: newLikeState,
+            optimisticCount,
+            respuesta_backend: updatedDonation
+          });
+
+          const currentIndex = this.donations.findIndex(d => d.id === event.donationId);
+          if (currentIndex !== -1) {
+            // Mantener el estado optimista
+            this.donations[currentIndex] = {
+              ...this.donations[currentIndex],
+              isLikedByCurrentUser: newLikeState,
+              likesCount: optimisticCount
+            } as Donation;
             this.donations = [...this.donations];
+
+            console.log('✅ Like confirmado - Estado final:', {
+              donationId: event.donationId,
+              isLiked: this.donations[currentIndex].isLikedByCurrentUser,
+              count: this.donations[currentIndex].likesCount
+            });
           }
         },
         error: (error) => {
-          console.error('❌ Error al dar like:', error);
+          console.error('❌ Error al dar/quitar like:', error);
 
-          // Si es error 400, podría ser un like duplicado - el estado UI ya es correcto
-          if (error.status === 400) {
-            const errorMessage = error.error?.message || '';
-            console.warn('⚠️ Error 400 - Posibles causas:', errorMessage);
+          const currentIndex = this.donations.findIndex(d => d.id === event.donationId);
+          if (currentIndex !== -1) {
+            // Revertir al estado anterior si hay error
+            console.warn('⏮️ Revirtiendo a estado anterior:', {
+              donationId: event.donationId,
+              revirtiendo_a_liked: previousLiked,
+              revirtiendo_a_count: previousCount
+            });
 
-            // Si el mensaje indica que ya existe el like, no revertir - UI está correcta
-            if (errorMessage.toLowerCase().includes('ya le ha dado like') ||
-                errorMessage.toLowerCase().includes('already') ||
-                errorMessage.toLowerCase().includes('ya existe') ||
-                errorMessage.toLowerCase().includes('duplicate')) {
-              console.warn('✅ El like ya existe en el backend. Estado local está correcto, mantener UI.');
-              // El estado UI ya es correcto, solo no revertir
-              // El contador se actualizará cuando se recargue la data
-              return;
-            }
+            this.donations[currentIndex] = {
+              ...this.donations[currentIndex],
+              isLikedByCurrentUser: previousLiked,
+              likesCount: previousCount
+            } as Donation;
+            this.donations = [...this.donations];
           }
 
-          // Para otros errores, revertir
-          donation.isLikedByCurrentUser = previousLiked;
-          donation.likesCount = previousCount;
-          this.donations = [...this.donations];
+          if (error.status === 400) {
+            console.warn('⚠️ Error 400 - Backend rechazó la solicitud');
+          } else if (error.status === 401) {
+            console.warn('⚠️ Error 401 - Token expirado, por favor vuelve a iniciar sesión');
+          }
         }
       });
   }
 
+  private normalizeBoolean(value: any): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return ['1', 'true', 'sí', 'si', 'yes', 'y'].includes(normalized);
+    }
+
+    return false;
+  }
+
+  private normalizeNumber(value: any): number {
+    if (typeof value === 'number' && !isNaN(value)) {
+      return value;
+    }
+
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  /**
+   * Recalcula los estados de like basándose en el usuario actual
+   * Verifica si el usuario actual está en la lista de usuarios que dieron like
+   */
+  private recalculateLikeStates(currentUserId: string | null): void {
+    if (!currentUserId || this.donations.length === 0) {
+      console.log('⚠️ No se puede recalcular likes: usuario actual o donaciones vacías');
+      return;
+    }
+
+    console.log('📊 Recalculando estados de like para usuario:', currentUserId);
+
+    this.donations = this.donations.map(donation => {
+      // Verificar si el usuario actual está en la lista de likes
+      let isCurrentUserLiked = false;
+
+      if (Array.isArray(donation.likes) && donation.likes.length > 0) {
+        // Si likes es un array de objetos con userId
+        isCurrentUserLiked = donation.likes.some((like: any) => {
+          const likeUserId = like?.userId || like?.user?.id || like?.id;
+          return String(likeUserId) === String(currentUserId);
+        });
+
+        console.log('✅ Like recalculado para donación', donation.id, ':', {
+          currentUserId,
+          likesCount: donation.likes.length,
+          isLikedByCurrentUser: isCurrentUserLiked,
+          likesList: donation.likes.map((l: any) => ({
+            userId: l?.userId || l?.user?.id || l?.id,
+            username: l?.user?.username || l?.username
+          }))
+        });
+      }
+
+      return {
+        ...donation,
+        isLikedByCurrentUser: isCurrentUserLiked
+      };
+    });
+
+    // Notificar cambios
+    this.donations = [...this.donations];
+    console.log('✨ Estados de like recalculados para', this.donations.length, 'publicaciones');
+  }
 
   // ==================== ACCIONES DE USUARIO ====================
 

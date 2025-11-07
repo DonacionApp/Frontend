@@ -1562,18 +1562,45 @@ export class NeedPublicationService {
    */
   private likePublication(publicationId: string): Observable<NeedPublication> {
     const postId = parseInt(publicationId);
-    
+
     if (isNaN(postId)) {
+      console.error('❌ ID de publicación inválido:', publicationId);
       return throwError(() => new Error('ID de publicación inválido'));
     }
-    
-    this.likesInProgress.set(publicationId, Date.now());
 
-    return this.http.post<any>(`${this.likedApiUrl}/addlike/${postId}`, {}).pipe(
+    this.likesInProgress.set(publicationId, Date.now());
+    const url = `${this.likedApiUrl}/addlike/${postId}`;
+
+    console.log('🔗 POST a:', url);
+
+    // Enviar JSON vacío - el backend solo necesita el token en headers
+    const body = {};
+
+    return this.http.post<any>(url, body).pipe(
+      tap((response: any) => {
+        console.log('✅ Like agregado - Respuesta:', {
+          status: 'success',
+          postId,
+          response
+        });
+      }),
       map((response: any) => {
         return this.mapBackendToFrontend([response])[0];
       }),
-      finalize(() => this.likesInProgress.delete(publicationId))
+      catchError((error: any) => {
+        console.error('❌ Error al agregar like:', {
+          postId,
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || error.message,
+          fullError: error
+        });
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        console.log('✨ Limpiando likesInProgress para publicación:', publicationId);
+        this.likesInProgress.delete(publicationId);
+      })
     );
   }
 
@@ -1582,18 +1609,42 @@ export class NeedPublicationService {
    */
   private unlikePublication(publicationId: string): Observable<NeedPublication> {
     const postId = parseInt(publicationId);
-    
+
     if (isNaN(postId)) {
+      console.error('❌ ID de publicación inválido:', publicationId);
       return throwError(() => new Error('ID de publicación inválido'));
     }
-    
-    this.likesInProgress.set(publicationId, Date.now());
 
-    return this.http.delete<any>(`${this.likedApiUrl}/removelike/${postId}`).pipe(
+    this.likesInProgress.set(publicationId, Date.now());
+    const url = `${this.likedApiUrl}/removelike/${postId}`;
+
+    console.log('🔗 DELETE a:', url);
+
+    return this.http.delete<any>(url).pipe(
+      tap((response: any) => {
+        console.log('✅ Like removido - Respuesta:', {
+          status: 'success',
+          postId,
+          response
+        });
+      }),
       map((response: any) => {
         return this.mapBackendToFrontend([response])[0];
       }),
-      finalize(() => this.likesInProgress.delete(publicationId))
+      catchError((error: any) => {
+        console.error('❌ Error al remover like:', {
+          postId,
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || error.message,
+          fullError: error
+        });
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        console.log('✨ Limpiando likesInProgress para publicación:', publicationId);
+        this.likesInProgress.delete(publicationId);
+      })
     );
   }
 

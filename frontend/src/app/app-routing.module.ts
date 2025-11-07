@@ -36,6 +36,10 @@ const routes: Routes = [
     // Los guards se aplican individualmente en organization.module.ts (register sin guard, profile con guards)
   },
   {
+    path: 'donations',
+    loadChildren: () => import('./features/post_need/publications.module').then(m => m.PublicationsModule)
+  },
+  {
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
     canActivate: [AuthGuard, AdminGuard] // Requiere autenticación Y rol de admin

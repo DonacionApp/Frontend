@@ -83,58 +83,47 @@
 
   <!-- Footer estilo Facebook -->
   <footer *ngIf="showActions" class="px-4 py-2 border-t border-gray-200">
-    <!-- Mensaje toast para like duplicado -->
-    <div *ngIf="duplicateLikeMessage" 
-         class="absolute bottom-full left-4 mb-2 bg-amber-500 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg z-50 animate-fade-in"
-         style="animation: fadeIn 0.3s ease-in;">
-      <div class="flex items-center space-x-2">
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-        </svg>
-        <span>{{ duplicateLikeMessage }}</span>
-      </div>
-    </div>
-    
-    <!-- Contador de reacciones estilo Facebook -->
-    <div *ngIf="(donation.likesCount || 0) > 0" class="flex items-center justify-between mb-2">
-      <div class="flex items-center space-x-1 text-[13px] text-gray-500">
-        <div class="flex -space-x-1">
-          <div class="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.8.6l2.7-3.612a1 1 0 00.096-.096l2.713-3.633a1 1 0 00.096-.096l2.7-3.612a1 1 0 00.6-1.8H8.333a1 1 0 00-.6.2L5.2 8.333a1 1 0 00-.2.6z"/>
-            </svg>
-          </div>
-        </div>
-        <span (click)="onLikesCountClick($event)" class="cursor-pointer hover:underline">{{ donation.likesCount }}</span>
-      </div>
-    </div>
-
-    <!-- Modal de usuarios que dieron like -->
-    <app-likes-modal
-      [isOpen]="showLikesModal"
-      [donationId]="donation.id"
-      [likesCount]="donation.likesCount || 0"
-      (onClose)="showLikesModal = false"
-    ></app-likes-modal>
-
     <!-- Botones de acción estilo Facebook -->
     <div class="flex items-center justify-between border-t border-gray-200 pt-1 mt-1">
       <!-- Botón Me gusta -->
       <button
         (click)="onLikeToggle()"
         [disabled]="isLikeInProgress"
-        class="flex-1 flex items-center justify-center space-x-2 px-2 py-2 rounded-lg transition-colors hover:bg-gray-100"
-        [class.text-green-600]="donation.isLikedByCurrentUser"
+        class="flex-1 flex items-center justify-center px-2 py-2 rounded-lg transition-colors hover:bg-gray-100"
+        [class.text-emerald-600]="donation.isLikedByCurrentUser"
         [class.text-gray-500]="!donation.isLikedByCurrentUser"
+        [class.bg-emerald-50]="donation.isLikedByCurrentUser"
+        [class.opacity-60]="isLikeInProgress"
+        [attr.aria-pressed]="donation.isLikedByCurrentUser"
+        [attr.title]="donation.isLikedByCurrentUser ? 'Quitar me gusta' : 'Dar me gusta'"
       >
-        <svg class="w-5 h-5 transition-all"
-             [attr.fill]="donation.isLikedByCurrentUser ? 'currentColor' : 'none'"
-             [attr.stroke]="donation.isLikedByCurrentUser ? 'none' : 'currentColor'"
-             stroke-width="2"
-             viewBox="0 0 24 24">
-          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-        </svg>
-        <span class="text-[15px] font-medium">Me gusta</span>
+        <div class="flex items-center gap-2">
+          <ng-container *ngIf="isLikeInProgress; else likeIcon">
+            <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle class="opacity-25" cx="12" cy="12" r="10"></circle>
+              <path class="opacity-75" d="M4 12a8 8 0 018-8" stroke-linecap="round"></path>
+            </svg>
+          </ng-container>
+          <ng-template #likeIcon>
+            <svg class="w-5 h-5 transition-all"
+                 [attr.fill]="donation.isLikedByCurrentUser ? 'currentColor' : 'none'"
+                 [attr.stroke]="donation.isLikedByCurrentUser ? 'none' : 'currentColor'"
+                 stroke-width="2"
+                 viewBox="0 0 24 24">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </ng-template>
+
+          <span class="text-[15px] font-medium">
+            {{ donation.isLikedByCurrentUser ? 'Ya has dado like' : 'Me gusta' }}
+          </span>
+
+          <span
+            *ngIf="(donation.likesCount || 0) > 0"
+            class="text-[13px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+            {{ donation.likesCount }}
+          </span>
+        </div>
       </button>
 
       <!-- Botón Detalles (siempre visible) -->
@@ -188,5 +177,13 @@
       </button>
     </div>
   </footer>
+
+  <app-likes-modal
+    *ngIf="donation?.id"
+    [isOpen]="showLikesModal"
+    [donationId]="donation.id"
+    [likesCount]="donation.likesCount || 0"
+    (onClose)="showLikesModal = false"
+  ></app-likes-modal>
 </article>
 
