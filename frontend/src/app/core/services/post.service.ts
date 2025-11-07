@@ -1546,18 +1546,14 @@ export class NeedPublicationService {
    * Alterna el like de una publicación
    */
   toggleLike(publicationId: string, isCurrentlyLiked: boolean): Observable<NeedPublication> {
+    // Prevenir race conditions: si ya hay un like en progreso, rechazar
     if (this.likesInProgress.has(publicationId)) {
-      // Si ya está en progreso, retornar la publicación actual
-      const current = this.publicationsSubject.value;
-      const existing = current.find(p => p.id === publicationId);
-      if (existing) {
-        return of(existing);
-      }
-      return throwError(() => new Error('Like en progreso'));
+      console.warn(`⚠️ Like ya en progreso para publicación ${publicationId}. Solicitud rechazada.`);
+      return throwError(() => new Error('Like ya está siendo procesado. Por favor espera.'));
     }
-    
-    return isCurrentlyLiked 
-      ? this.unlikePublication(publicationId) 
+
+    return isCurrentlyLiked
+      ? this.unlikePublication(publicationId)
       : this.likePublication(publicationId);
   }
 
@@ -1572,36 +1568,11 @@ export class NeedPublicationService {
     }
     
     this.likesInProgress.set(publicationId, Date.now());
-    
-    // Actualización optimista
-    this.applyOptimisticLike(publicationId, true);
-    
+
     return this.http.post<any>(`${this.likedApiUrl}/addlike/${postId}`, {}).pipe(
-      timeout(this.config.requestTimeout),
       map((response: any) => {
-        // Si el backend retorna la publicación actualizada, usarla directamente
-        if (response && response.id) {
-          return this.mapBackendToFrontend([response])[0];
-        }
-        return response;
+        return this.mapBackendToFrontend([response])[0];
       }),
-      switchMap((response: any) => {
-        // Si no tenemos la publicación actualizada, sincronizar desde el servidor
-        if (!response || !response.id) {
-          return this.syncPublicationFromServer(publicationId);
-        }
-        return of(response);
-      }),
-      tap((updatedPublication: NeedPublication) => {
-        // Actualizar en el estado local
-        const current = this.publicationsSubject.value;
-        const index = current.findIndex(p => p.id === publicationId);
-        if (index !== -1 && updatedPublication) {
-          current[index] = { ...current[index], ...updatedPublication };
-          this.publicationsSubject.next([...current]);
-        }
-      }),
-      catchError(error => this.handleLikeError(publicationId, error, true)),
       finalize(() => this.likesInProgress.delete(publicationId))
     );
   }
@@ -1617,36 +1588,11 @@ export class NeedPublicationService {
     }
     
     this.likesInProgress.set(publicationId, Date.now());
-    
-    // Actualización optimista
-    this.applyOptimisticLike(publicationId, false);
-    
+
     return this.http.delete<any>(`${this.likedApiUrl}/removelike/${postId}`).pipe(
-      timeout(this.config.requestTimeout),
       map((response: any) => {
-        // Si el backend retorna la publicación actualizada, usarla directamente
-        if (response && response.id) {
-          return this.mapBackendToFrontend([response])[0];
-        }
-        return response;
+        return this.mapBackendToFrontend([response])[0];
       }),
-      switchMap((response: any) => {
-        // Si no tenemos la publicación actualizada, sincronizar desde el servidor
-        if (!response || !response.id) {
-          return this.syncPublicationFromServer(publicationId);
-        }
-        return of(response);
-      }),
-      tap((updatedPublication: NeedPublication) => {
-        // Actualizar en el estado local
-        const current = this.publicationsSubject.value;
-        const index = current.findIndex(p => p.id === publicationId);
-        if (index !== -1 && updatedPublication) {
-          current[index] = { ...current[index], ...updatedPublication };
-          this.publicationsSubject.next([...current]);
-        }
-      }),
-      catchError(error => this.handleLikeError(publicationId, error, false)),
       finalize(() => this.likesInProgress.delete(publicationId))
     );
   }
@@ -1719,12 +1665,17 @@ export class NeedPublicationService {
 
   /**
    * Verifica si hay una operación de like en progreso
+   * Safety valve: auto-clear después de 40 segundos (request timeout 30s + margen)
    */
   isLikeInProgress(publicationId: string): boolean {
     const start = this.likesInProgress.get(publicationId);
     if (!start) return false;
-    // Safety valve: auto-clear any like stuck > 8s
-    if (Date.now() - start > 8000) {
+
+    // Safety valve: auto-clear después de 40 segundos para evitar bloqueos
+    // (request timeout es 30s, esto da 10s de margen)
+    const SAFE_TIMEOUT = 40000;
+    if (Date.now() - start > SAFE_TIMEOUT) {
+      console.warn(`⚠️ Safety valve: Limpiando like en progreso para ${publicationId} después de ${SAFE_TIMEOUT}ms`);
       this.likesInProgress.delete(publicationId);
       return false;
     }

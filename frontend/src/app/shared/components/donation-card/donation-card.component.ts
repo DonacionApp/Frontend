@@ -404,29 +404,12 @@ export class DonationCardComponent {
 
   onLikeToggle(): void {
     if (!this.showActions || this.isLikeInProgress) return;
-    
-    this.isLikeLoading = true;
-    this.duplicateLikeMessage = null; // Limpiar mensaje anterior
-    const donationId = this.donation.id;
-    // Emitir el estado actual: si ya está liked => unlike; si no => like
+
+    // Solo emitir el evento
     this.likeToggled.emit({
-      donationId: donationId,
+      donationId: this.donation.id,
       isLiked: this.donation.isLikedByCurrentUser || false
     });
-    
-    // Verificar periódicamente si el proceso terminó
-    const checkInterval = setInterval(() => {
-      if (!this.donationService.isLikeInProgress(donationId)) {
-        this.isLikeLoading = false;
-        clearInterval(checkInterval);
-      }
-    }, 100);
-    
-    // Timeout de seguridad (máximo 5 segundos)
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      this.isLikeLoading = false;
-    }, 5000);
   }
 
   showDuplicateLikeMessage(): void {

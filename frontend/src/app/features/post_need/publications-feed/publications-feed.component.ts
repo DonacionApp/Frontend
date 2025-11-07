@@ -510,73 +510,38 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Ejecuta el toggle de like con actualización optimista
+   * Ejecuta el toggle de like - instantáneo con confirmación del backend
    */
   private performLikeToggle(donation: Donation, event: { donationId: string; isLiked: boolean }): void {
-    const rollback = this.createLikeRollback(donation);
-    
-    // Actualización optimista
-    this.applyOptimisticLikeUpdate(donation, event.isLiked);
-    
-    // Sincronización con backend
+    // Guardar estado anterior para rollback si es necesario
+    const previousLiked = donation.isLikedByCurrentUser;
+    const previousCount = donation.likesCount || 0;
+
+    // Actualización instantánea en la UI
+    donation.isLikedByCurrentUser = !previousLiked;
+    donation.likesCount = previousLiked ? previousCount - 1 : previousCount + 1;
+    this.donations = [...this.donations];
+
+    // Enviar al backend - solo actualizar el contador, confiar en la UI optimista
     this.donationService.toggleLike(event.donationId, event.isLiked)
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          this.handleLikeError(donation, rollback, error);
-          return of(null);
-        })
-      )
-      .subscribe((updatedDonation: Donation | null) => {
-        if (updatedDonation) {
-          this.applyBackendLikeUpdate(event.donationId, updatedDonation);
-      }
-    });
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedDonation: Donation) => {
+          // Solo actualizar el contador del servidor, mantener isLikedByCurrentUser de la UI
+          if (updatedDonation && updatedDonation.likesCount !== undefined) {
+            donation.likesCount = updatedDonation.likesCount;
+            this.donations = [...this.donations];
+          }
+        },
+        error: (error) => {
+          // Revertir en caso de error
+          donation.isLikedByCurrentUser = previousLiked;
+          donation.likesCount = previousCount;
+          this.donations = [...this.donations];
+        }
+      });
   }
 
-  /**
-   * Crea un objeto de rollback para revertir cambios
-   */
-  private createLikeRollback(donation: Donation): { isLiked: boolean; likesCount: number } {
-    return {
-      isLiked: donation.isLikedByCurrentUser || false,
-      likesCount: donation.likesCount || 0
-    };
-  }
-
-  /**
-   * Aplica la actualización optimista del like
-   */
-  private applyOptimisticLikeUpdate(donation: Donation, isCurrentlyLiked: boolean): void {
-    donation.isLikedByCurrentUser = !isCurrentlyLiked;
-    donation.likesCount = Math.max(0, (donation.likesCount || 0) + (isCurrentlyLiked ? -1 : 1));
-  }
-
-  /**
-   * Aplica la actualización del backend al like
-   */
-  private applyBackendLikeUpdate(donationId: string, updatedDonation: Donation): void {
-    const index = this.donations.findIndex(d => d.id === donationId);
-    if (index === -1) return;
-
-    const existingDonation = this.donations[index];
-    this.donations[index] = {
-      ...existingDonation,
-      likes: updatedDonation.likes || existingDonation.likes,
-      likesCount: updatedDonation.likesCount ?? existingDonation.likesCount ?? 0,
-      isLikedByCurrentUser: updatedDonation.isLikedByCurrentUser ?? existingDonation.isLikedByCurrentUser,
-      updatedAt: updatedDonation.updatedAt || existingDonation.updatedAt
-    };
-  }
-
-  /**
-   * Maneja errores al actualizar like
-   */
-  private handleLikeError(donation: Donation, rollback: any, error: any): void {
-    console.error('❌ Error al actualizar like:', error);
-    donation.isLikedByCurrentUser = rollback.isLiked;
-    donation.likesCount = rollback.likesCount;
-  }
 
   // ==================== ACCIONES DE USUARIO ====================
 

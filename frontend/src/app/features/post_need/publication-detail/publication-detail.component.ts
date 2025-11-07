@@ -408,29 +408,20 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
           if (error.status === 400) {
             const errorMessage = error.error?.message || 'El backend rechazó la petición';
             console.warn('⚠️ Error 400 - Posibles causas:', errorMessage);
-            
-            // Si el mensaje indica que ya existe el like, sincronizar el estado
+
+            // Si el mensaje indica que ya existe el like, simplemente actualizar estado local
             if (errorMessage.toLowerCase().includes('ya le ha dado like') ||
-                errorMessage.toLowerCase().includes('already') || 
+                errorMessage.toLowerCase().includes('already') ||
                 errorMessage.toLowerCase().includes('ya existe') ||
                 errorMessage.toLowerCase().includes('duplicate')) {
-              console.warn('⚠️ El like ya existe. Sincronizando estado con el backend...');
+              console.warn('✅ El like ya existe en el backend. Estado local ya está correcto.');
+              // El estado local ya fue actualizado optimistamente correctamente
+              // No necesitamos hacer nada más - no revertir ni recargar
+              // El like ya está en el backend, solo estamos viendo que ya existía
               if (this.donation) {
-                // Recargar los datos del servidor para sincronizar correctamente
-                this.donationService.getDonationById(this.donation.id)
-                  .pipe(takeUntil(this.destroy$))
-                  .subscribe(updatedDonation => {
-                    if (this.donation) {
-                      // Preservar datos existentes y solo actualizar likes
-                      this.donation.likes = updatedDonation.likes || this.donation.likes;
-                      this.donation.likesCount = updatedDonation.likesCount ?? this.donation.likesCount ?? 0;
-                      this.donation.isLikedByCurrentUser = updatedDonation.isLikedByCurrentUser ?? this.donation.isLikedByCurrentUser ?? false;
-                      this.donation.updatedAt = updatedDonation.updatedAt || this.donation.updatedAt;
-                    } else {
-                      this.donation = updatedDonation;
-                    }
-                    console.log('✅ Estado sincronizado correctamente preservando datos');
-                  });
+                // Asegurar que el estado local refleje que el like está activo
+                this.donation.isLikedByCurrentUser = !isLiked;
+                this.cdr.markForCheck();
               }
               return; // No revertir en este caso
             }
