@@ -64,16 +64,33 @@ export class LoginComponent implements OnDestroy {
       this.auth.login(email, password).subscribe({
         next: (res) => {
           this.isSubmitting = false;
-          // Redirigir según rol (tomado desde AuthService -> currentUserValue)
+          // Obtener el usuario actual con toda la información
           const user = this.auth.currentUserValue;
-          if (user?.role === 'admin') {
-            this.router.navigate(['/admin']);
-          } else if (user?.role === 'organization') {
-            // Redirigir al perfil de organización
-            this.router.navigate(['/organization/profile']);
+          
+          console.log('🎯 Login exitoso, usuario:', user);
+          console.log('🔍 firstLogin:', user?.firstLogin);
+          console.log('📄 isDocumentVerified:', user?.isDocumentVerified);
+          
+          // Si el usuario NO está verificado (isDocumentVerified === false), redirigir al perfil
+          if (user?.isDocumentVerified === false) {
+            console.log('⚠️ Usuario sin verificar, redirigiendo al perfil para subir documento...');
+            if (user.role === 'organization') {
+              this.router.navigate(['/organization/profile']);
+            } else if (user.role === 'donor') {
+              this.router.navigate(['/donor/profile']);
+            } else if (user.role === 'admin') {
+              this.router.navigate(['/admin']);
+            }
           } else {
-            // Redirigir al perfil de donante (rol 'donor')
-            this.router.navigate(['/donor/profile']);
+            // Usuario ya verificado, redirigir al dashboard normal
+            console.log('✅ Usuario verificado, redirigiendo al dashboard...');
+            if (user?.role === 'admin') {
+              this.router.navigate(['/admin']);
+            } else if (user?.role === 'organization') {
+              this.router.navigate(['/organization/dashboard']);
+            } else {
+              this.router.navigate(['/donor/profile']);
+            }
           }
         },
         error: (err) => {
