@@ -134,6 +134,13 @@ export class DetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  donateToCampaign(): void {
+    if (!this.post) return;
+    this.router.navigate(['/donor/donate'], {
+      queryParams: { campaign: this.post.id }
+    });
+  }
+
   toggleDropdown(): void {
     this.showDropdown = !this.showDropdown;
   }

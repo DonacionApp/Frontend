@@ -113,7 +113,6 @@ export class ListComponent implements OnInit, OnDestroy {
           } else {
             this.posts = posts;
           }
-          console.log('Loaded posts:', posts);
           
           this.hasMore = posts.length === this.limit;
           if (posts.length > 0) {
@@ -318,6 +317,13 @@ export class ListComponent implements OnInit, OnDestroy {
   requestDonation(post: Post): void {
     this.router.navigate(['/organization/donations/create'], {
       queryParams: { post: post.id }
+    });
+  }
+
+  donateToCampaign(post: Post): void {
+    // Navegar a la página de donación con el ID del post
+    this.router.navigate(['/donor/donate'], {
+      queryParams: { campaign: post.id }
     });
   }
 
