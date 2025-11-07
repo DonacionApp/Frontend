@@ -534,7 +534,26 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          // Revertir en caso de error
+          console.error('❌ Error al dar like:', error);
+
+          // Si es error 400, podría ser un like duplicado - el estado UI ya es correcto
+          if (error.status === 400) {
+            const errorMessage = error.error?.message || '';
+            console.warn('⚠️ Error 400 - Posibles causas:', errorMessage);
+
+            // Si el mensaje indica que ya existe el like, no revertir - UI está correcta
+            if (errorMessage.toLowerCase().includes('ya le ha dado like') ||
+                errorMessage.toLowerCase().includes('already') ||
+                errorMessage.toLowerCase().includes('ya existe') ||
+                errorMessage.toLowerCase().includes('duplicate')) {
+              console.warn('✅ El like ya existe en el backend. Estado local está correcto, mantener UI.');
+              // El estado UI ya es correcto, solo no revertir
+              // El contador se actualizará cuando se recargue la data
+              return;
+            }
+          }
+
+          // Para otros errores, revertir
           donation.isLikedByCurrentUser = previousLiked;
           donation.likesCount = previousCount;
           this.donations = [...this.donations];
