@@ -65,15 +65,18 @@
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Mensajes</span>
           </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group">
-            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button 
+            (click)="onNotificationsClick()"
+            class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center relative">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
-            <span class="ml-1 hidden lg:inline whitespace-nowrap">Notificaciones</span>
-            <span class="absolute top-0 right-0 md:top-1 md:right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">3</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
-            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            Notificaciones
+            <!-- Badge estático por ahora -->
+            <span class="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+          </button>
+          <a href="#" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Estadísticas</span>

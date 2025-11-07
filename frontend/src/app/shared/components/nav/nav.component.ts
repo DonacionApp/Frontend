@@ -176,6 +176,11 @@ export class NavComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
+  onNotificationsClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/notifications']);
+  }
+
   getProfileRoute(): string {
     if (this.user?.role === 'donor') {
       return '/donor/profile';

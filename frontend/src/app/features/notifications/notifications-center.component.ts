@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { NotificationService } from '../../core/services/notification.service';
+import { NotificationService } from '../../core/services';
 import { Notify } from '../../shared/model/notification.model'; 
 import { Subject, takeUntil } from 'rxjs';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
