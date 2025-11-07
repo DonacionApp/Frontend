@@ -137,16 +137,26 @@
             <!-- Chips de IA -->
             <div *ngIf="aiGeneratedTags.length > 0 && !loadingAiTags" class="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <div class="flex flex-wrap gap-2">
-                <span 
-                  *ngFor="let tag of aiGeneratedTags; let idx = index"
+                <div 
+                  *ngFor="let tag of aiGeneratedTags"
                   class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"
                 >
-                  {{ tag }}
-                  <button type="button" class="text-purple-700 hover:text-purple-900" (click)="removeAiTag(tag)" aria-label="Eliminar etiqueta">
+                  <span>{{ tag }}</span>
+                  <button
+                    *ngIf="!isTagAlreadyAdded(tag)"
+                    type="button"
+                    class="px-2 py-0.5 text-emerald-700 bg-white border border-emerald-300 rounded-full hover:bg-emerald-50 transition-colors"
+                    (click)="onAddAiTag(tag)"
+                  >
+                    Agregar
+                  </button>
+                  <span *ngIf="isTagAlreadyAdded(tag)" class="text-emerald-600 font-semibold">Agregada</span>
+                  <button type="button" class="text-purple-700 hover:text-purple-900" (click)="dismissAiTag(tag)" aria-label="Descartar etiqueta">
                     ✕
                   </button>
-                </span>
+                </div>
               </div>
+              <p class="text-[11px] text-purple-700 mt-2">Pulsa “Agregar” para incluir la etiqueta en la publicación o ✕ para descartarla.</p>
             </div>
 
             <!-- Sin etiquetas -->

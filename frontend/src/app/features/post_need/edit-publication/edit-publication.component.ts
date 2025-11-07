@@ -61,8 +61,8 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
 
   // AI Tags Management
   aiGeneratedTags: string[] = [];
+  aiSuggestedTags: string[] = [];
   private originalTags: Array<{ id: number; tag: string }> = [];
-  private aiGeneratedTagsMap: Map<number, string> = new Map();
 
   // Data
   donationTypes: DonationType[] = [];
@@ -193,6 +193,7 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
         tag: t.tag || t.name || ''
       })).filter(t => !!t.tag);
       this.aiGeneratedTags = this.originalTags.map(t => t.tag);
+      this.aiSuggestedTags = [];
     }
 
     if (publication.files && publication.files.length > 0) {
@@ -292,7 +293,9 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (tags) => {
           if (Array.isArray(tags)) {
-            this.aiGeneratedTags = [...new Set([...this.aiGeneratedTags, ...tags])];
+            const uniqueSuggestions = [...new Set(tags.map(tag => (tag || '').trim()).filter(Boolean))];
+            const newSuggestions = uniqueSuggestions.filter(tag => !this.isTagAlreadyAdded(tag) && !this.isTagAlreadySuggested(tag));
+            this.aiSuggestedTags = [...this.aiSuggestedTags, ...newSuggestions];
           }
           this.loadingAiTags = false;
         },
@@ -304,7 +307,57 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
   }
 
   removeAiTag(tag: string): void {
-    this.aiGeneratedTags = this.aiGeneratedTags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+    const normalized = this.normalizeTag(tag);
+    this.aiGeneratedTags = this.aiGeneratedTags.filter(t => this.normalizeTag(t) !== normalized);
+  }
+
+  dismissSuggestedTag(tag: string): void {
+    const normalized = this.normalizeTag(tag);
+    this.aiSuggestedTags = this.aiSuggestedTags.filter(t => this.normalizeTag(t) !== normalized);
+  }
+
+  onAddAiTag(tag: string): void {
+    const normalized = this.normalizeTag(tag);
+    if (!normalized || this.isTagAlreadyAdded(tag)) {
+      this.dismissSuggestedTag(tag);
+      return;
+    }
+
+    this.aiService.createTag(tag, this.publicationId || undefined)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: (createdTag) => {
+          const value = createdTag?.tag ?? tag;
+          const finalValue = value.trim();
+          if (!finalValue) return;
+
+          if (!this.isTagAlreadyAdded(finalValue)) {
+            this.aiGeneratedTags = [...this.aiGeneratedTags, finalValue];
+          }
+          this.dismissSuggestedTag(tag);
+        },
+        error: (error) => {
+          console.error('❌ Error creando tag desde IA (edición):', error);
+          if (!this.isTagAlreadyAdded(tag)) {
+            this.aiGeneratedTags = [...this.aiGeneratedTags, tag];
+          }
+          this.dismissSuggestedTag(tag);
+        }
+      });
+  }
+
+  isTagAlreadyAdded(tag: string): boolean {
+    const normalized = this.normalizeTag(tag);
+    return this.aiGeneratedTags.some(existing => this.normalizeTag(existing) === normalized);
+  }
+
+  private isTagAlreadySuggested(tag: string): boolean {
+    const normalized = this.normalizeTag(tag);
+    return this.aiSuggestedTags.some(existing => this.normalizeTag(existing) === normalized);
+  }
+
+  private normalizeTag(tag: string): string {
+    return (tag || '').trim().toLowerCase();
   }
 
   onImageError(event: Event): void {

@@ -317,16 +317,52 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
     this.tags.removeAt(index);
   }
 
-  removeAiTag = (tag: string): void => {
-    const indices: number[] = [];
-    this.aiGeneratedTagsMap.forEach((value, idx) => {
-      if (value.toLowerCase() === tag.toLowerCase()) {
-        indices.push(idx);
-      }
-    });
-    indices.sort((a, b) => b - a).forEach(i => this.removeTag(i));
+  dismissAiTag(tag: string): void {
     this.aiGeneratedTags = this.aiGeneratedTags.filter(t => t.toLowerCase() !== tag.toLowerCase());
-  };
+  }
+
+  onAddAiTag(tag: string): void {
+    const normalized = (tag || '').trim();
+    if (!normalized) return;
+
+    if (this.tags.length >= TAGS_LIMIT) return;
+
+    if (this.isTagAlreadyAdded(normalized)) return;
+
+    const addTagToForm = (value: string) => {
+      const finalValue = (value || '').trim();
+      if (!finalValue || this.isTagAlreadyAdded(finalValue)) return;
+
+      this.tags.push(
+        this.fb.control(finalValue, [
+          Validators.required,
+          Validators.minLength(MIN_TAG_LENGTH),
+          Validators.maxLength(MAX_TAG_LENGTH)
+        ])
+      );
+
+      const newIndex = this.tags.length - 1;
+      this.aiGeneratedTagsMap.set(newIndex, finalValue);
+    };
+
+    this.aiService.createTag(normalized)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: (createdTag) => {
+          const value = createdTag?.tag ?? normalized;
+          addTagToForm(value);
+        },
+        error: (error) => {
+          console.error('❌ Error creando tag desde IA:', error);
+          addTagToForm(normalized);
+        }
+      });
+  }
+
+  isTagAlreadyAdded(tag: string): boolean {
+    const lower = tag.trim().toLowerCase();
+    return this.tags.controls.some(control => (control.value || '').toString().trim().toLowerCase() === lower);
+  }
 
   isAiGeneratedTag(tagIndex: number): boolean {
     return this.aiGeneratedTagsMap.has(tagIndex);
@@ -414,27 +450,8 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
   private addAiTagsToForm(tags: string[]): void {
     if (!Array.isArray(tags) || tags.length === 0) return;
 
-    this.aiGeneratedTags = tags;
-
-    tags.forEach(tag => {
-      const tagValue = tag.trim();
-      if (tagValue.length === 0) return;
-
-      const existingTags = this.tags.controls.map(c => c.value?.trim().toLowerCase());
-      if (existingTags.includes(tagValue.toLowerCase())) return;
-
-      if (this.tags.length < TAGS_LIMIT) {
-        const tagIndex = this.tags.length;
-        this.tags.push(
-          this.fb.control(tagValue, [
-            Validators.required,
-            Validators.minLength(MIN_TAG_LENGTH),
-            Validators.maxLength(MAX_TAG_LENGTH)
-          ])
-        );
-        this.aiGeneratedTagsMap.set(tagIndex, tagValue);
-      }
-    });
+    const uniqueTags = [...new Set(tags.map(t => (t || '').trim()).filter(Boolean))];
+    this.aiGeneratedTags = uniqueTags.filter(tag => !this.isTagAlreadyAdded(tag));
   }
 
   removeFile(index: number): void {
@@ -710,21 +727,14 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
       .map(c => c.value?.trim())
       .filter((tag): tag is string => !!tag && tag.length > 0);
 
-    // PRIORIDAD 1: Usar aiGeneratedTags que ya fueron mostrados en la UI y validados por el usuario
-    const aiTagsToUse = this.aiGeneratedTags && this.aiGeneratedTags.length > 0
-      ? this.aiGeneratedTags
-      : [];
-
     console.log('🏷️ handleTagsForNewPublication:', {
       publicationId: publicationIdStr,
       manualTags: manualTags,
-      aiGeneratedTags: aiTagsToUse,
-      totalTags: manualTags.length + aiTagsToUse.length
+      aiGeneratedTags: Array.from(this.aiGeneratedTagsMap.values()),
+      totalTags: manualTags.length
     });
 
-    // Combinar tags manuales con tags de IA ya generados
-    const allTags = [...manualTags, ...aiTagsToUse];
-    const uniqueTags = [...new Set(allTags.map(tag => tag.trim()).filter(tag => !!tag))];
+    const uniqueTags = [...new Set(manualTags.map(tag => tag.trim()).filter(tag => !!tag))];
 
     if (uniqueTags.length > 0) {
       console.log('💾 Guardando tags finales:', uniqueTags);

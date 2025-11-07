@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError, tap, timeout, retry } from 'rxjs/operators';
+import { catchError, tap, timeout, retry, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -9,12 +9,14 @@ export class AiService {
   // Construir URL base correctamente
   private readonly baseUrl: string;
   private readonly endpointUrl: string;
+  private readonly tagsCreateUrl: string;
 
   constructor(private http: HttpClient) {
     // Construir URL base: http://localhost:5000/ia
     const apiBase = (environment.apiBackendUrl || environment.apiUrl || 'http://localhost:5000').replace(/\/$/, '');
     this.baseUrl = `${apiBase}/ia`;
     this.endpointUrl = `${this.baseUrl}/tags-from-images`;
+    this.tagsCreateUrl = `${apiBase}/tags/create`;
     
     console.log('🤖 AI Service inicializado');
     console.log('📍 API Base URL:', apiBase);
@@ -116,6 +118,27 @@ export class AiService {
     );
   }
 
+  createTag(tag: string, publicationId?: string): Observable<{ id: number; tag: string; createdAt?: string; updatedAt?: string }> {
+    const payload: { tag: string; postId?: string } = { tag };
+    if (publicationId) {
+      payload.postId = publicationId;
+    }
+
+    return this.http.post<{ id: number; tag: string; createdAt?: string; updatedAt?: string }>(this.tagsCreateUrl, payload).pipe(
+      timeout(10000),
+      catchError((error: HttpErrorResponse) => {
+        console.error('❌ Error creando tag en backend:', {
+          tag,
+          publicationId,
+          status: error.status,
+          message: error.message,
+          error: error.error
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
   /**
    * Verifica si el endpoint de IA está disponible
    */
@@ -127,6 +150,70 @@ export class AiService {
       observer.next(true);
       observer.complete();
     });
+  }
+
+  /**
+   * Obtiene tags generados previamente para una publicación existente
+   * Endpoint: GET http://localhost:5000/ia/tags-from-images?publicationId={id}
+   */
+  getTagsForPublication(publicationId: string): Observable<string[]> {
+    const trimmedId = (publicationId || '').toString().trim();
+    if (!trimmedId) {
+      console.warn('⚠️ getTagsForPublication: publicationId vacío');
+      return of([]);
+    }
+
+    const url = `${this.endpointUrl}?publicationId=${encodeURIComponent(trimmedId)}`;
+
+    console.log('🤖 Solicitando tags IA para publicación existente:', {
+      publicationId: trimmedId,
+      url
+    });
+
+    return this.http.get<any>(url).pipe(
+      timeout(30000),
+      map((response: unknown): string[] => {
+        if (Array.isArray(response)) {
+          return response as string[];
+        }
+
+        if (response && typeof response === 'object') {
+          const responseObj = response as Record<string, unknown>;
+          const tagsValue = responseObj['tags'];
+          if (Array.isArray(tagsValue)) {
+            return tagsValue as string[];
+          }
+        }
+
+        if (response && typeof response === 'object') {
+          // Buscar propiedad que contenga array de strings
+          const candidate = Object.values(response as Record<string, unknown>).find(value => Array.isArray(value));
+          if (Array.isArray(candidate)) {
+            return candidate as string[];
+          }
+        }
+
+        console.warn('⚠️ getTagsForPublication: respuesta inesperada', response);
+        return [];
+      }),
+      tap((tags: string[]) => {
+        console.log('🤖 Tags IA obtenidos:', {
+          publicationId: trimmedId,
+          count: tags.length,
+          tags
+        });
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('❌ Error obteniendo tags IA existentes:', {
+          publicationId: trimmedId,
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        return of([]);
+      })
+    );
   }
 }
 

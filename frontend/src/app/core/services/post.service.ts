@@ -21,6 +21,7 @@ import {
   distinctUntilChanged
 } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { AiService } from './ai.service';
 // ==================== INTERFACES ====================
 
 /**
@@ -287,7 +288,10 @@ export class NeedPublicationService {
   // Caché simple para reducir peticiones
   private cache = new Map<string, { data: any; timestamp: number }>();
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private aiService: AiService
+  ) {
     this.initializeService();
   }
 
@@ -2135,14 +2139,20 @@ export class NeedPublicationService {
   ): Observable<NeedPublication> {
     console.log('🏷️ enrichPublicationWithTags: Obteniendo tags para publicación:', publication.id);
     return this.getTagsByPublicationId(publication.id).pipe(
-      map(tags => {
-        const enriched = { ...publication, tags };
-        console.log('🏷️ enrichPublicationWithTags: Publicación enriquecida con', tags.length, 'tags:', {
-          publicationId: publication.id,
-          tagsCount: tags.length,
-          tags: tags.map(t => t.tag || t.name)
-        });
-        return enriched;
+      switchMap(tags => {
+        if (tags.length > 0) {
+          this.updateCachedPublicationTags(String(publication.id), tags);
+          const enriched = { ...publication, tags };
+          console.log('🏷️ enrichPublicationWithTags: Publicación enriquecida con', tags.length, 'tags del backend:', {
+            publicationId: publication.id,
+            tagsCount: tags.length,
+            tags: tags.map(t => t.tag || t.name)
+          });
+          return of(enriched);
+        }
+
+        console.log('🤖 No hay tags almacenados. Intentando generarlos con IA para publicación:', publication.id);
+        return this.generateTagsFromAi(publication);
       })
     );
   }
@@ -2158,12 +2168,82 @@ export class NeedPublicationService {
     }
     
     const tagObservables = publications.map(publication =>
-      this.getTagsByPublicationId(publication.id).pipe(
-        map(tags => ({ ...publication, tags }))
-      )
+      this.enrichPublicationWithTags(publication)
     );
     
     return forkJoin(tagObservables);
+  }
+
+  private generateTagsFromAi(publication: NeedPublication): Observable<NeedPublication> {
+    const publicationId = publication?.id ? String(publication.id) : '';
+
+    if (!publicationId) {
+      console.warn('🤖 generateTagsFromAi: publicación sin ID, no se pueden generar tags.');
+      return of({ ...publication, tags: [] });
+    }
+
+    if (!this.hasImagesForAi(publication)) {
+      console.warn('🤖 generateTagsFromAi: publicación sin imágenes, no se generan tags.', {
+        publicationId
+      });
+      return of({ ...publication, tags: [] });
+    }
+
+    return this.aiService.getTagsForPublication(publicationId).pipe(
+      switchMap(aiTags => {
+        if (!aiTags || aiTags.length === 0) {
+          console.warn('🤖 generateTagsFromAi: IA no devolvió tags para publicación:', publicationId);
+          return of({ ...publication, tags: [] });
+        }
+
+        const normalizedTags = this.normalizeAiTags(aiTags);
+
+        return this.addTagsToPublication(publicationId, aiTags).pipe(
+          map(savedTags => savedTags.length ? savedTags : normalizedTags),
+          catchError(error => {
+            console.error('❌ Error guardando tags IA en backend:', error);
+            return of(normalizedTags);
+          }),
+          tap(finalTags => this.updateCachedPublicationTags(publicationId, finalTags)),
+          map(finalTags => {
+            const enriched = { ...publication, tags: finalTags };
+            console.log('🤖 Tags IA generados/aplicados:', {
+              publicationId,
+              tags: finalTags.map(tag => tag.tag)
+            });
+            return enriched;
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('❌ Error obteniendo tags desde IA:', {
+          publicationId,
+          error
+        });
+        return of({ ...publication, tags: [] });
+      })
+    );
+  }
+
+  private normalizeAiTags(tags: string[]): NeedPublicationTag[] {
+    return tags
+      .map(tag => (tag || '').toString().trim())
+      .filter(tag => tag.length > 0)
+      .map((tag, index) => ({
+        id: Number(`${Date.now()}${index}`),
+        tag,
+        name: tag
+      }));
+  }
+
+  private hasImagesForAi(publication: NeedPublication): boolean {
+    const hasFileImages = Array.isArray(publication.files) && publication.files.some(file => file.type === 'image' && !!file.url);
+    const hasImageUrl = typeof publication.imageUrl === 'string' && publication.imageUrl.trim() !== '';
+    const hasImagesArray = Array.isArray(publication.images) && publication.images.some(img => !!img);
+    const imagePostArray = (publication as any)?.imagePost;
+    const hasImagePost = Array.isArray(imagePostArray) && imagePostArray.length > 0;
+
+    return hasFileImages || hasImageUrl || hasImagesArray || hasImagePost;
   }
 
   // ==================== MAPEO DE DATOS ====================
