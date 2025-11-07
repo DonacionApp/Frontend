@@ -184,15 +184,18 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
     const previousUserId = this.currentUser$.value.id;
     this.currentUser$.next(userInfo);
 
-    // Si el usuario ID cambió, recalcular los estados de like
-    if (previousUserId !== userInfo.id) {
-      console.log('🔄 Usuario cambió:', { anterior: previousUserId, nuevo: userInfo.id });
-      this.recalculateLikeStates(userInfo.id);
-    }
+    const userChanged = previousUserId !== userInfo.id;
 
     if (!this.hasInitialLoadTriggered) {
       this.hasInitialLoadTriggered = true;
       this.performInitialLoad(userInfo.role);
+      return;
+    }
+
+    if (userChanged) {
+      console.log('🔄 Usuario cambió:', { anterior: previousUserId, nuevo: userInfo.id });
+      this.recalculateLikeStates(userInfo.id);
+      this.loadPublications();
     }
   }
 

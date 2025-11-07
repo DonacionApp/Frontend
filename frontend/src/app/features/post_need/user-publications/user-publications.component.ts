@@ -144,21 +144,35 @@ export class UserPublicationsComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.donations = [];
 
-    this.donationService.getUserDonations(this.targetUserId).subscribe({
-      next: (donations: Donation[]) => {
-        this.donations = donations || [];
-        if (this.donations.length > 0 && this.donations[0].user) {
-          this.username = this.donations[0].user?.username || null;
+    this.donationService.getAllPublications()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (donations: Donation[]) => {
+          const filtered = (donations || []).filter(donation => {
+            const ownerA = donation.userId ? String(donation.userId) : null;
+            const ownerB = donation.user?.id ? String(donation.user.id) : null;
+            const target = String(this.targetUserId);
+            return ownerA === target || ownerB === target;
+          });
+
+          this.donations = filtered;
+          if (this.donations.length > 0 && this.donations[0].user) {
+            this.username = this.donations[0].user?.username || null;
+          }
+
+          if (this.donations.length === 0) {
+            this.errorMessage = '';
+          }
+
+          this.loading = false;
+        },
+        error: (error: any) => {
+          this.loading = false;
+          console.error('Error al cargar publicaciones del usuario:', error);
+          this.errorMessage = 'Error al cargar las publicaciones. Por favor intenta nuevamente.';
+          this.donations = [];
         }
-        this.loading = false;
-      },
-      error: (error: any) => {
-        this.loading = false;
-        console.error('Error al cargar publicaciones del usuario:', error);
-        this.errorMessage = 'Error al cargar las publicaciones. Por favor intenta nuevamente.';
-        this.donations = [];
-      }
-    });
+      });
   }
 
   onLikeToggled(event: { donationId: string; isLiked: boolean }): void {
@@ -176,28 +190,57 @@ export class UserPublicationsComponent implements OnInit, OnDestroy {
     const index = this.donations.findIndex(d => d.id === event.donationId);
     if (index === -1) return;
 
-    const donation = this.donations[index];
-    // Feedback inmediato: alternar solo el estado visual del corazón
-    donation.isLikedByCurrentUser = !event.isLiked;
+    const previousLiked = this.donations[index].isLikedByCurrentUser || false;
+    const previousCount = this.donations[index].likesCount || 0;
+    const newLikeState = !previousLiked;
+    const optimisticCount = Math.max(0, previousCount + (newLikeState ? 1 : -1));
 
-    // No bloquear desde frontend; dejar que backend valide duplicados
+    this.donations[index] = {
+      ...this.donations[index],
+      isLikedByCurrentUser: newLikeState,
+      likesCount: optimisticCount
+    } as Donation;
+    this.donations = [...this.donations];
 
-    this.donationService.toggleLike(event.donationId, event.isLiked).subscribe({
+    this.donationService.toggleLike(event.donationId, previousLiked).subscribe({
       next: (updatedDonation: Donation) => {
         const currentIndex = this.donations.findIndex(d => d.id === event.donationId);
         if (currentIndex !== -1 && updatedDonation) {
-          const existingDonation = this.donations[currentIndex];
           this.donations[currentIndex] = {
-            ...existingDonation,
-            likes: updatedDonation.likes || existingDonation.likes,
-            likesCount: updatedDonation.likesCount ?? existingDonation.likesCount ?? 0,
-            isLikedByCurrentUser: updatedDonation.isLikedByCurrentUser ?? existingDonation.isLikedByCurrentUser ?? existingDonation.isLikedByCurrentUser,
-            updatedAt: updatedDonation.updatedAt || existingDonation.updatedAt
-          };
+            ...this.donations[currentIndex],
+            likes: updatedDonation.likes || this.donations[currentIndex].likes,
+            likesCount: updatedDonation.likesCount ?? this.donations[currentIndex].likesCount ?? optimisticCount,
+            isLikedByCurrentUser: updatedDonation.isLikedByCurrentUser ?? newLikeState,
+            updatedAt: updatedDonation.updatedAt || this.donations[currentIndex].updatedAt
+          } as Donation;
+          this.donations = [...this.donations];
         }
       },
       error: (error: any) => {
         console.error('Error al actualizar like:', error);
+
+        const currentIndex = this.donations.findIndex(d => d.id === event.donationId);
+        if (currentIndex !== -1) {
+          const normalizedMessage = (error?.error?.message || error?.message || '').toString().toLowerCase();
+
+          if (error.status === 400 && normalizedMessage.includes('ya le ha dado like')) {
+            // Mantener like activo y contador sin forzar petición adicional
+            this.donations[currentIndex] = {
+              ...this.donations[currentIndex],
+              isLikedByCurrentUser: true,
+              likesCount: Math.max(previousCount, optimisticCount)
+            } as Donation;
+            this.donations = [...this.donations];
+            return;
+          }
+
+          this.donations[currentIndex] = {
+            ...this.donations[currentIndex],
+            isLikedByCurrentUser: previousLiked,
+            likesCount: previousCount
+          } as Donation;
+          this.donations = [...this.donations];
+        }
       }
     });
   }

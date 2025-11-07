@@ -2851,7 +2851,11 @@ export class NeedPublicationService {
     const params: string[] = [];
     
     if (filters.q) params.push(`q=${encodeURIComponent(filters.q)}`);
-    if (filters.community) params.push(`community=${encodeURIComponent(filters.community)}`);
+    if (filters.community) {
+      const normalized = encodeURIComponent(filters.community);
+      params.push(`community=${normalized}`);
+      params.push(`comunity=${normalized}`);
+    }
     if (filters.tagId) params.push(`tagId=${encodeURIComponent(filters.tagId)}`);
     if (filters.urgency) params.push(`urgency=${encodeURIComponent(filters.urgency)}`);
     

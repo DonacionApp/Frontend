@@ -72,9 +72,7 @@
         <!-- Footer with Likes -->
         <app-publication-footer
           [likesCount]="donation.likesCount || 0"
-          [isLiked]="donation.isLikedByCurrentUser || false"
           [donationId]="donation.id"
-          (onLikeToggle)="onLikeToggle()"
         ></app-publication-footer>
       </div>
     </div>
