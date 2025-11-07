@@ -142,6 +142,11 @@ export class NavComponent implements OnInit, OnDestroy {
     }
   }
 
+  onFeedNeedClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/donations/feed']);
+  }
+
   onLogoutClick(): void {
     this.closeMobileMenu();
     this.authService.logout();
