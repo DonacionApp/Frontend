@@ -78,7 +78,29 @@
               class="w-8 h-8 lg:w-10 lg:h-10 rounded-full mr-2 lg:mr-3 object-cover flex-shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-sm lg:text-base text-gray-900 truncate">{{ post.user.username }}</p>
+              <div class="flex items-center gap-1.5">
+                <p class="font-semibold text-sm lg:text-base text-gray-900 truncate">{{ post.user.username }}</p>
+                
+                <!-- Verified Badges -->
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <svg *ngIf="post.user.emailVerified" 
+                       class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-blue-500" 
+                       fill="currentColor" 
+                       viewBox="0 0 20 20"
+                       title="Email verificado">
+                    <path fill-rule="evenodd" d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" clip-rule="evenodd"></path>
+                    <path fill-rule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clip-rule="evenodd"></path>
+                  </svg>
+                  
+                  <svg *ngIf="post.user.verified" 
+                       class="w-4 h-4 lg:w-5 lg:h-5 text-green-500" 
+                       fill="currentColor" 
+                       viewBox="0 0 20 20"
+                       title="Usuario verificado">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
               <p class="text-xs text-gray-500">{{ post.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
             </div>
           </div>
