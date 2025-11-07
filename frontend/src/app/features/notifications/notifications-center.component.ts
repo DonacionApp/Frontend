@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
-import { Notify } from '../../shared/model/notification.model';
+import { Notify } from '../../shared/model/notification.model'; 
 import { Subject, takeUntil } from 'rxjs';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 

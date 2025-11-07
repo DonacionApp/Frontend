@@ -7,6 +7,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { DonorGuard } from './core/guards/donor.guard';
 import { OrganizationGuard } from './core/guards/organization.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { NotificationsCenterComponent } from './features/notifications/notifications-center.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -27,6 +28,9 @@ const routes: Routes = [
   { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
   { path: 'verify-email-token', component: VerifyEmailTokenComponent },
   { path: 'auth/verify/email-token', component: VerifyEmailTokenComponent }, // Ruta exacta del correo
+
+  // Ruta de notificaciones (protegida por autenticación)
+  { path: 'notifications', component: NotificationsCenterComponent, canActivate: [AuthGuard] },
   
   // Lazy loading para cada módulo de feature
   {
