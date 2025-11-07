@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, TypePost, FilterPostDTO } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
@@ -24,6 +24,7 @@ export class ListComponent implements OnInit, OnDestroy {
   
   selectedTypeId: number | null = null;
   searchTerm = '';
+  selectedTagName: string | null = null;
   
   cursor: number | null = null;
   limit = 10;
@@ -41,21 +42,29 @@ export class ListComponent implements OnInit, OnDestroy {
   constructor(
     private postsService: PostsService,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     this.loadTypePosts();
-    this.loadPosts();
     
-    // Verificar autenticación
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => {
+        this.selectedTagName = params['tag'] || null;
+        if (this.selectedTagName) {
+          this.filterPosts();
+        } else {
+          this.loadPosts();
+        }
+      });
+    
     this.isAuthenticated = this.authService.isAuthenticated();
     
-    // Obtener el ID del usuario actual
     const currentUser = this.authService.currentUserValue;
     this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
     
-    // Suscribirse a cambios en el usuario
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe((user) => {
@@ -118,7 +127,7 @@ export class ListComponent implements OnInit, OnDestroy {
   }
 
   filterPosts(): void {
-    if (!this.searchTerm && !this.selectedTypeId) {
+    if (!this.searchTerm && !this.selectedTypeId && !this.selectedTagName) {
       this.loadPosts();
       return;
     }
@@ -136,6 +145,10 @@ export class ListComponent implements OnInit, OnDestroy {
     
     if (this.selectedTypeId) {
       filters.typePost = this.selectedTypeId;
+    }
+
+    if (this.selectedTagName) {
+      filters.tags = [this.selectedTagName];
     }
     
     filters.orderBy = 'createdAt';
@@ -196,7 +209,21 @@ export class ListComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedTypeId = null;
+    this.selectedTagName = null;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {}
+    });
     this.loadPosts();
+  }
+
+  filterByTag(tagName: string): void {
+    this.selectedTagName = tagName;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tag: tagName }
+    });
+    this.filterPosts();
   }
 
   goToCreate(): void {
