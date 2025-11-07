@@ -93,8 +93,7 @@
               </span>
             </div>
 
-            <!-- Request Donation Button (only for "articulos para donar" and authenticated) -->
-            <div *ngIf="isAuthenticated && post.postArticle && post.postArticle.length > 0 && post.typePost?.type === 'articulos para donar'">
+            <div *ngIf="isAuthenticated && !isPostOwner(post) && post.postArticle && post.postArticle.length > 0 && post.typePost?.type === 'articulos para donar'">
               <button
                 (click)="requestDonation(post)"
                 class="flex items-center gap-1 px-2 lg:px-4 py-1.5 lg:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm hover:shadow-md text-xs lg:text-sm font-semibold whitespace-nowrap"

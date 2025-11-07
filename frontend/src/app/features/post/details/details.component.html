@@ -63,9 +63,8 @@
                 <span class="sm:hidden">{{ post.typePost.type.substring(0, 10) }}{{ post.typePost.type.length > 10 ? '...' : '' }}</span>
               </span>
 
-              <!-- Request Donation Button (inline for "articulos para donar") -->
               <button 
-                *ngIf="isAuthenticated && post.postArticle && post.postArticle.length > 0 && post.typePost.type === 'articulos para donar'"
+                *ngIf="isAuthenticated && !isPostOwner() && post.postArticle && post.postArticle.length > 0 && post.typePost.type === 'articulos para donar'"
                 (click)="requestDonation()"
                 class="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-1.5 lg:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md text-xs lg:text-sm font-semibold whitespace-nowrap"
               >
