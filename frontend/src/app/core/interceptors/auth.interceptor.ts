@@ -10,17 +10,32 @@ export class AuthInterceptor implements HttpInterceptor {
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Obtener el token desde localStorage
     const token = localStorage.getItem('accessToken');
-    
-    // Si hay token y la petición es hacia el backend
-    if (token && (req.url.includes('localhost:5000') || req.url.includes('/auth/') || req.url.includes('/api/'))) {
+
+    // Determinar si la solicitud es hacia el backend
+    // Solo enviar token a dominios/endpoints conocidos
+    const isBackendRequest =
+      req.url.includes('localhost:') ||     // localhost:5000, localhost:3000, etc
+      req.url.includes('api.') ||           // api.dominio.com
+      req.url.includes('/api/') ||          // /api/* endpoints
+      req.url.includes('/auth/');           // /auth/* endpoints
+
+    // Si hay token Y es una solicitud al backend, agregar el header Authorization
+    if (token && isBackendRequest) {
+      console.log('✅ Token encontrado:', token.substring(0, 20) + '... | Enviando a:', req.url);
+
       // Clonar la petición y agregar el header de autorización Bearer
       const clonedReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       return next.handle(clonedReq);
+    }
+
+    // Log para debugging si hay problema
+    if (!token && isBackendRequest) {
+      console.warn('⚠️ Solicitud al backend SIN token:', req.method, req.url);
     }
 
     return next.handle(req);
