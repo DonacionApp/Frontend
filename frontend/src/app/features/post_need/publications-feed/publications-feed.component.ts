@@ -589,6 +589,24 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
 
           const currentIndex = this.donations.findIndex(d => d.id === event.donationId);
           if (currentIndex !== -1) {
+            const normalizedMessage = (error?.error?.message || error?.message || '').toString().toLowerCase();
+
+            if (error.status === 400 && normalizedMessage.includes('ya le ha dado like')) {
+              console.warn('⚠️ Like duplicado detectado. Manteniendo el estado sincronizado con backend.');
+
+              const currentDonation = this.donations[currentIndex];
+              const ensuredCount = this.normalizeNumber(currentDonation.likesCount ?? previousCount);
+
+              this.donations[currentIndex] = {
+                ...currentDonation,
+                isLikedByCurrentUser: true,
+                likesCount: ensuredCount > 0 ? ensuredCount : Math.max(1, previousCount)
+              } as Donation;
+              this.donations = [...this.donations];
+
+              return;
+            }
+
             // Revertir al estado anterior si hay error
             console.warn('⏮️ Revirtiendo a estado anterior:', {
               donationId: event.donationId,
@@ -671,6 +689,9 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
             username: l?.user?.username || l?.username
           }))
         });
+      } else if (this.normalizeBoolean(donation.isLikedByCurrentUser) && this.normalizeNumber(donation.likesCount) > 0) {
+        // Si no hay lista pero hay bandera y contador, mantener estado previo como respaldo
+        isCurrentUserLiked = true;
       }
 
       return {
