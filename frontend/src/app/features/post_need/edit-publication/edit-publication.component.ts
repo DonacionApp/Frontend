@@ -285,22 +285,51 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
 
   private generateAiTagsFromImages(files: File[]): void {
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    if (imageFiles.length === 0) return;
+    if (imageFiles.length === 0) {
+      console.log('⚠️ generateAiTagsFromImages: No hay archivos de imagen para procesar');
+      return;
+    }
+
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🤖 EDIT PUBLICATION - INICIANDO GENERACIÓN DE TAGS CON IA');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📎 Archivos de imagen:', imageFiles.length);
+    console.log('📎 Nombres de archivos:', imageFiles.map(f => f.name));
+    console.log('📍 Publication ID:', this.publicationId);
+    console.log('═══════════════════════════════════════════════════════');
 
     this.loadingAiTags = true;
     this.aiService.getTagsFromImages(imageFiles, this.publicationId || '')
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe({
         next: (tags) => {
-          if (Array.isArray(tags)) {
+          console.log('═══════════════════════════════════════════════════════');
+          console.log('✅ EDIT PUBLICATION - TAGS GENERADOS POR IA');
+          console.log('═══════════════════════════════════════════════════════');
+          console.log('📋 Tags recibidos:', tags);
+          console.log('📊 Cantidad de tags:', Array.isArray(tags) ? tags.length : 0);
+          console.log('═══════════════════════════════════════════════════════');
+          
+          if (Array.isArray(tags) && tags.length > 0) {
             const uniqueSuggestions = [...new Set(tags.map(tag => (tag || '').trim()).filter(Boolean))];
             const newSuggestions = uniqueSuggestions.filter(tag => !this.isTagAlreadyAdded(tag) && !this.isTagAlreadySuggested(tag));
             this.aiSuggestedTags = [...this.aiSuggestedTags, ...newSuggestions];
+            console.log('✅ Tags sugeridos agregados:', newSuggestions);
+          } else {
+            console.warn('⚠️ No se recibieron tags válidos de la IA');
           }
           this.loadingAiTags = false;
         },
         error: (error) => {
-          console.error('AI tags error:', error);
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('❌ EDIT PUBLICATION - ERROR GENERANDO TAGS CON IA');
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('📋 Error completo:', error);
+          console.error('📋 Status:', error?.status);
+          console.error('📋 Status Text:', error?.statusText);
+          console.error('📋 Message:', error?.message);
+          console.error('📋 Error body:', error?.error);
+          console.error('═══════════════════════════════════════════════════════');
           this.loadingAiTags = false;
         }
       });

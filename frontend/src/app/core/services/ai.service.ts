@@ -31,9 +31,9 @@ export class AiService {
     this.baseUrl = `${apiBase}/ia`;
     this.endpointUrl = `${this.baseUrl}/tags-from-images`;
     this.tagsBaseUrl = `${apiBase}/tags`;
-    this.tagsCreateUrl = `${this.tagsBaseUrl}/create/`;  // POST /tags/create/
-    this.tagsSearchUrl = `${this.tagsBaseUrl}/name`;      // GET /tags/name/:tag (no existe /name/search)
-    this.tagsByNameUrl = `${this.tagsBaseUrl}/name`;      // GET /tags/name/:tag
+    this.tagsCreateUrl = `${this.tagsBaseUrl}/create`;  // POST /tags/create (sin barra al final)
+    this.tagsSearchUrl = `${this.tagsBaseUrl}/name/search`;  // GET /tags/name/search/{name}
+    this.tagsByNameUrl = `${this.tagsBaseUrl}/name/search`;  // GET /tags/name/search/{name}
     this.tagsByIdUrl = `${this.tagsBaseUrl}/id`;          // GET /tags/id/:id
     this.supportsPublicationTagsEndpoint = false;
     
@@ -91,8 +91,12 @@ export class AiService {
       ? `${this.endpointUrl}?publicationId=${publicationId}` 
       : this.endpointUrl;
 
-    console.log('🌐 Enviando petición a:', finalUrl);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🤖 AI SERVICE - GENERANDO TAGS DESDE IMÁGENES');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🌐 URL completa:', finalUrl);
     console.log('📦 FormData tiene', imageFiles.length, 'archivo(s) de imagen');
+    console.log('📎 Archivos:', imageFiles.map(f => ({ name: f.name, type: f.type, size: f.size })));
     console.log('🔍 Verificando endpoint:', {
       baseUrl: this.baseUrl,
       endpoint: '/tags-from-images',
@@ -100,6 +104,7 @@ export class AiService {
       publicationId: publicationId || 'no proporcionado',
       apiBackendUrl: environment.apiBackendUrl
     });
+    console.log('═══════════════════════════════════════════════════════');
 
     return this.http.post<string[]>(finalUrl, formData, {
       // No establecer Content-Type, dejar que el navegador lo haga automáticamente para FormData
@@ -107,21 +112,30 @@ export class AiService {
       timeout(60000), // 60 segundos de timeout para procesamiento de IA
       retry(1), // Reintentar una vez en caso de error
       tap(response => {
-        console.log('✅ Respuesta de IA recibida exitosamente');
-        console.log('📋 Tags generados:', response);
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('✅ AI SERVICE - RESPUESTA EXITOSA');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📋 Tags generados (raw):', response);
+        console.log('📊 Tipo de respuesta:', Array.isArray(response) ? 'array' : typeof response);
         console.log('📊 Cantidad de tags:', Array.isArray(response) ? response.length : 0);
+        if (Array.isArray(response) && response.length > 0) {
+          console.log('📋 Tags individuales:', response);
+        }
         if (publicationId) {
           console.log('💾 Las imágenes deberían estar guardadas en la BD para la publicación:', publicationId);
         }
+        console.log('═══════════════════════════════════════════════════════');
       }),
       catchError((error: HttpErrorResponse) => {
-        console.error('❌ Error en petición a IA');
+        console.error('═══════════════════════════════════════════════════════');
+        console.error('❌ AI SERVICE - ERROR EN PETICIÓN');
+        console.error('═══════════════════════════════════════════════════════');
         console.error('📋 Detalles del error:', {
           status: error.status,
           statusText: error.statusText,
           message: error.message,
           error: error.error,
-          url: this.endpointUrl,
+          url: finalUrl,
           endpoint: '/ia/tags-from-images',
           apiBackendUrl: environment.apiBackendUrl
         });
@@ -131,13 +145,28 @@ export class AiService {
           console.error('🔴 ERROR: No se pudo conectar al backend');
           console.error('💡 Verifica que el backend esté corriendo en:', environment.apiBackendUrl);
           console.error('💡 Verifica que el endpoint exista:', finalUrl);
+        } else if (error.status === 401) {
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('🔴 ERROR 401: No autorizado');
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('📍 El token de autenticación no es válido o ha expirado');
+          console.error('📍 Endpoint:', finalUrl);
+          console.error('📍 Token en localStorage:', localStorage.getItem('accessToken') ? 'Presente' : 'AUSENTE');
+          console.error('💡 SOLUCIÓN: Vuelve a hacer login para obtener un nuevo token');
+          console.error('💡 Ejecuta en la consola: localStorage.clear() y luego vuelve a iniciar sesión');
+          console.error('═══════════════════════════════════════════════════════');
         } else if (error.status === 404) {
           console.error('🔴 ERROR 404: Endpoint no encontrado');
           console.error('💡 Verifica que el endpoint esté disponible:', finalUrl);
+          console.error('💡 Verifica que el backend tenga el endpoint POST /ia/tags-from-images');
         } else if (error.status === 500) {
           console.error('🔴 ERROR 500: Error interno del servidor');
           console.error('💡 Revisa los logs del backend para más detalles');
+        } else {
+          console.error('🔴 ERROR:', error.status, error.statusText);
+          console.error('💡 Error completo:', error);
         }
+        console.error('═══════════════════════════════════════════════════════');
 
         // Retornar array vacío en lugar de lanzar error para no romper el flujo
         return of([]);
@@ -154,7 +183,7 @@ export class AiService {
     const payload = { tag: trimmed };
 
     console.log('═══════════════════════════════════════════════════════');
-    console.log('🏷️ AI SERVICE - POST /tags/create/');
+    console.log('🏷️ AI SERVICE - POST /tags/create');
     console.log('═══════════════════════════════════════════════════════');
     console.log('📍 Tag a crear:', trimmed);
     console.log('📍 URL:', this.tagsCreateUrl);
@@ -288,8 +317,8 @@ export class AiService {
       return of([]);
     }
 
-    // Endpoint correcto: GET /tags/name/:tag (no /tags/name/search/:tag)
-    const url = `${this.tagsByNameUrl}/${encodeURIComponent(trimmed)}`;
+    // Endpoint correcto: GET /tags/name/search/{name}
+    const url = `${this.tagsSearchUrl}/${encodeURIComponent(trimmed)}`;
 
     return this.http.get<any>(url).pipe(
       timeout(5000),
@@ -384,11 +413,11 @@ export class AiService {
       return of(null);
     }
 
-    // Endpoint: GET http://localhost:5000/tags/name/{tag} (tag es dinámico)
+    // Endpoint: GET http://localhost:5000/tags/name/search/{name}
     const url = `${this.tagsByNameUrl}/${encodeURIComponent(trimmed)}`;
 
     console.log('═══════════════════════════════════════════════════════');
-    console.log('🔍 AI SERVICE - GET /tags/name/{tag}');
+    console.log('🔍 AI SERVICE - GET /tags/name/search/{name}');
     console.log('═══════════════════════════════════════════════════════');
     console.log('📍 Nombre del tag:', trimmed);
     console.log('📍 URL completa:', url);
@@ -398,7 +427,7 @@ export class AiService {
     return this.http.get<any>(url).pipe(
       timeout(5000),
       tap(response => {
-        console.log('📥 GET /tags/name/{tag} - Respuesta recibida (raw):', {
+        console.log('📥 GET /tags/name/search/{name} - Respuesta recibida (raw):', {
           name: trimmed,
           url: url,
           responseType: typeof response,
@@ -408,7 +437,7 @@ export class AiService {
       }),
       map(response => {
         const normalized = this.normalizeTagResponse(response, trimmed);
-        console.log('✅ GET /tags/name/{tag} - Tag normalizado:', {
+        console.log('✅ GET /tags/name/search/{name} - Tag normalizado:', {
           name: trimmed,
           normalized
         });
@@ -416,12 +445,12 @@ export class AiService {
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
-          console.log('ℹ️ GET /tags/name/{tag} - Tag no encontrado (404):', {
+          console.log('ℹ️ GET /tags/name/search/{name} - Tag no encontrado (404):', {
             name: trimmed,
             url: url
           });
         } else {
-          console.warn('⚠️ GET /tags/name/{tag} - Error:', {
+          console.warn('⚠️ GET /tags/name/search/{name} - Error:', {
             name: trimmed,
             url: url,
             status: error.status,

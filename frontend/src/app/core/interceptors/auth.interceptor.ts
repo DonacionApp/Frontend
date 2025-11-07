@@ -18,17 +18,26 @@ export class AuthInterceptor implements HttpInterceptor {
       req.url.includes('api.') ||           // api.dominio.com
       req.url.includes('/api/') ||          // /api/* endpoints
       req.url.includes('/auth/') ||         // /auth/* endpoints
-      req.url.includes('/postliked/');      // /postliked/* endpoints para likes
+      req.url.includes('/ia/') ||           // /ia/* endpoints (IA para tags)
+      req.url.includes('/postliked/') ||    // /postliked/* endpoints para likes
+      req.url.includes('/posttags/') ||     // /posttags/* endpoints para tags
+      req.url.includes('/tags/') ||         // /tags/* endpoints para catálogo de tags
+      req.url.includes('/post/');           // /post/* endpoints para publicaciones
 
     // Si hay token Y es una solicitud al backend, agregar el header Authorization
     if (token && isBackendRequest) {
-      console.log('✅ Token encontrado:', token.substring(0, 20) + '... | Enviando a:', req.url);
-      console.log('📋 Request Details:', {
-        method: req.method,
-        url: req.url,
-        headers: req.headers.keys(),
-        body: req.body
-      });
+      // Log detallado solo para endpoints críticos (IA, tags, posttags)
+      const isCriticalEndpoint = req.url.includes('/ia/') || req.url.includes('/posttags/') || req.url.includes('/tags/');
+      
+      if (isCriticalEndpoint) {
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🔐 AUTH INTERCEPTOR - AGREGANDO TOKEN');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📍 URL:', req.url);
+        console.log('📍 Método:', req.method);
+        console.log('📍 Token presente:', token.substring(0, 20) + '...');
+        console.log('═══════════════════════════════════════════════════════');
+      }
 
       // Clonar la petición y agregar el header de autorización Bearer
       const clonedReq = req.clone({
@@ -37,16 +46,29 @@ export class AuthInterceptor implements HttpInterceptor {
         }
       });
 
-      console.log('🔐 Headers después de interceptor:', {
-        Authorization: clonedReq.headers.get('Authorization') ? 'Bearer ...' : 'MISSING'
-      });
+      if (isCriticalEndpoint) {
+        console.log('✅ Token agregado correctamente al header Authorization');
+        console.log('═══════════════════════════════════════════════════════');
+      }
 
       return next.handle(clonedReq);
     }
 
     // Log para debugging si hay problema
     if (!token && isBackendRequest) {
-      console.warn('⚠️ Solicitud al backend SIN token:', req.method, req.url);
+      const isCriticalEndpoint = req.url.includes('/ia/') || req.url.includes('/posttags/') || req.url.includes('/tags/');
+      if (isCriticalEndpoint) {
+        console.error('═══════════════════════════════════════════════════════');
+        console.error('⚠️ AUTH INTERCEPTOR - SOLICITUD SIN TOKEN');
+        console.error('═══════════════════════════════════════════════════════');
+        console.error('📍 URL:', req.url);
+        console.error('📍 Método:', req.method);
+        console.error('💡 El token no está presente en localStorage');
+        console.error('💡 Verifica que hayas iniciado sesión correctamente');
+        console.error('═══════════════════════════════════════════════════════');
+      } else {
+        console.warn('⚠️ Solicitud al backend SIN token:', req.method, req.url);
+      }
     }
 
     return next.handle(req);

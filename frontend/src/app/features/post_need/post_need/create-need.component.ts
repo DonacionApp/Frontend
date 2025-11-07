@@ -428,7 +428,17 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
 
   private processImagesForTags(): void {
     const imageFiles = this.selectedFiles.filter(f => f.type.startsWith('image/'));
-    if (imageFiles.length === 0) return;
+    if (imageFiles.length === 0) {
+      console.log('⚠️ processImagesForTags: No hay archivos de imagen para procesar');
+      return;
+    }
+
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🤖 INICIANDO GENERACIÓN DE TAGS CON IA');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📎 Archivos de imagen:', imageFiles.length);
+    console.log('📎 Nombres de archivos:', imageFiles.map(f => f.name));
+    console.log('═══════════════════════════════════════════════════════');
 
     this.loadingAiTags = true;
 
@@ -436,11 +446,35 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (tags) => {
+          console.log('═══════════════════════════════════════════════════════');
+          console.log('✅ TAGS GENERADOS POR IA - RESPUESTA RECIBIDA');
+          console.log('═══════════════════════════════════════════════════════');
+          console.log('📋 Tags recibidos:', tags);
+          console.log('📊 Cantidad de tags:', Array.isArray(tags) ? tags.length : 0);
+          console.log('📊 Tipo de respuesta:', Array.isArray(tags) ? 'array' : typeof tags);
+          console.log('═══════════════════════════════════════════════════════');
+          
           this.loadingAiTags = false;
-          this.addAiTagsToForm(tags || []);
+          
+          if (Array.isArray(tags) && tags.length > 0) {
+            this.addAiTagsToForm(tags);
+            console.log('✅ Tags agregados al formulario:', this.aiGeneratedTags);
+          } else {
+            console.warn('⚠️ No se recibieron tags válidos de la IA');
+            this.aiGeneratedTags = [];
+          }
         },
         error: (error) => {
-          console.error('Error generating AI tags:', error);
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('❌ ERROR GENERANDO TAGS CON IA');
+          console.error('═══════════════════════════════════════════════════════');
+          console.error('📋 Error completo:', error);
+          console.error('📋 Status:', error?.status);
+          console.error('📋 Status Text:', error?.statusText);
+          console.error('📋 Message:', error?.message);
+          console.error('📋 Error body:', error?.error);
+          console.error('═══════════════════════════════════════════════════════');
+          
           this.loadingAiTags = false;
           this.aiGeneratedTags = [];
         }
