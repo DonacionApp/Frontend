@@ -7,7 +7,7 @@ import { PostsService, Post, TypePost, FilterPostDTO, PostLiked } from '../../..
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../../core/services/auth.service';
-import Swal from 'sweetalert2';
+import { AlertService } from '../../../shared/services/alert.service';
 
 @Component({
   selector: 'app-list',
@@ -48,7 +48,8 @@ export class ListComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private viewportScroller: ViewportScroller
+    private viewportScroller: ViewportScroller,
+    private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
@@ -282,54 +283,52 @@ export class ListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/post/edit', post.id]);
   }
 
-  deletePost(post: Post): void {
+  async deletePost(post: Post): Promise<void> {
     this.closeDropdown();
     
-    Swal.fire({
+    const confirmed = await this.alertService.confirm({
       title: '¿Eliminar publicación?',
-      html: `¿Estás seguro de que deseas eliminar <strong>"${post.title}"</strong>?<br><br>Esta acción no se puede deshacer.`,
-      icon: 'warning',
+      message: `¿Estás seguro de que deseas eliminar <strong>"${post.title}"</strong>?<br><br>Esta acción no se puede deshacer.`,
+      type: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      reverseButtons: true
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          title: 'Eliminando...',
-          text: 'Por favor espera',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280'
+    });
+
+    if (confirmed) {
+      this.alertService.showLoading('Eliminando...', 'Por favor espera');
+
+      this.postsService.deletePost(post.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.posts = this.posts.filter(p => p.id !== post.id);
+            this.alertService.close();
+            
+            // Esperar un momento antes de mostrar el mensaje de éxito
+            setTimeout(async () => {
+              await this.alertService.success(
+                '¡Eliminado!',
+                'La publicación ha sido eliminada exitosamente.'
+              );
+            }, 300);
+          },
+          error: (err) => {
+            console.error('Error al eliminar el post:', err);
+            this.alertService.close();
+            
+            // Esperar un momento antes de mostrar el mensaje de error
+            setTimeout(async () => {
+              await this.alertService.error(
+                'Error',
+                'Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.'
+              );
+            }, 300);
           }
         });
-
-        this.postsService.deletePost(post.id)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: () => {
-              this.posts = this.posts.filter(p => p.id !== post.id);
-              Swal.fire({
-                title: '¡Eliminado!',
-                text: 'La publicación ha sido eliminada exitosamente.',
-                icon: 'success',
-                confirmButtonColor: '#22c55e'
-              });
-            },
-            error: (err) => {
-              console.error('Error al eliminar el post:', err);
-              Swal.fire({
-                title: 'Error',
-                text: 'Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.',
-                icon: 'error',
-                confirmButtonColor: '#dc2626'
-              });
-            }
-          });
-      }
-    });
+    }
   }
 
   toggleLike(post: Post): void {

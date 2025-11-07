@@ -6,7 +6,7 @@ import { PostsService, Post, PostLiked } from '../../../core/services/posts.serv
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
-import Swal from 'sweetalert2';
+import { AlertService } from '../../../shared/services/alert.service';
 
 @Component({
   selector: 'app-details',
@@ -42,7 +42,8 @@ export class DetailsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private postsService: PostsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
@@ -161,56 +162,53 @@ export class DetailsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/post/edit', this.post.id]);
   }
 
-  deletePost(): void {
+  async deletePost(): Promise<void> {
     if (!this.post) return;
     this.closeDropdown();
     
-    Swal.fire({
+    const confirmed = await this.alertService.confirm({
       title: '¿Eliminar publicación?',
-      html: `¿Estás seguro de que deseas eliminar <strong>"${this.post.title}"</strong>?<br><br>Esta acción no se puede deshacer.`,
-      icon: 'warning',
+      message: `¿Estás seguro de que deseas eliminar <strong>"${this.post.title}"</strong>?<br><br>Esta acción no se puede deshacer.`,
+      type: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      reverseButtons: true
-    }).then((result) => {
-      if (result.isConfirmed && this.post) {
-        Swal.fire({
-          title: 'Eliminando...',
-          text: 'Por favor espera',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280'
+    });
+
+    if (confirmed && this.post) {
+      this.alertService.showLoading('Eliminando...', 'Por favor espera');
+
+      this.postsService.deletePost(this.post.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: async () => {
+            this.alertService.close();
+            
+            // Esperar un momento antes de mostrar el éxito y redirigir
+            setTimeout(async () => {
+              await this.alertService.success(
+                '¡Eliminado!',
+                'La publicación ha sido eliminada exitosamente.'
+              );
+              this.router.navigate(['/post']);
+            }, 300);
+          },
+          error: (err) => {
+            console.error('Error al eliminar el post:', err);
+            this.alertService.close();
+            
+            // Esperar un momento antes de mostrar el error
+            setTimeout(async () => {
+              await this.alertService.error(
+                'Error',
+                'Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.'
+              );
+            }, 300);
           }
         });
-
-        this.postsService.deletePost(this.post.id)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: () => {
-              Swal.fire({
-                title: '¡Eliminado!',
-                text: 'La publicación ha sido eliminada exitosamente.',
-                icon: 'success',
-                confirmButtonColor: '#22c55e'
-              }).then(() => {
-                this.router.navigate(['/post']);
-              });
-            },
-            error: (err) => {
-              console.error('Error al eliminar el post:', err);
-              Swal.fire({
-                title: 'Error',
-                text: 'Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.',
-                icon: 'error',
-                confirmButtonColor: '#dc2626'
-              });
-            }
-          });
-      }
-    });
+    }
   }
 
   handleCreatePost(): void {
