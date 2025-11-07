@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { PostsService, Post } from '../../../core/services/posts.service';
+import { PostsService, Post, PostLiked } from '../../../core/services/posts.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
@@ -31,6 +31,11 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   // Dropdown menu
   showDropdown = false;
+
+  // Likes modal
+  showLikesModal = false;
+  usersWhoLiked: PostLiked[] = [];
+  loadingLikes = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -209,6 +214,31 @@ export class DetailsComponent implements OnInit, OnDestroy {
     } else if (event.key === 'Escape') {
       this.closeImageGallery();
     }
+  }
+
+  showUsersWhoLiked(postId: number): void {
+    this.loadingLikes = true;
+    this.showLikesModal = true;
+    this.usersWhoLiked = [];
+
+    this.postsService.getUsersLikePost(postId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (users) => {
+          this.usersWhoLiked = users;
+          this.loadingLikes = false;
+        },
+        error: (err) => {
+          console.error('Error loading users who liked:', err);
+          this.loadingLikes = false;
+          this.usersWhoLiked = [];
+        }
+      });
+  }
+
+  closeLikesModal(): void {
+    this.showLikesModal = false;
+    this.usersWhoLiked = [];
   }
 
   getTypeColor(typeName: string): string {

@@ -265,10 +265,13 @@
         <div class="px-3 lg:px-4 py-2 lg:py-3 border-t mt-3 lg:mt-4">
           <div class="flex items-center justify-between">
             
-            <!-- Likes Count -->
-            <span class="text-xs lg:text-sm text-gray-600">
+            <!-- Likes Count (clickeable) -->
+            <button 
+              (click)="showUsersWhoLiked(post.id)"
+              class="text-xs lg:text-sm text-gray-600 hover:text-gray-900 hover:underline cursor-pointer transition-colors"
+            >
               {{ post.likesCount }} {{ post.likesCount === 1 ? 'Me gusta' : 'Me gusta' }}
-            </span>
+            </button>
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 lg:gap-4">
@@ -405,6 +408,92 @@
         alt="Thumbnail"
         class="w-16 h-16 object-cover"
       />
+    </div>
+  </div>
+</div>
+
+<!-- Likes Modal -->
+<div *ngIf="showLikesModal" 
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+     (click)="closeLikesModal()">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden" 
+       (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b">
+      <h3 class="text-lg font-semibold text-gray-900">
+        Les gusta
+      </h3>
+      <button 
+        (click)="closeLikesModal()"
+        class="text-gray-400 hover:text-gray-600 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loadingLikes" class="p-8 text-center">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+      <p class="text-gray-600 mt-2 text-sm">Cargando...</p>
+    </div>
+
+    <!-- Users List -->
+    <div *ngIf="!loadingLikes" class="overflow-y-auto max-h-[60vh]">
+      <div *ngIf="usersWhoLiked.length === 0" class="p-8 text-center text-gray-500">
+        <svg class="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+        </svg>
+        <p>Nadie ha dado like aún</p>
+      </div>
+
+      <div *ngIf="usersWhoLiked.length > 0" class="divide-y">
+        <div *ngFor="let userLike of usersWhoLiked" 
+             class="p-4 hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <!-- Profile Photo -->
+            <img 
+              [src]="userLike.user.profilePhoto || 'assets/default-avatar.png'" 
+              [alt]="userLike.user.username"
+              class="w-12 h-12 rounded-full object-cover flex-shrink-0"
+            />
+            
+            <!-- User Info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <p class="font-semibold text-gray-900 truncate">
+                  {{ userLike.user.username }}
+                </p>
+                
+                <!-- Verified Badge -->
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <svg *ngIf="userLike.user.emailVerified" 
+                       class="w-4 h-4 text-blue-500" 
+                       fill="currentColor" 
+                       viewBox="0 0 20 20"
+                       title="Email verificado">
+                    <path fill-rule="evenodd" d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" clip-rule="evenodd"></path>
+                    <path fill-rule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clip-rule="evenodd"></path>
+                  </svg>
+                  
+                  <svg *ngIf="userLike.user.verified" 
+                       class="w-5 h-5 text-green-500" 
+                       fill="currentColor" 
+                       viewBox="0 0 20 20"
+                       title="Usuario verificado">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              <p class="text-xs text-gray-500 mt-0.5">
+                {{ userLike.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

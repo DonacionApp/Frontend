@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { ViewportScroller } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-import { PostsService, Post, TypePost, FilterPostDTO } from '../../../core/services/posts.service';
+import { PostsService, Post, TypePost, FilterPostDTO, PostLiked } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -37,6 +37,10 @@ export class ListComponent implements OnInit, OnDestroy {
 
   showDropdownId: number | null = null;
   currentUserId: number | null = null;
+
+  showLikesModal = false;
+  usersWhoLiked: PostLiked[] = [];
+  loadingLikes = false;
 
   constructor(
     private postsService: PostsService,
@@ -364,6 +368,31 @@ export class ListComponent implements OnInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
     this.onKeyDown(event);
+  }
+
+  showUsersWhoLiked(postId: number): void {
+    this.loadingLikes = true;
+    this.showLikesModal = true;
+    this.usersWhoLiked = [];
+
+    this.postsService.getUsersLikePost(postId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (users) => {
+          this.usersWhoLiked = users;
+          this.loadingLikes = false;
+        },
+        error: (err) => {
+          console.error('Error loading users who liked:', err);
+          this.loadingLikes = false;
+          this.usersWhoLiked = [];
+        }
+      });
+  }
+
+  closeLikesModal(): void {
+    this.showLikesModal = false;
+    this.usersWhoLiked = [];
   }
 
   getTypeColor(typeName: string): string {
