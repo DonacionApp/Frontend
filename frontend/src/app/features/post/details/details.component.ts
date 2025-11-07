@@ -162,11 +162,25 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   deletePost(): void {
     if (!this.post) return;
-    console.log('Eliminar post:', this.post.id);
     this.closeDropdown();
-    // TODO: Confirmar y eliminar
-    // const confirmDelete = confirm('¿Estás seguro de que deseas eliminar esta publicación?');
-    // if (confirmDelete) { ... }
+    
+    const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar la publicación "${this.post.title}"?\n\nEsta acción no se puede deshacer.`);
+    
+    if (confirmDelete) {
+      this.postsService.deletePost(this.post.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            console.log('Post eliminado exitosamente');
+            // Redirigir a la lista de posts después de eliminar
+            this.router.navigate(['/post']);
+          },
+          error: (err) => {
+            console.error('Error al eliminar el post:', err);
+            alert('Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.');
+          }
+        });
+    }
   }
 
   handleCreatePost(): void {

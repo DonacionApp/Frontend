@@ -282,8 +282,25 @@ export class ListComponent implements OnInit, OnDestroy {
   }
 
   deletePost(post: Post): void {
-    console.log('Eliminar post:', post.id);
     this.closeDropdown();
+    
+    const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar la publicación "${post.title}"?\n\nEsta acción no se puede deshacer.`);
+    
+    if (confirmDelete) {
+      this.postsService.deletePost(post.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            // Eliminar el post de la lista local
+            this.posts = this.posts.filter(p => p.id !== post.id);
+            console.log('Post eliminado exitosamente');
+          },
+          error: (err) => {
+            console.error('Error al eliminar el post:', err);
+            alert('Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.');
+          }
+        });
+    }
   }
 
   toggleLike(post: Post): void {
