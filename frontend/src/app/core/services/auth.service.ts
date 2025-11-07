@@ -198,7 +198,10 @@ export class AuthService {
    * Normalizar el rol del backend al formato del frontend
    */
   private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
-    const normalizedRol = roleName.toLowerCase();
+    const normalizedRol = roleName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
     if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') return 'donor';
     if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
     if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
