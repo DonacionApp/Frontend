@@ -56,22 +56,38 @@
                   
                   <!-- Verified Badges -->
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <svg *ngIf="post.user.emailVerified" 
-                         class="w-4 h-4 lg:w-5 lg:h-5 text-blue-500" 
-                         fill="currentColor" 
-                         viewBox="0 0 20 20"
-                         title="Email verificado">
-                      <path fill-rule="evenodd" d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" clip-rule="evenodd"></path>
-                      <path fill-rule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clip-rule="evenodd"></path>
-                    </svg>
+                    <!-- Email Verified Badge -->
+                    <div *ngIf="post.user.emailVerified" class="relative group">
+                      <svg class="w-4 h-4 lg:w-5 lg:h-5 text-blue-500 cursor-help" 
+                           fill="currentColor" 
+                           viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" clip-rule="evenodd"></path>
+                        <path fill-rule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clip-rule="evenodd"></path>
+                      </svg>
+                      <!-- Tooltip -->
+                      <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] shadow-lg">
+                        Email verificado
+                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-[3px]">
+                          <div class="border-[5px] border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <svg *ngIf="post.user.verified" 
-                         class="w-5 h-5 lg:w-6 lg:h-6 text-green-500" 
-                         fill="currentColor" 
-                         viewBox="0 0 20 20"
-                         title="Usuario verificado">
-                      <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
+                    <!-- User Verified Badge -->
+                    <div *ngIf="post.user.verified" class="relative group">
+                      <svg class="w-5 h-5 lg:w-6 lg:h-6 text-green-500 cursor-help" 
+                           fill="currentColor" 
+                           viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                      </svg>
+                      <!-- Tooltip -->
+                      <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] shadow-lg">
+                        Usuario verificado
+                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-[3px]">
+                          <div class="border-[5px] border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <p class="text-xs lg:text-sm text-gray-500">{{ post.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
