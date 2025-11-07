@@ -69,10 +69,11 @@ export class LoginComponent implements OnDestroy {
           
           console.log('🎯 Login exitoso, usuario:', user);
           console.log('🔍 firstLogin:', user?.firstLogin);
+          console.log('📄 isDocumentVerified:', user?.isDocumentVerified);
           
-          // Si es primera vez (firstLogin === true), redirigir al perfil para verificación
-          if (user?.firstLogin === true) {
-            console.log('✅ Primera sesión detectada, redirigiendo al perfil...');
+          // Si el usuario NO está verificado (isDocumentVerified === false), redirigir al perfil
+          if (user?.isDocumentVerified === false) {
+            console.log('⚠️ Usuario sin verificar, redirigiendo al perfil para subir documento...');
             if (user.role === 'organization') {
               this.router.navigate(['/organization/profile']);
             } else if (user.role === 'donor') {
