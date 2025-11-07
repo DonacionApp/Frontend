@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { ViewportScroller } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, TypePost, FilterPostDTO } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
@@ -41,7 +42,8 @@ export class ListComponent implements OnInit, OnDestroy {
     private postsService: PostsService,
     private router: Router,
     private authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private viewportScroller: ViewportScroller
   ) {}
 
   ngOnInit(): void {
@@ -115,6 +117,7 @@ export class ListComponent implements OnInit, OnDestroy {
           }
           
           this.isLoading = false;
+          this.restoreScrollPosition();
         },
         error: (err) => {
           console.error('Error loading posts:', err);
@@ -122,6 +125,21 @@ export class ListComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         }
       });
+  }
+
+  restoreScrollPosition(): void {
+    const savedPosition = sessionStorage.getItem('postListScrollPosition');
+    if (savedPosition) {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: parseInt(savedPosition, 10),
+            behavior: 'auto'
+          });
+          sessionStorage.removeItem('postListScrollPosition');
+        });
+      }, 300);
+    }
   }
 
   filterPosts(): void {
@@ -226,6 +244,11 @@ export class ListComponent implements OnInit, OnDestroy {
 
   goToCreate(): void {
     this.router.navigate(['/post/create']);
+  }
+
+  viewPostDetails(postId: number): void {
+    sessionStorage.setItem('postListScrollPosition', window.pageYOffset.toString());
+    this.router.navigate(['/post', postId]);
   }
 
   goToEdit(postId: number): void {
