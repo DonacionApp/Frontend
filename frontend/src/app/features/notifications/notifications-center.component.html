@@ -1,0 +1,229 @@
+<!-- Main Container -->
+<div class="min-h-screen bg-gray-50 flex flex-col">
+  <!-- Notifications Center Content -->
+  <div class="flex-1 max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 w-full">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 mb-4 md:mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <!-- Title and Icon -->
+        <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+          <div class="bg-green-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Centro de Notificaciones</h1>
+            <p class="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">Mantente al día con todas tus actualizaciones</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <!-- Permitir Notificaciones (Placeholder) -->
+          <button 
+            (click)="allowNotifications()"
+            class="flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Funcionalidad pendiente">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span class="hidden sm:inline">Permitir notificaciones</span>
+            <span class="sm:hidden">Permitir</span>
+          </button>
+
+          <!-- Marcar todas como leídas (Placeholder) -->
+          <button 
+            (click)="markAllAsRead()"
+            class="flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+            title="Funcionalidad pendiente">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span class="hidden sm:inline">Marcar todas como leídas</span>
+            <span class="sm:hidden">Leídas</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="bg-white rounded-xl shadow-sm p-3 sm:p-4 mb-3 sm:mb-4 animate-fade-in">
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input 
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+          placeholder="Buscar notificaciones..." 
+          class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 focus:shadow-md"
+          title="Buscar por mensaje de notificación">
+      </div>
+    </div>
+
+    <!-- Tabs Section -->
+    <div class="bg-white rounded-xl shadow-sm mb-4 sm:mb-6 overflow-hidden">
+      <div class="flex border-b border-gray-200">
+        <!-- Tab Todas -->
+        <button
+          (click)="setActiveTab('all')"
+          [class.bg-green-50]="activeTab === 'all'"
+          [class.text-green-600]="activeTab === 'all'"
+          [class.border-green-500]="activeTab === 'all'"
+          [class.text-gray-600]="activeTab !== 'all'"
+          class="flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-center border-b-2 font-medium text-xs sm:text-sm transition-all hover:bg-green-50">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 inline mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span class="hidden xs:inline">Todas ({{ allCount }})</span>
+            <span class="xs:hidden">Todas</span>
+        </button>
+
+        <!-- Tab No leídas (Placeholder - sin funcionalidad por ahora) -->
+        <button
+          (click)="setActiveTab('unread')"
+          [class.bg-green-50]="activeTab === 'unread'"
+          [class.text-green-600]="activeTab === 'unread'"
+          [class.border-green-500]="activeTab === 'unread'"
+          [class.text-gray-600]="activeTab !== 'unread'"
+          class="flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-center border-b-2 font-medium text-xs sm:text-sm transition-all hover:bg-green-50"
+          title="Por ahora no se puede determinar cuáles están sin leer">
+            <span class="hidden xs:inline">No leídas ({{ unreadCount }})</span>
+            <span class="xs:hidden">No leídas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="space-y-3">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="bg-white rounded-lg shadow-sm p-8 text-center">
+        <div class="flex flex-col items-center justify-center space-y-4">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+          <p class="text-gray-500">Cargando notificaciones...</p>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="hasError && !isLoading" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <svg class="w-12 h-12 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-red-700 font-medium">{{ errorMessage }}</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && !hasError && filteredNotifications.length === 0" class="bg-white rounded-lg shadow-sm p-12 text-center">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No tienes notificaciones</h3>
+        <p class="text-gray-500">Cuando recibas notificaciones, aparecerán aquí</p>
+      </div>
+
+      <!-- Notifications Items -->
+      <div *ngFor="let notification of filteredNotifications" 
+           [ngClass]="[getNotificationBorderColor(notification.type.type), getNotificationBgColor(notification.type.type)]"
+           class="rounded-lg shadow-sm border-l-4 p-3 sm:p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative animate-fade-in">
+        <div class="flex items-start space-x-2 sm:space-x-3">
+          <!-- Icon -->
+          <div class="flex-shrink-0 mt-0.5">
+            <div [ngClass]="getNotificationIconBg(notification.type.type)" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+              <!-- Icono dinámico según tipo (más sutiles) -->
+              <ng-container [ngSwitch]="notification.type.type.toLowerCase()">
+                <!-- Información - Check circle (sutil) -->
+                <svg *ngSwitchCase="'informacion'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <!-- Alerta - Bell (más sutil que triángulo) -->
+                <svg *ngSwitchCase="'alerta'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <!-- Recordatorio - Clock (sutil) -->
+                <svg *ngSwitchCase="'recordatorio'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <!-- Default - Circle dot -->
+                <svg *ngSwitchDefault [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <circle cx="10" cy="10" r="3"/>
+                </svg>
+              </ng-container>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 min-w-0 pr-16 sm:pr-20 md:pr-24">
+            <p class="text-xs sm:text-sm font-medium text-gray-900 mb-0.5 sm:mb-1 leading-relaxed line-clamp-2">
+              {{ notification.message }}
+            </p>
+            <p class="text-xs text-gray-500">
+              {{ getRelativeTime(notification.createdAt) }}
+            </p>
+          </div>
+
+          <!-- Notification Type Badge (se oculta en hover en desktop, siempre visible en móvil) -->
+          <div class="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 md:right-4 transition-all duration-300 md:group-hover:opacity-0 md:group-hover:translate-x-2">
+            <span [ngClass]="getNotificationBadgeColor(notification.type.type)" 
+                  class="inline-flex items-center px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap">
+              <!-- Mostrar solo primera letra en móvil, texto completo en tablet+ -->
+              <span class="sm:hidden">{{ notification.type.type.charAt(0).toUpperCase() }}</span>
+              <span class="hidden sm:inline">{{ notification.type.type }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions (visible on hover en desktop, ocultos en móvil para no afectar UX táctil) -->
+        <div class="hidden md:flex absolute top-1/2 -translate-y-1/2 right-3 md:right-4 items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+          <!-- Mark as read button (Placeholder) -->
+          <button 
+            (click)="markAsRead(notification.id)"
+            class="p-1.5 text-green-600 hover:bg-green-100 rounded-full transition-all duration-200 hover:scale-110"
+            title="Marcar como leída (funcionalidad pendiente)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </button>
+
+          <!-- Delete button -->
+          <button 
+            (click)="deleteNotification(notification.id, $event)"
+            class="p-1.5 text-red-600 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110"
+            title="Eliminar notificación">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Mobile Actions (visible siempre en móvil/tablet, como iconos pequeños) -->
+        <div class="md:hidden absolute bottom-2 right-2 flex items-center space-x-1">
+          <!-- Mark as read button (Placeholder) -->
+          <button 
+            (click)="markAsRead(notification.id)"
+            class="p-1 text-green-600 hover:bg-green-100 rounded-full transition-all duration-200"
+            title="Marcar como leída">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </button>
+
+          <!-- Delete button -->
+          <button 
+            (click)="deleteNotification(notification.id, $event)"
+            class="p-1 text-red-600 hover:bg-red-100 rounded-full transition-all duration-200"
+            title="Eliminar">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-footer></app-footer>
+</div>
