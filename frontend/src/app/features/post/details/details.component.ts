@@ -124,8 +124,9 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   requestDonation(): void {
     if (!this.post) return;
-    console.log('Solicitar donación para el post:', this.post.id);
-    alert(`Solicitud de donación para "${this.post.title}" registrada (funcionalidad en desarrollo)`);
+    this.router.navigate(['/organization/donations/create'], {
+      queryParams: { post: this.post.id }
+    });
   }
 
   toggleDropdown(): void {

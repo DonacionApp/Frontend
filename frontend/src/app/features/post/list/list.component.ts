@@ -30,12 +30,10 @@ export class ListComponent implements OnInit, OnDestroy {
   limit = 10;
   hasMore = true;
 
-  // Image gallery modal
   showImageModal = false;
   currentImages: string[] = [];
   currentImageIndex = 0;
 
-  // Dropdown state for owner actions
   showDropdownId: number | null = null;
   currentUserId: number | null = null;
 
@@ -238,7 +236,6 @@ export class ListComponent implements OnInit, OnDestroy {
     window.open(imageUrl, '_blank');
   }
 
-  // Dropdown methods for owner actions
   toggleDropdown(postId: number, event: Event): void {
     event.stopPropagation();
     this.showDropdownId = this.showDropdownId === postId ? null : postId;
@@ -261,7 +258,6 @@ export class ListComponent implements OnInit, OnDestroy {
   deletePost(post: Post): void {
     console.log('Eliminar post:', post.id);
     this.closeDropdown();
-    // TODO: Confirmation dialog and delete logic
   }
 
   toggleLike(post: Post): void {
@@ -293,10 +289,9 @@ export class ListComponent implements OnInit, OnDestroy {
   }
 
   requestDonation(post: Post): void {
-    // TODO: Implementar lógica de solicitud de donación
-    console.log('Solicitar donación para el post:', post.id);
-    // Por ahora solo muestra un mensaje en consola
-    alert(`Solicitud de donación para "${post.title}" registrada (funcionalidad en desarrollo)`);
+    this.router.navigate(['/organization/donations/create'], {
+      queryParams: { post: post.id }
+    });
   }
 
   openImageGallery(images: any[], index: number): void {
