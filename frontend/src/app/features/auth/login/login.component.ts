@@ -64,16 +64,32 @@ export class LoginComponent implements OnDestroy {
       this.auth.login(email, password).subscribe({
         next: (res) => {
           this.isSubmitting = false;
-          // Redirigir según rol (tomado desde AuthService -> currentUserValue)
+          // Obtener el usuario actual con toda la información
           const user = this.auth.currentUserValue;
-          if (user?.role === 'admin') {
-            this.router.navigate(['/admin']);
-          } else if (user?.role === 'organization') {
-            // Redirigir al perfil de organización
-            this.router.navigate(['/organization/profile']);
+          
+          console.log('🎯 Login exitoso, usuario:', user);
+          console.log('🔍 firstLogin:', user?.firstLogin);
+          
+          // Si es primera vez (firstLogin === true), redirigir al perfil para verificación
+          if (user?.firstLogin === true) {
+            console.log('✅ Primera sesión detectada, redirigiendo al perfil...');
+            if (user.role === 'organization') {
+              this.router.navigate(['/organization/profile']);
+            } else if (user.role === 'donor') {
+              this.router.navigate(['/donor/profile']);
+            } else if (user.role === 'admin') {
+              this.router.navigate(['/admin']);
+            }
           } else {
-            // Redirigir al perfil de donante (rol 'donor')
-            this.router.navigate(['/donor/profile']);
+            // Usuario ya verificado, redirigir al dashboard normal
+            console.log('✅ Usuario verificado, redirigiendo al dashboard...');
+            if (user?.role === 'admin') {
+              this.router.navigate(['/admin']);
+            } else if (user?.role === 'organization') {
+              this.router.navigate(['/organization/dashboard']);
+            } else {
+              this.router.navigate(['/donor/profile']);
+            }
           }
         },
         error: (err) => {

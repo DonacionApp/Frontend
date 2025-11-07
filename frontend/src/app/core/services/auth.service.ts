@@ -10,6 +10,8 @@ export interface User {
   role: 'donor' | 'organization' | 'admin';
   name: string;
   username?: string;
+  firstLogin?: boolean;
+  isDocumentVerified?: boolean;
 }
 
 @Injectable({
@@ -161,9 +163,13 @@ export class AuthService {
             id: payload?.sub || payload?.id || '',
             email: payload?.email || '',
             role: normalizedRole,
-            name: payload?.name || ''
+            name: payload?.name || '',
+            firstLogin: res.firstLogin || payload?.firstLogin || false,
+            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false
           };
           console.log('👤 Usuario final guardado:', user);
+          console.log('🎯 firstLogin:', user.firstLogin);
+          console.log('📄 isDocumentVerified:', user.isDocumentVerified);
           localStorage.setItem('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
         }
