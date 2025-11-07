@@ -1,0 +1,83 @@
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <!-- Loading State -->
+    <app-spinner *ngIf="loading"></app-spinner>
+
+    <!-- Error State -->
+    <app-error-message 
+      *ngIf="errorMessage" 
+      [message]="errorMessage"
+      (onAction)="onBack()"
+    ></app-error-message>
+
+    <!-- Main Content -->
+    <div *ngIf="!loading && donation" class="space-y-6">
+      <!-- Back Navigation -->
+      <app-back-button (onClick)="onBack()" label="Volver al feed"></app-back-button>
+
+      <!-- Publication Card -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Header Section -->
+        <app-publication-header
+          [profilePhotoUrl]="profilePhotoUrl"
+          [username]="username"
+          [createdAt]="donation.createdAt"
+          [donationType]="donation.donationType"
+          [tags]="donation.tags || null"
+          [isOwner]="isOwner"
+          (onEdit)="onEdit()"
+        ></app-publication-header>
+
+        <!-- Image Gallery Section -->
+        <app-image-gallery
+          *ngIf="imageGalleryItems.length > 0"
+          [images]="imageGalleryItems"
+          [selectedImage]="selectedImage"
+          (imageSelected)="onImageSelect($event)"
+        ></app-image-gallery>
+
+        <!-- Content Section -->
+        <div class="p-6 space-y-6">
+          <!-- Description -->
+          <app-publication-description
+            *ngIf="donation.description || donation.message"
+            [description]="donation.description || donation.message"
+          ></app-publication-description>
+
+          <!-- Articles List -->
+          <app-articles-list
+            *ngIf="donation.articles && donation.articles.length > 0"
+            [articles]="donation.articles"
+          ></app-articles-list>
+
+          <!-- Comments Section -->
+          <app-comments-section
+            *ngIf="donation.comments && donation.comments.length > 0"
+            [comments]="donation.comments"
+          ></app-comments-section>
+
+          <!-- Videos Section -->
+          <app-videos-section
+            *ngIf="getVideos().length > 0"
+            [videos]="getVideos()"
+          ></app-videos-section>
+
+          <!-- PDFs Section -->
+          <app-pdfs-section
+            *ngIf="getPdfs().length > 0"
+            [pdfs]="getPdfs()"
+          ></app-pdfs-section>
+        </div>
+
+        <!-- Footer with Likes -->
+        <app-publication-footer
+          [likesCount]="donation.likesCount || 0"
+          [isLiked]="donation.isLikedByCurrentUser || false"
+          [donationId]="donation.id"
+          (onLikeToggle)="onLikeToggle()"
+        ></app-publication-footer>
+      </div>
+    </div>
+  </div>
+</div>
+

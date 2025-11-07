@@ -1,0 +1,296 @@
+<div class="min-h-screen bg-gray-50 py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-3xl mx-auto">
+    <!-- Loading State -->
+    <div *ngIf="loadingPublication" class="flex items-center justify-center min-h-96">
+      <div class="text-center">
+        <svg class="animate-spin h-12 w-12 text-emerald-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600">Cargando publicación...</p>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <ng-container *ngIf="!loadingPublication">
+      <!-- Header -->
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+          Editar Publicación
+        </h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600">
+          Modifica los datos de tu publicación de necesidad
+        </p>
+      </div>
+
+      <!-- Messages -->
+      <div *ngIf="successMessage" class="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+        <p class="text-sm font-medium text-green-800">{{ successMessage }}</p>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-sm font-medium text-red-800 whitespace-pre-line">{{ errorMessage }}</p>
+      </div>
+
+      <!-- Form -->
+      <form [formGroup]="publicationForm" (ngSubmit)="onSubmit()" class="space-y-4 sm:space-y-6">
+        <!-- Basic Information Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Información Básica</h2>
+          </div>
+
+          <div class="p-4 sm:p-6 space-y-5 sm:space-y-6">
+            <!-- Organization (Read-only) -->
+            <div>
+              <p class="text-sm text-gray-600">
+                <span class="font-medium">Organización:</span> {{ organizationName }}
+              </p>
+            </div>
+
+            <!-- Title Field -->
+            <div>
+              <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                Título <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="title"
+                formControlName="title"
+                placeholder="Ej: Necesitamos alimentos no perecederos para familias vulnerables"
+                maxlength="100"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                [class.border-red-500]="hasError('title')"
+              />
+              <p *ngIf="hasError('title')" class="mt-1 text-sm text-red-600">
+                {{ getErrorMessage('title') }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ publicationForm.get('title')?.value?.length || 0 }}/100 caracteres
+              </p>
+            </div>
+
+            <!-- Description Field -->
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                Descripción Detallada <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                id="description"
+                formControlName="description"
+                rows="5"
+                placeholder="Describe específicamente lo que necesitas, para quién es, en qué condiciones, etc..."
+                maxlength="1000"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none transition-colors"
+                [class.border-red-500]="hasError('description')"
+              ></textarea>
+              <p *ngIf="hasError('description')" class="mt-1 text-sm text-red-600">
+                {{ getErrorMessage('description') }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500">
+                {{ publicationForm.get('description')?.value?.length || 0 }}/1000 caracteres
+              </p>
+            </div>
+
+            <!-- Type Post Field -->
+            <div>
+              <label for="typePostId" class="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Post <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="typePostId"
+                formControlName="typePostId"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                [class.border-red-500]="hasError('typePostId')"
+                [class.opacity-50]="loadingTypes"
+                [disabled]="loadingTypes"
+              >
+                <option value="">
+                  {{ loadingTypes ? 'Cargando tipos de post...' : 'Selecciona tipo de post' }}
+                </option>
+                <option *ngFor="let type of donationTypes" [value]="type.id">
+                  {{ type.name }}
+                </option>
+              </select>
+              <p *ngIf="hasError('typePostId')" class="mt-1 text-sm text-red-600">
+                {{ getErrorMessage('typePostId') }}
+              </p>
+            </div>
+
+            <!-- AI Tags Section -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Etiquetas generadas por IA
+              </label>
+
+              <!-- AI Loading Indicator -->
+              <div *ngIf="loadingAiTags" class="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center space-x-2">
+                <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm text-blue-700">Generando etiquetas con IA...</span>
+              </div>
+
+              <!-- AI Tags Display -->
+              <div *ngIf="aiGeneratedTags.length > 0 && !loadingAiTags" class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    *ngFor="let tag of aiGeneratedTags; let idx = index"
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"
+                  >
+                    {{ tag }}
+                    <button type="button" class="text-purple-700 hover:text-purple-900" (click)="removeAiTag(tag)" aria-label="Eliminar etiqueta">
+                      ✕
+                    </button>
+                  </span>
+                </div>
+              </div>
+
+              <!-- No Tags Message -->
+              <div *ngIf="!loadingAiTags && aiGeneratedTags.length === 0" class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p class="text-xs text-gray-600 mb-1">
+                  <strong>Nota:</strong> Las etiquetas se generan automáticamente cuando subes imágenes.
+                </p>
+                <p class="text-xs text-gray-500">
+                  Sube una o más imágenes para generar etiquetas automáticamente con IA.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Images Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Imágenes</h2>
+          </div>
+
+          <div class="p-4 sm:p-6 space-y-5 sm:space-y-6">
+            <p class="text-xs text-gray-500">
+              Máximo 5 imágenes totales. Tamaño máximo: 5MB por imagen. Las imágenes se procesarán con IA para generar etiquetas automáticamente.
+            </p>
+
+            <!-- File Upload Button -->
+            <div>
+              <label
+                for="fileInput"
+                class="inline-flex items-center px-4 py-2 border border-emerald-300 rounded-lg shadow-sm text-sm font-medium text-emerald-700 bg-white hover:bg-emerald-50 cursor-pointer transition-colors"
+                [attr.aria-disabled]="existingImages.length + selectedFiles.length >= 5"
+              >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Seleccionar imágenes
+              </label>
+              <input
+                id="fileInput"
+                type="file"
+                multiple
+                accept="image/*"
+                (change)="onFileSelected($event)"
+                [disabled]="existingImages.length + selectedFiles.length >= 5"
+                class="hidden"
+                #fileInput
+              />
+            </div>
+
+            <!-- File Errors -->
+            <div *ngIf="fileErrors.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p class="text-sm font-medium text-red-800 mb-1">Errores de validación:</p>
+              <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                <li *ngFor="let error of fileErrors">{{ error }}</li>
+              </ul>
+            </div>
+
+            <!-- Existing Images -->
+            <div *ngIf="existingImages.length > 0" class="space-y-2">
+              <p class="text-sm font-medium text-gray-700">
+                Imágenes existentes ({{ existingImages.length }}):
+              </p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div
+                  *ngFor="let img of existingImages; let i = index"
+                  class="relative group"
+                >
+                  <img
+                    [src]="img.url"
+                    [alt]="img.name || 'Imagen existente'"
+                    class="w-full h-32 object-cover rounded-lg border border-gray-200"
+                    (error)="onImageError($event)"
+                  />
+                  <button
+                    type="button"
+                    (click)="removeExistingImage(i)"
+                    class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Eliminar imagen"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- New Selected Images -->
+            <div *ngIf="selectedFiles.length > 0" class="space-y-2">
+              <p class="text-sm font-medium text-gray-700">
+                Nuevas imágenes seleccionadas ({{ selectedFiles.length }}/{{ 5 - existingImages.length }}):
+              </p>
+              <div class="space-y-2">
+                <div
+                  *ngFor="let file of selectedFiles; let i = index"
+                  class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                >
+                  <div class="flex items-center space-x-3 flex-1 min-w-0">
+                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 truncate">{{ file.name }}</p>
+                      <p class="text-xs text-gray-500">{{ (file.size / 1024).toFixed(2) }} KB</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeFile(i)"
+                    class="ml-3 text-red-600 hover:text-red-800 transition-colors"
+                    aria-label="Eliminar archivo"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+          <button
+            type="button"
+            (click)="onCancel()"
+            [disabled]="loading"
+            class="w-full sm:flex-1 px-6 py-3 bg-white border-2 border-emerald-600 text-emerald-700 rounded-lg hover:bg-emerald-50 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="loading || publicationForm.invalid"
+            class="w-full sm:flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            <svg *ngIf="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    </ng-container>
+  </div>
+</div>

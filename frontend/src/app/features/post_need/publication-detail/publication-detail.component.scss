@@ -1,0 +1,10 @@
+// Smooth transitions
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+// Prevent transition on specific elements
+img, video {
+  transition: none;
+}
+
