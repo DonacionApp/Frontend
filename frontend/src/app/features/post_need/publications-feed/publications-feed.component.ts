@@ -446,6 +446,19 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
     this.donations = donations || [];
     this.setLoadingState(false);
 
+    // Log para verificar tags
+    console.log('📋 Publications Feed - Publicaciones cargadas:', {
+      total: this.donations.length,
+      publicationsWithTags: this.donations.filter(d => d.tags && d.tags.length > 0).length,
+      tagsDetails: this.donations
+        .filter(d => d.tags && d.tags.length > 0)
+        .map(d => ({
+          id: d.id,
+          tagsCount: d.tags?.length || 0,
+          tags: d.tags?.map(t => ({ id: t.id, tag: t.tag || t.name })) || []
+        }))
+    });
+
     // Recalcular estados de like basándose en el usuario actual
     const currentUserId = this.currentUser$.value.id;
     if (currentUserId) {
@@ -463,10 +476,45 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
    */
   private handleLoadError(error: any): void {
     this.setLoadingState(false);
-    // Si el backend responde 404/204 u otro indicador de "no hay datos",
-    // mostrar estado vacío en lugar de error.
     const status = error?.status;
     const message = (error?.error?.message || error?.message || '').toString().toLowerCase();
+    
+    console.error('❌ Error al cargar publicaciones:', {
+      status,
+      statusText: error?.statusText,
+      message: error?.message,
+      error: error?.error,
+      url: error?.url
+    });
+
+    // Manejar error 403 (Forbidden) - Token inválido o sin permisos
+    if (status === 403) {
+      console.warn('⚠️ Error 403: Acceso denegado. Verificando autenticación...');
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        this.setError('Debes iniciar sesión para ver las publicaciones.');
+        // Opcional: redirigir al login
+        // this.router.navigate(['/auth/login']);
+      } else {
+        this.setError('No tienes permisos para acceder a este recurso. Por favor, verifica tu sesión.');
+      }
+      this.donations = [];
+      return;
+    }
+
+    // Manejar error 401 (Unauthorized) - Token expirado
+    if (status === 401) {
+      console.warn('⚠️ Error 401: No autorizado. Token posiblemente expirado.');
+      this.setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      this.donations = [];
+      // Opcional: limpiar token y redirigir al login
+      // localStorage.removeItem('accessToken');
+      // this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    // Si el backend responde 404/204 u otro indicador de "no hay datos",
+    // mostrar estado vacío en lugar de error.
     const isEmptyResponse = status === 404 || status === 204 || message.includes('no data') || message.includes('not found');
 
     this.donations = [];
@@ -475,7 +523,7 @@ export class PublicationsFeedComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Errores reales: red, 5xx, auth, etc.
+    // Errores reales: red, 5xx, etc.
     this.setError('Error al cargar las publicaciones. Por favor intenta nuevamente.');
   }
 

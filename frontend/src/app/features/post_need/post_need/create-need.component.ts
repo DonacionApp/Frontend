@@ -727,20 +727,28 @@ export class CreateNeedComponent implements OnInit, OnDestroy {
       .map(c => c.value?.trim())
       .filter((tag): tag is string => !!tag && tag.length > 0);
 
+    // Extraer tags generados por IA que fueron agregados
+    const aiTags = Array.from(this.aiGeneratedTagsMap.values())
+      .map(tag => tag?.trim())
+      .filter((tag): tag is string => !!tag && tag.length > 0);
+
     console.log('🏷️ handleTagsForNewPublication:', {
       publicationId: publicationIdStr,
       manualTags: manualTags,
-      aiGeneratedTags: Array.from(this.aiGeneratedTagsMap.values()),
-      totalTags: manualTags.length
+      aiGeneratedTags: aiTags,
+      totalManualTags: manualTags.length,
+      totalAiTags: aiTags.length
     });
 
-    const uniqueTags = [...new Set(manualTags.map(tag => tag.trim()).filter(tag => !!tag))];
+    // Combinar tags manuales y de IA, eliminar duplicados
+    const allTags = [...manualTags, ...aiTags];
+    const uniqueTags = [...new Set(allTags.map(tag => tag.trim()).filter(tag => !!tag))];
 
     if (uniqueTags.length > 0) {
-      console.log('💾 Guardando tags finales:', uniqueTags);
+      console.log('💾 Guardando tags finales (manuales + IA):', uniqueTags);
       this.addTagsToPublication(publicationIdStr, uniqueTags);
     } else {
-      console.log('⚠️ No hay tags para guardar');
+      console.log('⚠️ No hay tags para guardar (ni manuales ni de IA)');
     }
   }
 

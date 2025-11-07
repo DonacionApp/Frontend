@@ -117,17 +117,22 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
     this.calculateDaysRemaining();
     this.setUrgencyClass();
     
+    // Log para verificar tags
+    console.log('🏷️ Publication Detail - Tags recibidos:', {
+      publicationId: donation.id,
+      hasTags: !!donation.tags,
+      tagsCount: donation.tags?.length || 0,
+      tags: donation.tags?.map(t => ({ id: t.id, tag: t.tag || t.name })) || []
+    });
+    
     // Obtener imágenes y establecer la primera como seleccionada
     this.imageGalleryItems = this.getImages();
-    console.log('🖼️ Imágenes obtenidas:', this.imageGalleryItems);
     
     // Establecer la primera imagen como seleccionada solo si es válida
     const firstImage = this.imageGalleryItems[0];
     if (firstImage && firstImage.url && firstImage.url.trim() !== '') {
       this.selectedImage = firstImage.url;
-      console.log('✅ Imagen seleccionada:', this.selectedImage);
     } else {
-      console.warn('⚠️ No se encontró una imagen válida para seleccionar');
       this.selectedImage = null;
     }
     
@@ -226,17 +231,6 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
       return `${base}${path}`;
     };
 
-    // Log para debugging
-    console.log('🔍 Buscando imágenes en donation:', {
-      hasFiles: !!this.donation?.files,
-      filesCount: this.donation?.files?.length || 0,
-      hasImageUrl: !!this.donation?.imageUrl,
-      hasImages: !!this.donation?.images,
-      imagesType: Array.isArray(this.donation?.images) ? 'array' : typeof this.donation?.images,
-      hasImagePost: !!(this.donation as any)?.imagePost,
-      donationKeys: this.donation ? Object.keys(this.donation) : []
-    });
-
     // PRIORIDAD 1: imagePost (imágenes realmente subidas por el usuario)
     const imagePostArr: Array<any> = Array.isArray((this.donation as any)?.imagePost) ? (this.donation as any).imagePost : [];
     const fromImagePost = imagePostArr
@@ -248,10 +242,6 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
 
     // Si hay imágenes en imagePost, devolver solo esas (no duplicar con otras fuentes)
     if (fromImagePost.length > 0) {
-      console.log('📊 Imágenes encontradas (desde imagePost - PRIORIDAD 1):', {
-        total: fromImagePost.length,
-        urls: fromImagePost.map(img => img.url)
-      });
       return fromImagePost;
     }
 
@@ -266,10 +256,6 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
     }).filter((x): x is { url: string; name: string } => !!x) || [];
 
     if (fromFiles.length > 0) {
-      console.log('📊 Imágenes encontradas (desde files - PRIORIDAD 2):', {
-        total: fromFiles.length,
-        urls: fromFiles.map(img => img.url)
-      });
       return fromFiles;
     }
 
@@ -283,10 +269,6 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
     })() : [];
 
     if (fromImageUrl.length > 0) {
-      console.log('📊 Imágenes encontradas (desde imageUrl - PRIORIDAD 3):', {
-        total: fromImageUrl.length,
-        urls: fromImageUrl.map(img => img.url)
-      });
       return fromImageUrl;
     }
 
@@ -299,11 +281,6 @@ export class PublicationDetailComponent implements OnInit, OnDestroy {
         return url ? { url, name: `imagen-${idx + 1}` } : null;
       })
       .filter((x): x is { url: string; name: string } => !!x);
-
-    console.log('📊 Imágenes encontradas (desde images array - PRIORIDAD 4):', {
-      total: fromStringArray.length,
-      urls: fromStringArray.map(img => img.url)
-    });
 
     return fromStringArray;
   }

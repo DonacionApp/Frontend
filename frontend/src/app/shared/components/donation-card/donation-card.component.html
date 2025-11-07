@@ -59,13 +59,24 @@
     </div>
     
     <!-- Tags generadas por IA estilo Facebook -->
-    <div *ngIf="donation.tags && donation.tags.length > 0" class="mb-3 flex flex-wrap gap-1.5">
-      <span 
-        *ngFor="let tag of donation.tags" 
-        class="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors cursor-pointer"
-      >
-        #{{ tag.tag || tag.name || tag }}
-      </span>
+    <div *ngIf="tags && tags.length > 0" class="mb-3">
+      <p class="text-xs uppercase font-semibold text-gray-500 mb-2 tracking-wide flex items-center gap-1">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
+          <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
+        </svg>
+        Etiquetas destacadas ({{ tags.length }})
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <span 
+          *ngFor="let tag of tags; let idx = index" 
+          [ngClass]="getTagBadgeClass(idx)"
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 hover:scale-105 shadow-sm"
+        >
+          <span class="text-base">{{ getTagEmoji(idx) }}</span>
+          <span>#{{ tag.tag || tag.name || tag }}</span>
+        </span>
+      </div>
     </div>
 
     <!-- Imagen principal estilo Facebook -->

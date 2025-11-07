@@ -101,7 +101,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
     // Intentar verificar caché después de 100ms
     const cacheCheckId = setTimeout(() => {
       if (this.imageLoading && this.currentImage) {
-        console.log('🔍 Verificando caché de imagen...');
         this.checkImageCache(this.currentImage);
       }
     }, 100);
@@ -110,7 +109,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
     this.loadTimeoutId = setTimeout(() => {
       clearTimeout(cacheCheckId);
       if (this.imageLoading) {
-        console.warn('⏱️ Timeout de carga de imagen alcanzado después de 10s');
         this.imageLoading = false;
         this.imageError = true;
       }
@@ -124,7 +122,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
       this.imageLoading = true;
       this.imageError = false;
       this.startLoadingWatchdog();
-      console.log('🚀 Inicializando galería con imagen:', this.currentImage);
     } else {
       this.imageLoading = false;
     }
@@ -139,7 +136,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
       this.imageLoading = true;
       this.imageError = false;
       this.startLoadingWatchdog();
-      console.log('🔄 Imágenes recibidas por primera vez:', this.images.length);
     }
 
     // Reset loading state SOLO si la URL de imagen actual cambió
@@ -151,7 +147,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
           this.imageLoading = true;
           this.imageError = false;
           this.startLoadingWatchdog();
-          console.log('🔄 Cambiando imagen seleccionada:', newImage);
         }
       }
     }
@@ -163,18 +158,12 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
         this.imageLoading = true;
         this.imageError = false;
         this.startLoadingWatchdog();
-        console.log('🔄 Cambiando array de imágenes - Nueva URL:', currentImageUrl);
       }
     }
   }
 
   get currentImage(): string {
     const image = this.selectedImage || (this.images.length > 0 ? this.images[0].url : '');
-    if (image) {
-      console.log('🖼️ Imagen actual para mostrar:', image);
-    } else {
-      console.warn('⚠️ No hay imagen disponible para mostrar');
-    }
     return image;
   }
 
@@ -196,7 +185,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
   }
 
   onImageLoad(): void {
-    console.log('✅ Imagen cargada exitosamente');
     this.imageLoading = false;
     this.imageError = false;
     if (this.loadTimeoutId) {
@@ -210,7 +198,6 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
     const img = new Image();
     img.onload = () => {
       // Si la imagen se carga rápidamente desde caché, marcar como cargada
-      console.log('✅ Imagen detectada en caché');
       this.imageLoading = false;
       this.imageError = false;
       if (this.loadTimeoutId) {
@@ -220,20 +207,12 @@ export class ImageGalleryComponent implements OnInit, OnChanges {
     };
     img.onerror = () => {
       // Si hay error al precargar, lo manejará el evento error del <img>
-      console.warn('⚠️ Error al verificar caché de imagen');
     };
     img.src = imageSrc;
   }
 
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
-    console.error('❌ Error cargando imagen:', {
-      src: img.src,
-      currentSrc: img.currentSrc,
-      naturalWidth: img.naturalWidth,
-      naturalHeight: img.naturalHeight,
-      complete: img.complete
-    });
     this.imageLoading = false;
     this.imageError = true;
     // Hide the broken image

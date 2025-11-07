@@ -56,7 +56,7 @@ import { CommonModule } from '@angular/common';
             class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 cursor-default shadow-sm hover:shadow-md"
           >
             <span class="mr-2 text-lg">{{ getTagEmoji(idx) }}</span>
-            {{ tag.tag }}
+            {{ tag.tag || tag.name || tag }}
           </span>
         </div>
       </div>
@@ -68,7 +68,7 @@ export class PublicationHeaderComponent {
   @Input() username: string = '';
   @Input() createdAt: string = '';
   @Input() donationType: any;
-  @Input() tags: Array<{ id: number; tag: string; description?: string }> | null = null;
+  @Input() tags: Array<{ id: number; tag?: string; name?: string; description?: string }> | null = null;
   @Input() isOwner: boolean = false;
   @Output() onEdit = new EventEmitter<void>();
 

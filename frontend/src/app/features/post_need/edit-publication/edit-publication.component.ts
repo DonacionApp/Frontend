@@ -323,7 +323,7 @@ export class EditPublicationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.aiService.createTag(tag, this.publicationId || undefined)
+    this.aiService.createTag(tag)
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe({
         next: (createdTag) => {

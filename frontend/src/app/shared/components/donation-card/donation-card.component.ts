@@ -30,6 +30,19 @@ export class DonationCardComponent {
   isLikeLoading = false;
   duplicateLikeMessage: string | null = null;
 
+  private readonly tagColorClasses: string[] = [
+    'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-100',
+    'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100',
+    'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-100',
+    'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-100',
+    'bg-gradient-to-r from-rose-50 to-red-50 text-rose-700 border border-rose-100',
+    'bg-gradient-to-r from-lime-50 to-green-50 text-lime-700 border border-lime-100',
+    'bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-700 border border-sky-100',
+    'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700 border border-violet-100'
+  ];
+
+  private readonly tagEmojis: string[] = ['🏷️', '💡', '🎯', '🌟', '🚀', '✨', '🎁', '📌'];
+
   constructor(
     @Inject(DonationService) private donationService: DonationService,
     private router: Router
@@ -120,6 +133,19 @@ export class DonationCardComponent {
     return this.donation.user?.username || 'Usuario';
   }
 
+  get tags(): Array<{ id: number; tag?: string; name?: string }> {
+    const tags = this.donation?.tags || [];
+    return tags;
+  }
+
+  getTagBadgeClass(index: number): string {
+    return this.tagColorClasses[index % this.tagColorClasses.length];
+  }
+
+  getTagEmoji(index: number): string {
+    return this.tagEmojis[index % this.tagEmojis.length];
+  }
+
   get daysRemaining(): number {
     if (!this.donation.fechaMaximaEntrega) return 0;
     const today = new Date();
@@ -204,7 +230,6 @@ export class DonationCardComponent {
         if (file && file.type === 'image') {
           const url = normalizeAndValidate(file);
           if (url) {
-            console.log('✅✅✅ IMAGEN ENCONTRADA en files:', url);
             return url;
           }
         }
@@ -214,7 +239,6 @@ export class DonationCardComponent {
     // ESTRATEGIA 2: Buscar en imageUrl directo
     const imageUrl = normalizeAndValidate(this.donation.imageUrl);
     if (imageUrl) {
-      console.log('✅✅✅ IMAGEN ENCONTRADA en imageUrl:', imageUrl);
       return imageUrl;
     }
     
@@ -223,7 +247,6 @@ export class DonationCardComponent {
       for (const img of this.donation.images) {
         const url = normalizeAndValidate(img);
         if (url) {
-          console.log('✅✅✅ IMAGEN ENCONTRADA en images array:', url);
           return url;
         }
       }
@@ -234,7 +257,6 @@ export class DonationCardComponent {
       for (const imgPost of donationAny.imagePost) {
         const url = normalizeAndValidate(imgPost);
         if (url) {
-          console.log('✅✅✅ IMAGEN ENCONTRADA en imagePost:', url);
           return url;
         }
       }
@@ -243,7 +265,6 @@ export class DonationCardComponent {
     // ESTRATEGIA 5: Buscar en el campo 'image' del nivel superior (estructura anidada)
     const topLevelImage = normalizeAndValidate(donationAny.image);
     if (topLevelImage) {
-      console.log('✅✅✅ IMAGEN ENCONTRADA en donation.image (nivel superior):', topLevelImage);
       return topLevelImage;
     }
     
@@ -251,7 +272,6 @@ export class DonationCardComponent {
     if (donationAny.post && donationAny.post.image) {
       const postImage = normalizeAndValidate(donationAny.post.image);
       if (postImage) {
-        console.log('✅✅✅ IMAGEN ENCONTRADA en post.image:', postImage);
         return postImage;
       }
     }
@@ -283,7 +303,6 @@ export class DonationCardComponent {
               /image/i.test(key)) {
             const url = normalizeAndValidate(trimmed);
             if (url) {
-              console.log(`✅✅✅ IMAGEN ENCONTRADA en propiedad "${key}":`, url);
               return url;
             }
           }
@@ -301,7 +320,6 @@ export class DonationCardComponent {
             if (typeof item === 'string') {
               const url = normalizeAndValidate(item);
               if (url) {
-                console.log(`✅✅✅ IMAGEN ENCONTRADA en array "${key}":`, url);
                 return url;
               }
             } else if (item && typeof item === 'object') {
@@ -317,21 +335,6 @@ export class DonationCardComponent {
     
     const found = searchInObject(donationAny);
     if (found) return found;
-    
-    // Si no se encontró nada, log detallado para debugging
-    console.warn('⚠️⚠️⚠️ NO SE ENCONTRÓ NINGUNA IMAGEN para donation:', {
-      id: this.donation.id,
-      title: this.donation.title,
-      hasFiles: !!this.donation.files,
-      filesCount: this.donation.files?.length || 0,
-      hasImageUrl: !!this.donation.imageUrl,
-      hasImages: !!this.donation.images,
-      imagesCount: Array.isArray(this.donation.images) ? this.donation.images.length : 0,
-      hasImagePost: !!donationAny.imagePost,
-      imagePostLength: Array.isArray(donationAny.imagePost) ? donationAny.imagePost.length : 0,
-      hasImage: !!donationAny.image,
-      donationKeys: Object.keys(donationAny).slice(0, 20) // Primeras 20 claves
-    });
     
     return null;
   }
@@ -433,11 +436,6 @@ export class DonationCardComponent {
 
   onImageError(event: Event): void {
     const img = event.target as HTMLImageElement;
-    console.error('❌ Error cargando imagen en tarjeta:', {
-      src: img.src,
-      donationId: this.donation.id,
-      title: this.donation.title
-    });
     // Intentar con una imagen placeholder
     img.src = 'data:image/svg+xml;base64,' + btoa(`
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
@@ -451,7 +449,6 @@ export class DonationCardComponent {
 
   onImageLoad(event: Event): void {
     const img = event.target as HTMLImageElement;
-    console.log('✅ Imagen cargada exitosamente:', img.src);
     img.style.display = 'block';
   }
 

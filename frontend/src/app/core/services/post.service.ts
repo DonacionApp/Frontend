@@ -21,7 +21,7 @@ import {
   distinctUntilChanged
 } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { AiService } from './ai.service';
+import { AiService, CreatedTagResponse } from './ai.service';
 // ==================== INTERFACES ====================
 
 /**
@@ -238,7 +238,9 @@ export class NeedPublicationService {
   // URL base de la API
   private readonly apiUrl = `${environment.apiBackendUrl}/post`;
   private readonly likedApiUrl = `${environment.apiBackendUrl}/postliked`;
-  private readonly tagsApiUrl = `${environment.apiBackendUrl}/posttags`;
+  private readonly tagsDirectoryApiUrl = `${environment.apiBackendUrl}/tags`;
+  private readonly tagsApiUrl = `${environment.apiBackendUrl}/tags`;
+  private readonly postTagsApiUrl = `${environment.apiBackendUrl}/posttags`;
   
   // Configuración del servicio
   private readonly config: ServiceConfig = {
@@ -347,9 +349,6 @@ export class NeedPublicationService {
     const backendData = this.prepareBackendData(data);
     
     const endpointUrl = `${this.apiUrl}/create`;
-    console.log('🌐 Enviando POST (sin archivos) como JSON a:', endpointUrl);
-    console.log('📦 Payload JSON:', JSON.stringify(backendData, null, 2));
-    console.log('🔍 URL completa:', endpointUrl);
     
     return this.http.post<any>(endpointUrl, backendData, {
       headers: new HttpHeaders({
@@ -359,7 +358,6 @@ export class NeedPublicationService {
       timeout(this.config.requestTimeout),
       retry(this.config.maxRetries),
       map(response => this.mapBackendToFrontend([response])[0]),
-      switchMap(publication => this.enrichPublicationWithTags(publication)),
       tap(publication => this.handlePublicationCreated(publication)),
       catchError(error => this.handleError('crear publicación', error)),
       finalize(() => this.setLoading(false))
@@ -393,17 +391,11 @@ export class NeedPublicationService {
     this.setLoading(true);
     this.clearError();
     
-    console.log('🔄 ESTRATEGIA DE DOS PASOS: Crear publicación sin archivos, luego agregar archivos');
-    console.log('📋 Paso 1: Crear publicación sin archivos (JSON puro)');
-    
     // PASO 1: Crear la publicación SIN archivos usando JSON puro
     // Esto asegura que typePost llegue como objeto, no como string JSON
     const backendData = this.prepareBackendData(data);
     
     const endpointUrl = `${this.apiUrl}/create`;
-    console.log('🌐 Paso 1 - Enviando POST (sin archivos) como JSON a:', endpointUrl);
-    console.log('📦 Payload JSON:', JSON.stringify(backendData, null, 2));
-    console.log('📁 Archivos a agregar después:', files.length);
     
     // ESTRATEGIA DE DOS PASOS: Crear sin archivos (JSON), luego agregar archivos
     // Esto evita que el backend tenga que parsear typePost desde FormData
@@ -418,16 +410,11 @@ export class NeedPublicationService {
       // PASO 2: Agregar archivos a la publicación creada
       switchMap(publication => {
         if (!publication?.id) {
-          console.error('❌ No se pudo obtener el ID de la publicación creada');
           return throwError(() => new Error('No se pudo crear la publicación'));
         }
 
-        console.log('✅ Paso 1 completado - Publicación creada con ID:', publication.id);
-        console.log('📋 Paso 2: Enviando archivos a la publicación');
-
         // Si no hay archivos, retornar directamente
         if (!files || files.length === 0) {
-          console.log('ℹ️ No hay archivos para subir');
           return of(publication);
         }
 
@@ -438,13 +425,11 @@ export class NeedPublicationService {
         });
 
         const uploadUrl = `${this.apiUrl}/image/add/${publication.id}`;
-        console.log('📤 PASO 2: Subiendo archivos a:', uploadUrl);
 
         return this.http.post<any>(uploadUrl, formData).pipe(
           timeout(this.config.requestTimeout),
           retry(this.config.maxRetries),
           tap((response: any) => {
-            console.log('✅ PASO 2 completado - Respuesta del servidor:', response);
 
             // Mapear las imágenes de la respuesta
             let uploadedImages: NeedPublicationFile[] = [];
@@ -474,18 +459,15 @@ export class NeedPublicationService {
               publication.files = uploadedImages;
               publication.imageUrl = uploadedImages[0]?.url;
               publication.images = uploadedImages.map(img => img.url);
-              console.log('✅ Publicación actualizada con', uploadedImages.length, 'imágenes');
             }
           }),
           map(() => publication),
           catchError(error => {
-            console.error('❌ Error al subir imágenes, pero la publicación fue creada:', error);
             // No fallar completamente, la publicación ya fue creada
             return of(publication);
           })
         );
       }),
-      switchMap(publication => this.enrichPublicationWithTags(publication)),
       tap(publication => this.handlePublicationCreated(publication)),
       catchError(error => this.handleError('crear publicación con archivos', error)),
       finalize(() => this.setLoading(false))
@@ -829,18 +811,25 @@ export class NeedPublicationService {
     const primaryUrl = `${this.apiUrl}?_t=${timestamp}`; // probar /post primero
     const secondaryUrl = `${this.apiUrl}/all?_t=${timestamp}`; // fallback a /post/all
     
-    console.log('🌐 Intentando obtener publicaciones desde:', primaryUrl);
-    console.log('🔍 URL base del servicio:', this.apiUrl);
-    console.log('🔍 URL completa construida:', primaryUrl);
-    
     return this.http.get<any[]>(primaryUrl, this.getNoCacheHeaders()).pipe(
       timeout(this.config.requestTimeout),
+      tap(response => {
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📋 GET /post - Respuesta del backend (RAW)');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📍 Total publicaciones:', Array.isArray(response) ? response.length : 'No es array');
+        if (Array.isArray(response) && response.length > 0) {
+          console.log('📍 Primera publicación - Claves:', Object.keys(response[0] || {}));
+          console.log('📍 Primera publicación - ¿Tiene tags?:', !!(response[0]?.tags || response[0]?.post?.tags || response[0]?.postTags));
+          console.log('📍 Primera publicación - Tags:', response[0]?.tags || response[0]?.post?.tags || response[0]?.postTags || 'NINGUNO');
+          console.log('📍 Primera publicación completa:', response[0]);
+        }
+        console.log('═══════════════════════════════════════════════════════');
+      }),
       map(posts => {
-        console.log('📥 Respuesta recibida del backend:', posts?.length || 0, 'publicaciones');
         return this.filterRealPublications(posts);
       }),
       map(posts => {
-        console.log('📋 Publicaciones después de filtrar:', posts.length);
         return this.mapBackendToFrontend(posts);
       }),
       // Enriquecer cada publicación con sus imágenes
@@ -851,8 +840,6 @@ export class NeedPublicationService {
           return of(publications);
         }
         
-        console.log('🖼️ Verificando imágenes para', publications.length, 'publicaciones');
-        
         // Verificar si las publicaciones ya tienen imágenes mapeadas
         const publicationsWithImages = publications.map(pub => {
           // Si ya tiene imágenes en files, imageUrl o images, no hacer nada más
@@ -861,11 +848,6 @@ export class NeedPublicationService {
                            (pub.images && pub.images.length > 0);
           
           if (hasImages) {
-            console.log('✅ Publicación', pub.id, 'ya tiene imágenes mapeadas:', {
-              filesCount: pub.files?.length || 0,
-              hasImageUrl: !!pub.imageUrl,
-              imagesCount: pub.images?.length || 0
-            });
             return of(pub);
           }
           
@@ -878,7 +860,6 @@ export class NeedPublicationService {
           return this.getPublicationImagesFromEndpoint(pub.id, pub.imagePost).pipe(
             map(images => {
               if (images && images.length > 0) {
-                console.log('🖼️ Mapeando', images.length, 'imágenes recibidas del endpoint para publicación', pub.id);
 
                 const mappedImages = images.map((img: any) => {
                   // El endpoint /imagepost/{imagePostId}/image devuelve ImagePostEntity
@@ -906,38 +887,63 @@ export class NeedPublicationService {
                 }
 
                 pub.imagePost = images;
-
-                console.log('✅✅✅ Imágenes agregadas a publicación', pub.id, ':', mappedImages.length);
-              } else {
-                console.log('⚠️ No se encontraron imágenes para publicación', pub.id);
               }
 
               return pub;
             }),
             catchError(error => {
-              console.error('❌ Error al obtener imágenes para publicación', pub.id, ':', error);
               return of(pub); // Continuar sin imágenes en caso de error
             })
           );
         });
         
-        // Combinar todos los observables
+        // Combinar todos los observables de imágenes
         return forkJoin(publicationsWithImages);
       }),
-      switchMap(publications => this.enrichPublicationsWithTags(publications)),
+      // Obtener tags para cada publicación
+      switchMap(publications => {
+        if (!publications || publications.length === 0) {
+          return of(publications);
+        }
+        
+        // Para cada publicación, obtener sus tags si no los tiene
+        const publicationsWithTags = publications.map(pub => {
+          // Si ya tiene tags, no hacer nada más
+          if (pub.tags && Array.isArray(pub.tags) && pub.tags.length > 0) {
+            return of(pub);
+          }
+          
+          // Si no tiene ID, no se pueden obtener tags
+          if (!pub.id) {
+            return of(pub);
+          }
+          
+          // Obtener tags desde el endpoint
+          return this.getTagsByPublicationId(String(pub.id)).pipe(
+            map(tags => {
+              pub.tags = tags;
+              return pub;
+            }),
+            catchError(error => {
+              // Si hay error, continuar sin tags
+              pub.tags = pub.tags || [];
+              return of(pub);
+            })
+          );
+        });
+        
+        return forkJoin(publicationsWithTags);
+      }),
       tap(publications => {
-        console.log('✅ Publicaciones obtenidas exitosamente:', publications.length);
         this.publicationsSubject.next(publications);
         this.saveToCache(cacheKey, publications);
       }),
       catchError(error => {
-        console.error('❌ Error al obtener publicaciones:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          url: error.url,
-          error: error.error
-        });
+        // Si es error 401, no intentar fallback (token inválido)
+        if (error.status === 401) {
+          return throwError(() => error);
+        }
+        
         // Intentar fallback a /post/all
         return this.http.get<any[]>(secondaryUrl, this.getNoCacheHeaders()).pipe(
       timeout(this.config.requestTimeout),
@@ -948,15 +954,12 @@ export class NeedPublicationService {
           return of(publications);
         }
 
-        console.log('🖼️ Verificando imágenes para', publications.length, 'publicaciones (FALLBACK)');
-
         const publicationsWithImages = publications.map(pub => {
           const hasImages = (pub.files && pub.files.length > 0) ||
                            pub.imageUrl ||
                            (pub.images && pub.images.length > 0);
 
           if (hasImages) {
-            console.log('✅ Publicación', pub.id, 'ya tiene imágenes mapeadas (FALLBACK)');
             return of(pub);
           }
 
@@ -967,7 +970,6 @@ export class NeedPublicationService {
           return this.getPublicationImagesFromEndpoint(pub.id, pub.imagePost).pipe(
             map(images => {
               if (images && images.length > 0) {
-                console.log('🖼️ Mapeando', images.length, 'imágenes recibidas del endpoint para publicación (FALLBACK)', pub.id);
 
                 const mappedImages = images.map((img: any) => {
                   // El endpoint /imagepost/{imagePostId}/image devuelve ImagePostEntity
@@ -995,16 +997,11 @@ export class NeedPublicationService {
                 }
 
                 pub.imagePost = images;
-
-                console.log('✅✅✅ Imágenes agregadas a publicación (FALLBACK)', pub.id, ':', mappedImages.length);
-              } else {
-                console.log('⚠️ No se encontraron imágenes para publicación (FALLBACK)', pub.id);
               }
 
               return pub;
             }),
             catchError(error => {
-              console.error('❌ Error al obtener imágenes (FALLBACK) para publicación', pub.id, ':', error);
               return of(pub);
             })
           );
@@ -1012,21 +1009,58 @@ export class NeedPublicationService {
 
         return forkJoin(publicationsWithImages);
       }),
-      switchMap(publications => this.enrichPublicationsWithTags(publications)),
+      // Obtener tags para cada publicación en el fallback
+      switchMap(publications => {
+        if (!publications || publications.length === 0) {
+          return of(publications);
+        }
+        
+        // Para cada publicación, obtener sus tags si no los tiene
+        const publicationsWithTags = publications.map(pub => {
+          // Si ya tiene tags, no hacer nada más
+          if (pub.tags && Array.isArray(pub.tags) && pub.tags.length > 0) {
+            return of(pub);
+          }
+          
+          // Si no tiene ID, no se pueden obtener tags
+          if (!pub.id) {
+            return of(pub);
+          }
+          
+          // Obtener tags desde el endpoint
+          return this.getTagsByPublicationId(String(pub.id)).pipe(
+            map(tags => {
+              pub.tags = tags;
+              return pub;
+            }),
+            catchError(error => {
+              // Si hay error, continuar sin tags
+              pub.tags = pub.tags || [];
+              return of(pub);
+            })
+          );
+        });
+        
+        return forkJoin(publicationsWithTags);
+      }),
       tap(publications => {
-            console.log('✅ Publicaciones obtenidas exitosamente (fallback /all):', publications.length);
         this.publicationsSubject.next(publications);
         this.saveToCache(cacheKey, publications);
       }),
           catchError(error2 => {
             if (error2.status === 404) {
-              console.warn('ℹ️ 404 al listar publicaciones. Mostrando lista vacía.');
               this.setError(null);
               const empty: NeedPublication[] = [];
               this.publicationsSubject.next(empty);
               this.saveToCache(cacheKey, empty);
               return of(empty);
             }
+            
+            // Si es 403 o 401, propagar el error para que el componente lo maneje
+            if (error2.status === 403 || error2.status === 401) {
+              return throwError(() => error2);
+            }
+            
             return this.handleError('obtener publicaciones', error2);
           })
         );
@@ -1046,11 +1080,9 @@ export class NeedPublicationService {
     return this.http.get<any[]>(primaryUrl).pipe(
       timeout(this.config.requestTimeout),
       map(posts => this.mapBackendToFrontend(posts)),
-      switchMap(publications => this.enrichPublicationsWithTags(publications)),
       catchError(() => this.http.get<any[]>(secondaryUrl).pipe(
         timeout(this.config.requestTimeout),
         map(posts => this.mapBackendToFrontend(posts)),
-        switchMap(publications => this.enrichPublicationsWithTags(publications)),
         catchError(() => this.getAllPublications())
       ))
     );
@@ -1067,9 +1099,7 @@ export class NeedPublicationService {
     return this.http.get<any[]>(`${this.apiUrl}/me/posts`).pipe(
       timeout(this.config.requestTimeout),
       map(posts => this.mapBackendToFrontend(posts)),
-      switchMap(publications => this.enrichPublicationsWithTags(publications)),
       tap(publications => {
-        
         this.publicationsSubject.next(publications);
       }),
       catchError(error => this.handleError('obtener mis publicaciones', error)),
@@ -1105,28 +1135,19 @@ export class NeedPublicationService {
    * No necesita hacer peticiones HTTP adicionales - usa las imágenes que ya vienen
    */
   getPublicationImagesFromEndpoint(postId: string, imagePostArray?: any[]): Observable<any[]> {
-    console.log('🖼️🖼️🖼️ Procesando imágenes para publicación:', postId, 'Imágenes:', imagePostArray?.length || 0);
 
     // Si tenemos array de imagePost, usarlo directamente
     if (imagePostArray && Array.isArray(imagePostArray) && imagePostArray.length > 0) {
-      console.log('✅ Array imagePost encontrado con', imagePostArray.length, 'imágenes');
-
       // Las imágenes ya tienen el campo 'image' con la URL
       // Estructura: {id, image: "URL", post: {...}, createdAt, updatedAt}
       const images = imagePostArray.filter((img: any) => {
         const hasImage = img && (img.image || img.url || img.path);
-        if (!hasImage) {
-          console.warn('⚠️ Item en imagePost sin campo de imagen:', img);
-        }
         return hasImage;
       });
-
-      console.log('✅✅✅ Total de imágenes disponibles:', images.length);
       return of(images);
     }
 
     // Si no hay imagePostArray, retornar array vacío
-    console.warn('⚠️ No hay imagePost para publicación:', postId);
     return of([]);
   }
 
@@ -1136,16 +1157,13 @@ export class NeedPublicationService {
    */
   getImageById(imagePostId: string | number): Observable<any> {
     const url = `${environment.apiBackendUrl}/imagepost/${imagePostId}/image`;
-    console.log('🖼️ Obteniendo imagen individual desde:', url);
 
     return this.http.get<any>(url).pipe(
       timeout(this.config.requestTimeout),
       retry(this.config.maxRetries),
       tap(image => {
-        console.log('✅ Imagen obtenida del endpoint /imagepost:', imagePostId);
       }),
       catchError(error => {
-        console.error(`❌ Error al obtener imagen ${imagePostId}:`, error);
         return of(null); // Retornar null en caso de error
       })
     );
@@ -1159,19 +1177,12 @@ export class NeedPublicationService {
   getPublicationImages(postId: string, imagePostIds?: (string | number)[]): Observable<any[]> {
     // Si se proporcionan imagePostIds, usarlos directamente
     if (imagePostIds && imagePostIds.length > 0) {
-      console.log('🖼️ Obteniendo imágenes usando imagePostIds proporcionados:', imagePostIds);
-      
       // Obtener todas las imágenes en paralelo
       const imageObservables = imagePostIds.map(id => this.getImageById(id));
       
       return forkJoin(imageObservables).pipe(
         map(images => images.filter(img => img !== null)),
-        tap(images => {
-          console.log('✅ Imágenes obtenidas del endpoint /imagepost:', images?.length || 0);
-          console.log('📋 Estructura de imágenes:', images);
-        }),
         catchError(error => {
-          console.error('❌ Error al obtener imágenes:', error);
           return of([]); // Retornar array vacío en caso de error
         })
       );
@@ -1179,7 +1190,6 @@ export class NeedPublicationService {
     
     // Si no se proporcionan imagePostIds, intentar obtenerlos desde un endpoint
     // Por ahora, retornar array vacío (se puede implementar un endpoint para obtener los IDs)
-    console.warn('⚠️ No se proporcionaron imagePostIds para la publicación:', postId);
     return of([]);
   }
 
@@ -1191,13 +1201,27 @@ export class NeedPublicationService {
     const cached = this.getFromCache<NeedPublication>(cacheKey);
     
     if (cached) {
+      // Si la publicación en caché ya tiene tags, retornarla directamente
+      if (cached.tags && Array.isArray(cached.tags) && cached.tags.length > 0) {
+        return of(cached);
+      }
       
-      return of(cached);
+      // Si no tiene tags, obtenerlos
+      return this.getTagsByPublicationId(id).pipe(
+        map(tags => {
+          cached.tags = tags;
+          this.saveToCache(cacheKey, cached);
+          return cached;
+        }),
+        catchError(error => {
+          // Si hay error, continuar sin tags
+          cached.tags = cached.tags || [];
+          return of(cached);
+        })
+      );
     }
     
-    
-    
-      return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
       timeout(this.config.requestTimeout),
       map(post => this.mapBackendToFrontend([post])[0]),
       // Obtener imágenes desde el endpoint correcto: /imagepost/{postId}/images
@@ -1209,8 +1233,6 @@ export class NeedPublicationService {
         return this.getPublicationImagesFromEndpoint(publication.id).pipe(
           map(images => {
             if (images && images.length > 0) {
-              console.log('🖼️ Mapeando', images.length, 'imágenes para publicación detallada', publication.id);
-
               const mappedImages = images.map((img: any) => {
                 const imageUrl = img.image || img.url || img.path || img.imageUrl;
                 return {
@@ -1223,10 +1245,8 @@ export class NeedPublicationService {
                 };
               });
 
-              // Agregar imágenes a la publicación
               publication.files = [...(publication.files || []), ...mappedImages];
 
-              // También agregar a imageUrl e images si no existen
               if (!publication.imageUrl && mappedImages.length > 0) {
                 publication.imageUrl = mappedImages[0].url;
               }
@@ -1235,31 +1255,37 @@ export class NeedPublicationService {
                 publication.images = mappedImages.map(img => img.url);
               }
 
-              // Preservar imagePost para compatibilidad (estructura completa del backend)
               publication.imagePost = images;
-
-              console.log('✅✅✅ Imágenes agregadas a la publicación desde /imagepost/{postId}/images:', {
-                publicationId: publication.id,
-                totalFiles: publication.files.length,
-                imageUrl: publication.imageUrl,
-                imagesCount: publication.images?.length || 0,
-                imagePostCount: images.length
-              });
-            } else {
-              console.log('⚠️ No se encontraron imágenes para publicación:', publication.id);
             }
 
             return publication;
           }),
           catchError(error => {
-            console.error('❌ Error al obtener imágenes para publicación', publication.id, ':', error);
-            return of(publication); // Continuar sin imágenes en caso de error
+            return of(publication);
+          }),
+          // Obtener tags después de obtener las imágenes
+          switchMap(publication => {
+            // Si ya tiene tags, no hacer nada más
+            if (publication.tags && Array.isArray(publication.tags) && publication.tags.length > 0) {
+              return of(publication);
+            }
+            
+            // Obtener tags desde el endpoint
+            return this.getTagsByPublicationId(String(publication.id)).pipe(
+              map(tags => {
+                publication.tags = tags;
+                return publication;
+              }),
+              catchError(error => {
+                // Si hay error, continuar sin tags
+                publication.tags = publication.tags || [];
+                return of(publication);
+              })
+            );
           })
         );
       }),
-      switchMap(publication => this.enrichPublicationWithTags(publication)),
       tap(publication => {
-        
         this.saveToCache(cacheKey, publication);
       }),
       catchError(error => this.handleError('obtener publicación', error))
@@ -1278,7 +1304,17 @@ export class NeedPublicationService {
     
     
     
-    return this.http.get<any[]>(`${this.tagsApiUrl}/${tagIdNum}/posts`).pipe(
+    // NOTA: El controlador de tags NO tiene endpoints para obtener publicaciones por tag
+    // Estos endpoints deben estar en PostTagsController
+    // Por ahora, usar /posttags que es donde probablemente están estos endpoints
+    const endpoints = [
+      `${this.postTagsApiUrl}/tag/${tagIdNum}/posts`,  // GET /posttags/tag/{id}/posts
+      `${this.postTagsApiUrl}/${tagIdNum}/posts`,       // GET /posttags/{id}/posts
+      `${this.tagsDirectoryApiUrl}/tag/${tagIdNum}/posts`,  // Fallback (si existe)
+      `${this.tagsDirectoryApiUrl}/${tagIdNum}/posts`       // Fallback (si existe)
+    ];
+
+    return this.fetchTagsFromTagEndpoints(endpoints).pipe(
       timeout(this.config.requestTimeout),
       map(posts => this.mapBackendToFrontend(posts)),
       catchError(error => this.handleError('obtener publicaciones por tag', error))
@@ -1300,7 +1336,6 @@ export class NeedPublicationService {
     return this.http.post<NeedPublication>(`${this.apiUrl}/update/${id}`, backendData).pipe(
       timeout(this.config.requestTimeout),
       map(response => this.mapBackendToFrontend([response])[0]),
-      switchMap(publication => this.enrichPublicationWithTags(publication)),
       tap(updated => this.handlePublicationUpdated(id, updated)),
       catchError(error => this.handleError('actualizar publicación', error)),
       finalize(() => this.setLoading(false))
@@ -1326,16 +1361,10 @@ export class NeedPublicationService {
     this.setLoading(true);
     this.clearError();
 
-    console.log('🔄 ESTRATEGIA DE DOS PASOS: Actualizar publicación sin archivos, luego agregar archivos');
-    console.log('📋 Paso 1: Actualizar publicación sin archivos (JSON puro)');
-
     // PASO 1: Actualizar la publicación SIN archivos usando JSON puro
     const backendData = this.prepareBackendData(updates as CreateNeedPublicationDTO);
 
     const endpointUrl = `${this.apiUrl}/update/${id}`;
-    console.log('🌐 Paso 1 - Enviando POST (sin archivos) como JSON a:', endpointUrl);
-    console.log('📦 Payload JSON:', JSON.stringify(backendData, null, 2));
-    console.log('📁 Archivos a agregar después:', files.length);
 
     // ESTRATEGIA DE DOS PASOS: Actualizar sin archivos (JSON), luego agregar archivos
     return this.http.post<any>(endpointUrl, backendData, {
@@ -1349,16 +1378,11 @@ export class NeedPublicationService {
       // PASO 2: Agregar archivos a la publicación actualizada
       switchMap(publication => {
         if (!publication?.id) {
-          console.error('❌ No se pudo obtener el ID de la publicación actualizada');
           return throwError(() => new Error('No se pudo actualizar la publicación'));
         }
 
-        console.log('✅ Paso 1 completado - Publicación actualizada con ID:', publication.id);
-        console.log('📋 Paso 2: Enviando archivos a la publicación');
-
         // Si no hay archivos, retornar directamente
         if (!files || files.length === 0) {
-          console.log('ℹ️ No hay archivos para subir');
           return of(publication);
         }
 
@@ -1369,13 +1393,11 @@ export class NeedPublicationService {
         });
 
         const uploadUrl = `${this.apiUrl}/image/add/${publication.id}`;
-        console.log('📤 PASO 2: Subiendo archivos a:', uploadUrl);
 
         return this.http.post<any>(uploadUrl, formData).pipe(
           timeout(this.config.requestTimeout),
           retry(this.config.maxRetries),
           tap((response: any) => {
-            console.log('✅ PASO 2 completado - Respuesta del servidor:', response);
 
             // Mapear las imágenes de la respuesta
             let uploadedImages: NeedPublicationFile[] = [];
@@ -1405,12 +1427,10 @@ export class NeedPublicationService {
               publication.files = [...(publication.files || []), ...uploadedImages];
               publication.imageUrl = uploadedImages[0]?.url;
               publication.images = uploadedImages.map(img => img.url);
-              console.log('✅ Publicación actualizada con', uploadedImages.length, 'imágenes');
             }
           }),
           map(() => publication),
           catchError(error => {
-            console.error('❌ Error al subir imágenes, pero la publicación fue actualizada:', error);
             return of(publication);
           })
         );
@@ -1505,8 +1525,6 @@ export class NeedPublicationService {
     // El publicationId se pasa como parámetro para que el backend sepa a cuál publicación agregarle las imágenes
     const url = `${this.apiUrl}/create`;
 
-    console.log('🖼️ Subiendo', files.length, 'imágenes para publicación', publicationId);
-    console.log('📤 URL:', url);
 
     return this.http.post<any>(url, formData).pipe(
       timeout(this.config.requestTimeout),
@@ -1533,9 +1551,6 @@ export class NeedPublicationService {
           }));
         }
         return [];
-      }),
-      tap(images => {
-        console.log('✅ Imágenes subidas exitosamente:', images.length);
       }),
       catchError(error => {
         console.error('❌ Error al subir imágenes:', error);
@@ -1566,12 +1581,12 @@ export class NeedPublicationService {
    */
   private likePublication(publicationId: string): Observable<NeedPublication> {
     const postId = parseInt(publicationId);
-
+    
     if (isNaN(postId)) {
       console.error('❌ ID de publicación inválido:', publicationId);
       return throwError(() => new Error('ID de publicación inválido'));
     }
-
+    
     this.likesInProgress.set(publicationId, Date.now());
     const url = `${this.likedApiUrl}/addlike/${postId}`;
 
@@ -1613,12 +1628,12 @@ export class NeedPublicationService {
    */
   private unlikePublication(publicationId: string): Observable<NeedPublication> {
     const postId = parseInt(publicationId);
-
+    
     if (isNaN(postId)) {
       console.error('❌ ID de publicación inválido:', publicationId);
       return throwError(() => new Error('ID de publicación inválido'));
     }
-
+    
     this.likesInProgress.set(publicationId, Date.now());
     const url = `${this.likedApiUrl}/removelike/${postId}`;
 
@@ -1947,8 +1962,9 @@ export class NeedPublicationService {
 
   /**
    * Obtiene tags de una publicación
+   * Endpoint: GET /posttags/post/{postId}/tags
    */
-  private getTagsByPublicationId(publicationId: string): Observable<NeedPublicationTag[]> {
+  getTagsByPublicationId(publicationId: string): Observable<NeedPublicationTag[]> {
     const postId = parseInt(publicationId);
     
     if (isNaN(postId)) {
@@ -1956,56 +1972,409 @@ export class NeedPublicationService {
       return of([]);
     }
     
-    const url = `${this.tagsApiUrl}/post/${postId}/tags`;
-    console.log('🏷️ Obteniendo tags para publicación:', postId, 'URL:', url);
+    // Endpoint: GET /posttags/post/{postId}/tags
+    const endpoint = `${this.postTagsApiUrl}/post/${postId}/tags`;
     
-    return this.http.get<any[]>(url).pipe(
-      timeout(5000),
-      tap(rawTags => {
-        console.log('🏷️ Tags recibidos del backend (raw):', rawTags);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔍 GET /posttags/post/{postId}/tags - OBTENIENDO TAGS');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📍 Publication ID:', postId);
+    console.log('📍 URL completa:', endpoint);
+    console.log('📍 Método: GET');
+    console.log('═══════════════════════════════════════════════════════');
+    
+    return this.http.get<any>(endpoint).pipe(
+      timeout(10000),
+      tap(response => {
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📥 GET /posttags/post/{postId}/tags - RESPUESTA RECIBIDA');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📍 Publication ID:', postId);
+        console.log('📍 URL:', endpoint);
+        console.log('📍 Tipo de respuesta:', Array.isArray(response) ? 'array' : typeof response);
+        console.log('📍 Longitud:', Array.isArray(response) ? response.length : 'N/A');
+        console.log('📍 Respuesta completa (raw):', response);
+        console.log('═══════════════════════════════════════════════════════');
       }),
-      map(tags => {
-        if (!Array.isArray(tags)) {
-          console.warn('⚠️ getTagsByPublicationId: La respuesta no es un array:', tags);
+      map(response => {
+        // Si la respuesta es un array, procesarlo directamente
+        let tagsArray: any[] = [];
+        
+        if (Array.isArray(response)) {
+          tagsArray = response;
+        } else if (response && typeof response === 'object') {
+          // Buscar array en propiedades comunes
+          tagsArray = response.tags || response.data || response.items || response.results || 
+                      response.postTags || response.post_tags || [];
+          
+          // Si aún no hay array, buscar cualquier propiedad que sea array
+          if (!Array.isArray(tagsArray) || tagsArray.length === 0) {
+            const arrayValues = Object.values(response).filter(val => Array.isArray(val));
+            if (arrayValues.length > 0) {
+              tagsArray = arrayValues[0] as any[];
+            }
+          }
+        }
+        
+        console.log('🔍 Tags extraídos del array:', {
+          count: tagsArray.length,
+          tags: tagsArray.slice(0, 5) // Primeros 5 para no saturar
+        });
+        
+        // Mapear a NeedPublicationTag[]
+        const mappedTags: NeedPublicationTag[] = [];
+        
+        for (const tag of tagsArray) {
+          if (!tag) continue;
+          
+          // Si el tag ya tiene la estructura completa
+          if (typeof tag === 'object' && tag.id) {
+            mappedTags.push({
+              id: typeof tag.id === 'number' ? tag.id : parseInt(String(tag.id), 10),
+              tag: tag.tag || tag.name || `Tag ${tag.id}`,
+              name: tag.name || tag.tag,
+              description: tag.description
+            });
+          }
+          // Si es solo un ID, obtener los detalles usando aiService
+          else if (typeof tag === 'number' || (typeof tag === 'string' && !isNaN(Number(tag)))) {
+            const tagId = typeof tag === 'number' ? tag : parseInt(tag, 10);
+            // Por ahora, crear un tag básico (se podría mejorar obteniendo detalles)
+            mappedTags.push({
+              id: tagId,
+              tag: `Tag ${tagId}`,
+              name: `Tag ${tagId}`
+            });
+          }
+          // Si es un string (nombre del tag)
+          else if (typeof tag === 'string') {
+            // Por ahora, crear un tag básico (se podría mejorar obteniendo detalles)
+            mappedTags.push({
+              id: 0,
+              tag: tag,
+              name: tag
+            });
+          }
+        }
+        
+        console.log('✅ Tags mapeados a NeedPublicationTag[]:', {
+          count: mappedTags.length,
+          tags: mappedTags.map(t => ({ id: t.id, tag: t.tag || t.name }))
+        });
+        
+        return mappedTags;
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('═══════════════════════════════════════════════════════');
+        console.error('❌ GET /posttags/post/{postId}/tags - ERROR');
+        console.error('═══════════════════════════════════════════════════════');
+        console.error('📍 Publication ID:', postId);
+        console.error('📍 URL:', endpoint);
+        console.error('📍 Status:', error.status);
+        console.error('📍 Status Text:', error.statusText);
+        console.error('📍 Message:', error.message);
+        console.error('📍 Error:', error.error);
+        console.error('═══════════════════════════════════════════════════════');
+        
+        // Si es 404, significa que no hay tags asociados (no es un error crítico)
+        if (error.status === 404) {
+          console.log('ℹ️ No hay tags asociados a esta publicación (404)');
+          return of([]);
+        }
+        
+        // Para otros errores, retornar array vacío para no romper el flujo
+        return of([]);
+      })
+    );
+  }
+
+  private fetchTagsFromTagEndpoints(endpoints: string[], attempt = 0): Observable<any[]> {
+    if (!endpoints.length || attempt >= endpoints.length) {
+      console.warn('⚠️ fetchTagsFromTagEndpoints: No hay más endpoints disponibles');
+      return of([]);
+    }
+
+    const url = endpoints[attempt];
+
+    console.log('🔍 fetchTagsFromTagEndpoints: Intentando obtener tags desde:', {
+      url,
+      attempt: attempt + 1,
+      totalEndpoints: endpoints.length
+    });
+
+    return this.http.get<any>(url).pipe(
+      tap(response => {
+        console.log('✅ fetchTagsFromTagEndpoints: Respuesta exitosa desde:', url, {
+          responseType: Array.isArray(response) ? 'array' : typeof response,
+          responseLength: Array.isArray(response) ? response.length : 'N/A',
+          responsePreview: Array.isArray(response) ? response.slice(0, 3) : response,
+          fullResponse: response
+        });
+        
+        // Verificar si la respuesta tiene una estructura anidada
+        if (response && typeof response === 'object' && !Array.isArray(response)) {
+          console.log('🔍 fetchTagsFromTagEndpoints: Respuesta es objeto, buscando array de tags...', {
+            keys: Object.keys(response),
+            values: Object.values(response).slice(0, 3)
+          });
+        }
+      }),
+      map(response => {
+        // Si la respuesta es un array, devolverla directamente
+        if (Array.isArray(response)) {
+          console.log('✅ fetchTagsFromTagEndpoints: Respuesta es array directo, devolviendo:', response.length, 'tags');
+          return response;
+        }
+        
+        // Si la respuesta es un objeto, buscar un array dentro
+        if (response && typeof response === 'object') {
+          // Buscar propiedades comunes que puedan contener el array de tags
+          const possibleArrays = [
+            response.tags,
+            response.data,
+            response.items,
+            response.results,
+            response.postTags,
+            response.post_tags
+          ].filter(arr => Array.isArray(arr));
+          
+          if (possibleArrays.length > 0) {
+            console.log('✅ fetchTagsFromTagEndpoints: Encontrado array en objeto, devolviendo:', possibleArrays[0].length, 'tags');
+            return possibleArrays[0];
+          }
+          
+          // Si no hay array, buscar cualquier propiedad que sea array
+          const arrayValues = Object.values(response).filter(val => Array.isArray(val));
+          if (arrayValues.length > 0) {
+            console.log('✅ fetchTagsFromTagEndpoints: Encontrado array en valores del objeto, devolviendo:', arrayValues[0].length, 'tags');
+            return arrayValues[0] as any[];
+          }
+          
+          console.warn('⚠️ fetchTagsFromTagEndpoints: Respuesta es objeto pero no contiene array de tags:', response);
           return [];
         }
         
-        const mappedTags = tags.map(tag => {
-          // Convertir id a número si es posible, sino generar uno
-          let tagId: number;
-          if (tag.id && typeof tag.id === 'number') {
-            tagId = tag.id;
-          } else if (tag.id && typeof tag.id === 'string') {
-            tagId = parseInt(tag.id, 10);
-            if (isNaN(tagId)) {
-              tagId = Math.floor(Math.random() * 1000000);
-            }
-          } else if (tag.tagId && typeof tag.tagId === 'number') {
-            tagId = tag.tagId;
-          } else {
-            tagId = Math.floor(Math.random() * 1000000);
+        console.warn('⚠️ fetchTagsFromTagEndpoints: Formato de respuesta inesperado:', typeof response);
+        return [];
+      }),
+      catchError((error: HttpErrorResponse) => {
+        const status = error.status ?? 0;
+        const canFallback = (status === 404 || status === 500 || status === 0) && attempt < endpoints.length - 1;
+
+        // Si es 404, el endpoint no existe - intentar siguiente endpoint o retornar array vacío
+        if (status === 404) {
+          console.warn('⚠️ fetchTagsFromTagEndpoints: Endpoint no encontrado (404):', url);
+          
+          if (canFallback) {
+            console.log('🔄 Intentando siguiente endpoint...');
+            return this.fetchTagsFromTagEndpoints(endpoints, attempt + 1);
           }
           
-          return {
-            id: tagId,
-            tag: tag.tag || tag.name || String(tag),
-            name: tag.name || tag.tag || String(tag),
-            description: tag.description || ''
-          };
+          // Si no hay más endpoints, retornar array vacío (no hay tags asociados)
+          console.log('ℹ️ fetchTagsFromTagEndpoints: No hay más endpoints, retornando array vacío (no hay tags asociados)');
+          return of([]);
+        }
+
+        console.warn('⚠️ fetchTagsFromTagEndpoints: error en intento', {
+          url,
+          status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error,
+          hasFallback: canFallback,
+          nextUrl: canFallback ? endpoints[attempt + 1] : null
+        });
+
+        if (canFallback) {
+          return this.fetchTagsFromTagEndpoints(endpoints, attempt + 1);
+        }
+
+        console.error('❌ fetchTagsFromTagEndpoints: Todos los endpoints fallaron');
+        // En lugar de lanzar error, retornar array vacío para no romper el flujo
+        return of([]);
+      })
+    );
+  }
+
+  private postTagsToPublication(endpoints: string[], payload: { tags?: string[]; tagIds?: number[] }, attempt = 0, useFormData = false): Observable<void> {
+    if (!endpoints.length || attempt >= endpoints.length) {
+      console.error('❌ postTagsToPublication: No hay más endpoints disponibles para asignar tags');
+      return throwError(() => new Error('No endpoints available to assign tags'));
+    }
+
+    const url = endpoints[attempt];
+
+    console.log('📤 postTagsToPublication: Intentando asignar tags:', {
+      url,
+      attempt: attempt + 1,
+      totalEndpoints: endpoints.length,
+      payload,
+      tagsCount: payload.tags?.length || 0,
+      tagIdsCount: payload.tagIds?.length || 0,
+      useFormData
+    });
+
+    // Preparar el body según el formato
+    let requestBody: any;
+    let headers: HttpHeaders;
+
+    if (useFormData) {
+      // Usar FormData - el backend espera tagIds para asociar tags a publicaciones
+      const formData = new FormData();
+      
+      // PRIORIDAD: Enviar tagIds (el backend necesita los IDs de los tags ya creados)
+      if (payload.tagIds && payload.tagIds.length > 0) {
+        // Intentar múltiples formatos para máxima compatibilidad
+        // Formato 1: tagIds[] (array en FormData)
+        payload.tagIds.forEach((tagId) => {
+          formData.append('tagIds[]', tagId.toString());
+        });
+        // Formato 2: tagIds (sin corchetes, múltiples valores con el mismo nombre)
+        payload.tagIds.forEach((tagId) => {
+          formData.append('tagIds', tagId.toString());
+        });
+        // Formato 3: tagIds como string separado por comas
+        formData.append('tagIds', payload.tagIds.join(','));
+        console.log('📦 FormData: Enviando tagIds en múltiples formatos:', payload.tagIds);
+      } else if (payload.tags && payload.tags.length > 0) {
+        // Fallback: si no hay IDs, enviar nombres (pero esto requiere que el backend los busque)
+        payload.tags.forEach((tag) => {
+          formData.append('tags[]', tag);
+        });
+        payload.tags.forEach((tag) => {
+          formData.append('tags', tag);
+        });
+        formData.append('tags', payload.tags.join(','));
+        console.log('📦 FormData: Enviando tags[] (nombres) en múltiples formatos:', payload.tags);
+      }
+
+      requestBody = formData;
+      // No establecer Content-Type, dejar que el navegador lo haga automáticamente para FormData
+      headers = new HttpHeaders();
+      
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📦 POST /posttags/post/{id}/tags - ASIGNANDO TAGS A PUBLICACIÓN');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📍 URL:', url);
+      console.log('📍 Método: POST');
+      console.log('📍 Formato: FormData');
+      console.log('📦 Contenido completo del FormData:');
+      for (const pair of formData.entries()) {
+        console.log(`  ${pair[0]}: ${pair[1]}`);
+      }
+      console.log('═══════════════════════════════════════════════════════');
+    } else {
+      // Usar JSON - intentar múltiples formatos
+      if (payload.tagIds && payload.tagIds.length > 0) {
+        // Formato 1: { tagIds: [1, 2, 3] }
+        requestBody = { tagIds: payload.tagIds };
+        // Formato 2: { tagIds: "1,2,3" }
+        // Formato 3: { tagIds: [1, 2, 3], tags: ["tag1", "tag2"] }
+        if (payload.tags && payload.tags.length > 0) {
+          requestBody = { tagIds: payload.tagIds, tags: payload.tags };
+        }
+      } else if (payload.tags && payload.tags.length > 0) {
+        requestBody = { tags: payload.tags };
+      } else {
+        requestBody = payload;
+      }
+      
+      headers = new HttpHeaders({
+        'Content-Type': 'application/json'
+      });
+      
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📦 POST /posttags/post/{id}/tags - ASIGNANDO TAGS A PUBLICACIÓN');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📍 URL:', url);
+      console.log('📍 Método: POST');
+      console.log('📍 Formato: JSON');
+      console.log('📦 Payload JSON:', JSON.stringify(requestBody, null, 2));
+      console.log('═══════════════════════════════════════════════════════');
+    }
+
+    return this.http.post<void>(url, requestBody, { headers }).pipe(
+      tap((response) => {
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('✅ POST /posttags/post/{id}/tags - TAGS ASIGNADOS EXITOSAMENTE');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📍 URL:', url);
+        console.log('📍 Formato:', useFormData ? 'FormData' : 'JSON');
+        console.log('📍 Status: 200 OK');
+        console.log('📍 Respuesta del servidor:', response);
+        console.log('═══════════════════════════════════════════════════════');
+        
+        // Si es FormData, mostrar qué se envió
+        if (useFormData && requestBody instanceof FormData) {
+          console.log('📦 FormData enviado (verificación):');
+          for (const pair of requestBody.entries()) {
+            console.log(`  ${pair[0]}: ${pair[1]}`);
+          }
+        }
+      }),
+      catchError((error: HttpErrorResponse) => {
+        const status = error.status ?? 0;
+        
+        // Si falla con JSON y aún no hemos intentado FormData, intentar con FormData primero
+        // (el backend probablemente espera FormData según lo mencionado por el usuario)
+        if (!useFormData && (status === 400 || status === 404 || status === 415 || status === 422)) {
+          console.log('🔄 Intentando con FormData después de error con JSON (status:', status, ')');
+          return this.postTagsToPublication(endpoints, payload, attempt, true);
+        }
+        
+        const canFallback = (status === 404 || status === 500 || status === 0) && attempt < endpoints.length - 1;
+
+        console.error('❌ postTagsToPublication: error asignando tags', {
+          url,
+          status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error,
+          useFormData,
+          hasFallback: canFallback,
+          nextUrl: canFallback ? endpoints[attempt + 1] : null,
+          fullError: error
         });
         
-        console.log('🏷️ Tags mapeados:', mappedTags);
-        return mappedTags;
-      }),
-      catchError(error => {
-        console.error('❌ Error al obtener tags:', {
-          publicationId,
-          postId,
+        if (canFallback) {
+          console.log('🔄 Intentando fallback a:', endpoints[attempt + 1]);
+        }
+
+        if (canFallback) {
+          return this.postTagsToPublication(endpoints, payload, attempt + 1, useFormData);
+        }
+
+        console.error('❌ postTagsToPublication: Todos los endpoints fallaron');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  private deleteTagFromPublicationWithFallback(endpoints: string[], attempt = 0): Observable<void> {
+    if (!endpoints.length || attempt >= endpoints.length) {
+      return throwError(() => new Error('No endpoints available to delete tag from publication'));
+    }
+
+    const url = endpoints[attempt];
+
+    return this.http.delete<void>(url).pipe(
+      catchError((error: HttpErrorResponse) => {
+        const status = error.status ?? 0;
+        const canFallback = (status === 404 || status === 500 || status === 0) && attempt < endpoints.length - 1;
+
+        console.warn('⚠️ deleteTagFromPublicationWithFallback: error eliminando tag, intentando fallback', {
           url,
-          error: error.error,
-          status: error.status
+          status,
+          message: error.message,
+          hasFallback: canFallback,
+          nextUrl: canFallback ? endpoints[attempt + 1] : null
         });
-        return of([]);
+
+        if (canFallback) {
+          return this.deleteTagFromPublicationWithFallback(endpoints, attempt + 1);
+        }
+
+        return throwError(() => error);
       })
     );
   }
@@ -2015,46 +2384,166 @@ export class NeedPublicationService {
    */
   addTagsToPublication(publicationId: string, tags: string[]): Observable<NeedPublicationTag[]> {
     const postId = parseInt(publicationId);
-    if (isNaN(postId) || !Array.isArray(tags) || tags.length === 0) {
+    if (isNaN(postId)) {
+      console.warn('⚠️ addTagsToPublication: publicationId inválido', { publicationId });
+      return of([]);
+    }
+
+    if (!Array.isArray(tags) || tags.length === 0) {
       console.warn('⚠️ addTagsToPublication: Parámetros inválidos:', { publicationId, tags });
       return of([]);
     }
 
-    const payload = { tags };
-    const url = `${this.tagsApiUrl}/post/${postId}/tags`;
+    const normalizedUniqueTags = [...new Set(
+      tags
+        .map(tag => (tag || '').toString().trim())
+        .filter(tag => tag.length > 0)
+        .map(tag => tag.replace(/\s+/g, ' '))
+    )];
 
-    console.log('🏷️ Agregando tags a publicación:', {
+    if (normalizedUniqueTags.length === 0) {
+      console.warn('⚠️ addTagsToPublication: No hay tags válidos después de normalizar');
+      return of([]);
+    }
+
+    console.log('🏷️ Agregando tags a publicación mediante createTag:', {
       publicationId,
-      postId,
-      tagsCount: tags.length,
-      tags,
-      url
+      tags: normalizedUniqueTags
     });
 
-    return this.http.post<void>(url, payload).pipe(
-      timeout(10000),
-      switchMap(() => this.getTagsByPublicationId(publicationId)),
+    const creationRequests = normalizedUniqueTags.map((tag, index) =>
+      this.aiService.createTag(tag).pipe(
+        map(response => this.mapCreatedTagResponseToNeedTag(response, index)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('❌ Error registrando tag en catálogo. Se mantendrá en memoria.', {
+            tag,
+            status: error.status,
+            message: error.message,
+            error: error.error
+          });
+          return of(this.mapCreatedTagResponseToNeedTag({ id: 0, tag }, index));
+        })
+      )
+    );
+
+    // Endpoints para asociar tags a publicaciones - usar SOLO /posttags (no /tags)
+    // El controlador de tags NO tiene estos endpoints, están en PostTagsController
+    const assignmentEndpoints = [
+      `${this.postTagsApiUrl}/post/${postId}/tags`        // POST /posttags/post/{id}/tags (ÚNICO endpoint correcto)
+    ];
+
+    return forkJoin(creationRequests).pipe(
+      switchMap((registeredTags: NeedPublicationTag[]) => {
+        console.log('✅ Tags registrados en catálogo:', registeredTags.map(t => ({ id: t.id, tag: t.tag })));
+        
+        // Intentar enviar tanto IDs como nombres para compatibilidad con diferentes backends
+        const tagIds = registeredTags
+          .filter(t => t.id && t.id > 0)
+          .map(t => t.id);
+        
+        const tagNames = registeredTags.map(t => t.tag);
+        
+        // Intentar primero con IDs si están disponibles
+        const payload = tagIds.length > 0 
+          ? { tagIds, tags: tagNames }  // Enviar ambos para máxima compatibilidad
+          : { tags: tagNames };  // Fallback a solo nombres
+        
+        console.log('📤 Enviando payload de tags a publicación:', {
+          publicationId,
+          payload,
+          tagIdsCount: tagIds.length,
+          tagNamesCount: tagNames.length,
+          endpoints: assignmentEndpoints
+        });
+        
+        // Intentar primero con JSON (más común para APIs REST)
+        return this.postTagsToPublication(assignmentEndpoints, payload, 0, false).pipe(
+          // Si falla con JSON, intentar con FormData
+          catchError((error: HttpErrorResponse) => {
+            if (error.status === 400 || error.status === 404 || error.status === 415 || error.status === 422) {
+              console.log('🔄 JSON falló, intentando con FormData...');
+              return this.postTagsToPublication(assignmentEndpoints, payload, 0, true);
+            }
+            return throwError(() => error);
+          }),
+          // Esperar un momento antes de obtener los tags para dar tiempo al backend
+          switchMap(() => {
+            console.log('⏳ Esperando 500ms antes de obtener tags del backend...');
+            return timer(500).pipe(
+              switchMap(() => this.getTagsByPublicationId(publicationId))
+            );
+          }),
+          map(savedTags => {
+            console.log('🔍 Tags obtenidos del backend después de asignar:', {
+              count: savedTags.length,
+              tags: savedTags.map(t => ({ id: t.id, tag: t.tag || t.name }))
+            });
+            
+            if (savedTags.length > 0) {
+              console.log('✅ Tags obtenidos del backend después de asignar:', savedTags.map(t => t.tag));
+              return savedTags;
+            }
+            
+            console.warn('⚠️ No se obtuvieron tags del backend después de asignar. El POST puede haber sido exitoso pero no guardó los tags.');
+            console.warn('⚠️ Usando tags registrados localmente:', registeredTags.map(t => t.tag));
+            return registeredTags;
+          })
+        );
+      }),
       tap(savedTags => {
-        console.log('✅ Tags agregados y sincronizados:', {
+        console.log('✅ Tags sincronizados para publicación:', {
           publicationId,
           total: savedTags.length,
-          tags: savedTags.map(t => t.tag)
+          tags: savedTags.map(t => ({ id: t.id, tag: t.tag || t.name }))
         });
         this.updateCachedPublicationTags(publicationId, savedTags);
+        
+        // Invalidar caché para forzar recarga
+        this.cache.delete(`publication-${publicationId}`);
+        this.cache.delete('all-publications');
+        
+        // Actualizar publicación en el subject si existe
+        const currentPublications = this.publicationsSubject.value;
+        const index = currentPublications.findIndex(p => String(p.id) === publicationId);
+        if (index !== -1) {
+          currentPublications[index] = {
+            ...currentPublications[index],
+            tags: savedTags
+          };
+          this.publicationsSubject.next([...currentPublications]);
+          console.log('🔄 Publicación actualizada en subject con tags:', {
+            publicationId,
+            tagsCount: savedTags.length
+          });
+        }
       }),
-      catchError(error => {
-        console.error('❌ Error al agregar tags:', {
+      catchError((error: HttpErrorResponse) => {
+        console.error('❌ Error general agregando tags a publicación:', {
           publicationId,
-          postId,
-          tags,
-          url,
-          error: error.error,
-          status: error.status
+          tags: normalizedUniqueTags,
+          status: error.status,
+          message: error.message
         });
         return of([]);
       })
     );
   }
+
+  private mapCreatedTagResponseToNeedTag = (response: CreatedTagResponse | null | undefined, index = 0): NeedPublicationTag => {
+    const fallbackId = typeof response?.id === 'number' && !Number.isNaN(response.id)
+      ? response.id
+      : Number(`${Date.now()}${index}`);
+
+    const rawTag = (response?.tag || response?.name || '').toString().trim();
+    const tagValue = rawTag.length > 0 ? rawTag : `Tag ${fallbackId}`;
+
+    return {
+      id: fallbackId,
+      tag: tagValue,
+      name: response?.name || tagValue,
+      description: response?.description || ''
+    };
+  };
 
   /**
    * Eliminar un tag específico de una publicación
@@ -2066,16 +2555,26 @@ export class NeedPublicationService {
       return of(undefined);
     }
 
-    const url = `${this.tagsApiUrl}/post/${postId}/tags/${tagId}`;
+    // NOTA: El controlador de tags NO tiene endpoints para eliminar tags de publicaciones
+    // Estos endpoints deben estar en PostTagsController
+    // Por ahora, usar /posttags que es donde probablemente están estos endpoints
+    const endpoints = [
+      `${this.postTagsApiUrl}/post/${postId}/tags/${tagId}`,  // DELETE /posttags/post/{id}/tags/{tagId}
+      `${this.postTagsApiUrl}/post/${postId}/${tagId}`,       // DELETE /posttags/post/{id}/{tagId}
+      `${this.postTagsApiUrl}/${postId}/tags/${tagId}`,       // DELETE /posttags/{id}/tags/{tagId}
+      `${this.tagsDirectoryApiUrl}/post/${postId}/tags/${tagId}`,  // Fallback (si existe)
+      `${this.tagsDirectoryApiUrl}/post/${postId}/${tagId}`,        // Fallback (si existe)
+      `${this.tagsDirectoryApiUrl}/${postId}/tags/${tagId}`         // Fallback (si existe)
+    ];
 
     console.log('🗑️ Eliminando tag de publicación:', {
       publicationId,
       postId,
       tagId,
-      url
+      endpoints
     });
 
-    return this.http.delete<void>(url).pipe(
+    return this.deleteTagFromPublicationWithFallback(endpoints).pipe(
       timeout(10000),
       tap(() => {
         console.log('✅ Tag eliminado exitosamente:', { publicationId, tagId });
@@ -2085,7 +2584,7 @@ export class NeedPublicationService {
           publicationId,
           postId,
           tagId,
-          url,
+          endpoints,
           error: error.error,
           status: error.status
         });
@@ -2133,28 +2632,35 @@ export class NeedPublicationService {
 
   /**
    * Enriquece una publicación con sus tags
+   * Los tags deben venir en la respuesta de GET /post/{id} del backend
    */
   private enrichPublicationWithTags(
     publication: NeedPublication
   ): Observable<NeedPublication> {
-    console.log('🏷️ enrichPublicationWithTags: Obteniendo tags para publicación:', publication.id);
-    return this.getTagsByPublicationId(publication.id).pipe(
-      switchMap(tags => {
-        if (tags.length > 0) {
-          this.updateCachedPublicationTags(String(publication.id), tags);
-          const enriched = { ...publication, tags };
-          console.log('🏷️ enrichPublicationWithTags: Publicación enriquecida con', tags.length, 'tags del backend:', {
-            publicationId: publication.id,
-            tagsCount: tags.length,
-            tags: tags.map(t => t.tag || t.name)
-          });
-          return of(enriched);
-        }
-
-        console.log('🤖 No hay tags almacenados. Intentando generarlos con IA para publicación:', publication.id);
-        return this.generateTagsFromAi(publication);
-      })
-    );
+    const publicationId = String(publication.id);
+    console.log('🏷️ enrichPublicationWithTags: Verificando tags para publicación:', publicationId);
+    
+    // Los tags deben venir en la respuesta de GET /post/{id}
+    // Si la publicación ya tiene tags, usarlos directamente
+    if (publication.tags && Array.isArray(publication.tags) && publication.tags.length > 0) {
+      console.log('✅ enrichPublicationWithTags: Publicación ya tiene tags desde GET /post/{id}:', {
+        publicationId,
+        tagsCount: publication.tags.length,
+        tags: publication.tags.map(t => ({ id: t.id, tag: t.tag || t.name }))
+      });
+      return of(publication);
+    }
+    
+    // Si no hay tags, retornar publicación con array vacío
+    // No intentar obtener tags desde endpoint separado porque no existe GET /tags/{publicationId}
+    console.log('ℹ️ enrichPublicationWithTags: Publicación sin tags (deben venir en GET /post/{id}):', {
+      publicationId,
+      hasTags: !!publication.tags,
+      tagsCount: publication.tags?.length || 0
+    });
+    
+    const publicationWithoutTags = { ...publication, tags: publication.tags || [] };
+    return of(publicationWithoutTags);
   }
 
   /**
@@ -2167,11 +2673,30 @@ export class NeedPublicationService {
       return of(publications);
     }
     
+    console.log('🏷️ enrichPublicationsWithTags: Enriqueciendo', publications.length, 'publicaciones con tags');
+    
     const tagObservables = publications.map(publication =>
       this.enrichPublicationWithTags(publication)
     );
     
-    return forkJoin(tagObservables);
+    return forkJoin(tagObservables).pipe(
+      tap(enrichedPublications => {
+        const totalTags = enrichedPublications.reduce((sum, pub) => sum + (pub.tags?.length || 0), 0);
+        const publicationsWithTags = enrichedPublications.filter(pub => pub.tags && pub.tags.length > 0).length;
+        console.log('✅ enrichPublicationsWithTags: Publicaciones enriquecidas:', {
+          total: enrichedPublications.length,
+          withTags: publicationsWithTags,
+          totalTags: totalTags,
+          publicationsWithTagsDetails: enrichedPublications
+            .filter(pub => pub.tags && pub.tags.length > 0)
+            .map(pub => ({
+              id: pub.id,
+              tagsCount: pub.tags?.length || 0,
+              tags: pub.tags?.map(t => t.tag || t.name) || []
+            }))
+        });
+      })
+    );
   }
 
   private generateTagsFromAi(publication: NeedPublication): Observable<NeedPublication> {
@@ -2265,24 +2790,6 @@ export class NeedPublicationService {
       // El backend puede devolver: {id, post: {id, title, message, ...}, image, ...}
       const postData = post.post || post; // Si hay 'post' anidado, usarlo; si no, usar directamente
       
-      // Debug: Log COMPLETO de estructura recibida
-      console.log('🔍🔍🔍 mapSinglePost - ESTRUCTURA COMPLETA DEL BACKEND:', {
-        hasPostNested: !!post.post,
-        postId: post.id,
-        postDataId: postData.id,
-        postTitle: postData.title || post.title,
-        postImage: post.image,
-        postDataImage: postData.image,
-        postImagePost: post.imagePost,
-        postDataImagePost: postData.imagePost,
-        postFiles: post.files,
-        postDataFiles: postData.files,
-        postKeys: Object.keys(post),
-        postDataKeys: Object.keys(postData),
-        // Mostrar el objeto completo serializado (primeros 3000 caracteres)
-        fullPostObject: JSON.stringify(post, null, 2).substring(0, 3000)
-      });
-      
       const message = postData.message || post.message || postData.description || post.description || '';
       const extracted = this.extractLocationFromMessage(message);
       
@@ -2337,11 +2844,6 @@ export class NeedPublicationService {
       // CRÍTICO: Cuando hay estructura anidada, 'image' está en el nivel superior, no en 'post'
       files: (() => {
         const mapped = this.mapFiles(postData, post);
-        console.log('🖼️ mapSinglePost - Files mapeados:', {
-          postId: postData.id || post.id,
-          filesCount: mapped.length,
-          files: mapped.map(f => ({ id: f.id, url: f.url, type: f.type }))
-        });
         return mapped;
       })(),
       imageUrl: (() => {
@@ -2350,25 +2852,10 @@ export class NeedPublicationService {
         // PRIORIDAD 3: post.imageUrl o postData.imageUrl
         const rawImage = post.image || postData.image || post.imageUrl || postData.imageUrl;
         const imgUrl = this.normalizeImageUrl(rawImage);
-        console.log('🖼️🖼️🖼️ mapSinglePost - imageUrl mapeado (PRIORIDAD):', {
-          postId: postData.id || post.id,
-          postImage: post.image,
-          postDataImage: postData.image,
-          postImageUrl: post.imageUrl,
-          postDataImageUrl: postData.imageUrl,
-          rawImage: rawImage,
-          mappedImageUrl: imgUrl,
-          hasPostNested: !!post.post
-        });
         return imgUrl;
       })(),
       images: (() => {
         const mapped = this.mapImages(post, postData);
-        console.log('🖼️🖼️🖼️ mapSinglePost - Images mapeados:', {
-          postId: postData.id || post.id,
-          imagesCount: mapped?.length || 0,
-          images: mapped
-        });
         return mapped;
       })(),
       additionalImages: postData.additionalImages || post.additionalImages,
@@ -2389,8 +2876,56 @@ export class NeedPublicationService {
       email: post.user?.email || post.email,
       phone: post.phone,
       
-      // Tags se agregarán después
-      tags: [],
+      // Tags - mapear desde la respuesta del backend
+      tags: (() => {
+        // Buscar tags en múltiples ubicaciones posibles
+        const tagsFromPost = post.tags || postData.tags || post.postTags || postData.postTags;
+        
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🏷️ mapSinglePost - Buscando tags en respuesta');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('📍 Post ID:', postData.id || post.id);
+        console.log('📍 Todas las claves de post:', Object.keys(post || {}));
+        console.log('📍 Todas las claves de postData:', Object.keys(postData || {}));
+        console.log('📍 post.tags:', post.tags, 'Tipo:', typeof post.tags, 'Es array:', Array.isArray(post.tags));
+        console.log('📍 postData.tags:', postData.tags, 'Tipo:', typeof postData.tags, 'Es array:', Array.isArray(postData.tags));
+        console.log('📍 post.postTags:', post.postTags, 'Tipo:', typeof post.postTags);
+        console.log('📍 postData.postTags:', postData.postTags, 'Tipo:', typeof postData.postTags);
+        console.log('📍 post.tagIds:', post.tagIds);
+        console.log('📍 postData.tagIds:', postData.tagIds);
+        console.log('📍 Tags encontrados (final):', tagsFromPost);
+        console.log('📍 Es array:', Array.isArray(tagsFromPost));
+        console.log('📍 Length:', Array.isArray(tagsFromPost) ? tagsFromPost.length : 'N/A');
+        if (Array.isArray(tagsFromPost) && tagsFromPost.length > 0) {
+          console.log('📍 Primeros 3 tags:', tagsFromPost.slice(0, 3));
+        }
+        console.log('═══════════════════════════════════════════════════════');
+        
+        if (Array.isArray(tagsFromPost) && tagsFromPost.length > 0) {
+          const mappedTags: NeedPublicationTag[] = [];
+          tagsFromPost.forEach((tag: any) => {
+            // Si el tag ya tiene la estructura completa
+            if (tag && typeof tag === 'object' && tag.id) {
+              mappedTags.push({
+                id: typeof tag.id === 'number' ? tag.id : parseInt(String(tag.id), 10),
+                tag: tag.tag || tag.name || `Tag ${tag.id}`,
+                name: tag.name || tag.tag,
+                description: tag.description
+              });
+            }
+            // Si es solo un ID, necesitaríamos obtener los detalles, pero por ahora retornar básico
+            else if (typeof tag === 'number') {
+              mappedTags.push({
+                id: tag,
+                tag: `Tag ${tag}`,
+                name: `Tag ${tag}`
+              });
+            }
+          });
+          return mappedTags;
+        }
+        return [];
+      })(),
       
       // CRÍTICO: Preservar imagePost del backend para acceso directo
       imagePost: (() => {
@@ -2398,15 +2933,6 @@ export class NeedPublicationService {
         const imagePostFromPostData = postData?.imagePost;
         const result = imagePostFromPost || imagePostFromPostData;
 
-        console.log('🔍🔍🔍 DEBUG imagePost assignment - POST ID:', postData.id || post.id);
-        console.log('   imagePostFromPost:', imagePostFromPost);
-        console.log('   imagePostFromPostData:', imagePostFromPostData);
-        console.log('   result:', result);
-        console.log('   resultIsArray:', Array.isArray(result));
-        console.log('   resultLength:', Array.isArray(result) ? result.length : 'N/A');
-        console.log('   postKeys:', post ? Object.keys(post) : 'no post');
-        console.log('   postDataKeys:', postData ? Object.keys(postData) : 'no postData');
-        console.log('   ===========================');
 
         return result;
       })()
@@ -2454,12 +2980,6 @@ export class NeedPublicationService {
       }
     }
 
-    console.log('🔍 mapUser - Buscando foto de perfil:', {
-      userId: user.id,
-      username: user.username,
-      profilePhoto: profilePhoto,
-      allCandidates: photoCandidates.map(c => typeof c === 'string' ? c.substring(0, 50) : 'no-string')
-    });
 
     return {
       id: String(user.id),
@@ -2483,18 +3003,6 @@ export class NeedPublicationService {
     // 2. post.image (string URL individual)
     // 3. postData.files (si no hay estructura anidada)
     
-    // Debug: ver qué datos llegan del backend
-    console.log('📦 Backend post data for mapping files:', {
-      id: post?.id || postData.id,
-      hasPost: !!post,
-      hasPostData: !!postData,
-      postImage: post?.image,
-      postImagePost: post?.imagePost,
-      postDataFiles: postData?.files,
-      postFiles: post?.files,
-      postKeys: post ? Object.keys(post) : [],
-      postDataKeys: postData ? Object.keys(postData) : []
-    });
     
     // Buscar archivos en múltiples posibles ubicaciones del backend
     let files: any[] = [];
@@ -2509,25 +3017,18 @@ export class NeedPublicationService {
         image: post.image,
         type: 'image'
       }];
-      console.log('✅✅✅ mapFiles: Usando post.image (PRIORIDAD 1 - estructura anidada):', post.image);
     }
     // PRIORIDAD 2: Buscar en post.imagePost (estructura anidada - array de objetos con imágenes)
     else if (post?.imagePost && Array.isArray(post.imagePost) && post.imagePost.length > 0) {
       files = post.imagePost;
-      console.log('✅✅✅ mapFiles: Usando post.imagePost (PRIORIDAD 2), count:', files.length);
     }
     // 3. Buscar en postData.files (estructura normal)
     else if (postData?.files && Array.isArray(postData.files) && postData.files.length > 0) {
       files = postData.files;
-      console.log('✅ Using postData.files, count:', files.length);
     }
     // 4. Buscar en post.files (por si acaso)
     else if (post?.files && Array.isArray(post.files) && post.files.length > 0) {
       files = post.files;
-      console.log('✅ Using post.files, count:', files.length);
-    }
-    else {
-      console.warn('⚠️ No files array found in post:', post?.id || postData?.id);
     }
     
     const mappedFiles: NeedPublicationFile[] = [];
@@ -2574,17 +3075,11 @@ export class NeedPublicationService {
       const rawUrl = extractRawUrl(img);
 
       if (!rawUrl) {
-        console.warn('⚠️ Imagen sin URL válida:', img);
         continue;
       }
       
       // Normalizar URL (agregar base URL si es necesario)
       const normalizedUrl = this.normalizeUrl(rawUrl);
-      console.log('🖼️ Normalizando URL de imagen:', {
-        raw: rawUrl,
-        normalized: normalizedUrl,
-        isAbsolute: rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
-      });
       
       mappedFiles.push({
         id: String(img.id || Math.random().toString(36).slice(2, 11)),
@@ -2759,18 +3254,6 @@ export class NeedPublicationService {
   private mapImages(post: any, postData: any): string[] | undefined {
     const images: string[] = [];
     
-    console.log('🔍🔍🔍 mapImages - BÚSQUEDA EXHAUSTIVA:', {
-      hasPost: !!post,
-      hasPostData: !!postData,
-      postImage: post?.image,
-      postImagePost: post?.imagePost,
-      postImagePostType: post?.imagePost ? (Array.isArray(post.imagePost) ? 'array' : typeof post.imagePost) : 'none',
-      postImagePostLength: Array.isArray(post?.imagePost) ? post.imagePost.length : 0,
-      postDataImage: postData?.image,
-      postKeys: post ? Object.keys(post) : [],
-      postDataKeys: postData ? Object.keys(postData) : []
-    });
-    
     // PRIORIDAD 1: Buscar 'image' en el nivel superior (post.image) - estructura anidada
     // Esta es la estructura que mencionaste: {id, post: {...}, image: "url", ...}
     if (post?.image) {
@@ -2787,7 +3270,6 @@ export class NeedPublicationService {
       if (rawImage && typeof rawImage === 'string' && rawImage.trim()) {
         const normalized = this.normalizeUrl(rawImage);
         if (normalized) {
-          console.log('✅✅✅ mapImages: IMAGEN ENCONTRADA en post.image (PRIORIDAD 1):', normalized);
           return [normalized];
         }
       }
@@ -2795,7 +3277,6 @@ export class NeedPublicationService {
     
     // PRIORIDAD 2: Buscar en post.imagePost (array de objetos con imágenes)
     if (post?.imagePost && Array.isArray(post.imagePost) && post.imagePost.length > 0) {
-      console.log('🔍 mapImages: Buscando en post.imagePost, count:', post.imagePost.length);
       post.imagePost.forEach((img: any, index: number) => {
         let raw: string | undefined;
         
@@ -2813,14 +3294,10 @@ export class NeedPublicationService {
           const normalized = this.normalizeUrl(raw);
           if (normalized && !images.includes(normalized)) {
             images.push(normalized);
-            console.log(`✅✅✅ mapImages: Imagen ${index + 1} encontrada en post.imagePost:`, normalized);
           }
-        } else {
-          console.warn(`⚠️ mapImages: Imagen ${index + 1} en post.imagePost sin URL válida:`, img);
         }
       });
       if (images.length > 0) {
-        console.log('✅✅✅ mapImages: Total', images.length, 'imágenes encontradas en post.imagePost');
         return images;
       }
     }
@@ -2838,7 +3315,6 @@ export class NeedPublicationService {
         }
       });
       if (images.length > 0) {
-        console.log('✅ mapImages: Found', images.length, 'images in combined.images');
         return images;
       }
     }
@@ -2847,7 +3323,6 @@ export class NeedPublicationService {
     if (postData?.image && typeof postData.image === 'string' && postData.image.trim()) {
       const normalized = this.normalizeUrl(postData.image);
       if (normalized) {
-        console.log('✅ mapImages: Found image in postData.image');
         return [normalized];
       }
     }
@@ -2857,7 +3332,6 @@ export class NeedPublicationService {
     if (photoField && typeof photoField === 'string' && photoField.trim()) {
       const normalized = this.normalizeUrl(photoField);
       if (normalized) {
-        console.log('✅ mapImages: Found image in post.photo/foto:', normalized);
         return [normalized];
       }
     }
@@ -2867,7 +3341,6 @@ export class NeedPublicationService {
     if (photoFieldData && typeof photoFieldData === 'string' && photoFieldData.trim()) {
       const normalized = this.normalizeUrl(photoFieldData);
       if (normalized) {
-        console.log('✅ mapImages: Found image in postData.photo/foto:', normalized);
         return [normalized];
       }
     }
@@ -2879,13 +3352,11 @@ export class NeedPublicationService {
       if (url && typeof url === 'string' && url.trim()) {
         const normalized = this.normalizeUrl(url);
         if (normalized) {
-          console.log(`✅ mapImages: Found image in ${field}:`, normalized);
           return [normalized];
         }
       }
     }
 
-    console.warn('⚠️ mapImages: No images found en ningún campo alternativo');
     return undefined;
   }
 
