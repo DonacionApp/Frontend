@@ -7,6 +7,7 @@ import { PostsService, Post, TypePost, FilterPostDTO, PostLiked } from '../../..
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../../core/services/auth.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-list',
@@ -284,23 +285,51 @@ export class ListComponent implements OnInit, OnDestroy {
   deletePost(post: Post): void {
     this.closeDropdown();
     
-    const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar la publicación "${post.title}"?\n\nEsta acción no se puede deshacer.`);
-    
-    if (confirmDelete) {
-      this.postsService.deletePost(post.id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            // Eliminar el post de la lista local
-            this.posts = this.posts.filter(p => p.id !== post.id);
-            console.log('Post eliminado exitosamente');
-          },
-          error: (err) => {
-            console.error('Error al eliminar el post:', err);
-            alert('Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.');
+    Swal.fire({
+      title: '¿Eliminar publicación?',
+      html: `¿Estás seguro de que deseas eliminar <strong>"${post.title}"</strong>?<br><br>Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'Eliminando...',
+          text: 'Por favor espera',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
           }
         });
-    }
+
+        this.postsService.deletePost(post.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.posts = this.posts.filter(p => p.id !== post.id);
+              Swal.fire({
+                title: '¡Eliminado!',
+                text: 'La publicación ha sido eliminada exitosamente.',
+                icon: 'success',
+                confirmButtonColor: '#22c55e'
+              });
+            },
+            error: (err) => {
+              console.error('Error al eliminar el post:', err);
+              Swal.fire({
+                title: 'Error',
+                text: 'Hubo un error al eliminar la publicación. Por favor, intenta nuevamente.',
+                icon: 'error',
+                confirmButtonColor: '#dc2626'
+              });
+            }
+          });
+      }
+    });
   }
 
   toggleLike(post: Post): void {
