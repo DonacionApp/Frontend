@@ -456,4 +456,9 @@ export class ListComponent implements OnInit, OnDestroy {
     };
     return typeColors[typeName] || 'bg-gray-100 text-gray-800';
   }
+
+  navigateToProfile(userId: number, event: Event): void {
+    event.stopPropagation(); // Prevenir que se abra el detalle del post
+    this.router.navigate(['/profile', userId]);
+  }
 }

@@ -15,6 +15,10 @@ const routes: Routes = [
     path: 'post', 
     loadChildren:()=>import('./features/post/post.module').then(m=>m.PostModule)
   },
+  {
+    path: 'profile/:id',
+    loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+  },
   
   // Página de acceso denegado
   { path: 'access-denied', component: AccessDeniedComponent },

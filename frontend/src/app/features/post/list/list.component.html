@@ -75,11 +75,17 @@
             <img 
               [src]="post.user.profilePhoto || 'assets/default-avatar.png'" 
               [alt]="post.user.username"
-              class="w-8 h-8 lg:w-10 lg:h-10 rounded-full mr-2 lg:mr-3 object-cover flex-shrink-0"
+              class="w-8 h-8 lg:w-10 lg:h-10 rounded-full mr-2 lg:mr-3 object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              (click)="navigateToProfile(post.user.id, $event)"
             />
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5">
-                <p class="font-semibold text-sm lg:text-base text-gray-900 truncate">{{ post.user.username }}</p>
+                <p 
+                  class="font-semibold text-sm lg:text-base text-gray-900 truncate cursor-pointer hover:text-green-600 transition-colors"
+                  (click)="navigateToProfile(post.user.id, $event)"
+                >
+                  {{ post.user.username }}
+                </p>
                 
                 <!-- Verified Badges -->
                 <div class="flex items-center gap-1 flex-shrink-0">
