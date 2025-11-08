@@ -96,8 +96,17 @@ export class CreateDonationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al cargar post:', error);
-        this.errorMessage = 'No se pudo cargar la información de la publicación';
         this.loadingPost = false;
+        
+        if (error.status === 404) {
+          this.errorMessage = 'La publicación no existe o fue eliminada';
+        } else if (error.status === 403) {
+          this.errorMessage = 'No tienes permiso para acceder a esta publicación';
+        } else if (error.status === 500) {
+          this.errorMessage = 'Error del servidor al cargar la publicación. Intenta más tarde';
+        } else {
+          this.errorMessage = 'No se pudo cargar la información de la publicación. Verifica tu conexión';
+        }
       }
     });
   }
