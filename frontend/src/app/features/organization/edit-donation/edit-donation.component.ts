@@ -18,7 +18,7 @@ export class EditDonationComponent implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
   successMessage = '';
-  donationId = '';
+  donationId = 0;
   currentDonation: Donation | null = null;
   private destroy$ = new Subject<void>();
 
@@ -34,7 +34,8 @@ export class EditDonationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Obtener el ID de la donación desde la ruta
-    this.donationId = this.route.snapshot.paramMap.get('id') || '';
+    const id = this.route.snapshot.paramMap.get('id');
+    this.donationId = id ? parseInt(id) : 0;
     
     if (this.donationId) {
       this.loadDonation(this.donationId);
@@ -52,25 +53,19 @@ export class EditDonationComponent implements OnInit, OnDestroy {
     this.donationForm = this.fb.group({
       lugarRecogida: ['', [Validators.required, Validators.maxLength(200)]],
       lugarDonacion: ['', [Validators.required, Validators.maxLength(200)]],
-      comunity: ['', [Validators.required, Validators.maxLength(100)]],
       fechaMaximaEntrega: ['', Validators.required],
-      articles: this.fb.array([], [Validators.required, Validators.minLength(1)]),
-      comments: this.fb.array([])
+      // Solo los campos editables según UpdateDonationDTO
     });
   }
 
-  get articles(): FormArray {
-    return this.donationForm.get('articles') as FormArray;
-  }
-
-  get comments(): FormArray {
-    return this.donationForm.get('comments') as FormArray;
-  }
+  // Artículos y comentarios se mantienen en listas para visualización (no editables)
+  articlesList: any[] = [];
+  commentsList: any[] = [];
 
   /**
    * Cargar datos de la donación existente
    */
-  private loadDonation(id: string): void {
+  private loadDonation(id: number): void {
     this.loading = true;
     this.donationService.getDonationById(id)
       .pipe(takeUntil(this.destroy$))
@@ -78,16 +73,31 @@ export class EditDonationComponent implements OnInit, OnDestroy {
         next: (donation) => {
           this.currentDonation = donation;
 
-          // Verificar si el usuario actual es el propietario
+          // Verificar permisos de edición
           const currentUser = this.authService.currentUserValue;
+          if (!currentUser) {
+            this.errorMessage = 'Debes iniciar sesión para editar una donación.';
+            this.loading = false;
+            setTimeout(() => {
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+            return;
+          }
+
+          const currentUserId = String(currentUser.id);
+          const beneficiaryId = String(donation.beneficiary?.id);
+          const donatorId = String(donation.donator?.id);
           
-          // Obtener el ID del creador (con fallback)
-          const donationCreatorId = donation.userId || donation.user?.id;
-          const currentUserId = String(currentUser?.id || '');
-          const creatorId = String(donationCreatorId || '');
+          // Verificar si es beneficiario o donador
+          const isBeneficiary = currentUserId === beneficiaryId;
+          const isDonator = currentUserId === donatorId;
           
-          if (!currentUser || currentUserId !== creatorId) {
-            this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
+          // Verificar si el estado es "pendiente"
+          const isPending = donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+
+          // Solo puede editar si es beneficiario/donador Y está en pendiente
+          if (!isBeneficiary && !isDonator) {
+            this.errorMessage = 'No tienes permiso para editar esta donación. Solo el beneficiario o donador pueden editarla.';
             this.loading = false;
             setTimeout(() => {
               this.router.navigate(['/organization/donations', id]);
@@ -95,32 +105,25 @@ export class EditDonationComponent implements OnInit, OnDestroy {
             return;
           }
 
-          // Limpiar los FormArrays antes de rellenar
-          this.articles.clear();
-          this.comments.clear();
+          if (!isPending) {
+            this.errorMessage = 'Solo se pueden editar donaciones en estado "pendiente".';
+            this.loading = false;
+            setTimeout(() => {
+              this.router.navigate(['/organization/donations', id]);
+            }, 2000);
+            return;
+          }
 
           // Llenar el formulario con los datos existentes
           this.donationForm.patchValue({
             lugarRecogida: donation.lugarRecogida,
             lugarDonacion: donation.lugarDonacion,
-            comunity: donation.comunity,
             fechaMaximaEntrega: this.formatDateForInput(donation.fechaMaximaEntrega)
           });
 
-          // Agregar artículos existentes
-          donation.articles.forEach(article => {
-            this.articles.push(this.fb.group({
-              name: [article.name, [Validators.required, Validators.maxLength(100)]],
-              quantity: [article.quantity, [Validators.required, Validators.min(1)]]
-            }));
-          });
-
-          // Agregar comentarios existentes
-          donation.comments.forEach(comment => {
-            this.comments.push(this.fb.group({
-              text: [comment.text, [Validators.required, Validators.maxLength(500)]]
-            }));
-          });
+          // Guardar artículos y comentarios para visualización (no editables)
+          this.articlesList = donation.articles || [];
+          this.commentsList = Array.isArray(donation.comments) ? donation.comments : [];
 
           this.loading = false;
         },
@@ -160,52 +163,22 @@ export class EditDonationComponent implements OnInit, OnDestroy {
   /**
    * Agregar nuevo artículo
    */
-  onAddArticle(): void {
-    if (this.articles.length >= 10) {
-      this.errorMessage = 'Máximo 10 artículos permitidos';
-      setTimeout(() => this.errorMessage = '', 3000);
-      return;
-    }
-
-    this.articles.push(this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
-      quantity: [1, [Validators.required, Validators.min(1)]]
-    }));
-  }
+  // No es posible agregar artículos desde aquí: los artículos están ligados al post y son de solo lectura.
 
   /**
    * Eliminar artículo
    */
-  onRemoveArticle(index: number): void {
-    if (this.articles.length > 1) {
-      this.articles.removeAt(index);
-    } else {
-      this.errorMessage = 'Debe haber al menos un artículo';
-      setTimeout(() => this.errorMessage = '', 3000);
-    }
-  }
+  // Eliminación de artículos no permitida en la edición (artículos pertenecen al post)
 
   /**
    * Agregar nuevo comentario
    */
-  onAddComment(): void {
-    if (this.comments.length >= 5) {
-      this.errorMessage = 'Máximo 5 comentarios permitidos';
-      setTimeout(() => this.errorMessage = '', 3000);
-      return;
-    }
-
-    this.comments.push(this.fb.group({
-      text: ['', [Validators.required, Validators.maxLength(500)]]
-    }));
-  }
+  // Comentarios no editables desde aquí; se muestran los comentarios existentes.
 
   /**
    * Eliminar comentario
    */
-  onRemoveComment(index: number): void {
-    this.comments.removeAt(index);
-  }
+  // No es posible eliminar comentarios desde esta vista
 
   /**
    * Enviar formulario actualizado
@@ -226,12 +199,9 @@ export class EditDonationComponent implements OnInit, OnDestroy {
     // Convertir fecha a ISO 8601
     const fechaMaximaEntrega = new Date(formValue.fechaMaximaEntrega).toISOString();
 
-    const updateData = {
-      lugarRecogida: formValue.lugarRecogida,
-      lugarDonacion: formValue.lugarDonacion,
-      articles: formValue.articles,
-      comments: formValue.comments,
-      comunity: formValue.comunity,
+    const updateData: any = {
+      lugarRecogida: formValue.lugarRecogida?.trim(),
+      lugarDonacion: formValue.lugarDonacion?.trim(),
       fechaMaximaEntrega
     };
 

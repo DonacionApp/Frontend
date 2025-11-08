@@ -7,6 +7,7 @@ import { OrganizationDashboardComponent } from './dashboard/organization-dashboa
 import { CreateDonationComponent } from './create-donation/create-donation.component';
 import { DonationDetailComponent } from './donation-detail/donation-detail.component';
 import { EditDonationComponent } from './edit-donation/edit-donation.component';
+import { ManageDonationArticlesComponent } from './manage-donation-articles/manage-donation-articles.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { OrganizationGuard } from '../../core/guards/organization.guard';
 
@@ -16,6 +17,7 @@ const routes: Routes = [
   { path: 'profile', component: OrganizationProfileComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/create', component: CreateDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/edit', component: EditDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
+  { path: 'donations/:id/manage-articles', component: ManageDonationArticlesComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id', component: DonationDetailComponent, canActivate: [AuthGuard, OrganizationGuard] },
 ];
 
@@ -31,7 +33,8 @@ const routes: Routes = [
     OrganizationProfileComponent,
     CreateDonationComponent,
     DonationDetailComponent,
-    EditDonationComponent
+    EditDonationComponent,
+    ManageDonationArticlesComponent
   ],
   providers: [
     // Aquí irán los servicios específicos de la organización

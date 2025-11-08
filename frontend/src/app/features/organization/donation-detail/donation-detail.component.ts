@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { DonationService, Donation } from '../../../core/services/donation.service';
+import { DonationService, Donation, Comment } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -30,13 +30,13 @@ export class DonationDetailComponent implements OnInit {
     // Obtener el ID de la donación desde la URL
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadDonation(id);
+      this.loadDonation(parseInt(id));
     } else {
       this.errorMessage = 'ID de donación no válido';
     }
   }
 
-  private loadDonation(id: string): void {
+  private loadDonation(id: number): void {
     this.loading = true;
     this.errorMessage = '';
 
@@ -76,18 +76,22 @@ export class DonationDetailComponent implements OnInit {
       return;
     }
 
-    // Obtener el ID del usuario creador de la donación
-    // Priorizar donation.userId, si no existe usar donation.user?.id
-    const donationCreatorId = this.donation.userId || this.donation.user?.id;
-    
-    // Convertir ambos IDs a string para comparación consistente
     const currentUserId = String(currentUser.id);
-    const creatorId = String(donationCreatorId);
+    const beneficiaryId = String(this.donation.beneficiary?.id);
+    const donatorId = String(this.donation.donator?.id);
+    
+    // Verificar si el usuario es el beneficiario (creador) o el donador
+    const isBeneficiary = currentUserId === beneficiaryId;
+    const isDonator = currentUserId === donatorId;
+    
+    // Verificar si el estado es "pendiente"
+    const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
 
-    // Solo el creador puede editar o eliminar
-    // Comparar como strings para evitar problemas de tipo (string vs number)
-    this.canEditDonation = currentUserId === creatorId;
-    this.canDeleteDonation = currentUserId === creatorId;
+    // Editar: Solo si es beneficiario o donador Y el estado es pendiente
+    this.canEditDonation = (isBeneficiary || isDonator) && isPending;
+    
+    // Eliminar: Solo el beneficiario (creador) puede eliminar, sin importar el estado
+    this.canDeleteDonation = isBeneficiary;
   }
 
   // Navegar a editar
@@ -95,12 +99,35 @@ export class DonationDetailComponent implements OnInit {
     if (!this.donation) return;
 
     if (!this.canEditDonation) {
-      this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
-      setTimeout(() => this.errorMessage = '', 3000);
+      const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+      if (!isPending) {
+        this.errorMessage = 'Solo se pueden editar donaciones en estado "pendiente".';
+      } else {
+        this.errorMessage = 'No tienes permiso para editar esta donación. Solo el beneficiario o donador pueden editarla.';
+      }
+      setTimeout(() => this.errorMessage = '', 4000);
       return;
     }
 
     this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
+  }
+
+  // Navegar a gestionar artículos
+  onManageArticles(): void {
+    if (!this.donation) return;
+
+    if (!this.canEditDonation) {
+      const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+      if (!isPending) {
+        this.errorMessage = 'Solo se pueden gestionar artículos en estado "pendiente".';
+      } else {
+        this.errorMessage = 'No tienes permiso para gestionar los artículos. Solo el beneficiario o donador pueden hacerlo.';
+      }
+      setTimeout(() => this.errorMessage = '', 4000);
+      return;
+    }
+
+    this.router.navigate(['/organization/donations', this.donation.id, 'manage-articles']);
   }
 
   // Eliminar donación
@@ -123,8 +150,16 @@ export class DonationDetailComponent implements OnInit {
           this.loading = false;
           console.error('Error al eliminar:', error);
           
-          if (error.status === 403) {
-            this.errorMessage = 'No tienes permiso para eliminar esta donación.';
+          if (error.status === 404) {
+            this.errorMessage = 'La donación no existe o ya fue eliminada.';
+          } else if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para eliminar esta donación. Solo el creador puede eliminarla.';
+          } else if (error.status === 409) {
+            this.errorMessage = 'No se puede eliminar la donación porque tiene artículos asociados o está en proceso.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Error en el servidor al eliminar la donación. Intenta nuevamente más tarde.';
+          } else if (error.status === 0) {
+            this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
           } else {
             this.errorMessage = 'Error al eliminar la donación. Por favor intenta nuevamente.';
           }
@@ -148,7 +183,20 @@ export class DonationDetailComponent implements OnInit {
         error: (error) => {
           this.loading = false;
           console.error('Error al extender fecha:', error);
-          this.errorMessage = 'Error al extender la fecha. Por favor intenta nuevamente.';
+          
+          if (error.status === 404) {
+            this.errorMessage = 'La donación no existe o ya fue eliminada.';
+          } else if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para extender la fecha de esta donación.';
+          } else if (error.status === 400) {
+            this.errorMessage = 'No se puede extender la fecha. Verifica que la donación esté en estado válido.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Error en el servidor al extender la fecha. Intenta nuevamente más tarde.';
+          } else if (error.status === 0) {
+            this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+          } else {
+            this.errorMessage = 'Error al extender la fecha. Por favor intenta nuevamente.';
+          }
         }
       });
     }
@@ -186,5 +234,14 @@ export class DonationDetailComponent implements OnInit {
     if (days <= 3) return 'urgent';
     if (days <= 7) return 'warning';
     return 'normal';
+  }
+
+  // Obtener comentarios como array
+  getCommentsArray(): Comment[] {
+    if (!this.donation?.comments) return [];
+    if (Array.isArray(this.donation.comments)) {
+      return this.donation.comments;
+    }
+    return [];
   }
 }

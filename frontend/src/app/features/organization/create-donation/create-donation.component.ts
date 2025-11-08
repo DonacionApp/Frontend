@@ -1,8 +1,26 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { DonationService, CreateDonationDTO, Article, Comment } from '../../../core/services/donation.service';
+import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
+import { DonationService, CreateDonationDTO, ArticleInput, Comment } from '../../../core/services/donation.service';
+import { PostsService, Post, PostArticle } from '../../../core/services/posts.service';
+
+/**
+ * Validador personalizado para asegurar que la fecha no sea anterior a hoy
+ */
+function minDateValidator(control: AbstractControl): ValidationErrors | null {
+  if (!control.value) return null;
+  
+  const selectedDate = new Date(control.value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
+  
+  if (selectedDate < today) {
+    return { minDate: { value: control.value, message: 'La fecha no puede ser anterior a hoy' } };
+  }
+  
+  return null;
+}
 
 @Component({
   selector: 'app-create-donation',
@@ -16,30 +34,98 @@ export class CreateDonationComponent implements OnInit {
   loading = false;
   successMessage = '';
   errorMessage = '';
+  
+  // Datos del post
+  postId!: number;
+  post: Post | null = null;
+  availableArticles: PostArticle[] = [];
+  loadingPost = false;
+
+  // Fecha mínima (hoy)
+  minDate: string;
 
   constructor(
     private fb: FormBuilder,
     private donationService: DonationService,
-    private router: Router
-  ) {}
+    private postsService: PostsService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    // Establecer fecha mínima como hoy
+    const today = new Date();
+    this.minDate = today.toISOString().split('T')[0];
+  }
 
   ngOnInit(): void {
-    this.initializeForm();
+    // Obtener el postId tanto de parámetros de ruta como de query params (ej: ?post=5)
+    this.route.params.subscribe(params => {
+      let idFromParams = params['id'];
+      // Si no viene en params, intentar en query params (por ejemplo ?post=5)
+      if (!idFromParams) {
+        idFromParams = this.route.snapshot.queryParamMap.get('post');
+      }
+
+      this.postId = idFromParams ? +idFromParams : NaN;
+      if (this.postId && !isNaN(this.postId)) {
+        this.errorMessage = '';
+        this.loadPost();
+      } else {
+        this.errorMessage = 'No se proporcionó un ID de publicación válido';
+      }
+    });
+  }
+
+  /**
+   * Cargar datos del post con sus artículos
+   */
+  private loadPost(): void {
+    this.loadingPost = true;
+    this.postsService.getPostById(this.postId).subscribe({
+      next: (post) => {
+        this.post = post;
+        this.availableArticles = post.postArticle || [];
+        
+        if (this.availableArticles.length === 0) {
+          this.errorMessage = 'Esta publicación no tiene artículos disponibles';
+          this.loadingPost = false;
+          return;
+        }
+        
+        this.initializeForm();
+        this.loadingPost = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar post:', error);
+        this.loadingPost = false;
+        
+        if (error.status === 404) {
+          this.errorMessage = 'La publicación no existe o fue eliminada';
+        } else if (error.status === 403) {
+          this.errorMessage = 'No tienes permiso para acceder a esta publicación';
+        } else if (error.status === 500) {
+          this.errorMessage = 'Error del servidor al cargar la publicación. Intenta más tarde';
+        } else {
+          this.errorMessage = 'No se pudo cargar la información de la publicación. Verifica tu conexión';
+        }
+      }
+    });
   }
 
   private initializeForm(): void {
     this.donationForm = this.fb.group({
       lugarRecogida: ['', [Validators.required, Validators.minLength(5)]],
       lugarDonacion: ['', [Validators.required, Validators.minLength(5)]],
-      comunity: ['', [Validators.required, Validators.minLength(3)]],
-      fechaMaximaEntrega: ['', [Validators.required]],
-      articles: this.fb.array([this.createArticleFormGroup()]),
+      fechaMaximaEntrega: ['', [Validators.required, minDateValidator]],
+      articles: this.fb.array([], [Validators.required, Validators.minLength(1)]),
       comments: this.fb.array([this.createCommentFormGroup()])
     });
 
     // Establecer fecha mínima (hoy)
     const today = new Date().toISOString().split('T')[0];
     this.donationForm.get('fechaMaximaEntrega')?.setValue(today);
+    
+    // Agregar artículos disponibles como checkboxes
+    this.initializeArticlesSelection();
   }
 
   // FormArrays getters
@@ -51,33 +137,84 @@ export class CreateDonationComponent implements OnInit {
     return this.donationForm.get('comments') as FormArray;
   }
 
-  // Crear FormGroup para un artículo
-  private createArticleFormGroup(): FormGroup {
-    return this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      quantity: [1, [Validators.required, Validators.min(1), Validators.max(1000)]]
+  /**
+   * Inicializar selección de artículos del post
+   */
+  private initializeArticlesSelection(): void {
+    // Crear un FormGroup por cada artículo disponible
+    this.availableArticles.forEach(postArticle => {
+      const maxQ = parseInt(postArticle.quantity) || 1;
+      this.articles.push(this.fb.group({
+        articlePostId: [postArticle.id],
+        articleName: [postArticle.article.name],
+        articleDescription: [postArticle.article.descripcion],
+        maxQuantity: [maxQ],
+        selected: [false],
+        // quantity con validadores dinámicos incluyendo max
+        quantity: [{ value: 1, disabled: true }, [Validators.required, Validators.min(1), Validators.max(maxQ)]]
+      }));
     });
+  }
+
+  /**
+   * Manejar cambio en checkbox de artículo
+   */
+  onArticleSelectionChange(index: number): void {
+    const articleGroup = this.articles.at(index) as FormGroup;
+    const selected = articleGroup.get('selected')?.value;
+    const quantityControl = articleGroup.get('quantity');
+    const maxQ = articleGroup.get('maxQuantity')?.value || 1;
+
+    if (selected && maxQ > 1) {
+      // habilitar edición solo si hay más de 1 disponible
+      quantityControl?.setValidators([Validators.required, Validators.min(1), Validators.max(maxQ)]);
+      quantityControl?.updateValueAndValidity();
+      quantityControl?.enable();
+    } else {
+      // si no está seleccionado o solo hay 1 disponible, mantener valor 1 y deshabilitado
+      quantityControl?.clearValidators();
+      quantityControl?.updateValueAndValidity();
+      quantityControl?.setValue(1);
+      quantityControl?.disable();
+    }
+    
+    // Actualizar validador del array
+    this.updateArticlesValidator();
+  }
+
+  /**
+   * Actualizar validación: al menos un artículo debe estar seleccionado
+   */
+  private updateArticlesValidator(): void {
+    const hasSelected = this.articles.controls.some(
+      control => control.get('selected')?.value === true
+    );
+    
+    if (!hasSelected) {
+      this.articles.setErrors({ noSelection: true });
+    } else {
+      this.articles.setErrors(null);
+    }
+  }
+
+  /**
+   * Actualizar máximo de cantidad cuando el usuario cambia la cantidad
+   */
+  onQuantityChange(index: number): void {
+    const articleGroup = this.articles.at(index) as FormGroup;
+    const quantity = articleGroup.get('quantity')?.value;
+    const maxQuantity = articleGroup.get('maxQuantity')?.value;
+    
+    if (quantity > maxQuantity) {
+      articleGroup.get('quantity')?.setValue(maxQuantity);
+    }
   }
 
   // Crear FormGroup para un comentario
   private createCommentFormGroup(): FormGroup {
     return this.fb.group({
-      text: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(500)]]
+      message: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(500)]]
     });
-  }
-
-  // Agregar artículo
-  addArticle(): void {
-    if (this.articles.length < 10) {
-      this.articles.push(this.createArticleFormGroup());
-    }
-  }
-
-  // Eliminar artículo
-  removeArticle(index: number): void {
-    if (this.articles.length > 1) {
-      this.articles.removeAt(index);
-    }
   }
 
   // Agregar comentario
@@ -89,9 +226,14 @@ export class CreateDonationComponent implements OnInit {
 
   // Eliminar comentario
   removeComment(index: number): void {
-    if (this.comments.length > 1) {
+    if (this.comments.length > 0) {
       this.comments.removeAt(index);
     }
+  }
+
+  // Verificar si hay al menos un artículo seleccionado
+  hasSelectedArticles(): boolean {
+    return this.articles.controls.some(control => control.get('selected')?.value === true);
   }
 
   // Validar si un campo tiene errores
@@ -116,7 +258,28 @@ export class CreateDonationComponent implements OnInit {
     if (field?.hasError('max')) {
       return 'La cantidad es demasiado grande';
     }
+    if (field?.hasError('minDate')) {
+      return field.errors?.['minDate'].message || 'La fecha no puede ser anterior a hoy';
+    }
     return '';
+  }
+
+  // Helpers seguros para acceder a availableArticles desde la plantilla
+  getArticleName(index: number): string {
+    const a = this.availableArticles[index];
+    return a && a.article && a.article.name ? a.article.name : 'Artículo';
+  }
+
+  getArticleDescripcion(index: number): string {
+    const a = this.availableArticles[index];
+    return a && a.article && a.article.descripcion ? a.article.descripcion : '';
+  }
+
+  getArticleQuantity(index: number): number {
+    const a = this.availableArticles[index];
+    if (!a) return 0;
+    const q = a.quantity;
+    return typeof q === 'number' ? q : parseInt(String(q || '0')) || 0;
   }
 
   // Enviar formulario
@@ -140,7 +303,7 @@ export class CreateDonationComponent implements OnInit {
         });
       });
 
-      this.errorMessage = 'Por favor completa todos los campos requeridos correctamente';
+      this.errorMessage = 'Por favor completa todos los campos requeridos correctamente y selecciona al menos un artículo';
       return;
     }
 
@@ -149,24 +312,35 @@ export class CreateDonationComponent implements OnInit {
     this.successMessage = '';
 
     // Preparar datos para enviar
-    const formValue = this.donationForm.value;
+    const formValue = this.donationForm.getRawValue(); // getRawValue() incluye campos disabled
+    
+    // Filtrar solo artículos seleccionados
+    const selectedArticles: ArticleInput[] = formValue.articles
+      .filter((article: any) => article.selected)
+      .map((article: any) => ({
+        articlePostId: article.articlePostId,
+        quantity: parseInt(article.quantity)
+      }));
+
+    // Filtrar comentarios no vacíos
+    const comments: Comment[] = formValue.comments
+      .filter((comment: any) => comment.message && comment.message.trim())
+      .map((comment: any) => ({
+        message: comment.message.trim()
+      }));
     
     // Convertir la fecha a formato ISO con hora
     const fechaDate = new Date(formValue.fechaMaximaEntrega);
     fechaDate.setHours(23, 59, 59, 999); // Establecer a las 23:59:59
     
     const donationData: CreateDonationDTO = {
+      postId: this.postId,
       lugarRecogida: formValue.lugarRecogida.trim(),
       lugarDonacion: formValue.lugarDonacion.trim(),
-      comunity: formValue.comunity.trim(),
       fechaMaximaEntrega: fechaDate.toISOString(),
-      articles: formValue.articles.map((article: Article) => ({
-        name: article.name.trim(),
-        quantity: article.quantity
-      })),
-      comments: formValue.comments.map((comment: Comment) => ({
-        text: comment.text.trim()
-      }))
+      articles: selectedArticles,
+      comments: comments.length > 0 ? comments : [],
+      statusDonation: 1 // Pendiente por defecto
     };
 
     this.donationService.createDonation(donationData).subscribe({
@@ -174,13 +348,9 @@ export class CreateDonationComponent implements OnInit {
         this.loading = false;
         this.successMessage = '¡Donación creada exitosamente!';
         
-        // Limpiar formulario
-        this.donationForm.reset();
-        this.initializeForm();
-        
         // Redirigir a la lista de donaciones después de 2 segundos
         setTimeout(() => {
-          this.router.navigate(['/organization/donations']);
+          this.router.navigate(['/organization/dashboard']);
         }, 2000);
       },
       error: (error) => {
@@ -208,7 +378,7 @@ export class CreateDonationComponent implements OnInit {
   // Cancelar y volver
   onCancel(): void {
     if (confirm('¿Estás seguro de cancelar? Se perderán los datos ingresados.')) {
-      this.router.navigate(['/organization/donations']);
+      this.router.navigate(['/organization/dashboard']);
     }
   }
 

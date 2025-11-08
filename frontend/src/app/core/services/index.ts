@@ -7,3 +7,4 @@ export * from './auth.service';
 export * from './permission.service';
 export * from './verification.service';
 export * from './notification.service';
+export * from './post-donation-article.service';

@@ -5,33 +5,61 @@ import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 // Interfaces para donaciones
-export interface Article {
-  name: string;
+
+// Interface para artículo en el formulario de creación
+export interface ArticleInput {
+  articlePostId: number;
   quantity: number;
 }
 
-export interface Comment {
-  text: string;
-}
-
-export interface DonationUser {
-  id: string;
-  username: string;
-  email: string;
-  profilePhoto?: string;
-  verified: boolean;
-  lastLogin?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Interfaces extendidas para la respuesta de donaciones por usuario
+// Interface para artículo en la respuesta del backend
 export interface ArticleDetail {
   id: number;
   name: string;
   descripcion: string;
 }
 
+export interface DonationArticle {
+  id: number;
+  quantity: string;
+  postArticleId?: number; // Opcional, puede venir en algunas respuestas
+  article: ArticleDetail;
+}
+
+// Interface para comentarios
+export interface Comment {
+  message: string;
+}
+
+// Interface para el post asociado a la donación
+export interface DonationPost {
+  id: number;
+  title: string;
+  message: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface para usuario (creador, beneficiario o donador)
+export interface DonationUser {
+  id: number;
+  username: string;
+  email: string;
+  profilePhoto?: string;
+  emailVerified?: boolean;
+  verified: boolean;
+  createdAt: string;
+}
+
+// Interface para el estado de la donación
+export interface StatusDonation {
+  id: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interfaces extendidas para la respuesta de donaciones por usuario
 export interface PostArticle {
   id: number;
   quantity: string;
@@ -71,36 +99,41 @@ export interface DonationByUser {
   articles: PostArticle[];
 }
 
+// DTO para crear una donación (lo que se envía al backend)
 export interface CreateDonationDTO {
+  postId: number;
   lugarRecogida: string;
   lugarDonacion: string;
-  articles: Article[];
+  articles: ArticleInput[];
   comments: Comment[];
-  comunity: string;
   fechaMaximaEntrega: string; // ISO 8601 format
   statusDonation?: number; // Estado de la donación (opcional, por defecto 1)
 }
 
-export interface StatusDonation {
-  id: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+// DTO para actualizar una donación (campos opcionales)
+export interface UpdateDonationDTO {
+  lugarRecogida?: string;
+  lugarDonacion?: string;
+  fechaMaximaEntrega?: string;
+  // No se pueden actualizar articles ni comments según el endpoint
 }
 
+// Interface completa para una donación (respuesta del backend)
 export interface Donation {
-  id: string;
-  userId: string;
-  user?: DonationUser; // Información del usuario que creó la donación
+  id: number;
   lugarRecogida: string;
   lugarDonacion: string;
-  articles: Article[];
-  comments: Comment[];
-  comunity: string;
+  comments: Comment[] | Record<string, any>; // Puede ser array o objeto
   fechaMaximaEntrega: string;
-  statusDonation?: string | number | StatusDonation; // Puede ser string, number o objeto
+  post: DonationPost;
+  statusDonation: StatusDonation;
   createdAt: string;
   updatedAt: string;
+  user?: DonationUser; // Usuario creador (en detalle)
+  beneficiary?: DonationUser; // Beneficiario (organización)
+  donator?: DonationUser; // Donador
+  owner?: boolean; // Indica si el usuario actual es el dueño
+  articles: DonationArticle[];
 }
 
 export interface OrganizationStats {
@@ -173,7 +206,7 @@ export class DonationService {
   /**
    * Obtener una donación por ID
    */
-  getDonationById(id: string): Observable<Donation> {
+  getDonationById(id: number): Observable<Donation> {
     return this.http.get<Donation>(`${this.apiUrl}/${id}`).pipe(
       catchError(error => {
         console.error('Error al obtener donación:', error);
@@ -199,7 +232,7 @@ export class DonationService {
   /**
    * Actualizar una donación
    */
-  updateDonation(id: string, updates: Partial<CreateDonationDTO>): Observable<Donation> {
+  updateDonation(id: number, updates: UpdateDonationDTO): Observable<Donation> {
     this.loadingSubject.next(true);
     const url = `${this.apiUrl}/update/${id}`;
     return this.http.post<Donation>(url, updates).pipe(
@@ -224,7 +257,7 @@ export class DonationService {
   /**
    * Eliminar una donación
    */
-  deleteDonation(id: string): Observable<void> {
+  deleteDonation(id: number): Observable<void> {
     this.loadingSubject.next(true);
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       tap(() => {
@@ -244,7 +277,7 @@ export class DonationService {
   /**
    * Extender fecha máxima de entrega en 10 días
    */
-  extendDeliveryDate(id: string): Observable<Donation> {
+  extendDeliveryDate(id: number): Observable<Donation> {
     return this.http.post<Donation>(`${this.apiUrl}/${id}/extend-date`, {}).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
@@ -265,22 +298,22 @@ export class DonationService {
   /**
    * Verificar si el usuario actual es el propietario de la donación
    */
-  isOwner(donation: Donation, currentUserId: string): boolean {
-    return donation.userId === currentUserId;
+  isOwner(donation: Donation): boolean {
+    return donation.owner ?? false;
   }
 
   /**
    * Verificar si el usuario puede editar una donación
    */
-  canEdit(donation: Donation, currentUserId: string): boolean {
-    return this.isOwner(donation, currentUserId);
+  canEdit(donation: Donation): boolean {
+    return this.isOwner(donation);
   }
 
   /**
    * Verificar si el usuario puede eliminar una donación
    */
-  canDelete(donation: Donation, currentUserId: string): boolean {
-    return this.isOwner(donation, currentUserId);
+  canDelete(donation: Donation): boolean {
+    return this.isOwner(donation);
   }
 
   /**
@@ -290,23 +323,9 @@ export class DonationService {
     return this.getMyDonations().pipe(
       map(donations => {
         // Calcular estadísticas basadas en las donaciones del usuario
-        // statusDonation null o undefined se considera como "disponible"
         const activeDonations = donations.filter(d => {
-          if (!d.statusDonation) return true;
-          
-          // Si es un objeto con propiedad status
-          if (typeof d.statusDonation === 'object' && 'status' in d.statusDonation) {
-            const status = d.statusDonation.status.toLowerCase();
-            return status === 'pendiente' || status === 'aceptada';
-          }
-          
-          // Si es string
-          if (typeof d.statusDonation === 'string') {
-            return d.statusDonation.toLowerCase() === 'disponible' || d.statusDonation.toLowerCase() === 'pendiente';
-          }
-          
-          // Si es number
-          return d.statusDonation === 1 || d.statusDonation === 2;
+          const status = d.statusDonation.status.toLowerCase();
+          return status === 'pendiente' || status === 'aceptada' || status === 'activa';
         }).length;
 
         return {
@@ -318,7 +337,6 @@ export class DonationService {
       }),
       catchError(error => {
         console.error('Error al obtener estadísticas:', error);
-        // Retornar estadísticas vacías en caso de error
         return throwError(() => error);
       })
     );

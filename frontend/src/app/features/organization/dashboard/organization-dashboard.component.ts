@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
-import { DonationService, OrganizationStats, Donation, Article } from '../../../core/services/donation.service';
+import { DonationService, OrganizationStats, Donation, DonationArticle } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 
 type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
@@ -145,7 +145,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   /**
    * Navegar al detalle de una donación
    */
-  viewDonation(donationId: string): void {
+  viewDonation(donationId: number): void {
     this.router.navigate(['/organization/donations', donationId]);
   }
 
@@ -240,13 +240,13 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   /**
    * Obtener resumen de artículos
    */
-  getArticlesSummary(articles: Article[]): string {
+  getArticlesSummary(articles: DonationArticle[]): string {
     if (!articles || articles.length === 0) {
       return 'Sin artículos';
     }
     
-    const totalItems = articles.reduce((sum, article) => sum + article.quantity, 0);
-    const articleNames = articles.slice(0, 2).map(a => a.name).join(', ');
+    const totalItems = articles.reduce((sum, article) => sum + parseInt(article.quantity), 0);
+    const articleNames = articles.slice(0, 2).map(a => a.article.name).join(', ');
     
     if (articles.length > 2) {
       return `${articleNames} y ${articles.length - 2} más (${totalItems} artículos)`;
