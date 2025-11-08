@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
+import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
@@ -22,11 +23,13 @@ export class NavComponent implements OnInit, OnDestroy {
   userProfileImage: string | null = null;
   userFullName: string = '';
   isOnProfilePage = false;
+  isDocumentVerified = false;
   
   constructor(
     private router: Router,
     private authService: AuthService,
-    private profileService: UserProfileService
+    private profileService: UserProfileService,
+    private organizationProfileService: OrganizationProfileService
   ) {}
 
   ngOnInit(): void {
@@ -37,6 +40,7 @@ export class NavComponent implements OnInit, OnDestroy {
         this.user = user;
         this.isAuthenticated = !!user;
         this.userFullName = user?.name || 'Usuario';
+        this.isDocumentVerified = user?.isDocumentVerified || false;
         
         // Cargar foto de perfil si el usuario está autenticado
         if (user) {
@@ -69,20 +73,45 @@ export class NavComponent implements OnInit, OnDestroy {
           this.userFullName = profile.name || this.user?.name || 'Usuario';
         }
       });
+    
+    // Suscribirse a cambios en el perfil de organización para verificación
+    this.organizationProfileService.profile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(orgProfile => {
+        if (orgProfile && this.user?.role === 'organization') {
+          // Actualizar estado de verificación desde el perfil de organización
+          this.isDocumentVerified = orgProfile.isVerified || false;
+        }
+      });
   }
   
   private loadUserProfile(): void {
-    this.profileService.getMyProfile().subscribe({
-      next: (profile) => {
-        this.userProfileImage = profile.profileImage || null;
-        this.userFullName = profile.name || this.user?.name || 'Usuario';
-      },
-      error: (error) => {
-        console.error('Error loading user profile:', error);
-        // Si falla la carga del perfil, usar el nombre del usuario del auth
-        this.userFullName = this.user?.name || 'Usuario';
-      }
-    });
+    if (this.user?.role === 'donor') {
+      this.profileService.getMyProfile().subscribe({
+        next: (profile) => {
+          this.userProfileImage = profile.profileImage || null;
+          this.userFullName = profile.name || this.user?.name || 'Usuario';
+        },
+        error: (error) => {
+          console.error('Error loading user profile:', error);
+          // Si falla la carga del perfil, usar el nombre del usuario del auth
+          this.userFullName = this.user?.name || 'Usuario';
+        }
+      });
+    } else if (this.user?.role === 'organization') {
+      this.organizationProfileService.getMyOrganizationProfile().subscribe({
+        next: (profile) => {
+          this.userProfileImage = profile.logo || null;
+          this.userFullName = profile.name || this.user?.name || 'Organización';
+          // Actualizar estado de verificación desde el perfil
+          this.isDocumentVerified = profile.isVerified || false;
+        },
+        error: (error) => {
+          console.error('Error loading organization profile:', error);
+          this.userFullName = this.user?.name || 'Organización';
+        }
+      });
+    }
   }
   
   get displayName(): string {
@@ -123,7 +152,6 @@ export class NavComponent implements OnInit, OnDestroy {
   }
 
   onRegisterClick(): void {
-    console.log('Navegando a /donor/register...');
     this.closeMobileMenu();
     this.router.navigate(['/donor/register']);
   }
@@ -155,6 +183,15 @@ export class NavComponent implements OnInit, OnDestroy {
       return '/organization/profile';
     }
     return '/';
+  }
+
+  onVerificationBadgeClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization/profile']);
+    }
   }
 
   // Cerrar menú móvil al hacer clic fuera
