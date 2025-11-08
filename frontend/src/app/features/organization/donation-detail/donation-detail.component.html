@@ -73,34 +73,62 @@
           </div>
         </div>
 
-        <!-- Información del donador -->
+        <!-- Información del donador y beneficiario -->
         <div class="px-6 py-4 bg-gray-50 border-b">
-          <div class="flex items-center">
-            <img 
-              *ngIf="donation.donator?.profilePhoto"
-              [src]="donation.donator?.profilePhoto" 
-              [alt]="donation.donator?.username || 'Donador'"
-              class="w-12 h-12 rounded-full object-cover mr-3">
-            <div 
-              *ngIf="!donation.donator?.profilePhoto"
-              class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xl mr-3">
-              {{ donation.donator?.username?.charAt(0)?.toUpperCase() }}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Donador -->
+            <div class="flex items-center bg-white rounded-lg p-3 border border-gray-200">
+              <img 
+                *ngIf="donation.donator?.profilePhoto"
+                [src]="donation.donator?.profilePhoto" 
+                [alt]="donation.donator?.username || 'Donador'"
+                class="w-12 h-12 rounded-full object-cover mr-3">
+              <div 
+                *ngIf="!donation.donator?.profilePhoto"
+                class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl mr-3">
+                {{ donation.donator?.username?.charAt(0)?.toUpperCase() }}
+              </div>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500 uppercase font-semibold">Donador</p>
+                <p class="font-semibold text-gray-900">{{ donation.donator?.username }}</p>
+                <p class="text-sm text-gray-600">{{ donation.donator?.email }}</p>
+              </div>
+              <div *ngIf="donation.donator?.verified" class="ml-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              </div>
             </div>
-            <div>
-              <p class="text-xs text-gray-500 uppercase">Donador</p>
-              <p class="font-semibold text-gray-900">{{ donation.donator?.username }}</p>
-              <p class="text-sm text-gray-600">{{ donation.donator?.email }}</p>
+
+            <!-- Beneficiario (Organización) -->
+            <div class="flex items-center bg-white rounded-lg p-3 border border-gray-200">
+              <img 
+                *ngIf="donation.beneficiary?.profilePhoto"
+                [src]="donation.beneficiary?.profilePhoto" 
+                [alt]="donation.beneficiary?.username || 'Beneficiario'"
+                class="w-12 h-12 rounded-full object-cover mr-3">
+              <div 
+                *ngIf="!donation.beneficiary?.profilePhoto"
+                class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xl mr-3">
+                {{ donation.beneficiary?.username?.charAt(0)?.toUpperCase() }}
+              </div>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500 uppercase font-semibold">Beneficiario</p>
+                <p class="font-semibold text-gray-900">{{ donation.beneficiary?.username }}</p>
+                <p class="text-sm text-gray-600">{{ donation.beneficiary?.email }}</p>
+              </div>
+              <div *ngIf="donation.beneficiary?.verified" class="ml-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </span>
+              </div>
             </div>
-            <div class="ml-auto">
-              <span 
-                *ngIf="donation.donator?.verified"
-                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                Verificado
-              </span>
-            </div>
+
           </div>
         </div>
 
