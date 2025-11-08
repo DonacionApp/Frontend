@@ -76,17 +76,22 @@ export class DonationDetailComponent implements OnInit {
       return;
     }
 
-    // Obtener el ID del usuario creador de la donación
-    // Usar owner boolean o verificar con user id
-    const donationCreatorId = this.donation.beneficiary?.id || this.donation.user?.id;
-    
-    // Convertir ambos IDs a string para comparación consistente
     const currentUserId = String(currentUser.id);
-    const creatorId = String(donationCreatorId);
+    const beneficiaryId = String(this.donation.beneficiary?.id);
+    const donatorId = String(this.donation.donator?.id);
+    
+    // Verificar si el usuario es el beneficiario (creador) o el donador
+    const isBeneficiary = currentUserId === beneficiaryId;
+    const isDonator = currentUserId === donatorId;
+    
+    // Verificar si el estado es "pendiente"
+    const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
 
-    // Usar el campo owner si está disponible, sino comparar IDs
-    this.canEditDonation = this.donation.owner || (currentUserId === creatorId);
-    this.canDeleteDonation = this.donation.owner || (currentUserId === creatorId);
+    // Editar: Solo si es beneficiario o donador Y el estado es pendiente
+    this.canEditDonation = (isBeneficiary || isDonator) && isPending;
+    
+    // Eliminar: Solo el beneficiario (creador) puede eliminar, sin importar el estado
+    this.canDeleteDonation = isBeneficiary;
   }
 
   // Navegar a editar
@@ -94,8 +99,13 @@ export class DonationDetailComponent implements OnInit {
     if (!this.donation) return;
 
     if (!this.canEditDonation) {
-      this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
-      setTimeout(() => this.errorMessage = '', 3000);
+      const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+      if (!isPending) {
+        this.errorMessage = 'Solo se pueden editar donaciones en estado "pendiente".';
+      } else {
+        this.errorMessage = 'No tienes permiso para editar esta donación. Solo el beneficiario o donador pueden editarla.';
+      }
+      setTimeout(() => this.errorMessage = '', 4000);
       return;
     }
 
