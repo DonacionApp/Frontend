@@ -139,17 +139,17 @@
           <!-- Icon -->
           <div class="flex-shrink-0">
             <div [ngClass]="getNotificationIconBg(notification.type.type, notification.read)" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-              <!-- Icono dinámico según tipo (más sutiles) -->
+              <!-- Icono dinámico según tipo -->
               <ng-container [ngSwitch]="notification.type.type.toLowerCase()">
-                <!-- Información - Check circle (sutil) -->
+                <!-- Información - Check circle -->
                 <svg *ngSwitchCase="'informacion'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <!-- Alerta - Bell (más sutil que triángulo) -->
+                <!-- Alerta - Bell -->
                 <svg *ngSwitchCase="'alerta'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
-                <!-- Recordatorio - Clock (sutil) -->
+                <!-- Recordatorio - Clock -->
                 <svg *ngSwitchCase="'recordatorio'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
@@ -210,7 +210,7 @@
 
           <!-- Delete button -->
           <button 
-            (click)="deleteNotification(notification.id, $event)"
+            (click)="openDeleteModal(notification.id, $event)"
             class="p-1.5 text-red-600 hover:bg-red-100 rounded-full transition-all duration-200 hover:scale-110"
             title="Eliminar notificación">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +236,7 @@
 
           <!-- Delete button -->
           <button 
-            (click)="deleteNotification(notification.id, $event)"
+            (click)="openDeleteModal(notification.id, $event)"
             class="p-1 text-red-600 hover:bg-red-100 rounded-full transition-all duration-200"
             title="Eliminar">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,6 +247,51 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de confirmación para eliminar -->
+  <app-modal 
+    [isOpen]="showDeleteModal" 
+    (onClose)="closeDeleteModal()"
+    [title]="''"
+    [size]="'sm'"
+    [showCloseButton]="false"
+    [closeOnBackdropClick]="true"
+    [closeOnEscape]="true">
+    
+    <!-- Contenido del modal -->
+    <div class="text-center">
+      <!-- Icono de advertencia -->
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </div>
+
+      <!-- Título -->
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        Eliminar notificación
+      </h3>
+
+      <!-- Mensaje -->
+      <p class="text-sm text-gray-500 mb-6">
+        ¿Estás seguro de que deseas eliminar esta notificación? Esta acción no se puede deshacer.
+      </p>
+
+      <!-- Botones de acción -->
+      <div class="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
+        <button 
+          (click)="closeDeleteModal()"
+          class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+          Cancelar
+        </button>
+        <button 
+          (click)="confirmDelete()"
+          class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </app-modal>
 
   <app-footer></app-footer>
 </div>

@@ -6,11 +6,12 @@ import { NotificationService } from '../../core/services';
 import { Notify } from '../../shared/model/notification.model'; 
 import { Subject, takeUntil } from 'rxjs';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-notifications-center',
   standalone: true,
-  imports: [CommonModule, RouterModule, FooterComponent, FormsModule],
+  imports: [CommonModule, RouterModule, FooterComponent, FormsModule, ModalComponent],
   templateUrl: './notifications-center.component.html',
   styleUrls: ['./notifications-center.component.scss']
 })
@@ -27,6 +28,10 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   
   // Búsqueda
   searchTerm: string = '';
+
+  // Modal de confirmación de eliminación
+  showDeleteModal = false;
+  notificationToDelete: number | null = null;
 
   constructor(
     private notificationService: NotificationService,
@@ -169,14 +174,59 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Elimina una notificación
+   * Muestra el modal de confirmación para eliminar
    */
-  deleteNotification(notificationId: number, event: Event): void {
+  openDeleteModal(notificationId: number, event: Event): void {
     event.stopPropagation();
+    this.notificationToDelete = notificationId;
+    this.showDeleteModal = true;
+  }
+
+  /**
+   * Cierra el modal de confirmación
+   */
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+    this.notificationToDelete = null;
+  }
+
+  /**
+   * Confirma y elimina la notificación
+   */
+  confirmDelete(): void {
+    if (this.notificationToDelete === null) {
+      return;
+    }
+
+    const notificationId = this.notificationToDelete;
     
-    this.notificationService.deleteNotificationLocally(notificationId);
-    this.notifications = this.notifications.filter(n => n.id !== notificationId);
-    
+    this.notificationService.deleteNotification(notificationId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('Notificación eliminada:', response.message);
+          // Actualizar el estado local eliminando la notificación
+          this.notifications = this.notifications.filter(n => n.id !== notificationId);
+          this.closeDeleteModal();
+        },
+        error: (error: any) => {
+          console.error('Error al eliminar notificación:', error);
+          this.closeDeleteModal();
+          
+          if (error.status === 404) {
+            alert('Notificación no encontrada');
+            // Eliminar del estado local de todas formas
+            this.notifications = this.notifications.filter(n => n.id !== notificationId);
+          } else if (error.status === 401) {
+            alert('No autorizado. Por favor inicia sesión nuevamente.');
+            this.router.navigate(['/auth/login']);
+          } else if (error.status === 403) {
+            alert('No tienes permiso para eliminar esta notificación');
+          } else {
+            alert('Error al eliminar la notificación. Intenta nuevamente.');
+          }
+        }
+      });
   }
 
   /**

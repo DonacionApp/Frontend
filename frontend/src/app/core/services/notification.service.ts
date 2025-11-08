@@ -115,4 +115,42 @@ export class NotificationService {
       })
     );
   }
+
+  /**
+   * Elimina una notificación del backend
+   */
+  deleteNotification(notificationId: number): Observable<{ message: string }> {
+    const url = `${this.baseUrl}/user-notify/my-notifications/delete/${notificationId}`;
+
+    return this.http.delete<{ message: string }>(url).pipe(
+      tap(() => {
+        // Actualizar el estado local eliminando la notificación
+        this.deleteNotificationLocally(notificationId);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          return throwError(() => ({
+            status: 404,
+            message: 'Notificación no encontrada'
+          }));
+        }
+        
+        if (error.status === 401) {
+          return throwError(() => ({
+            status: 401,
+            message: 'No autorizado'
+          }));
+        }
+
+        if (error.status === 403) {
+          return throwError(() => ({
+            status: 403,
+            message: 'No tienes permiso para eliminar esta notificación'
+          }));
+        }
+
+        return throwError(() => error);
+      })
+    );
+  }
 }
