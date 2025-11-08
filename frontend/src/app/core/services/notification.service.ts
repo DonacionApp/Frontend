@@ -71,4 +71,48 @@ export class NotificationService {
     );
     this.notificationsSubject.next(updatedNotifications);
   }
+
+  /**
+   * Marca una notificación como leída
+   */
+  markNotificationAsRead(notificationId: number): Observable<{ message: string }> {
+    const url = `${this.baseUrl}/user-notify/my-notifications/mark-as-read/${notificationId}`;
+
+    return this.http.patch<{ message: string }>(url, {}).pipe(
+      tap(() => {
+        // Actualizar el estado local de la notificación
+        const currentNotifications = this.notificationsSubject.value;
+        const updatedNotifications = currentNotifications.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, read: true } 
+            : notification
+        );
+        this.notificationsSubject.next(updatedNotifications);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          return throwError(() => ({
+            status: 404,
+            message: 'Notificación no encontrada'
+          }));
+        }
+        
+        if (error.status === 401) {
+          return throwError(() => ({
+            status: 401,
+            message: 'No autorizado'
+          }));
+        }
+
+        if (error.status === 403) {
+          return throwError(() => ({
+            status: 403,
+            message: 'No tienes permiso para marcar esta notificación'
+          }));
+        }
+
+        return throwError(() => error);
+      })
+    );
+  }
 }

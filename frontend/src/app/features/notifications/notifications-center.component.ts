@@ -133,10 +133,39 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Marca una notificación como leída (funcionalidad futura)
+   * Marca una notificación como leída
    */
   markAsRead(notificationId: number): void {
-    console.log('Marcar como leída:', notificationId);
+    // Evitar marcar si ya está leída
+    const notification = this.notifications.find(n => n.id === notificationId);
+    if (notification && notification.read) {
+      return;
+    }
+
+    this.notificationService.markNotificationAsRead(notificationId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('Notificación marcada como leída:', response.message);
+          // Actualizar el estado local de la notificación
+          this.notifications = this.notifications.map(n => 
+            n.id === notificationId ? { ...n, read: true } : n
+          );
+        },
+        error: (error: any) => {
+          console.error('Error al marcar como leída:', error);
+          if (error.status === 404) {
+            alert('Notificación no encontrada');
+          } else if (error.status === 401) {
+            alert('No autorizado. Por favor inicia sesión nuevamente.');
+            this.router.navigate(['/auth/login']);
+          } else if (error.status === 403) {
+            alert('No tienes permiso para marcar esta notificación');
+          } else {
+            alert('Error al marcar la notificación como leída. Intenta nuevamente.');
+          }
+        }
+      });
   }
 
   /**
