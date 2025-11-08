@@ -93,12 +93,18 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   get filteredNotifications(): Notify[] {
     let filtered = this.notifications;
     
+    // Filtrar por tab activo
+    if (this.activeTab === 'unread') {
+      filtered = filtered.filter(notification => !notification.read);
+    }
+    
     // Filtrar por búsqueda
     if (this.searchTerm && this.searchTerm.trim() !== '') {
       const searchLower = this.searchTerm.toLowerCase().trim();
       filtered = filtered.filter(notification => 
         notification.message.toLowerCase().includes(searchLower) ||
-        notification.type.type.toLowerCase().includes(searchLower)
+        notification.type.type.toLowerCase().includes(searchLower) ||
+        notification.title.toLowerCase().includes(searchLower)
       );
     }
     
@@ -113,7 +119,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   get unreadCount(): number {
-    return 0;
+    return this.notifications.filter(n => !n.read).length;
   }
 
   /**

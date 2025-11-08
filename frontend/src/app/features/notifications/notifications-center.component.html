@@ -83,15 +83,17 @@
             <span class="xs:hidden">Todas</span>
         </button>
 
-        <!-- Tab No leídas (Placeholder - sin funcionalidad por ahora) -->
+        <!-- Tab No leídas -->
         <button
           (click)="setActiveTab('unread')"
           [class.bg-green-50]="activeTab === 'unread'"
           [class.text-green-600]="activeTab === 'unread'"
           [class.border-green-500]="activeTab === 'unread'"
           [class.text-gray-600]="activeTab !== 'unread'"
-          class="flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-center border-b-2 font-medium text-xs sm:text-sm transition-all hover:bg-green-50"
-          title="Por ahora no se puede determinar cuáles están sin leer">
+          class="flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-center border-b-2 font-medium text-xs sm:text-sm transition-all hover:bg-green-50">
+            <svg class="mb-1 w-4 h-4 sm:w-5 sm:h-5 inline mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76"/>
+            </svg>
             <span class="hidden xs:inline">No leídas ({{ unreadCount }})</span>
             <span class="xs:hidden">No leídas</span>
         </button>
@@ -118,11 +120,23 @@
 
       <!-- Empty State -->
       <div *ngIf="!isLoading && !hasError && filteredNotifications.length === 0" class="bg-white rounded-lg shadow-sm p-12 text-center">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-        </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No tienes notificaciones</h3>
-        <p class="text-gray-500">Cuando recibas notificaciones, aparecerán aquí</p>
+        <!-- Estado vacío para "Todas" -->
+        <ng-container *ngIf="activeTab === 'all'">
+          <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No tienes notificaciones</h3>
+          <p class="text-gray-500">Cuando recibas notificaciones, aparecerán aquí</p>
+        </ng-container>
+
+        <!-- Estado vacío para "No leídas" -->
+        <ng-container *ngIf="activeTab === 'unread'">
+          <svg class="w-16 h-16 text-green-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">¡Todo al día!</h3>
+          <p class="text-gray-500">No tienes notificaciones sin leer</p>
+        </ng-container>
       </div>
 
       <!-- Notifications Items -->
