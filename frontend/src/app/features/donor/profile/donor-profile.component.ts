@@ -383,8 +383,15 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
    */
   checkVerificationStatus(): void {
     const user = this.authService.currentUserValue;
-    this.isDocumentVerified = user?.isDocumentVerified || false;
-    console.log('📋 Estado de verificación:', this.isDocumentVerified);
+    // Revisar en el usuario del AuthService
+    const userVerified = user?.isDocumentVerified || false;
+    // También revisar si el perfil tiene algún campo de verificación
+    // (El profile de donor puede no tener un campo isVerified explícito,
+    // pero lo dejamos por si el backend lo agrega en el futuro)
+    const profileVerified = false; // Donor profile no tiene este campo por ahora
+    
+    this.isDocumentVerified = userVerified || profileVerified;
+    console.log('📋 Estado de verificación (Donor):', this.isDocumentVerified);
   }
 
   /**

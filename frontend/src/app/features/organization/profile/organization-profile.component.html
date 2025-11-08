@@ -169,6 +169,106 @@
       </div>
     </div>
 
+    <!-- Sección de Verificación de Organización -->
+    <div *ngIf="!isDocumentVerified" class="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6 rounded-lg shadow">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-lg font-medium text-yellow-800">
+            Verifica tu organización
+          </h3>
+          <div class="mt-2 text-sm text-yellow-700">
+            <p class="mb-3">
+              Para acceder a todas las funcionalidades de la plataforma, tu organización necesita ser verificada. 
+              Por favor, sube un documento legal de tu organización (RUC, certificado de constitución, registro de ONG, etc.).
+            </p>
+            
+            <div class="bg-white p-4 rounded-md border border-yellow-200">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Documento Legal de la Organización
+              </label>
+              
+              <!-- Preview del documento -->
+              <div *ngIf="documentPreview && documentPreview !== 'pdf'" class="mb-3">
+                <img [src]="documentPreview" alt="Preview" class="max-w-xs h-40 object-contain border border-gray-300 rounded-md">
+              </div>
+              
+              <div *ngIf="documentPreview === 'pdf'" class="mb-3 p-4 bg-gray-50 border border-gray-300 rounded-md flex items-center">
+                <svg class="h-12 w-12 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                  <p class="font-medium text-gray-900">{{ selectedDocument?.name }}</p>
+                  <p class="text-sm text-gray-500">Documento PDF seleccionado</p>
+                </div>
+              </div>
+              
+              <div class="flex items-center space-x-3">
+                <input type="file" 
+                       accept=".jpg,.jpeg,.png,.pdf" 
+                       (change)="onDocumentSelected($event)" 
+                       #documentInput
+                       class="hidden">
+                
+                <button type="button" 
+                        (click)="documentInput.click()"
+                        [disabled]="isUploadingDocument"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <svg class="inline-block w-4 h-4 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  Seleccionar Documento
+                </button>
+                
+                <button type="button" 
+                        *ngIf="selectedDocument"
+                        (click)="uploadDocument()"
+                        [disabled]="isUploadingDocument"
+                        class="px-6 py-2 bg-yellow-500 text-white rounded-md text-sm font-medium hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                  <svg *ngIf="isUploadingDocument" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {{ isUploadingDocument ? 'Subiendo...' : 'Verificar Organización' }}
+                </button>
+              </div>
+              
+              <p class="mt-2 text-xs text-gray-600">
+                <strong>Formatos aceptados:</strong> JPG, PNG, PDF • <strong>Tamaño máximo:</strong> 5 MB
+              </p>
+              
+              <p *ngIf="selectedDocument" class="mt-2 text-sm text-gray-700">
+                📎 {{ selectedDocument.name }} ({{ (selectedDocument.size / 1024).toFixed(0) }} KB)
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badge de Verificado -->
+    <div *ngIf="isDocumentVerified" class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-lg shadow">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-green-800">
+            ✓ Organización Verificada
+          </p>
+          <p class="mt-1 text-sm text-green-700">
+            Tu organización ha sido verificada exitosamente. Ahora tienes acceso completo a todas las funcionalidades de la plataforma.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Messages -->
     <div *ngIf="successMessage" class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
       <div class="flex items-center">
