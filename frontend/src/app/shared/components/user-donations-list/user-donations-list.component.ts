@@ -62,7 +62,6 @@ export class UserDonationsListComponent implements OnChanges {
   }
 
   extractFilterOptions(): void {
-    // Extract unique statuses
     const statusSet = new Set<string>();
     const locationSet = new Set<string>();
     const articleSet = new Set<string>();
@@ -96,10 +95,8 @@ export class UserDonationsListComponent implements OnChanges {
   applyFilters(): void {
     this.isApplyingFilters = true;
     
-    // Simulate a brief loading state for better UX
     setTimeout(() => {
       this.filteredDonations = this.donations.filter(donation => {
-        // Filter by status
         if (this.filters.status && donation.statusDonation?.status !== this.filters.status) {
           return false;
         }
