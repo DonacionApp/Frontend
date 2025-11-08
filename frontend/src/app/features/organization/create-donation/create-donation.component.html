@@ -2,10 +2,25 @@
   <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Crear Nueva Donación</h1>
+      <h1 class="text-3xl font-bold text-gray-900">Solicitar Donación</h1>
       <p class="mt-2 text-sm text-gray-600">
-        Completa el formulario para crear una nueva donación
+        Completa el formulario para solicitar los artículos de este post
       </p>
+    </div>
+
+    <!-- Loading state -->
+    <div *ngIf="loading && !post" class="flex justify-center items-center py-12">
+      <svg class="animate-spin h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="ml-3 text-gray-600">Cargando información del post...</span>
+    </div>
+
+    <!-- Información del Post -->
+    <div *ngIf="post && !loading" class="mb-6 bg-white shadow-sm rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ post.title }}</h2>
+      <p class="text-gray-600 whitespace-pre-line">{{ post.message }}</p>
     </div>
 
     <!-- Mensajes de éxito/error -->
@@ -28,11 +43,11 @@
     </div>
 
     <!-- Formulario -->
-    <form [formGroup]="donationForm" (ngSubmit)="onSubmit()" class="bg-white shadow-sm rounded-lg p-6 space-y-6">
+    <form *ngIf="post && !loading" [formGroup]="donationForm" (ngSubmit)="onSubmit()" class="bg-white shadow-sm rounded-lg p-6 space-y-6">
       
       <!-- Información General -->
       <div class="space-y-4">
-        <h2 class="text-lg font-semibold text-gray-900 border-b pb-2">Información General</h2>
+        <h2 class="text-lg font-semibold text-gray-900 border-b pb-2">Información de Entrega</h2>
         
         <!-- Lugar de Recogida -->
         <div>
@@ -70,24 +85,6 @@
           </p>
         </div>
 
-        <!-- Comunidad -->
-        <div>
-          <label for="comunity" class="block text-sm font-medium text-gray-700 mb-1">
-            Comunidad <span class="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="comunity"
-            formControlName="comunity"
-            placeholder="Ej: Comunidad A"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            [class.border-red-500]="hasError('comunity')"
-          />
-          <p *ngIf="hasError('comunity')" class="mt-1 text-sm text-red-600">
-            {{ getErrorMessage('comunity') }}
-          </p>
-        </div>
-
         <!-- Fecha Máxima de Entrega -->
         <div>
           <label for="fechaMaximaEntrega" class="block text-sm font-medium text-gray-700 mb-1">
@@ -107,80 +104,80 @@
         </div>
       </div>
 
-      <!-- Artículos -->
+      <!-- Artículos Disponibles -->
       <div class="space-y-4">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h2 class="text-lg font-semibold text-gray-900">Artículos a Donar</h2>
-          <button
-            type="button"
-            (click)="addArticle()"
-            [disabled]="articles.length >= 10"
-            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Agregar Artículo
-          </button>
+        <div class="border-b pb-2">
+          <h2 class="text-lg font-semibold text-gray-900">Selecciona los Artículos que Necesitas</h2>
+          <p class="text-sm text-gray-600 mt-1">Marca los artículos que deseas solicitar e indica la cantidad</p>
         </div>
 
         <div formArrayName="articles" class="space-y-3">
           <div
             *ngFor="let article of articles.controls; let i = index"
             [formGroupName]="i"
-            class="flex gap-3 items-start bg-gray-50 p-3 rounded-md"
+            class="flex gap-4 items-start bg-gray-50 p-4 rounded-md border"
+            [class.border-green-500]="article.get('selected')?.value"
+            [class.bg-green-50]="article.get('selected')?.value"
           >
-            <!-- Nombre del artículo -->
-            <div class="flex-1">
-              <label [for]="'articleName' + i" class="block text-sm font-medium text-gray-700 mb-1">
-                Nombre <span class="text-red-500">*</span>
-              </label>
+            <!-- Checkbox para seleccionar -->
+            <div class="flex items-center pt-1">
               <input
-                type="text"
-                [id]="'articleName' + i"
-                formControlName="name"
-                placeholder="Ej: Ropa"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
-                [class.border-red-500]="article.get('name')?.invalid && article.get('name')?.touched"
+                type="checkbox"
+                [id]="'articleCheckbox' + i"
+                formControlName="selected"
+                (change)="onArticleSelectionChange(i)"
+                class="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
               />
             </div>
 
-            <!-- Cantidad -->
+            <!-- Información del artículo -->
+            <div class="flex-1">
+              <label [for]="'articleCheckbox' + i" class="block text-base font-medium text-gray-900 cursor-pointer">
+                {{ getArticleName(i) }}
+              </label>
+              <p *ngIf="getArticleDescripcion(i)" class="text-sm text-gray-600 mt-1">
+                {{ getArticleDescripcion(i) }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                Cantidad disponible: <span class="font-semibold">{{ getArticleQuantity(i) || 0 }}</span>
+              </p>
+            </div>
+
+            <!-- Input de cantidad -->
             <div class="w-32">
               <label [for]="'articleQuantity' + i" class="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad <span class="text-red-500">*</span>
+                Cantidad <span class="text-red-500" *ngIf="article.get('selected')?.value">*</span>
               </label>
               <input
                 type="number"
                 [id]="'articleQuantity' + i"
                 formControlName="quantity"
-                min="1"
-                max="1000"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
-                [class.border-red-500]="article.get('quantity')?.invalid && article.get('quantity')?.touched"
+                [min]="1"
+                [max]="article.get('maxQuantity')?.value || 1"
+                (input)="onQuantityChange(i)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                [class.border-red-500]="article.get('quantity')?.invalid && article.get('quantity')?.touched && article.get('selected')?.value"
               />
+              <p *ngIf="article.get('quantity')?.errors?.['max'] && article.get('selected')?.value" class="mt-1 text-xs text-red-600">
+                Máximo: {{ article.get('maxQuantity')?.value || 1 }}
+              </p>
             </div>
+          </div>
 
-            <!-- Botón eliminar -->
-            <button
-              type="button"
-              (click)="removeArticle(i)"
-              [disabled]="articles.length === 1"
-              class="mt-7 p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-              title="Eliminar artículo"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-            </button>
+          <!-- Mensaje si no hay artículos seleccionados -->
+          <div *ngIf="!hasSelectedArticles()" class="text-center py-4 text-gray-500 text-sm">
+            Por favor, selecciona al menos un artículo para continuar
           </div>
         </div>
       </div>
 
-      <!-- Comentarios -->
+      <!-- Comentarios Opcionales -->
       <div class="space-y-4">
         <div class="flex justify-between items-center border-b pb-2">
-          <h2 class="text-lg font-semibold text-gray-900">Comentarios e Instrucciones</h2>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Comentarios e Instrucciones</h2>
+            <p class="text-xs text-gray-500 mt-1">(Opcional)</p>
+          </div>
           <button
             type="button"
             (click)="addComment()"
@@ -202,20 +199,20 @@
           >
             <!-- Texto del comentario -->
             <div class="flex-1">
-              <label [for]="'commentText' + i" class="block text-sm font-medium text-gray-700 mb-1">
-                Comentario {{ i + 1 }} <span class="text-red-500">*</span>
+              <label [for]="'commentMessage' + i" class="block text-sm font-medium text-gray-700 mb-1">
+                Comentario {{ i + 1 }}
               </label>
               <textarea
-                [id]="'commentText' + i"
-                formControlName="text"
+                [id]="'commentMessage' + i"
+                formControlName="message"
                 rows="2"
-                placeholder="Ej: Entregar entre 9-12"
+                placeholder="Ej: Preferencia de horario de entrega, instrucciones especiales..."
                 maxlength="500"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 resize-none"
-                [class.border-red-500]="comment.get('text')?.invalid && comment.get('text')?.touched"
+                [class.border-red-500]="comment.get('message')?.invalid && comment.get('message')?.touched"
               ></textarea>
               <p class="mt-1 text-xs text-gray-500">
-                {{ comment.get('text')?.value?.length || 0 }}/500 caracteres
+                {{ comment.get('message')?.value?.length || 0 }}/500 caracteres
               </p>
             </div>
 
@@ -223,8 +220,7 @@
             <button
               type="button"
               (click)="removeComment(i)"
-              [disabled]="comments.length === 1"
-              class="mt-7 p-2 text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              class="mt-7 p-2 text-red-600 hover:text-red-800"
               title="Eliminar comentario"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,14 +243,14 @@
         </button>
         <button
           type="submit"
-          [disabled]="loading || donationForm.invalid"
+          [disabled]="loading || donationForm.invalid || !hasSelectedArticles()"
           class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
         >
           <svg *ngIf="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {{ loading ? 'Creando...' : 'Crear Donación' }}
+          {{ loading ? 'Creando Solicitud...' : 'Solicitar Donación' }}
         </button>
       </div>
     </form>

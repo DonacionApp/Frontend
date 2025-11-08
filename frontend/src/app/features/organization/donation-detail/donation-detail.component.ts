@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { DonationService, Donation } from '../../../core/services/donation.service';
+import { DonationService, Donation, Comment } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -30,13 +30,13 @@ export class DonationDetailComponent implements OnInit {
     // Obtener el ID de la donación desde la URL
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadDonation(id);
+      this.loadDonation(parseInt(id));
     } else {
       this.errorMessage = 'ID de donación no válido';
     }
   }
 
-  private loadDonation(id: string): void {
+  private loadDonation(id: number): void {
     this.loading = true;
     this.errorMessage = '';
 
@@ -77,17 +77,16 @@ export class DonationDetailComponent implements OnInit {
     }
 
     // Obtener el ID del usuario creador de la donación
-    // Priorizar donation.userId, si no existe usar donation.user?.id
-    const donationCreatorId = this.donation.userId || this.donation.user?.id;
+    // Usar owner boolean o verificar con user id
+    const donationCreatorId = this.donation.beneficiary?.id || this.donation.user?.id;
     
     // Convertir ambos IDs a string para comparación consistente
     const currentUserId = String(currentUser.id);
     const creatorId = String(donationCreatorId);
 
-    // Solo el creador puede editar o eliminar
-    // Comparar como strings para evitar problemas de tipo (string vs number)
-    this.canEditDonation = currentUserId === creatorId;
-    this.canDeleteDonation = currentUserId === creatorId;
+    // Usar el campo owner si está disponible, sino comparar IDs
+    this.canEditDonation = this.donation.owner || (currentUserId === creatorId);
+    this.canDeleteDonation = this.donation.owner || (currentUserId === creatorId);
   }
 
   // Navegar a editar
@@ -186,5 +185,14 @@ export class DonationDetailComponent implements OnInit {
     if (days <= 3) return 'urgent';
     if (days <= 7) return 'warning';
     return 'normal';
+  }
+
+  // Obtener comentarios como array
+  getCommentsArray(): Comment[] {
+    if (!this.donation?.comments) return [];
+    if (Array.isArray(this.donation.comments)) {
+      return this.donation.comments;
+    }
+    return [];
   }
 }
