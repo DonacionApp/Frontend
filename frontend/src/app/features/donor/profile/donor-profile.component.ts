@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject, takeUntil } from 'rxjs';
 import { UserProfileService, UserProfile, ActivityLog } from '../../../core/services/user-profile.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { VerificationService } from '../../../core/services/verification.service';
 
 @Component({
   selector: 'app-donor-profile',
@@ -31,6 +32,12 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
   imagePreview: string | null = null;
   
+  // Verificación de documento
+  selectedDocument: File | null = null;
+  documentPreview: string | null = null;
+  isUploadingDocument = false;
+  isDocumentVerified = false;
+  
   // Control de visibilidad de contraseñas
   showCurrentPassword = false;
   showNewPassword = false;
@@ -39,7 +46,8 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private profileService: UserProfileService,
-    private authService: AuthService
+    private authService: AuthService,
+    private verificationService: VerificationService
   ) {
     this.initializeForms();
   }
@@ -47,6 +55,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadProfile();
     this.subscribeToProfileChanges();
+    this.checkVerificationStatus();
   }
 
   ngOnDestroy(): void {
@@ -365,5 +374,93 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   
   toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
+  // ============ MÉTODOS DE VERIFICACIÓN DE DOCUMENTO ============
+
+  /**
+   * Verificar el estado de verificación del usuario
+   */
+  checkVerificationStatus(): void {
+    const user = this.authService.currentUserValue;
+    this.isDocumentVerified = user?.isDocumentVerified || false;
+    console.log('📋 Estado de verificación:', this.isDocumentVerified);
+  }
+
+  /**
+   * Manejar la selección de documento para verificación
+   */
+  onDocumentSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      
+      // Validar el archivo usando el servicio
+      const validation = this.verificationService.validateFile(file);
+      
+      if (!validation.valid) {
+        this.errorMessage = validation.error || 'Archivo inválido';
+        this.selectedDocument = null;
+        this.documentPreview = null;
+        input.value = '';
+        return;
+      }
+      
+      this.selectedDocument = file;
+      this.clearMessages();
+      
+      // Preview del documento (solo para imágenes)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.documentPreview = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Para PDFs, mostrar icono genérico
+        this.documentPreview = 'pdf';
+      }
+      
+      console.log('📎 Documento seleccionado:', file.name);
+    }
+  }
+
+  /**
+   * Subir documento de verificación
+   */
+  uploadDocument(): void {
+    if (!this.selectedDocument) {
+      this.errorMessage = 'Por favor selecciona un documento primero';
+      return;
+    }
+
+    this.isUploadingDocument = true;
+    this.clearMessages();
+    
+    console.log('📤 Iniciando carga de documento...');
+    
+    this.verificationService.uploadSupportDocument(this.selectedDocument).subscribe({
+      next: (response) => {
+        this.successMessage = response.message || '¡Documento subido exitosamente! Tu cuenta ha sido verificada.';
+        this.isDocumentVerified = true;
+        this.selectedDocument = null;
+        this.documentPreview = null;
+        this.isUploadingDocument = false;
+        
+        // Actualizar el estado en el AuthService
+        this.checkVerificationStatus();
+        
+        console.log('✅ Documento verificado exitosamente');
+      },
+      error: (error) => {
+        this.isUploadingDocument = false;
+        const status = error.status;
+        const message = error.error?.message;
+        
+        this.errorMessage = this.verificationService.getErrorMessage(status, message);
+        
+        console.error('❌ Error al subir documento:', error);
+      }
+    });
   }
 }
