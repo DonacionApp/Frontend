@@ -24,13 +24,20 @@ export class CreateDonationComponent implements OnInit {
   availableArticles: PostArticle[] = [];
   loadingPost = false;
 
+  // Fecha mínima (hoy)
+  minDate: string;
+
   constructor(
     private fb: FormBuilder,
     private donationService: DonationService,
     private postsService: PostsService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) {
+    // Establecer fecha mínima como hoy
+    const today = new Date();
+    this.minDate = today.toISOString().split('T')[0];
+  }
 
   ngOnInit(): void {
     // Obtener el postId tanto de parámetros de ruta como de query params (ej: ?post=5)
