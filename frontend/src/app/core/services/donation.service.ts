@@ -25,6 +25,52 @@ export interface DonationUser {
   updatedAt: string;
 }
 
+// Interfaces extendidas para la respuesta de donaciones por usuario
+export interface ArticleDetail {
+  id: number;
+  name: string;
+  descripcion: string;
+}
+
+export interface PostArticle {
+  id: number;
+  quantity: string;
+  postArticleId: number;
+  article: ArticleDetail;
+}
+
+export interface PostInfo {
+  id: number;
+  title: string;
+  message: string;
+}
+
+export interface UserBasicInfo {
+  id: number;
+  username: string;
+  email: string;
+  profilePhoto: string;
+  emailVerified: boolean;
+  verified: boolean;
+  createdAt: string;
+}
+
+export interface DonationByUser {
+  id: number;
+  lugarRecogida: string;
+  lugarDonacion: string;
+  comments: any; // Puede ser objeto o array
+  fechaMaximaEntrega: string;
+  post: PostInfo;
+  statusDonation: StatusDonation;
+  createdAt: string;
+  updatedAt: string;
+  beneficiary: UserBasicInfo;
+  donator: UserBasicInfo;
+  owner: boolean;
+  articles: PostArticle[];
+}
+
 export interface CreateDonationDTO {
   lugarRecogida: string;
   lugarDonacion: string;
@@ -131,6 +177,20 @@ export class DonationService {
     return this.http.get<Donation>(`${this.apiUrl}/${id}`).pipe(
       catchError(error => {
         console.error('Error al obtener donación:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getDonationsByUserId(userId: string | number): Observable<DonationByUser[]> {
+    this.loadingSubject.next(true);
+    return this.http.get<DonationByUser[]>(`${this.apiUrl}/users/${userId}`).pipe(
+      tap(() => {
+        this.loadingSubject.next(false);
+      }),
+      catchError(error => {
+        this.loadingSubject.next(false);
+        console.error('Error al obtener donaciones del usuario:', error);
         return throwError(() => error);
       })
     );
