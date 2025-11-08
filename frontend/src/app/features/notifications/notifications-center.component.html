@@ -127,28 +127,34 @@
 
       <!-- Notifications Items -->
       <div *ngFor="let notification of filteredNotifications" 
-           [ngClass]="[getNotificationBorderColor(notification.type.type), getNotificationBgColor(notification.type.type)]"
+           [ngClass]="[
+             getNotificationBorderColor(notification.type.type, notification.read), 
+             getNotificationBgColor(notification.type.type, notification.read),
+             getReadOpacity(notification.read),
+             getReadStyles(notification.read)
+           ]"
            class="rounded-lg shadow-sm border-l-4 p-3 sm:p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative animate-fade-in">
+        
         <div class="flex items-center space-x-2 sm:space-x-3">
           <!-- Icon -->
           <div class="flex-shrink-0">
-            <div [ngClass]="getNotificationIconBg(notification.type.type)" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+            <div [ngClass]="getNotificationIconBg(notification.type.type, notification.read)" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
               <!-- Icono dinámico según tipo (más sutiles) -->
               <ng-container [ngSwitch]="notification.type.type.toLowerCase()">
                 <!-- Información - Check circle (sutil) -->
-                <svg *ngSwitchCase="'informacion'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg *ngSwitchCase="'informacion'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <!-- Alerta - Bell (más sutil que triángulo) -->
-                <svg *ngSwitchCase="'alerta'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg *ngSwitchCase="'alerta'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
                 <!-- Recordatorio - Clock (sutil) -->
-                <svg *ngSwitchCase="'recordatorio'" [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg *ngSwitchCase="'recordatorio'" [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <!-- Default - Circle dot -->
-                <svg *ngSwitchDefault [ngClass]="getNotificationIconColor(notification.type.type)" class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
+                <svg *ngSwitchDefault [ngClass]="getNotificationIconColor(notification.type.type, notification.read)" class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                   <circle cx="10" cy="10" r="3"/>
                 </svg>
               </ng-container>
@@ -157,10 +163,17 @@
 
           <!-- Content -->
           <div class="flex-1 min-w-0 pr-16 sm:pr-20 md:pr-24">
-            <h3 class="text-sm sm:text-base font-semibold text-gray-900 mb-1 leading-tight">
+            <h3 [class.font-normal]="notification.read"
+                [class.font-semibold]="!notification.read"
+                [class.text-gray-600]="notification.read"
+                [class.text-gray-900]="!notification.read"
+                class="text-sm sm:text-base mb-1 leading-tight">
               {{ notification.title }}
+              <span *ngIf="notification.read" class="ml-3 text-xs font-normal text-gray-400 italic">(leída)</span>
             </h3>
-            <p class="text-xs sm:text-sm font-normal text-gray-700 mb-1 leading-relaxed line-clamp-2">
+            <p [class.text-gray-500]="notification.read"
+               [class.text-gray-700]="!notification.read"
+               class="text-xs sm:text-sm font-normal mb-1 leading-relaxed line-clamp-2">
               {{ notification.message }}
             </p>
             <p class="text-xs text-gray-500">
@@ -170,7 +183,7 @@
 
           <!-- Notification Type Badge (se oculta en hover en desktop, siempre visible en móvil) -->
           <div class="absolute top-1/2 -translate-y-1/2 right-2 sm:right-3 md:right-4 transition-all duration-300 md:group-hover:opacity-0 md:group-hover:translate-x-2">
-            <span [ngClass]="getNotificationBadgeColor(notification.type.type)" 
+            <span [ngClass]="getNotificationBadgeColor(notification.type.type, notification.read)" 
                   class="inline-flex items-center px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap">
               <!-- Mostrar solo primera letra en móvil, texto completo en tablet+ -->
               <span class="sm:hidden">{{ notification.type.type.charAt(0).toUpperCase() }}</span>
@@ -181,11 +194,15 @@
 
         <!-- Actions (visible on hover en desktop, ocultos en móvil para no afectar UX táctil) -->
         <div class="hidden md:flex absolute top-1/2 -translate-y-1/2 right-3 md:right-4 items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
-          <!-- Mark as read button (Placeholder) -->
+          <!-- Mark as read button -->
           <button 
             (click)="markAsRead(notification.id)"
-            class="p-1.5 text-green-600 hover:bg-green-100 rounded-full transition-all duration-200 hover:scale-110"
-            title="Marcar como leída (funcionalidad pendiente)">
+            [disabled]="notification.read"
+            [class.cursor-not-allowed]="notification.read"
+            [class.hover:bg-green-100]="!notification.read"
+            [class.hover:scale-110]="!notification.read"
+            class="p-1.5 text-green-600 rounded-full transition-all duration-200"
+            [title]="notification.read ? 'Ya está leída' : 'Marcar como leída'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
@@ -204,11 +221,15 @@
 
         <!-- Mobile Actions (visible siempre en móvil/tablet, como iconos pequeños) -->
         <div class="md:hidden absolute bottom-2 right-2 flex items-center space-x-1">
-          <!-- Mark as read button (Placeholder) -->
+          <!-- Mark as read button -->
           <button 
             (click)="markAsRead(notification.id)"
-            class="p-1 text-green-600 hover:bg-green-100 rounded-full transition-all duration-200"
-            title="Marcar como leída">
+            [disabled]="notification.read"
+            [class.opacity-40]="notification.read"
+            [class.cursor-not-allowed]="notification.read"
+            [class.hover:bg-green-100]="!notification.read"
+            class="p-1 text-green-600 rounded-full transition-all duration-200"
+            [title]="notification.read ? 'Ya está leída' : 'Marcar como leída'">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>

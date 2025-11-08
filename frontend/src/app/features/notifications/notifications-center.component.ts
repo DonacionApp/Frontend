@@ -173,9 +173,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene el color del borde izquierdo según el tipo de notificación
+   * Obtiene el color del borde izquierdo según el tipo de notificación y estado de lectura
    */
-  getNotificationBorderColor(type: string): string {
+  getNotificationBorderColor(type: string, isRead: boolean): string {
+    if (isRead) {
+      return 'border-gray-200';
+    }
+    
     switch (type.toLowerCase()) {
       case 'informacion':
       case 'información':
@@ -190,9 +194,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene el color de fondo según el tipo de notificación
+   * Obtiene el color de fondo según el tipo de notificación y estado de lectura
    */
-  getNotificationBgColor(type: string): string {
+  getNotificationBgColor(type: string, isRead: boolean): string {
+    if (isRead) {
+      return 'bg-white';
+    }
+    
     switch (type.toLowerCase()) {
       case 'informacion':
       case 'información':
@@ -207,9 +215,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene el color de fondo del ícono según el tipo de notificación
+   * Obtiene el color de fondo del ícono según el tipo de notificación y estado de lectura
    */
-  getNotificationIconBg(type: string): string {
+  getNotificationIconBg(type: string, isRead: boolean): string {
+    if (isRead) {
+      return 'bg-gray-100';
+    }
+    
     switch (type.toLowerCase()) {
       case 'informacion':
       case 'información':
@@ -224,9 +236,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene el color del ícono según el tipo de notificación
+   * Obtiene el color del ícono según el tipo de notificación y estado de lectura
    */
-  getNotificationIconColor(type: string): string {
+  getNotificationIconColor(type: string, isRead: boolean): string {
+    if (isRead) {
+      return 'text-gray-500';
+    }
+    
     switch (type.toLowerCase()) {
       case 'informacion':
       case 'información':
@@ -241,9 +257,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene el color del badge según el tipo de notificación
+   * Obtiene el color del badge según el tipo de notificación y estado de lectura
    */
-  getNotificationBadgeColor(type: string): string {
+  getNotificationBadgeColor(type: string, isRead: boolean): string {
+    if (isRead) {
+      return 'bg-gray-100 text-gray-600';
+    }
+    
     switch (type.toLowerCase()) {
       case 'informacion':
       case 'información':
@@ -255,5 +275,19 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  }
+
+  /**
+   * Obtiene las clases de opacidad según el estado de lectura
+   */
+  getReadOpacity(isRead: boolean): string {
+    return isRead ? 'opacity-50' : 'opacity-100';
+  }
+
+  /**
+   * Obtiene las clases adicionales de estilo para notificaciones leídas
+   */
+  getReadStyles(isRead: boolean): string {
+    return isRead ? 'grayscale' : '';
   }
 }
