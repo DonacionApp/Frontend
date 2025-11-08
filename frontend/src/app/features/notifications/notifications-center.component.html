@@ -129,9 +129,9 @@
       <div *ngFor="let notification of filteredNotifications" 
            [ngClass]="[getNotificationBorderColor(notification.type.type), getNotificationBgColor(notification.type.type)]"
            class="rounded-lg shadow-sm border-l-4 p-3 sm:p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative animate-fade-in">
-        <div class="flex items-start space-x-2 sm:space-x-3">
+        <div class="flex items-center space-x-2 sm:space-x-3">
           <!-- Icon -->
-          <div class="flex-shrink-0 mt-0.5">
+          <div class="flex-shrink-0">
             <div [ngClass]="getNotificationIconBg(notification.type.type)" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
               <!-- Icono dinámico según tipo (más sutiles) -->
               <ng-container [ngSwitch]="notification.type.type.toLowerCase()">
@@ -157,7 +157,10 @@
 
           <!-- Content -->
           <div class="flex-1 min-w-0 pr-16 sm:pr-20 md:pr-24">
-            <p class="text-xs sm:text-sm font-medium text-gray-900 mb-0.5 sm:mb-1 leading-relaxed line-clamp-2">
+            <h3 class="text-sm sm:text-base font-semibold text-gray-900 mb-1 leading-tight">
+              {{ notification.title }}
+            </h3>
+            <p class="text-xs sm:text-sm font-normal text-gray-700 mb-1 leading-relaxed line-clamp-2">
               {{ notification.message }}
             </p>
             <p class="text-xs text-gray-500">
