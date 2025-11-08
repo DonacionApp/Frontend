@@ -1,0 +1,319 @@
+<div class="space-y-4">
+  <!-- Filters Section -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Filter Toggle Header -->
+    <div class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+         (click)="toggleFilters()">
+      <div class="flex items-center gap-3">
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+        </svg>
+        <h3 class="text-base font-semibold text-gray-900">Filtros</h3>
+        <span *ngIf="hasActiveFilters()" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+          {{ getActiveFiltersCount() }} activo(s)
+        </span>
+      </div>
+      <svg 
+        class="w-5 h-5 text-gray-600 transition-transform"
+        [class.rotate-180]="showFilters"
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </div>
+
+    <!-- Filter Controls -->
+    <div *ngIf="showFilters" class="px-5 pb-5 border-t border-gray-200 pt-4 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Status Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+          <select 
+            [(ngModel)]="filters.status"
+            (change)="applyFilters()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">Todos los estados</option>
+            <option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <!-- Location Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+          <select 
+            [(ngModel)]="filters.location"
+            (change)="applyFilters()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">Todas las ubicaciones</option>
+            <option *ngFor="let location of availableLocations" [value]="location">{{ location }}</option>
+          </select>
+        </div>
+
+        <!-- Article Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Artículo</label>
+          <select 
+            [(ngModel)]="filters.article"
+            (change)="applyFilters()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">Todos los artículos</option>
+            <option *ngFor="let article of availableArticles" [value]="article">{{ article }}</option>
+          </select>
+        </div>
+
+        <!-- Date From Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+          <input 
+            type="date"
+            [(ngModel)]="filters.dateFrom"
+            (change)="applyFilters()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+
+        <!-- Date To Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+          <input 
+            type="date"
+            [(ngModel)]="filters.dateTo"
+            (change)="applyFilters()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+
+        <!-- Clear Filters Button -->
+        <div class="flex items-end">
+          <button 
+            *ngIf="hasActiveFilters()"
+            (click)="clearFilters()"
+            class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Limpiar filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Applying Filters Indicator -->
+      <div *ngIf="isApplyingFilters" class="flex items-center justify-center gap-2 py-2 bg-blue-50 rounded-lg">
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <span class="text-sm text-blue-600 font-medium">Aplicando filtros...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Count -->
+  <div *ngIf="!isLoading && !errorMessage" class="flex items-center justify-between px-2">
+    <p class="text-sm text-gray-600">
+      Mostrando <span class="font-semibold text-gray-900">{{ filteredDonations.length }}</span> 
+      de <span class="font-semibold text-gray-900">{{ donations.length }}</span> donaciones
+    </p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="space-y-4">
+    <div *ngFor="let i of [1,2,3]" class="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+      </div>
+      <div class="space-y-3">
+        <div class="h-4 bg-gray-200 rounded"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+        <div class="h-32 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading && errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <p class="mt-4 text-red-600">{{ errorMessage }}</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && !errorMessage && filteredDonations.length === 0 && !hasActiveFilters()" class="bg-white rounded-lg shadow-sm p-12 text-center">
+    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <h3 class="mt-4 text-lg font-medium text-gray-900">No hay donaciones</h3>
+    <p class="mt-2 text-sm text-gray-500">Este usuario aún no ha realizado ninguna donación.</p>
+  </div>
+
+  <!-- No Results State (after filtering) -->
+  <div *ngIf="!isLoading && !errorMessage && filteredDonations.length === 0 && hasActiveFilters()" class="bg-white rounded-lg shadow-sm p-12 text-center">
+    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    </svg>
+    <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+    <p class="mt-2 text-sm text-gray-500">No hay donaciones que coincidan con los filtros aplicados.</p>
+    <button 
+      (click)="clearFilters()"
+      class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors">
+      Limpiar filtros
+    </button>
+  </div>
+
+  <!-- Donations List -->
+  <div *ngIf="!isLoading && !errorMessage && filteredDonations.length > 0" class="space-y-4">
+    <div 
+      *ngFor="let donation of filteredDonations"
+      class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer max-w-4xl mx-auto overflow-hidden"
+      (click)="viewDonationDetails(donation.id)"
+    >
+      <!-- Donation Header -->
+      <div class="p-5 border-b border-gray-100">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-base text-gray-900">Donación #{{ donation.id }}</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span 
+                  [ngClass]="getStatusColor(donation.statusDonation.status)"
+                  class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                >
+                  {{ donation.statusDonation.status }}
+                </span>
+                <span class="text-xs text-gray-500">
+                  {{ formatDate(donation.createdAt) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div *ngIf="donation.owner" class="flex-shrink-0">
+            <span class="inline-block px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+              Tu donación
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donation Content -->
+      <div class="p-5">
+        <!-- Related Post -->
+        <div 
+          *ngIf="donation.post" 
+          class="bg-gray-50 rounded-lg p-3.5 mb-4 hover:bg-gray-100 transition-colors border border-gray-200"
+          (click)="viewPostDetails(donation.post.id, $event)"
+        >
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+            </svg>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-gray-500 mb-0.5 font-medium">Relacionado con:</p>
+              <p class="font-semibold text-sm text-gray-900 mb-1">{{ donation.post.title }}</p>
+              <p class="text-xs text-gray-600 line-clamp-2">{{ donation.post.message }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Locations -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div class="flex items-start gap-2.5 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-blue-700 font-medium mb-0.5">Lugar de recogida:</p>
+              <p class="text-sm text-blue-900 font-semibold">{{ donation.lugarRecogida }}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2.5 p-3 bg-green-50 rounded-lg border border-green-100">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-green-700 font-medium mb-0.5">Lugar de donación:</p>
+              <p class="text-sm text-green-900 font-semibold">{{ donation.lugarDonacion }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Date -->
+        <div class="flex items-center gap-3 mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+          <svg class="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <div>
+            <p class="text-xs text-orange-700 font-medium">Fecha máxima de entrega:</p>
+            <p class="text-sm font-bold text-orange-900">{{ formatDate(donation.fechaMaximaEntrega) }}</p>
+          </div>
+        </div>
+
+        <!-- Articles -->
+        <div *ngIf="donation.articles && donation.articles.length > 0">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-bold text-gray-900">Artículos donados</h4>
+            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-semibold">
+              {{ donation.articles.length }} artículo(s)
+            </span>
+          </div>
+          <div 
+            [ngClass]="{
+              'grid-cols-1': donation.articles.length === 1,
+              'grid-cols-1 md:grid-cols-2': donation.articles.length === 2,
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3': donation.articles.length >= 3
+            }"
+            class="grid gap-2"
+          >
+            <div 
+              *ngFor="let article of donation.articles" 
+              class="flex flex-col gap-1 p-2 bg-white border border-gray-200 rounded-md hover:border-gray-300 transition-colors"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <p class="font-semibold text-xs text-gray-900 flex-1">{{ article.article.name }}</p>
+                <span class="flex-shrink-0 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold">
+                  x{{ article.quantity }}
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 line-clamp-1">{{ article.article.descripcion }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donation Footer -->
+      <div class="px-5 py-4 border-t border-gray-100 bg-gray-50">
+        <div class="flex items-center justify-between gap-4">
+          <!-- Donator Info -->
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <img 
+              [src]="donation.donator.profilePhoto || 'assets/default-avatar.png'" 
+              [alt]="donation.donator.username"
+              class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm"
+            />
+            <div class="min-w-0">
+              <p class="text-xs text-gray-500 font-medium">Donante:</p>
+              <p class="font-semibold text-sm text-gray-900 truncate">{{ donation.donator.username }}</p>
+            </div>
+          </div>
+
+          <!-- Beneficiary Info -->
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <img 
+              [src]="donation.beneficiary.profilePhoto || 'assets/default-avatar.png'" 
+              [alt]="donation.beneficiary.username"
+              class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm"
+            />
+            <div class="min-w-0">
+              <p class="text-xs text-gray-500 font-medium">Beneficiario:</p>
+              <p class="font-semibold text-sm text-gray-900 truncate">{{ donation.beneficiary.username }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

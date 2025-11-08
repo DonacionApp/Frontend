@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, PostUser } from '../../core/services/posts.service';
+import { DonationService, DonationByUser } from '../../core/services/donation.service';
 import { ScrollRestorationService } from '../../core/services/scroll-restoration.service';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
 import { ProfileTabsComponent, ProfileTab } from '../../shared/components/profile-tabs/profile-tabs.component';
 import { UserPostsListComponent } from '../../shared/components/user-posts-list/user-posts-list.component';
+import { UserDonationsListComponent } from '../../shared/components/user-donations-list/user-donations-list.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 
 @Component({
@@ -17,6 +19,7 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
     ProfileHeaderComponent,
     ProfileTabsComponent,
     UserPostsListComponent,
+    UserDonationsListComponent,
     SidebarComponent
   ],
   templateUrl: './profile.component.html',
@@ -28,16 +31,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
   userId!: number;
   user: PostUser | null = null;
   posts: Post[] = [];
+  donations: DonationByUser[] = [];
   activeTab: ProfileTab = 'posts';
   
   isLoadingUser = true;
   isLoadingPosts = true;
+  isLoadingDonations = true;
   errorMessage = '';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private postsService: PostsService,
+    private donationService: DonationService,
     private scrollService: ScrollRestorationService
   ) {}
 
@@ -47,7 +53,18 @@ export class ProfileComponent implements OnInit, OnDestroy {
       .subscribe(params => {
         this.userId = +params['id'];
         if (this.userId) {
-          this.loadUserPosts();
+          this.route.queryParams
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(queryParams => {
+              const loaded = queryParams['loaded'];
+              if (loaded === 'donations') {
+                this.activeTab = 'donations';
+                this.loadUserDonations();
+              } else {
+                this.activeTab = 'posts';
+                this.loadUserPosts();
+              }
+            });
         }
       });
   }
@@ -116,8 +133,60 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   onTabChange(tab: ProfileTab): void {
     this.activeTab = tab;
-    // En el futuro aquí puedes cargar datos diferentes según la tab
-    // Por ahora solo 'posts' está habilitado
+    
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { loaded: tab === 'donations' ? 'donations' : null },
+      queryParamsHandling: 'merge'
+    });
+
+    if (tab === 'donations' && this.donations.length === 0) {
+      this.loadUserDonations();
+    } else if (tab === 'posts' && this.posts.length === 0) {
+      this.loadUserPosts();
+    }
+  }
+
+  loadUserDonations(): void {
+    this.isLoadingDonations = true;
+    this.errorMessage = '';
+
+    this.donationService.getDonationsByUserId(this.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (donations) => {
+          this.donations = donations;
+          this.isLoadingDonations = false;
+          
+          if (donations.length > 0 && donations[0]?.donator && !this.user) {
+            this.user = {
+              id: donations[0].donator.id,
+              username: donations[0].donator.username,
+              profilePhoto: donations[0].donator.profilePhoto,
+              emailVerified: donations[0].donator.emailVerified,
+              verified: donations[0].donator.verified,
+              createdAt: donations[0].donator.createdAt
+            };
+            this.isLoadingUser = false;
+          } else if (donations.length === 0 && !this.user) {
+            this.isLoadingUser = false;
+          }
+          
+          this.scrollService.restorePosition('profileScrollPosition', 600);
+        },
+        error: (err) => {
+          console.error('Error loading user donations:', err);
+          
+          if (err.status === 404) {
+            this.errorMessage = 'No se encontraron donaciones';
+          } else {
+            this.errorMessage = 'Error al cargar las donaciones del usuario';
+          }
+          
+          this.isLoadingDonations = false;
+          this.scrollService.restorePosition('profileScrollPosition', 600);
+        }
+      });
   }
 
   handleCreatePost(): void {
