@@ -1,0 +1,252 @@
+<div class="min-h-screen bg-gray-50 py-4 lg:py-8">
+  <div class="max-w-3xl mx-auto px-2 sm:px-4 lg:px-8">
+    
+    <app-spinner 
+      *ngIf="isLoading" 
+      [overlay]="true" 
+      [size]="50"
+      message="Cargando información..."
+    ></app-spinner>
+
+    <div class="mb-4 lg:mb-6">
+      <button 
+        (click)="cancel()"
+        class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        <span class="font-medium">Volver</span>
+      </button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-4 lg:p-8">
+      <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+        Editar Publicación
+      </h1>
+      <p class="text-sm text-gray-600 mb-6">
+        Solo puedes editar: título, descripción, imágenes y etiquetas
+      </p>
+
+      <div *ngIf="successMessage" class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+        {{ successMessage }}
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        {{ errorMessage }}
+      </div>
+
+      <form (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <div *ngIf="postType || postArticles.length > 0" class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <div class="ml-3 flex-1">
+              <p class="text-sm font-medium text-blue-800 mb-2">Información no editable</p>
+              <div class="text-sm text-blue-700 space-y-1">
+                <p><strong>Tipo:</strong> {{ postType }}</p>
+                <div *ngIf="postArticles.length > 0">
+                  <strong>Artículos:</strong>
+                  <ul class="ml-4 mt-1 list-disc">
+                    <li *ngFor="let article of postArticles">{{ article }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Título <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="title"
+            name="title"
+            placeholder="Ej: Donación de ropa para niños"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [disabled]="isLoading"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Descripción <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            [(ngModel)]="message"
+            name="message"
+            rows="6"
+            placeholder="Describe tu publicación..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            [disabled]="isLoading"
+          ></textarea>
+        </div>
+
+        <div *ngIf="existingImages.length > 0" class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">
+            Imágenes actuales
+            <span class="text-xs font-normal text-gray-500 ml-2">(pasa el mouse para eliminar)</span>
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div 
+              *ngFor="let img of existingImages; let i = index"
+              class="relative group rounded-lg overflow-hidden border-2 border-gray-200 hover:border-red-400 transition-colors"
+            >
+              <img 
+                [src]="img.url" 
+                [alt]="'Imagen ' + (i + 1)"
+                class="w-full h-32 object-cover"
+              />
+              <button
+                type="button"
+                (click)="removeExistingImage(i)"
+                class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                [disabled]="isLoading"
+                title="Eliminar imagen"
+              >
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">
+            Agregar nuevas imágenes
+            <span class="text-xs font-normal text-gray-500 ml-2">(máximo {{ maxNewImages }})</span>
+          </label>
+          
+          <label 
+            class="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-500 transition-colors bg-gray-50 hover:bg-green-50"
+          >
+            <div class="text-center">
+              <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              <p class="mt-2 text-sm text-gray-600">Haz clic para seleccionar archivos</p>
+              <p class="text-xs text-gray-500">PNG, JPG, GIF, MP4</p>
+            </div>
+            <input 
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              (change)="onNewImageSelect($event)"
+              class="hidden"
+              [disabled]="isLoading || newImageFiles.length >= maxNewImages"
+            />
+          </label>
+
+          <div *ngIf="newImageFiles.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+            <div 
+              *ngFor="let preview of newImagePreviews; let i = index"
+              class="relative group rounded-lg overflow-hidden border-2 border-green-300"
+            >
+              <img 
+                [src]="preview" 
+                [alt]="'Nueva imagen ' + (i + 1)"
+                class="w-full h-32 object-cover"
+              />
+              <button
+                type="button"
+                (click)="removeNewImage(i)"
+                class="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
+                [disabled]="isLoading"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+              <div class="absolute bottom-0 left-0 right-0 bg-green-600 bg-opacity-90 text-white text-xs px-2 py-1 text-center font-medium">
+                Nueva
+              </div>
+            </div>
+          </div>
+
+          <p *ngIf="newImageFiles.length > 0" class="text-sm text-gray-600 mt-2">
+            {{ newImageFiles.length }} / {{ maxNewImages }} nuevas imágenes listas para subir
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Etiquetas</label>
+          <div class="w-full border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-green-500 bg-white relative">
+            <!-- Existing tags as chips -->
+            <div *ngFor="let t of tags; let i = index" class="relative flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm pr-7">
+              <span>#{{ t }}</span>
+              <button 
+                type="button" 
+                (click)="removeTag(i)" 
+                class="absolute right-1 w-5 h-5 flex items-center justify-center bg-white text-gray-600 border border-gray-300 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors" 
+                aria-label="Eliminar etiqueta"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <input
+              type="text"
+              name="tagInput"
+              [(ngModel)]="tagInput"
+              [ngModelOptions]="{standalone: true}"
+              (input)="onTagInputChange($event)"
+              (keydown)="onTagKeydown($event)"
+              (blur)="onTagBlur()"
+              placeholder="Escribe y presiona espacio..."
+              class="flex-1 min-w-[140px] outline-none px-1 py-1 text-sm"
+              [disabled]="isLoading"
+            />
+
+            <div *ngIf="showTagSuggestions" class="absolute left-0 top-full mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg z-20">
+              <button
+                *ngFor="let s of tagSuggestions"
+                type="button"
+                (click)="addTagFromSuggestion(s)"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-green-50 flex items-center justify-between"
+              >
+                <span [innerHTML]="highlightMatch(s.tag)"></span>
+                <span class="text-xs text-gray-400">Agregar</span>
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500">Usa espacio o coma para separar etiquetas. Backspace para eliminar la última.</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+          <app-button
+            type="submit"
+            variant="primary"
+            size="lg"
+            [disabled]="isLoading"
+            class="flex-1"
+          >
+            <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isLoading ? 'Guardando cambios...' : 'Guardar cambios' }}
+          </app-button>
+          
+          <app-button
+            type="button"
+            variant="secondary"
+            size="lg"
+            (btnClick)="cancel()"
+            [disabled]="isLoading"
+            class="flex-1"
+          >
+            Cancelar
+          </app-button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
