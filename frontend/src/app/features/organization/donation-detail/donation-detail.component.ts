@@ -150,8 +150,16 @@ export class DonationDetailComponent implements OnInit {
           this.loading = false;
           console.error('Error al eliminar:', error);
           
-          if (error.status === 403) {
-            this.errorMessage = 'No tienes permiso para eliminar esta donación.';
+          if (error.status === 404) {
+            this.errorMessage = 'La donación no existe o ya fue eliminada.';
+          } else if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para eliminar esta donación. Solo el creador puede eliminarla.';
+          } else if (error.status === 409) {
+            this.errorMessage = 'No se puede eliminar la donación porque tiene artículos asociados o está en proceso.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Error en el servidor al eliminar la donación. Intenta nuevamente más tarde.';
+          } else if (error.status === 0) {
+            this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
           } else {
             this.errorMessage = 'Error al eliminar la donación. Por favor intenta nuevamente.';
           }
@@ -175,7 +183,20 @@ export class DonationDetailComponent implements OnInit {
         error: (error) => {
           this.loading = false;
           console.error('Error al extender fecha:', error);
-          this.errorMessage = 'Error al extender la fecha. Por favor intenta nuevamente.';
+          
+          if (error.status === 404) {
+            this.errorMessage = 'La donación no existe o ya fue eliminada.';
+          } else if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para extender la fecha de esta donación.';
+          } else if (error.status === 400) {
+            this.errorMessage = 'No se puede extender la fecha. Verifica que la donación esté en estado válido.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Error en el servidor al extender la fecha. Intenta nuevamente más tarde.';
+          } else if (error.status === 0) {
+            this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+          } else {
+            this.errorMessage = 'Error al extender la fecha. Por favor intenta nuevamente.';
+          }
         }
       });
     }
