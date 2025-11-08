@@ -36,7 +36,8 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   selectedDocument: File | null = null;
   documentPreview: string | null = null;
   isUploadingDocument = false;
-  isDocumentVerified = false;
+  // Estado de verificación: 'none' | 'uploading' | 'pending' | 'verified' | 'error'
+  verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
   
   // Control de visibilidad de contraseñas
   showCurrentPassword = false;
@@ -66,12 +67,13 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   private initializeForms(): void {
     this.profileForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: [''],
       email: [{ value: '', disabled: true }],
       telefono: ['', [Validators.pattern(/^[0-9\-\+\(\)\s]*$/)]],
       residencia: [''],
-      city: [{ value: '', disabled: true }],
-      state: [{ value: '', disabled: true }],
-      country: [{ value: '', disabled: true }],
+      city: [''],
+      state: [''],
+      country: [''],
       dni: [''],
       typeDni: [{ value: '', disabled: true }],
       birdthDate: ['']
@@ -114,6 +116,8 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     this.profileService.getMyProfile().subscribe({
       next: () => {
         // Perfil cargado exitosamente
+        // Actualizar estado de verificación después de cargar el perfil
+        this.checkVerificationStatus();
       },
       error: (error) => {
         this.errorMessage = 'Error al cargar el perfil. Por favor, intenta de nuevo.';
@@ -140,6 +144,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   private populateForm(profile: UserProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
+      lastName: profile.lastName || '',
       email: profile.email,
       telefono: profile.phone || '',
       residencia: profile.address || '',
@@ -154,6 +159,21 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     if (profile.profileImage) {
       this.imagePreview = profile.profileImage;
     }
+  }
+
+  /**
+   * Comprueba si el perfil tiene un valor no vacío para la ruta indicada.
+   * Soporta rutas con punto para propiedades anidadas
+   */
+  profileHas(path: string): boolean {
+    if (!this.profile) return false;
+    const parts = path.split('.');
+    let cur: any = this.profile as any;
+    for (const p of parts) {
+      if (cur == null) return false;
+      cur = cur[p];
+    }
+    return cur !== null && cur !== undefined && cur !== '';
   }
 
   private loadActivity(): void {
@@ -254,6 +274,9 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     if (formValues.name && formValues.name !== this.profile?.name) {
       updates.people.name = formValues.name;
     }
+    if (formValues.lastName && formValues.lastName !== this.profile?.lastName) {
+      updates.people.lastName = formValues.lastName;
+    }
     if (formValues.telefono && formValues.telefono !== this.profile?.phone) {
       updates.people.telefono = formValues.telefono;
     }
@@ -267,6 +290,25 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     // (generalmente el DNI no debería cambiar)
     if (formValues.dni && formValues.dni !== this.profile?.dni) {
       updates.people.dni = formValues.dni;
+    }
+
+    // Manejar municipio (ciudad, estado, país) si alguno ha cambiado
+    if (formValues.city !== this.profile?.city || 
+        formValues.state !== this.profile?.state || 
+        formValues.country !== this.profile?.country) {
+      
+      // Construir el objeto municipio según formato del backend
+      updates.people.municipio = {
+        pais: {
+          iso2: formValues.country || this.profile?.country || ''
+        },
+        state: {
+          iso2: formValues.state || this.profile?.state || ''
+        },
+        city: {
+          name: formValues.city || this.profile?.city || ''
+        }
+      };
     }
 
     // Si people está vacío, no hay nada que actualizar
@@ -363,6 +405,23 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
   }
+
+  // Helper booleans para evitar comparaciones literales en templates
+  isVerificationNoneOrError(): boolean {
+    return this.verificationState === 'none' || this.verificationState === 'error';
+  }
+
+  isVerificationUploading(): boolean {
+    return this.verificationState === 'uploading';
+  }
+
+  isVerificationPending(): boolean {
+    return this.verificationState === 'pending';
+  }
+
+  isVerificationVerified(): boolean {
+    return this.verificationState === 'verified';
+  }
   
   toggleCurrentPasswordVisibility(): void {
     this.showCurrentPassword = !this.showCurrentPassword;
@@ -390,8 +449,13 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     // pero lo dejamos por si el backend lo agrega en el futuro)
     const profileVerified = false; // Donor profile no tiene este campo por ahora
     
-    this.isDocumentVerified = userVerified || profileVerified;
-    console.log('📋 Estado de verificación (Donor):', this.isDocumentVerified);
+    // Si cualquiera está verificado, marcar como verificado
+    if (userVerified || profileVerified) {
+      this.verificationState = 'verified';
+    } else {
+      // Por defecto 'none' (no enviado)
+      this.verificationState = 'none';
+    }
   }
 
   /**
@@ -415,6 +479,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
       
       this.selectedDocument = file;
       this.clearMessages();
+      this.verificationState = 'none';
       
       // Preview del documento (solo para imágenes)
       if (file.type.startsWith('image/')) {
@@ -428,7 +493,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
         this.documentPreview = 'pdf';
       }
       
-      console.log('📎 Documento seleccionado:', file.name);
+      // seleccionado: nombre disponible en la UI
     }
   }
 
@@ -442,31 +507,38 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     }
 
     this.isUploadingDocument = true;
+    this.verificationState = 'uploading';
     this.clearMessages();
-    
-    console.log('📤 Iniciando carga de documento...');
     
     this.verificationService.uploadSupportDocument(this.selectedDocument).subscribe({
       next: (response) => {
-        this.successMessage = response.message || '¡Documento subido exitosamente! Tu cuenta ha sido verificada.';
-        this.isDocumentVerified = true;
+        // Backend puede devolver un mensaje y/o un flag indicando verificación inmediata
+        const msg = response?.message || 'Documento subido correctamente';
+        const isVerified = (response as any)?.isVerified === true;
+
+        if (isVerified) {
+          this.verificationState = 'verified';
+          this.successMessage = msg || '¡Documento verificado!';
+        } else {
+          // Caso más probable: queda pendiente de revisión
+          this.verificationState = 'pending';
+          this.successMessage = msg || 'Documento subido. Pendiente de revisión.';
+        }
+
         this.selectedDocument = null;
         this.documentPreview = null;
         this.isUploadingDocument = false;
         
-        // Actualizar el estado en el AuthService
-        this.checkVerificationStatus();
-        
-        console.log('✅ Documento verificado exitosamente');
+        // Recargar perfil para obtener estado actualizado desde el backend
+        this.loadProfile();
       },
       error: (error) => {
         this.isUploadingDocument = false;
+        this.verificationState = 'error';
         const status = error.status;
         const message = error.error?.message;
         
         this.errorMessage = this.verificationService.getErrorMessage(status, message);
-        
-        console.error('❌ Error al subir documento:', error);
       }
     });
   }
