@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DonationService, Donation } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -22,7 +22,8 @@ export class DonationDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private donationService: DonationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -155,7 +156,7 @@ export class DonationDetailComponent implements OnInit {
 
   // Volver a la lista
   onBack(): void {
-    this.router.navigate(['/organization/donations']);
+     this.location.back();
   }
 
   // Formatear fecha
