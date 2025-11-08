@@ -41,7 +41,8 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   selectedDocument: File | null = null;
   documentPreview: string | null = null;
   isUploadingDocument = false;
-  isDocumentVerified = false;
+  // Estado de verificación: 'none' | 'uploading' | 'pending' | 'verified' | 'error'
+  verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
   
   // Control de visibilidad de contraseñas
   showCurrentPassword = false;
@@ -187,6 +188,21 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (profile.coverImage) {
       this.coverPreview = profile.coverImage;
     }
+  }
+
+  /**
+   * Comprueba si el perfil tiene un valor no vacío para la ruta indicada.
+   * Soporta rutas con punto para propiedades anidadas, por ejemplo: 'socialMedia.facebook'
+   */
+  profileHas(path: string): boolean {
+    if (!this.profile) return false;
+    const parts = path.split('.');
+    let cur: any = this.profile as any;
+    for (const p of parts) {
+      if (cur == null) return false;
+      cur = cur[p];
+    }
+    return cur !== null && cur !== undefined && cur !== '';
   }
 
   private loadActivity(): void {
@@ -436,6 +452,23 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       ? `${names[0][0]}${names[1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
   }
+
+  // Helper booleans para evitar comparaciones literales en templates (mejora compatibilidad con el type-checker)
+  isVerificationNoneOrError(): boolean {
+    return this.verificationState === 'none' || this.verificationState === 'error';
+  }
+
+  isVerificationUploading(): boolean {
+    return this.verificationState === 'uploading';
+  }
+
+  isVerificationPending(): boolean {
+    return this.verificationState === 'pending';
+  }
+
+  isVerificationVerified(): boolean {
+    return this.verificationState === 'verified';
+  }
   
   toggleCurrentPasswordVisibility(): void {
     this.showCurrentPassword = !this.showCurrentPassword;
@@ -460,15 +493,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     const userVerified = user?.isDocumentVerified || false;
     // También revisar en el perfil de la organización
     const profileVerified = this.profile?.isVerified || false;
-    
     // Si cualquiera de los dos está verificado, marcar como verificado
-    this.isDocumentVerified = userVerified || profileVerified;
-    
-    console.log('📋 Estado de verificación (Organization):', {
-      userVerified,
-      profileVerified,
-      finalStatus: this.isDocumentVerified
-    });
+    if (userVerified || profileVerified) {
+      this.verificationState = 'verified';
+    } else {
+      // Si el backend indica que hay un documento subido pero aún no verificado, puedes mapearlo aquí.
+      // Por defecto dejamos 'none' (no enviado)
+      this.verificationState = 'none';
+    }
   }
 
   /**
@@ -490,8 +522,9 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
         return;
       }
       
-      this.selectedDocument = file;
-      this.clearMessages();
+  this.selectedDocument = file;
+  this.clearMessages();
+  this.verificationState = 'none';
       
       // Preview del documento (solo para imágenes)
       if (file.type.startsWith('image/')) {
@@ -505,7 +538,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
         this.documentPreview = 'pdf';
       }
       
-      console.log('📎 Documento seleccionado (Organization):', file.name);
+      // seleccionado: nombre disponible en la UI
     }
   }
 
@@ -517,33 +550,40 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       this.errorMessage = 'Por favor selecciona un documento primero';
       return;
     }
-
     this.isUploadingDocument = true;
+    this.verificationState = 'uploading';
     this.clearMessages();
-    
-    console.log('📤 Iniciando carga de documento (Organization)...');
-    
+
     this.verificationService.uploadSupportDocument(this.selectedDocument).subscribe({
       next: (response) => {
-        this.successMessage = response.message || '¡Documento subido exitosamente! Tu organización ha sido verificada.';
-        this.isDocumentVerified = true;
+        // Backend puede devolver un mensaje y/o un flag indicando verificación inmediata
+        const msg = response?.message || 'Documento subido correctamente';
+  // Algunos responses no tipados pueden incluir isVerified; proteger con any
+  const isVerified = (response as any)?.isVerified === true;
+
+        if (isVerified) {
+          this.verificationState = 'verified';
+          this.successMessage = msg || '¡Documento verificado!';
+        } else {
+          // Caso más probable: queda pendiente de revisión
+          this.verificationState = 'pending';
+          this.successMessage = msg || 'Documento subido. Pendiente de revisión.';
+        }
+
         this.selectedDocument = null;
         this.documentPreview = null;
         this.isUploadingDocument = false;
-        
-        // Actualizar el estado en el AuthService
-        this.checkVerificationStatus();
-        
-        console.log('✅ Documento verificado exitosamente (Organization)');
+
+        // Recargar perfil para obtener estado actualizado desde el backend
+        this.loadProfile();
       },
       error: (error) => {
         this.isUploadingDocument = false;
+        this.verificationState = 'error';
         const status = error.status;
         const message = error.error?.message;
-        
+
         this.errorMessage = this.verificationService.getErrorMessage(status, message);
-        
-        console.error('❌ Error al subir documento (Organization):', error);
       }
     });
   }
