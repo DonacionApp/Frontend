@@ -1,9 +1,26 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DonationService, CreateDonationDTO, ArticleInput, Comment } from '../../../core/services/donation.service';
 import { PostsService, Post, PostArticle } from '../../../core/services/posts.service';
+
+/**
+ * Validador personalizado para asegurar que la fecha no sea anterior a hoy
+ */
+function minDateValidator(control: AbstractControl): ValidationErrors | null {
+  if (!control.value) return null;
+  
+  const selectedDate = new Date(control.value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
+  
+  if (selectedDate < today) {
+    return { minDate: { value: control.value, message: 'La fecha no puede ser anterior a hoy' } };
+  }
+  
+  return null;
+}
 
 @Component({
   selector: 'app-create-donation',
@@ -89,7 +106,7 @@ export class CreateDonationComponent implements OnInit {
     this.donationForm = this.fb.group({
       lugarRecogida: ['', [Validators.required, Validators.minLength(5)]],
       lugarDonacion: ['', [Validators.required, Validators.minLength(5)]],
-      fechaMaximaEntrega: ['', [Validators.required]],
+      fechaMaximaEntrega: ['', [Validators.required, minDateValidator]],
       articles: this.fb.array([], [Validators.required, Validators.minLength(1)]),
       comments: this.fb.array([this.createCommentFormGroup()])
     });
@@ -231,6 +248,9 @@ export class CreateDonationComponent implements OnInit {
     }
     if (field?.hasError('max')) {
       return 'La cantidad es demasiado grande';
+    }
+    if (field?.hasError('minDate')) {
+      return field.errors?.['minDate'].message || 'La fecha no puede ser anterior a hoy';
     }
     return '';
   }
