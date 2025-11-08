@@ -367,8 +367,8 @@ export class ListComponent implements OnInit, OnDestroy {
 
   donateToCampaign(post: Post): void {
     // Navegar a la página de donación con el ID del post
-    this.router.navigate(['/donor/donate'], {
-      queryParams: { campaign: post.id }
+    this.router.navigate(['/organization/donations/create'], {
+      queryParams: { post: post.id }
     });
   }
 

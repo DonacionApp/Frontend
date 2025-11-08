@@ -94,7 +94,14 @@ export class ManageDonationArticlesComponent implements OnInit, OnDestroy {
         error: (error) => {
           this.loading = false;
           console.error('Error al cargar donación:', error);
-          this.errorMessage = 'Error al cargar la donación';
+          
+          if (error.status === 404) {
+            this.errorMessage = 'Donación no encontrada';
+          } else if (error.status === 403) {
+            this.errorMessage = 'No tienes permiso para acceder a esta donación';
+          } else {
+            this.errorMessage = 'Error al cargar la donación. Verifica tu conexión';
+          }
           setTimeout(() => this.onCancel(), 2000);
         }
       });
@@ -130,7 +137,12 @@ export class ManageDonationArticlesComponent implements OnInit, OnDestroy {
         error: (error) => {
           this.loading = false;
           console.error('Error al cargar artículos:', error);
-          this.errorMessage = 'Error al cargar artículos';
+          
+          if (error.status === 404) {
+            this.errorMessage = 'No se encontraron los artículos del post';
+          } else {
+            this.errorMessage = 'Error al cargar artículos disponibles. Verifica tu conexión';
+          }
         }
       });
   }
@@ -224,8 +236,15 @@ export class ManageDonationArticlesComponent implements OnInit, OnDestroy {
         error: (error) => {
           this.loading = false;
           console.error('Error al actualizar cantidad:', error);
-          this.errorMessage = 'Error al actualizar cantidad';
-          setTimeout(() => this.errorMessage = '', 3000);
+          
+          if (error.status === 400) {
+            this.errorMessage = error.error?.message || 'La cantidad solicitada no es válida o excede la disponible';
+          } else if (error.status === 404) {
+            this.errorMessage = 'El artículo ya no existe en la donación';
+          } else {
+            this.errorMessage = 'Error al actualizar cantidad. Intenta nuevamente';
+          }
+          setTimeout(() => this.errorMessage = '', 4000);
         }
       });
   }
