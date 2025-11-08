@@ -42,14 +42,6 @@ export class NavComponent implements OnInit, OnDestroy {
         this.userFullName = user?.name || 'Usuario';
         this.isDocumentVerified = user?.isDocumentVerified || false;
         
-        // Debug: verificar el estado
-        console.log('👤 Nav - Usuario:', {
-          name: user?.name,
-          role: user?.role,
-          isDocumentVerified: user?.isDocumentVerified,
-          userCompleto: user
-        });
-        
         // Cargar foto de perfil si el usuario está autenticado
         if (user) {
           this.loadUserProfile();
@@ -89,10 +81,6 @@ export class NavComponent implements OnInit, OnDestroy {
         if (orgProfile && this.user?.role === 'organization') {
           // Actualizar estado de verificación desde el perfil de organización
           this.isDocumentVerified = orgProfile.isVerified || false;
-          console.log('🏢 Nav - Perfil de organización actualizado:', {
-            isVerified: orgProfile.isVerified,
-            isDocumentVerified: this.isDocumentVerified
-          });
         }
       });
   }
@@ -117,10 +105,6 @@ export class NavComponent implements OnInit, OnDestroy {
           this.userFullName = profile.name || this.user?.name || 'Organización';
           // Actualizar estado de verificación desde el perfil
           this.isDocumentVerified = profile.isVerified || false;
-          console.log('🏢 Nav - Perfil de organización cargado:', {
-            isVerified: profile.isVerified,
-            isDocumentVerified: this.isDocumentVerified
-          });
         },
         error: (error) => {
           console.error('Error loading organization profile:', error);
@@ -168,7 +152,6 @@ export class NavComponent implements OnInit, OnDestroy {
   }
 
   onRegisterClick(): void {
-    console.log('Navegando a /donor/register...');
     this.closeMobileMenu();
     this.router.navigate(['/donor/register']);
   }
