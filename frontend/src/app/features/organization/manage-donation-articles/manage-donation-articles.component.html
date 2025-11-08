@@ -1,0 +1,217 @@
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    
+    <!-- Encabezado -->
+    <div class="flex items-center justify-between mb-6">
+      <button
+        (click)="onCancel()"
+        class="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Volver
+      </button>
+      
+      <h1 class="text-2xl font-bold text-gray-900">
+        Gestionar Artículos de Donación
+      </h1>
+      
+      <div class="w-20"></div>
+    </div>
+
+    <!-- Información de la donación -->
+    <div *ngIf="donation" class="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">{{ donation.post.title }}</h2>
+          <p class="text-sm text-gray-600">Donación #{{ donation.id }}</p>
+        </div>
+        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+          {{ donation.statusDonation.status }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      <p class="mt-4 text-gray-600">Cargando...</p>
+    </div>
+
+    <!-- Mensajes -->
+    <div *ngIf="successMessage" class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-sm text-green-800">{{ successMessage }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-sm text-red-800">{{ errorMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Contenido -->
+    <div *ngIf="!loading && donation" class="space-y-6">
+      
+      <!-- Artículos actuales -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+          <h3 class="text-lg font-semibold text-white">Artículos Actuales</h3>
+          <p class="text-sm text-green-100">Puedes modificar cantidades o eliminar artículos</p>
+        </div>
+
+        <div class="p-6">
+          <form [formGroup]="articlesForm">
+            <div formArrayName="currentArticles" class="space-y-4">
+              <div *ngFor="let article of currentArticles.controls; let i = index" 
+                   [formGroupName]="i"
+                   class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                
+                <!-- Información del artículo -->
+                <div class="flex-1">
+                  <p class="font-semibold text-gray-900">{{ article.get('articleName')?.value }}</p>
+                  <p *ngIf="article.get('articleDescription')?.value" 
+                     class="text-sm text-gray-600">{{ article.get('articleDescription')?.value }}</p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Disponible en post: {{ article.get('maxQuantity')?.value }}
+                  </p>
+                </div>
+
+                <!-- Input de cantidad -->
+                <div class="w-32">
+                  <label [for]="'quantity-' + i" class="block text-sm font-medium text-gray-700 mb-1">
+                    Cantidad
+                  </label>
+                  <input
+                    [id]="'quantity-' + i"
+                    type="number"
+                    formControlName="quantity"
+                    [min]="1"
+                    [max]="article.get('maxQuantity')?.value"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                    [class.border-red-500]="article.get('quantity')?.invalid && article.get('quantity')?.touched">
+                  <p *ngIf="article.get('quantity')?.errors?.['max']" 
+                     class="mt-1 text-xs text-red-600">
+                    Máx: {{ article.get('maxQuantity')?.value }}
+                  </p>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    (click)="onUpdateQuantity(i)"
+                    [disabled]="loading || article.get('quantity')?.invalid || 
+                                article.get('quantity')?.value === article.get('originalQuantity')?.value"
+                    class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 
+                           disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    Actualizar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="onRemoveArticle(i)"
+                    [disabled]="loading"
+                    class="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 
+                           disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <p *ngIf="currentArticles.length === 0" class="text-center text-gray-500 italic py-8">
+                No hay artículos en esta donación
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Agregar nuevo artículo -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+          <h3 class="text-lg font-semibold text-white">Agregar Nuevo Artículo</h3>
+          <p class="text-sm text-blue-100">Selecciona artículos disponibles del post</p>
+        </div>
+
+        <div class="p-6">
+          <form [formGroup]="articlesForm" (ngSubmit)="onAddArticle()">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
+              <!-- Selector de artículo -->
+              <div class="md:col-span-2">
+                <label for="newArticleId" class="block text-sm font-medium text-gray-700 mb-2">
+                  Artículo *
+                </label>
+                <select
+                  id="newArticleId"
+                  formControlName="newArticleId"
+                  (change)="onNewArticleChange()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option [value]="null">Selecciona un artículo</option>
+                  <option *ngFor="let article of getAvailableArticlesToAdd()" [value]="article.id">
+                    {{ article.article.name }} - {{ article.article.descripcion }} ({{ article.quantity }} disponibles)
+                  </option>
+                </select>
+                <p *ngIf="getAvailableArticlesToAdd().length === 0" class="mt-2 text-sm text-gray-500 italic">
+                  No hay más artículos disponibles para agregar
+                </p>
+              </div>
+
+              <!-- Cantidad -->
+              <div>
+                <label for="newArticleQuantity" class="block text-sm font-medium text-gray-700 mb-2">
+                  Cantidad *
+                </label>
+                <input
+                  id="newArticleQuantity"
+                  type="number"
+                  formControlName="newArticleQuantity"
+                  [min]="1"
+                  [max]="getMaxForNewArticle()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  [class.border-red-500]="articlesForm.get('newArticleQuantity')?.invalid && articlesForm.get('newArticleQuantity')?.touched">
+                <p *ngIf="articlesForm.get('newArticleQuantity')?.errors?.['max']" 
+                   class="mt-1 text-xs text-red-600">
+                  Máximo: {{ getMaxForNewArticle() }}
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+              <button
+                type="submit"
+                [disabled]="loading || !articlesForm.get('newArticleId')?.value || articlesForm.get('newArticleQuantity')?.invalid"
+                class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+                       disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Agregar Artículo
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Botón volver -->
+      <div class="flex justify-center">
+        <button
+          (click)="onCancel()"
+          class="px-8 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+          Volver al Detalle
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>

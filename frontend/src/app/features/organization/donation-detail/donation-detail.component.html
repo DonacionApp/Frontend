@@ -250,6 +250,16 @@
               Editar
             </button>
             <button
+              *ngIf="canEditDonation"
+              (click)="onManageArticles()"
+              [disabled]="loading"
+              class="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-400 transition-colors">
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+              Gestionar Artículos
+            </button>
+            <button
               *ngIf="canDeleteDonation"
               (click)="onDelete()"
               [disabled]="loading"

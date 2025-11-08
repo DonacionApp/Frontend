@@ -112,6 +112,24 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
   }
 
+  // Navegar a gestionar artículos
+  onManageArticles(): void {
+    if (!this.donation) return;
+
+    if (!this.canEditDonation) {
+      const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+      if (!isPending) {
+        this.errorMessage = 'Solo se pueden gestionar artículos en estado "pendiente".';
+      } else {
+        this.errorMessage = 'No tienes permiso para gestionar los artículos. Solo el beneficiario o donador pueden hacerlo.';
+      }
+      setTimeout(() => this.errorMessage = '', 4000);
+      return;
+    }
+
+    this.router.navigate(['/organization/donations', this.donation.id, 'manage-articles']);
+  }
+
   // Eliminar donación
   onDelete(): void {
     if (!this.donation) return;

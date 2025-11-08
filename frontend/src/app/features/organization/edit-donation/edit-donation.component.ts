@@ -73,12 +73,40 @@ export class EditDonationComponent implements OnInit, OnDestroy {
         next: (donation) => {
           this.currentDonation = donation;
 
-          // Verificar si el usuario actual es el propietario usando owner boolean
+          // Verificar permisos de edición
           const currentUser = this.authService.currentUserValue;
+          if (!currentUser) {
+            this.errorMessage = 'Debes iniciar sesión para editar una donación.';
+            this.loading = false;
+            setTimeout(() => {
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+            return;
+          }
+
+          const currentUserId = String(currentUser.id);
+          const beneficiaryId = String(donation.beneficiary?.id);
+          const donatorId = String(donation.donator?.id);
           
-          // Usar el campo owner si está disponible
-          if (!currentUser || !donation.owner) {
-            this.errorMessage = 'No tienes permiso para editar esta donación. Solo el creador puede editarla.';
+          // Verificar si es beneficiario o donador
+          const isBeneficiary = currentUserId === beneficiaryId;
+          const isDonator = currentUserId === donatorId;
+          
+          // Verificar si el estado es "pendiente"
+          const isPending = donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+
+          // Solo puede editar si es beneficiario/donador Y está en pendiente
+          if (!isBeneficiary && !isDonator) {
+            this.errorMessage = 'No tienes permiso para editar esta donación. Solo el beneficiario o donador pueden editarla.';
+            this.loading = false;
+            setTimeout(() => {
+              this.router.navigate(['/organization/donations', id]);
+            }, 2000);
+            return;
+          }
+
+          if (!isPending) {
+            this.errorMessage = 'Solo se pueden editar donaciones en estado "pendiente".';
             this.loading = false;
             setTimeout(() => {
               this.router.navigate(['/organization/donations', id]);
@@ -87,14 +115,13 @@ export class EditDonationComponent implements OnInit, OnDestroy {
           }
 
           // Llenar el formulario con los datos existentes
-          // NOTA: Solo lugarDonacion y fechaMaximaEntrega son editables según UpdateDonationDTO
           this.donationForm.patchValue({
             lugarRecogida: donation.lugarRecogida,
             lugarDonacion: donation.lugarDonacion,
             fechaMaximaEntrega: this.formatDateForInput(donation.fechaMaximaEntrega)
           });
 
-          // Guardar artículos y comentarios para visualización (no editables desde aquí)
+          // Guardar artículos y comentarios para visualización (no editables)
           this.articlesList = donation.articles || [];
           this.commentsList = Array.isArray(donation.comments) ? donation.comments : [];
 
