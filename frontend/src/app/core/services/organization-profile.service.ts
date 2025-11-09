@@ -226,19 +226,27 @@ export class OrganizationProfileService {
     this.loadingSubject.next(true);
 
     // Construir el requestBody en el formato que espera el backend
-    // El backend espera people.lastName para organizaciones
+    // El backend espera people.lastName para organizaciones (debe ser JSON stringificado)
     const requestBody: any = {
       people: {
         name: updates.name,
-        lastName: updates.lastName || (updates.description ? JSON.stringify({ description: updates.description, networks: [] }) : undefined),
         residencia: updates.address,
         telefono: updates.phone
       }
     };
 
-    // Si hay lastName en updates, usarlo directamente (ya viene como JSON)
+    // Si hay lastName en updates, usarlo directamente (ya viene como JSON stringificado)
     if (updates.lastName) {
       requestBody.people.lastName = updates.lastName;
+    } else if (updates.description) {
+      // Si no hay lastName pero hay description, construir el JSON
+      const networks: string[] = [];
+      if (updates.website) networks.push(updates.website);
+      if (updates.socialMedia?.facebook) networks.push(updates.socialMedia.facebook);
+      if (updates.socialMedia?.twitter) networks.push(updates.socialMedia.twitter);
+      if (updates.socialMedia?.instagram) networks.push(updates.socialMedia.instagram);
+      if (updates.socialMedia?.linkedin) networks.push(updates.socialMedia.linkedin);
+      requestBody.people.lastName = JSON.stringify({ description: updates.description, networks });
     }
 
     // Agregar otros campos si existen
