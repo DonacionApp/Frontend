@@ -59,6 +59,11 @@ export interface StatusDonation {
   updatedAt?: string;
 }
 
+// Interface para actualizar el estado de una donación
+export interface UpdateDonationStatusDTO {
+  status: number;
+}
+
 // Interfaces extendidas para la respuesta de donaciones por usuario
 export interface PostArticle {
   id: number;
@@ -337,6 +342,38 @@ export class DonationService {
       }),
       catchError(error => {
         console.error('Error al obtener estadísticas:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updateDonationStatus(idDonation: number, statusData: UpdateDonationStatusDTO): Observable<Donation> {
+    this.loadingSubject.next(true);
+    const url = `${this.apiUrl}/${idDonation}/status`;
+    return this.http.post<Donation>(url, statusData).pipe(
+      tap(updatedDonation => {
+        // Actualizar en el estado local
+        const currentDonations = this.donationsSubject.value;
+        const index = currentDonations.findIndex(d => d.id === idDonation);
+        if (index !== -1) {
+          currentDonations[index] = updatedDonation;
+          this.donationsSubject.next([...currentDonations]);
+        }
+        this.loadingSubject.next(false);
+      }),
+      catchError(error => {
+        this.loadingSubject.next(false);
+        console.error('Error al actualizar estado de donación:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getAllDonationStatuses(): Observable<StatusDonation[]> {
+    const url = `${environment.apiBackendUrl}/statusdonation`;
+    return this.http.get<StatusDonation[]>(url).pipe(
+      catchError(error => {
+        console.error('Error al obtener estados de donación:', error);
         return throwError(() => error);
       })
     );
