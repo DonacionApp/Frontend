@@ -136,6 +136,8 @@ export class OrganizationRegisterComponent implements OnInit {
       profilePhoto: this.orgForm.value.website || '',
       people: {
         name: this.orgForm.value.organizationName,
+        // Serializamos la descripción (y posibles redes) en lastName para enviarla al backend
+        lastName: JSON.stringify({ description: this.orgForm.value.description || '', networks: this.orgForm.value.website ? [this.orgForm.value.website] : [] }),
         birdthDate: birdth || '',
         tipodDni: tipod,
         dni: this.orgForm.value.dni || '',
