@@ -115,8 +115,8 @@ export class VerifyEmailComponent {
     this.errorMessage = null;
     this.infoMessage = null;
     this.lastResponse = null;
-    this.lastRequest = { url: `${this.emailVerification['baseUrl']}/verify-email-token`, body: { token } };
-    
+    this.lastRequest = { url: '/auth/verify-email-token', body: { token } };
+
     this.emailVerification.verifyEmailToken(token).subscribe({
       next: (res) => {
         this.verifying = false;
@@ -159,8 +159,8 @@ export class VerifyEmailComponent {
     this.errorMessage = null;
     this.infoMessage = null;
     this.lastResponse = null;
-    this.lastRequest = { url: `${this.emailVerification['baseUrl']}/verify/email`, body: { email, code } };
-    
+    this.lastRequest = { url: '/auth/verify/email', body: { email, code } };
+
     this.emailVerification.verifyEmail(email, code).subscribe({
       next: (res) => {
         this.loading = false;
