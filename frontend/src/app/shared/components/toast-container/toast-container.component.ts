@@ -26,4 +26,8 @@ export class ToastContainerComponent implements OnInit {
       this.toastService.close(id);
     }
   }
+
+  trackByToastId(index: number, toast: ToastNotification): number | undefined {
+    return toast.id;
+  }
 }

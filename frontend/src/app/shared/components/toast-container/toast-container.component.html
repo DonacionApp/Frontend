@@ -1,8 +1,7 @@
 <div class="toast-container">
   <app-notification-toast 
-    *ngFor="let toast of toasts"
+    *ngFor="let toast of toasts; trackBy: trackByToastId"
     [notification]="toast"
-    (closed)="onToastClosed(toast.id)"
-    [style.top.px]="80 + (toasts.indexOf(toast) * 100)">
+    (closed)="onToastClosed(toast.id)">
   </app-notification-toast>
 </div>

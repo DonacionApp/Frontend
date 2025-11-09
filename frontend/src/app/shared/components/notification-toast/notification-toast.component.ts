@@ -25,15 +25,23 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
 
   private autoCloseTimer?: number;
   visible = false;
+  progressDuration = 5; // Duración en segundos para la animación CSS
+  maxMessageLength = 120; // Longitud máxima del mensaje antes de truncar
+  isMessageTruncated = false;
+  truncatedMessage = '';
 
   constructor(private router: Router) {}
 
   ngOnInit(): void {
+    // Truncar mensaje si es muy largo
+    this.truncateMessage();
+
     // Pequeño delay para activar la animación CSS
     setTimeout(() => this.visible = true, 10);
 
     // Auto-cerrar después de la duración especificada
     const duration = this.notification.duration || 5000;
+    this.progressDuration = duration / 1000; // Convertir a segundos para CSS
     this.autoCloseTimer = window.setTimeout(() => {
       this.close();
     }, duration);
@@ -54,22 +62,25 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
 
   /**
    * Manejar click en la notificación
-<<<<<<< HEAD
-   * Siempre redirige al centro de notificaciones
    */
   onClick(): void {
-    // Si hay un link específico, usarlo; si no, ir al centro de notificaciones
-    const route = this.notification.link || '/notifications';
-    this.router.navigate([route]);
+    // Si tiene un link específico, ir a ese link, sino ir al centro de notificaciones
+    const targetLink = this.notification.link || '/notifications';
+    this.router.navigate([targetLink]);
     this.close();
-=======
+  }
+
+  /**
+   * Truncar mensaje si es muy largo
    */
-  onClick(): void {
-    if (this.notification.link) {
-      this.router.navigate([this.notification.link]);
-      this.close();
+  private truncateMessage(): void {
+    if (this.notification.message.length > this.maxMessageLength) {
+      this.isMessageTruncated = true;
+      this.truncatedMessage = this.notification.message.substring(0, this.maxMessageLength) + '...';
+    } else {
+      this.isMessageTruncated = false;
+      this.truncatedMessage = this.notification.message;
     }
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
   }
 
   /**

@@ -2,11 +2,8 @@
      [class]="getTypeClass()"
      [class.visible]="visible"
      (click)="onClick()"
-<<<<<<< HEAD
-     [class.clickable]="true">
-=======
-     [class.clickable]="notification.link">
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
+     [class.clickable]="true"
+     [style.--progress-duration]="progressDuration + 's'">
   
   <div class="toast-icon">
     <i [class]="'bi ' + getIcon()"></i>
@@ -17,19 +14,18 @@
       <span class="toast-title">{{ notification.title }}</span>
       <span class="toast-time">{{ getRelativeTime() }}</span>
     </div>
-    <div class="toast-message">{{ notification.message }}</div>
-<<<<<<< HEAD
+    <div class="toast-message" [title]="isMessageTruncated ? notification.message : ''">
+      {{ truncatedMessage }}
+    </div>
     <div class="toast-footer">
-      <small class="toast-hint">Haz clic para ver más detalles</small>
+      <small class="toast-hint">
+        <span *ngIf="isMessageTruncated">Ver mensaje completo • </span>
+        Haz clic para {{ notification.link ? 'ver más detalles' : 'ir al centro de notificaciones' }}
+      </small>
     </div>
   </div>
 
   <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button" aria-label="Cerrar notificación">
-=======
-  </div>
-
-  <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button">
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
     <i class="bi bi-x"></i>
   </button>
 </div>

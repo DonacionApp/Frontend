@@ -231,21 +231,12 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   private subscribeToNotifications(): void {
     this.websocketService.notification$.subscribe(notification => {
-      // Mostrar notificación toast flotante
-<<<<<<< HEAD
-      // Siempre incluir link al centro de notificaciones para que redirija al hacer clic
-=======
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
+  // Mostrar notificación toast flotante
       this.toastService.show({
-        title: notification.title,
-        message: notification.message,
-        type: this.mapNotificationType(notification.type),
-<<<<<<< HEAD
-        link: notification.link || '/notifications', // Siempre redirigir al centro de notificaciones
-=======
-        link: notification.link,
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
-        createdAt: notification.createdAt
+  title: notification.title,
+  message: notification.message,
+  type: this.mapNotificationType(notification.type),
+  link: notification.link
       });
     });
   }

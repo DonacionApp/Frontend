@@ -14,9 +14,13 @@ export class ToastService {
   /**
    * Mostrar una notificación toast
    */
-  show(toast: Omit<ToastNotification, 'id'>): void {
+  show(toast: Omit<ToastNotification, 'id' | 'createdAt'>): void {
     const id = ++this.idCounter;
-    const newToast: ToastNotification = { ...toast, id };
+    const newToast: ToastNotification = { 
+      ...toast, 
+      id,
+      createdAt: new Date().toISOString()
+    };
     
     const currentToasts = this.toastsSubject.value;
     this.toastsSubject.next([...currentToasts, newToast]);
