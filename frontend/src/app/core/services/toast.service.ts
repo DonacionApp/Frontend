@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { ToastNotification } from '../../shared/components/notification-toast/notification-toast.component';
+import { ToastNotification } from '../../shared/model/toast-notification.model';
 
 @Injectable({
   providedIn: 'root'

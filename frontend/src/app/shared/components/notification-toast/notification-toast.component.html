@@ -1,31 +1,64 @@
-<div class="notification-toast" 
+<div class="notification-toast"
      [class]="getTypeClass()"
      [class.visible]="visible"
-     (click)="onClick()"
      [class.clickable]="true"
+     [class.paused]="isPaused"
+     (click)="onClick()"
+     (mouseenter)="pauseAutoClose()"
+     (mouseleave)="resumeAutoClose()"
      [style.--progress-duration]="progressDuration + 's'">
-  
-  <div class="toast-icon">
-    <i [class]="'bi ' + getIcon()"></i>
+
+  <div class="toast-icon" aria-hidden="true">
+    <ng-container [ngSwitch]="mappedType">
+      <!-- Success -->
+      <svg *ngSwitchCase="'success'" viewBox="0 0 24 24" class="icon-svg" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
+        <path d="M8 12.5l2 2 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <!-- Error -->
+      <svg *ngSwitchCase="'error'" viewBox="0 0 24 24" class="icon-svg" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
+        <path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <!-- Warning -->
+      <svg *ngSwitchCase="'warning'" viewBox="0 0 24 24" class="icon-svg" aria-hidden="true" focusable="false">
+        <path d="M12 4.2L2.6 19h18.8L12 4.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M12 9v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+      </svg>
+
+      <!-- Info / default -->
+      <svg *ngSwitchDefault viewBox="0 0 24 24" class="icon-svg" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
+        <path d="M12 10h.01M12 12v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </ng-container>
   </div>
 
-  <div class="toast-content">
+  <div class="toast-content" role="article" [attr.aria-label]="'Notificación: ' + notification.title">
     <div class="toast-header">
-      <span class="toast-title">{{ notification.title }}</span>
-      <span class="toast-time">{{ getRelativeTime() }}</span>
+      <div class="toast-title">{{ notification.title }}</div>
+      <div class="toast-time">{{ getRelativeTime() }}</div>
     </div>
-    <div class="toast-message" [title]="isMessageTruncated ? notification.message : ''">
-      {{ truncatedMessage }}
+
+    <div class="toast-message" [attr.title]="notification.message">
+      <div [class.expanded]="isExpanded">{{ isExpanded ? notification.message : truncatedMessage }}</div>
     </div>
-    <div class="toast-footer">
-      <small class="toast-hint">
-        <span *ngIf="isMessageTruncated">Ver mensaje completo • </span>
-        Haz clic para {{ notification.link ? 'ver más detalles' : 'ir al centro de notificaciones' }}
-      </small>
+
+    <div class="toast-actions">
+  <button *ngIf="isMessageTruncated" class="expand-btn" (click)="toggleExpand($event)" type="button" [attr.aria-expanded]="isExpanded">
+        {{ isExpanded ? 'Mostrar menos' : 'Mostrar más' }}
+      </button>
+      <small class="toast-hint">Haz clic para {{ notification.link ? 'ver más detalles' : 'ir al centro de notificaciones' }}</small>
     </div>
   </div>
 
-  <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button" aria-label="Cerrar notificación">
-    <i class="bi bi-x"></i>
+  <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button" aria-label="Cerrar notificación" title="Cerrar">
+    <!-- SVG inline para cerrar: no dependemos de fuentes externas -->
+    <svg class="close-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
   </button>
 </div>

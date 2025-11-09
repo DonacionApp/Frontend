@@ -1,16 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-
-export interface ToastNotification {
-  id?: number;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  link?: string;
-  createdAt?: string;
-  duration?: number; // Duración en ms (default: 5000)
-}
+import { ToastNotification } from '../../model/toast-notification.model';
 
 @Component({
   selector: 'app-notification-toast',
@@ -29,8 +20,30 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
   maxMessageLength = 120; // Longitud máxima del mensaje antes de truncar
   isMessageTruncated = false;
   truncatedMessage = '';
+  isExpanded = false; // para mostrar/ocultar mensaje completo
+  isPaused = false; // para pausar el auto-close cuando el usuario pasa el mouse
+
+  // control de tiempo para pausa/reanudar
+  private autoCloseStart = 0;
+  private remainingTime = 0;
 
   constructor(private router: Router) {}
+
+  /**
+   * Normaliza el tipo de notificación recibido (soporta valores en español)
+   * y lo mapea a uno de: 'info' | 'success' | 'warning' | 'error'
+   */
+  get mappedType(): 'info' | 'success' | 'warning' | 'error' {
+    if (!this.notification || !this.notification.type) return 'info';
+    const t = String(this.notification.type).toLowerCase();
+    // mapeo común (español + inglés)
+    if (['success', 'exito', 'éxito', 'ok', 'confirmacion', 'confirmación'].includes(t)) return 'success';
+    if (['error', 'danger', 'fallo'].includes(t)) return 'error';
+    if (['warning', 'advertencia', 'alerta'].includes(t)) return 'warning';
+    if (['info', 'informacion', 'información', 'recordatorio', 'notice'].includes(t)) return 'info';
+    // fallback
+    return 'info';
+  }
 
   ngOnInit(): void {
     // Truncar mensaje si es muy largo
@@ -42,9 +55,10 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
     // Auto-cerrar después de la duración especificada
     const duration = this.notification.duration || 5000;
     this.progressDuration = duration / 1000; // Convertir a segundos para CSS
-    this.autoCloseTimer = window.setTimeout(() => {
-      this.close();
-    }, duration);
+    // inicializar control de tiempo para pausa/reanudar
+    this.autoCloseStart = Date.now();
+    this.remainingTime = duration;
+    this.autoCloseTimer = window.setTimeout(() => this.close(), this.remainingTime);
   }
 
   ngOnDestroy(): void {
@@ -58,6 +72,37 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
    */
   close(): void {
     this.closed.emit();
+  }
+
+  // Pausar el auto-close (por ejemplo, al hacer hover)
+  pauseAutoClose(): void {
+    if (this.isPaused) return;
+    this.isPaused = true;
+    if (this.autoCloseTimer) {
+      clearTimeout(this.autoCloseTimer);
+      this.autoCloseTimer = undefined;
+    }
+    // calcular tiempo restante
+    const elapsed = Date.now() - this.autoCloseStart;
+    this.remainingTime = Math.max(0, this.remainingTime - elapsed);
+  }
+
+  // Reanudar el auto-close
+  resumeAutoClose(): void {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    this.autoCloseStart = Date.now();
+    if (this.remainingTime > 0) {
+      this.autoCloseTimer = window.setTimeout(() => this.close(), this.remainingTime);
+    } else {
+      this.close();
+    }
+  }
+
+  // Alternar expandir/colapsar mensaje cuando esté truncado
+  toggleExpand(e?: Event): void {
+    if (e) e.stopPropagation();
+    this.isExpanded = !this.isExpanded;
   }
 
   /**
@@ -87,7 +132,7 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
    * Obtener el icono según el tipo
    */
   getIcon(): string {
-    switch (this.notification.type) {
+    switch (this.mappedType) {
       case 'success':
         return 'bi-check-circle-fill';
       case 'error':
@@ -104,7 +149,7 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
    * Obtener clases CSS según el tipo
    */
   getTypeClass(): string {
-    return `toast-${this.notification.type}`;
+    return `toast-${this.mappedType}`;
   }
 
   /**
