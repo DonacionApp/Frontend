@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { environment } from '../../../../environments/environment';
+import { HttpErrorResponse } from '@angular/common/http';
+import { EmailVerificationService } from '../../../core/services/email-verification.service';
 
 @Component({
   selector: 'app-email-verification',
@@ -230,7 +230,7 @@ export class EmailVerificationComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private http: HttpClient
+    private emailVerificationService: EmailVerificationService
   ) {}
 
   ngOnInit(): void {
@@ -281,18 +281,18 @@ export class EmailVerificationComponent implements OnInit {
     this.messageType = 'warning';
 
     // Llamada al backend para verificar el token
-    this.http.post(`${environment.apiBackendUrl}/auth/verify-email-token`, { token }).subscribe({
+    this.emailVerificationService.verifyEmailToken(token).subscribe({
       next: (response: any) => {
         this.isVerifying = false;
         this.isVerified = true;
         this.message = '¡Cuenta verificada exitosamente!';
         this.messageType = 'success';
-        
+
         // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
           this.router.navigate(['/donor/register'], {
-            queryParams: { 
-              verified: 'true', 
+            queryParams: {
+              verified: 'true',
               email: this.userEmail,
               success: 'verification_completed'
             }
@@ -303,7 +303,7 @@ export class EmailVerificationComponent implements OnInit {
         this.isVerifying = false;
         this.message = 'Error al verificar la cuenta. Intenta con el código manual.';
         this.messageType = 'error';
-        
+
         // Mostrar formulario de código como alternativa
         setTimeout(() => {
           this.message = '';
@@ -326,21 +326,18 @@ export class EmailVerificationComponent implements OnInit {
     this.messageType = 'warning';
 
     // Llamada al backend para verificar el código
-    this.http.post(`${environment.apiBackendUrl}/auth/verify-email-code`, {
-      email: this.userEmail,
-      code: this.verificationCode
-    }).subscribe({
+    this.emailVerificationService.verifyEmailCode(this.userEmail, this.verificationCode).subscribe({
       next: (response: any) => {
         this.isVerifying = false;
         this.isVerified = true;
         this.message = '¡Correo verificado exitosamente! Registro completado.';
         this.messageType = 'success';
-        
+
         // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
           this.router.navigate(['/donor/register'], {
-            queryParams: { 
-              verified: 'true', 
+            queryParams: {
+              verified: 'true',
               email: this.userEmail,
               success: 'verification_completed'
             }
@@ -368,16 +365,14 @@ export class EmailVerificationComponent implements OnInit {
     this.isResending = true;
     this.message = '';
 
-    this.http.post(`${environment.apiUrl}/auth/resend-verification-email`, {
-      email: this.userEmail
-    }).subscribe({
+    this.emailVerificationService.resendVerificationEmail(this.userEmail).subscribe({
       next: (response: any) => {
         this.isResending = false;
         this.message = 'Correo de verificación reenviado exitosamente. Revisa tu bandeja de entrada.';
         this.messageType = 'success';
-   
+
         this.startResendCooldown(60);
-        
+
         // Limpiar mensaje después de 5 segundos
         setTimeout(() => {
           if (this.messageType === 'success') {

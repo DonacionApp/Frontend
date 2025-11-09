@@ -207,12 +207,15 @@ export class OrganizationRegisterComponent implements OnInit {
           // Respuesta esperada: 201 o body con estado 'pending'
           this.success = true;
           if (res?.status === 'pending' || res?.message?.toLowerCase?.().includes('pending')) {
-            this.message = 'Registro recibido. Su organización está en estado "pendiente". Le guiaremos al panel de verificación.';
+            this.message = 'Registro recibido. Su organización está en estado "pendiente". Verificaremos su correo electrónico.';
           } else {
             this.message = res?.message || 'Registro completado.';
           }
           this.state.setSuccessMessage(this.message || '');
-          setTimeout(() => this.router.navigate(['/verification']), 1500);
+          // Redirigir a verificación de email con el email como parámetro
+          setTimeout(() => this.router.navigate(['/auth/email-verification'], {
+            queryParams: { email: this.orgForm.value.email }
+          }), 1500);
           this.isSubmitting = false;
         },
         error: (err: any) => {
@@ -256,7 +259,10 @@ export class OrganizationRegisterComponent implements OnInit {
           this.success = true;
           this.message = res?.message || 'Registro completado.';
           this.state.setSuccessMessage(this.message || '');
-          setTimeout(() => this.router.navigate(['/verification']), 1500);
+          // Redirigir a verificación de email con el email como parámetro
+          setTimeout(() => this.router.navigate(['/auth/email-verification'], {
+            queryParams: { email: this.orgForm.value.email }
+          }), 1500);
           this.isSubmitting = false;
         }
       },
