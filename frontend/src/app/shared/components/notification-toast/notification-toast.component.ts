@@ -54,6 +54,7 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
 
   /**
    * Manejar click en la notificación
+<<<<<<< HEAD
    * Siempre redirige al centro de notificaciones
    */
   onClick(): void {
@@ -61,6 +62,14 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
     const route = this.notification.link || '/notifications';
     this.router.navigate([route]);
     this.close();
+=======
+   */
+  onClick(): void {
+    if (this.notification.link) {
+      this.router.navigate([this.notification.link]);
+      this.close();
+    }
+>>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
   }
 
   /**

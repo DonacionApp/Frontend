@@ -28,9 +28,14 @@
     cursor: pointer;
     
     &:hover {
+<<<<<<< HEAD
       transform: translateX(-4px) translateY(-2px);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
       background: #f8f9fa;
+=======
+      transform: translateX(-4px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+>>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
     }
   }
 
@@ -53,6 +58,7 @@
   }
 
   .toast-title {
+<<<<<<< HEAD
     font-weight: 700;
     font-size: 15px;
     color: #1a202c;
@@ -60,6 +66,11 @@
     flex: 1;
     min-width: 0;
     word-wrap: break-word;
+=======
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a202c;
+>>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
   }
 
   .toast-time {
@@ -71,6 +82,7 @@
   .toast-message {
     font-size: 13px;
     color: #4a5568;
+<<<<<<< HEAD
     line-height: 1.5;
     margin-bottom: 8px;
     word-wrap: break-word;
@@ -96,6 +108,9 @@
       color: #4299e1;
       font-weight: bold;
     }
+=======
+    line-height: 1.4;
+>>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
   }
 
   .toast-close {
