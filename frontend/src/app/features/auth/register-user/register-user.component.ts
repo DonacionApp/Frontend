@@ -44,6 +44,9 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   isFormValid: boolean = false;
 
+  // Variables para mostrar/ocultar contraseñas
+  showPassword = false;
+  showConfirmPassword = false;
 
   private destroy$ = new Subject<void>();
 
@@ -335,6 +338,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (checked) {
 
     }
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
 }

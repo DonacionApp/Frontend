@@ -27,6 +27,10 @@ export class OrganizationRegisterComponent implements OnInit {
   message: string | null = null;
   success = false;
 
+  // Variables para mostrar/ocultar contraseñas
+  showPassword = false;
+  showConfirmPassword = false;
+
   constructor(
     private fb: FormBuilder,
     private regService: OrganizationRegistrationService,
@@ -198,6 +202,14 @@ export class OrganizationRegisterComponent implements OnInit {
         }
       }
     });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
 }
