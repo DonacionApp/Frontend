@@ -103,12 +103,16 @@ export class DonationDetailComponent implements OnInit {
     const isOwner = this.donation.owner === true;
     
     const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
+    
+    const currentStatus = this.donation.statusDonation?.status?.toLowerCase().trim() || '';
+    const finalStatuses = ['entregada', 'completada', 'cancelada', 'rechazada'];
+    const isFinalStatus = finalStatuses.includes(currentStatus);
 
     this.canEditDonation = (isBeneficiary || isDonator) && isPending;
     
     this.canDeleteDonation = isBeneficiary;
     
-    this.canEditStatus = (isDonator || isOwner) && !isBeneficiary;
+    this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
 
   // Navegar a editar
@@ -304,7 +308,9 @@ export class DonationDetailComponent implements OnInit {
     this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
       next: (updatedDonation) => {
         this.donation = updatedDonation;
+        this.selectedStatusId = updatedDonation.statusDonation.id;
         this.updatingStatus = false;
+        this.checkPermissions();
       },
       error: (error) => {
         this.updatingStatus = false;
