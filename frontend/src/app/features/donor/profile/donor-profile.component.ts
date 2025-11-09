@@ -145,8 +145,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   private populateForm(profile: UserProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
-      // Si el backend guardó una description serializada en lastName (JSON), intentar parsearla
-      lastName: this.extractDescriptionFromLastName(profile.lastName),
+      lastName: profile.lastName || '',
       email: profile.email,
       telefono: profile.phone || '',
       residencia: profile.address || '',
@@ -163,25 +162,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  private extractDescriptionFromLastName(raw: string | null | undefined): string {
-    if (!raw) return '';
-    if (typeof raw !== 'string') return String(raw);
-    raw = raw.trim();
-    if (!raw) return '';
-    // Si parece JSON, intentar parsear y extraer description
-    if (raw.startsWith('{') || raw.startsWith('[')) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          return parsed.description || parsed.desc || '';
-        }
-      } catch (err) {
-        // ignore parse errors
-      }
-    }
-    // Si no es JSON, devolver el valor original (apellido)
-    return raw;
-  }
+  
 
   /**
    * Comprueba si el perfil tiene un valor no vacío para la ruta indicada.
