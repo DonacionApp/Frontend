@@ -106,7 +106,7 @@ export interface CreateDonationDTO {
   lugarDonacion: string;
   articles: ArticleInput[];
   comments: Comment[];
-  fechaMaximaEntrega: string; // ISO 8601 format
+  fechaMaximaEntrega: string; // ISO 8601 format (ej: "2026-11-10T18:00:00.000Z")
   statusDonation?: number; // Estado de la donación (opcional, por defecto 1)
 }
 

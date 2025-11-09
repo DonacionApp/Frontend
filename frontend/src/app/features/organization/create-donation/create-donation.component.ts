@@ -329,15 +329,19 @@ export class CreateDonationComponent implements OnInit {
         message: comment.message.trim()
       }));
     
-    // Convertir la fecha a formato ISO con hora
-    const fechaDate = new Date(formValue.fechaMaximaEntrega);
-    fechaDate.setHours(23, 59, 59, 999); // Establecer a las 23:59:59
+    // Enviar la fecha en formato ISO con hora (18:00:00 UTC) como Postman lo hace
+    // El input type="date" devuelve "YYYY-MM-DD", lo convertimos a ISO con hora
+    // El backend acepta formato ISO y devuelve solo la fecha
+    const fechaString = formValue.fechaMaximaEntrega; // Formato: "YYYY-MM-DD"
+    const [year, month, day] = fechaString.split('-').map(Number);
+    // Crear fecha a las 18:00:00 UTC del día seleccionado (igual que Postman)
+    const fechaDate = new Date(Date.UTC(year, month - 1, day, 18, 0, 0, 0));
     
     const donationData: CreateDonationDTO = {
       postId: this.postId,
       lugarRecogida: formValue.lugarRecogida.trim(),
       lugarDonacion: formValue.lugarDonacion.trim(),
-      fechaMaximaEntrega: fechaDate.toISOString(),
+      fechaMaximaEntrega: fechaDate.toISOString(), // Formato: "YYYY-MM-DDTHH:mm:ss.sssZ"
       articles: selectedArticles,
       comments: comments.length > 0 ? comments : [],
       statusDonation: 1 // Pendiente por defecto
