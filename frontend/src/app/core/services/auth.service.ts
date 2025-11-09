@@ -13,6 +13,7 @@ export interface User {
   username?: string;
   firstLogin?: boolean;
   isDocumentVerified?: boolean;
+  verified?: boolean; // Campo verified del token
 }
 
 @Injectable({
@@ -42,7 +43,8 @@ export class AuthService {
           id: payload.sub || payload.id || '',
           email: payload.email || '',
           role: normalizedRole,
-          name: payload.name || ''
+          name: payload.name || '',
+          verified: payload.verified || false
         };
         this.currentUserSubject.next(user);
       }
@@ -169,7 +171,8 @@ export class AuthService {
             role: normalizedRole,
             name: payload?.name || '',
             firstLogin: res.firstLogin || payload?.firstLogin || false,
-            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false
+            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
+            verified: payload?.verified || res.verified || false
           };
           console.log('👤 Usuario final guardado:', user);
           console.log('🎯 firstLogin:', user.firstLogin);
@@ -205,6 +208,34 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     return this.currentUserValue?.role === role;
+  }
+
+  isVerified(): boolean {
+    // Los admins siempre están verificados
+    if (this.currentUserValue?.role === 'admin') {
+      return true;
+    }
+    return this.currentUserValue?.verified === true || this.currentUserValue?.isDocumentVerified === true;
+  }
+
+  canCreatePost(): boolean {
+    // Los admins pueden crear posts sin verificación
+    if (this.currentUserValue?.role === 'admin') {
+      return this.isAuthenticated();
+    }
+    return this.isAuthenticated() && this.isVerified();
+  }
+
+  canRequestDonation(): boolean {
+    // Los admins pueden solicitar donaciones sin verificación
+    if (this.currentUserValue?.role === 'admin') {
+      return this.isAuthenticated();
+    }
+    return this.isAuthenticated() && this.isVerified();
+  }
+
+  canLike(): boolean {
+    return this.isAuthenticated(); // Los autenticados pueden dar like, incluso sin verificar
   }
 
   /**

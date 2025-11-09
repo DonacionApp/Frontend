@@ -102,7 +102,7 @@
               </span>
 
               <button 
-                *ngIf="isAuthenticated && !isPostOwner() && post.postArticle && post.postArticle.length > 0 && post.typePost.type === 'articulos para donar'"
+                *ngIf="canRequestDonation && !isPostOwner() && post.postArticle && post.postArticle.length > 0 && post.typePost.type === 'articulos para donar'"
                 (click)="requestDonation()"
                 class="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-1.5 lg:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md text-xs lg:text-sm font-semibold whitespace-nowrap"
               >
@@ -289,6 +289,9 @@
               <button 
                 (click)="toggleLike()"
                 [class]="post.userHasLiked ? 'text-red-500 bg-red-50' : 'text-gray-600 bg-white'"
+                [disabled]="!canLike"
+                [class.opacity-50]="!canLike"
+                [class.cursor-not-allowed]="!canLike"
                 class="flex items-center gap-1 lg:gap-2 hover:scale-105 transition-transform px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg border-2 border-current font-medium"
               >
                 <svg class="w-5 h-5 lg:w-6 lg:h-6" [class.fill-current]="post.userHasLiked" fill="none" stroke="currentColor" viewBox="0 0 24 24">

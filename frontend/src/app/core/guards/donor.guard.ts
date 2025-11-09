@@ -23,12 +23,12 @@ export class DonorGuard implements CanActivate {
       return false;
     }
 
-    // Verificar si tiene rol de donante
-    if (user.role === 'donor') {
+    // Verificar si tiene rol de donante o admin (los admins pueden acceder a todo)
+    if (user.role === 'donor' || user.role === 'admin') {
       return true;
     }
 
-    // Si no es donante, redirigir a página de acceso denegado
+    // Si no es donante ni admin, redirigir a página de acceso denegado
     this.router.navigate(['/access-denied'], {
       queryParams: { 
         requiredRole: 'Donante',

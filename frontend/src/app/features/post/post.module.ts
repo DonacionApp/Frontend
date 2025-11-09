@@ -6,6 +6,7 @@ import { ListComponent } from './list/list.component';
 import { CreateEditComponent } from './create-edit/create-edit.component';
 import { DetailsComponent } from './details/details.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
+import { VerifiedGuard } from '../../core/guards/verified.guard';
 import { EditComponent } from './edit/edit.component';
 
 const routes: Routes = [
@@ -16,12 +17,12 @@ const routes: Routes = [
   {
     path: 'create',
     component: CreateEditComponent,
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, VerifiedGuard] // Requiere autenticación Y verificación
   },
   {
     path: 'edit/:id',
     component: EditComponent,
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, VerifiedGuard] // Requiere autenticación Y verificación
   },
   {
     path: ':id',
