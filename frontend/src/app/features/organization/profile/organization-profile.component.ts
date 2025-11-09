@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { OrganizationProfileService, OrganizationProfile, OrganizationActivityLog } from '../../../core/services/organization-profile.service';
 import { AuthService, User } from '../../../core/services/auth.service';
@@ -10,7 +10,7 @@ import { VerificationService } from '../../../core/services/verification.service
 @Component({
   selector: 'app-organization-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './organization-profile.component.html',
   styleUrls: ['./organization-profile.component.scss']
 })

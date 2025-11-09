@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -18,10 +19,16 @@ export class ForgotPasswordComponent {
   infoMessage: string | null = null;
   errorMessage: string | null = null;
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {
+  constructor(private fb: FormBuilder, private auth: AuthService, private route: ActivatedRoute) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
     });
+
+    // Prefill email from query param if provided (ej. ?email=usuario@dominio.com)
+    const emailFromQuery = this.route.snapshot.queryParamMap.get('email');
+    if (emailFromQuery) {
+      this.form.get('email')?.setValue(emailFromQuery);
+    }
   }
 
   get email() {
