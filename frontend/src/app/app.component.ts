@@ -9,8 +9,10 @@ import { filter } from 'rxjs/operators';
 
 // Importar solo el componente que se usa directamente
 import { NavComponent } from './shared/components/nav/nav.component';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 // Servicios integrados directamente
 import { BehaviorSubject, Observable } from 'rxjs';
+import { WebsocketService, ToastService, NotificationService } from './core/services';
 
 export interface User {
   id?: string;
@@ -113,8 +115,8 @@ interface ApiResponse {
     CommonModule, 
     FormsModule, 
     RouterModule,
-    // Solo el componente que se usa directamente
-    NavComponent
+    NavComponent,
+    ToastContainerComponent
   ],
   providers: [HttpClient, AppStateService, RegistrationStateService],
   templateUrl: './app.component.html'
@@ -128,7 +130,10 @@ export class AppComponent implements OnInit, OnDestroy {
   
   constructor(
     public router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private websocketService: WebsocketService,
+    private toastService: ToastService,
+    private notificationService: NotificationService
   ) {
     this.appState = new AppStateService();
     this.registrationState = new RegistrationStateService();
@@ -191,6 +196,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onLogoutClick(): void {
     this.appState.logout();
+    // Desconectar WebSocket
+    this.websocketService.disconnect();
+    console.log('WebSocket desconectado en logout');
     this.router.navigate(['/']);
   }
 
@@ -203,7 +211,50 @@ export class AppComponent implements OnInit, OnDestroy {
 
       ngOnInit(): void {
         // Inicialización básica
+        this.initializeWebSocket();
+        this.subscribeToNotifications();
       }
+
+  /**
+   * Inicializar WebSocket cuando hay un token guardado
+   */
+  private initializeWebSocket(): void {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      this.websocketService.connect(token);
+      console.log('WebSocket conectado en inicialización');
+    }
+  }
+
+  /**
+   * Suscribirse a notificaciones del WebSocket
+   */
+  private subscribeToNotifications(): void {
+    this.websocketService.notification$.subscribe(notification => {
+      // Mostrar notificación toast flotante
+      this.toastService.show({
+        title: notification.title,
+        message: notification.message,
+        type: this.mapNotificationType(notification.type),
+        link: notification.link,
+        createdAt: notification.createdAt
+      });
+    });
+  }
+
+  /**
+   * Mapear tipo de notificación del backend a tipo de toast
+   */
+  private mapNotificationType(backendType: any): 'info' | 'success' | 'warning' | 'error' {
+    // Ajustar según la estructura de tipo que venga del backend
+    if (typeof backendType === 'string') {
+      return backendType as 'info' | 'success' | 'warning' | 'error';
+    }
+    if (backendType?.type) {
+      return backendType.type.toLowerCase() as 'info' | 'success' | 'warning' | 'error';
+    }
+    return 'info';
+  }
 
 
 
@@ -390,7 +441,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
 
   ngOnDestroy(): void {
-    // Cleanup si es necesario
+    // Desconectar WebSocket al destruir el componente
+    this.websocketService.disconnect();
   }
 
 }

@@ -7,8 +7,12 @@ import { AccessDeniedComponent } from './components/access-denied/access-denied.
 /**
  * SharedModule contiene componentes, directivas y pipes reutilizables
  * Se importa en los módulos de features que lo necesiten
+ * 
+ * Nota: NotificationToastComponent y ToastContainerComponent son standalone
+ * y se importan directamente donde se necesiten
  */
 @NgModule({
+  declarations: [],
   imports: [
     CommonModule,
     SpinnerComponent,

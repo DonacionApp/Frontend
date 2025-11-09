@@ -1,0 +1,137 @@
+.notification-toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  min-width: 320px;
+  max-width: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 12px;
+  z-index: 9999;
+  border-left: 4px solid;
+
+  // Animación CSS pura
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s ease-out;
+
+  &.visible {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  &.clickable {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateX(-4px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .toast-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    gap: 8px;
+  }
+
+  .toast-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a202c;
+  }
+
+  .toast-time {
+    font-size: 12px;
+    color: #718096;
+    white-space: nowrap;
+  }
+
+  .toast-message {
+    font-size: 13px;
+    color: #4a5568;
+    line-height: 1.4;
+  }
+
+  .toast-close {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+
+    &:hover {
+      background: #f7fafc;
+      color: #4a5568;
+    }
+  }
+
+  // Estilos por tipo
+  &.toast-success {
+    border-left-color: #48bb78;
+    
+    .toast-icon {
+      color: #48bb78;
+    }
+  }
+
+  &.toast-error {
+    border-left-color: #f56565;
+    
+    .toast-icon {
+      color: #f56565;
+    }
+  }
+
+  &.toast-warning {
+    border-left-color: #ed8936;
+    
+    .toast-icon {
+      color: #ed8936;
+    }
+  }
+
+  &.toast-info {
+    border-left-color: #4299e1;
+    
+    .toast-icon {
+      color: #4299e1;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .notification-toast {
+    right: 10px;
+    left: 10px;
+    min-width: unset;
+    max-width: unset;
+    width: auto;
+  }
+}

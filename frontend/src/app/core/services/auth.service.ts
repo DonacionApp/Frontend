@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
+import { WebsocketService } from './websocket.service';
 
 export interface User {
   id: string;
@@ -23,7 +24,7 @@ export class AuthService {
   private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
   private api=environment.apiBackendUrl;
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private websocketService: WebsocketService) {
     // Verificar si hay un usuario en localStorage al iniciar
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -145,6 +146,9 @@ export class AuthService {
         const refresh = res.refresh_token || res.refreshToken;
         if (token) {
           localStorage.setItem('accessToken', token);
+          // Conectar WebSocket con el token
+          this.websocketService.connect(token);
+          console.log('✅ WebSocket conectado después del login');
         }
         if (refresh) {
           localStorage.setItem('refreshToken', refresh);
@@ -186,6 +190,9 @@ export class AuthService {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     this.currentUserSubject.next(null);
+    // Desconectar WebSocket
+    this.websocketService.disconnect();
+    console.log('❌ WebSocket desconectado en logout');
   }
 
   get currentUserValue(): User | null {

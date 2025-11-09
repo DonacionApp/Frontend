@@ -1,0 +1,8 @@
+<div class="toast-container">
+  <app-notification-toast 
+    *ngFor="let toast of toasts"
+    [notification]="toast"
+    (closed)="onToastClosed(toast.id)"
+    [style.top.px]="80 + (toasts.indexOf(toast) * 100)">
+  </app-notification-toast>
+</div>

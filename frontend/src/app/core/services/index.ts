@@ -8,3 +8,5 @@ export * from './permission.service';
 export * from './verification.service';
 export * from './notification.service';
 export * from './post-donation-article.service';
+export * from './websocket.service';
+export * from './toast.service';
