@@ -19,6 +19,7 @@ export class DonationDetailComponent implements OnInit {
   canEditDonation = false;
   canDeleteDonation = false;
   canEditStatus = false;
+  isBeneficiary = false;
   
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
@@ -101,6 +102,7 @@ export class DonationDetailComponent implements OnInit {
     const isBeneficiary = currentUserId === beneficiaryId;
     const isDonator = currentUserId === donatorId;
     const isOwner = this.donation.owner === true;
+  this.isBeneficiary = isBeneficiary;
     
     const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
     
@@ -108,9 +110,9 @@ export class DonationDetailComponent implements OnInit {
     const finalStatuses = ['entregada', 'completada', 'cancelada', 'rechazada'];
     const isFinalStatus = finalStatuses.includes(currentStatus);
 
-    this.canEditDonation = (isBeneficiary || isDonator) && isPending;
+  this.canEditDonation = isDonator && isPending;
     
-    this.canDeleteDonation = isBeneficiary;
+  this.canDeleteDonation = isDonator;
     
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
