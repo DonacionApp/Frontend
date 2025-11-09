@@ -1,13 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { DonationService, Donation, Comment } from '../../../core/services/donation.service';
+import { FormsModule } from '@angular/forms';
+import { DonationService, Donation, Comment, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -17,6 +18,10 @@ export class DonationDetailComponent implements OnInit {
   errorMessage = '';
   canEditDonation = false;
   canDeleteDonation = false;
+  
+  allStatuses: StatusDonation[] = [];
+  selectedStatusId: number = 0;
+  updatingStatus = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -27,13 +32,24 @@ export class DonationDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Obtener el ID de la donación desde la URL
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadDonation(parseInt(id));
+      this.loadStatuses();
     } else {
       this.errorMessage = 'ID de donación no válido';
     }
+  }
+
+  private loadStatuses(): void {
+    this.donationService.getAllDonationStatuses().subscribe({
+      next: (statuses) => {
+        this.allStatuses = statuses;
+      },
+      error: (error) => {
+        console.error('Error al cargar estados:', error);
+      }
+    });
   }
 
   private loadDonation(id: number): void {
@@ -43,9 +59,9 @@ export class DonationDetailComponent implements OnInit {
     this.donationService.getDonationById(id).subscribe({
       next: (donation) => {
         this.donation = donation;
+        this.selectedStatusId = donation.statusDonation.id;
         this.loading = false;
         
-        // Verificar si el usuario actual puede editar/eliminar
         this.checkPermissions();
       },
       error: (error) => {
@@ -276,5 +292,35 @@ export class DonationDetailComponent implements OnInit {
       return this.donation.comments;
     }
     return [];
+  }
+
+  onStatusChange(): void {
+    if (!this.donation || this.updatingStatus) return;
+
+    this.updatingStatus = true;
+    this.errorMessage = '';
+
+    this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
+      next: (updatedDonation) => {
+        this.donation = updatedDonation;
+        this.updatingStatus = false;
+      },
+      error: (error) => {
+        this.updatingStatus = false;
+        console.error('Error al actualizar estado:', error);
+        
+        if (error.status === 404) {
+          this.errorMessage = 'Donación no encontrada';
+        } else if (error.status === 403) {
+          this.errorMessage = 'No tienes permiso para actualizar el estado';
+        } else {
+          this.errorMessage = 'Error al actualizar el estado';
+        }
+        
+        if (this.donation) {
+          this.selectedStatusId = this.donation.statusDonation.id;
+        }
+      }
+    });
   }
 }
