@@ -4,8 +4,5 @@ export const environment = {
   apiBaseUrl: 'https://api.tusitio.com/auth',
   apiBackendUrl: 'https://api.tusitio.com',
   socketUrl: 'https://api.tusitio.com', // URL para WebSocket en producción
-<<<<<<< HEAD
 
-=======
->>>>>>> 46ceb44 ( se implemento  el websocket.io-client)
 };
