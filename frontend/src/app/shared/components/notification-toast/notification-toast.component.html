@@ -2,7 +2,7 @@
      [class]="getTypeClass()"
      [class.visible]="visible"
      (click)="onClick()"
-     [class.clickable]="notification.link">
+     [class.clickable]="true">
   
   <div class="toast-icon">
     <i [class]="'bi ' + getIcon()"></i>
@@ -14,9 +14,12 @@
       <span class="toast-time">{{ getRelativeTime() }}</span>
     </div>
     <div class="toast-message">{{ notification.message }}</div>
+    <div class="toast-footer">
+      <small class="toast-hint">Haz clic para ver más detalles</small>
+    </div>
   </div>
 
-  <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button">
+  <button class="toast-close" (click)="close(); $event.stopPropagation()" type="button" aria-label="Cerrar notificación">
     <i class="bi bi-x"></i>
   </button>
 </div>

@@ -54,12 +54,13 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
 
   /**
    * Manejar click en la notificación
+   * Siempre redirige al centro de notificaciones
    */
   onClick(): void {
-    if (this.notification.link) {
-      this.router.navigate([this.notification.link]);
-      this.close();
-    }
+    // Si hay un link específico, usarlo; si no, ir al centro de notificaciones
+    const route = this.notification.link || '/notifications';
+    this.router.navigate([route]);
+    this.close();
   }
 
   /**
