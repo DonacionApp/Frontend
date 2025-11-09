@@ -18,6 +18,7 @@ export class DonationDetailComponent implements OnInit {
   errorMessage = '';
   canEditDonation = false;
   canDeleteDonation = false;
+  canEditStatus = false;
   
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
@@ -89,6 +90,7 @@ export class DonationDetailComponent implements OnInit {
     if (!currentUser) {
       this.canEditDonation = false;
       this.canDeleteDonation = false;
+      this.canEditStatus = false;
       return;
     }
 
@@ -96,18 +98,17 @@ export class DonationDetailComponent implements OnInit {
     const beneficiaryId = String(this.donation.beneficiary?.id);
     const donatorId = String(this.donation.donator?.id);
     
-    // Verificar si el usuario es el beneficiario (creador) o el donador
     const isBeneficiary = currentUserId === beneficiaryId;
     const isDonator = currentUserId === donatorId;
+    const isOwner = this.donation.owner === true;
     
-    // Verificar si el estado es "pendiente"
     const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
 
-    // Editar: Solo si es beneficiario o donador Y el estado es pendiente
     this.canEditDonation = (isBeneficiary || isDonator) && isPending;
     
-    // Eliminar: Solo el beneficiario (creador) puede eliminar, sin importar el estado
     this.canDeleteDonation = isBeneficiary;
+    
+    this.canEditStatus = (isDonator || isOwner) && !isBeneficiary;
   }
 
   // Navegar a editar
@@ -295,7 +296,7 @@ export class DonationDetailComponent implements OnInit {
   }
 
   onStatusChange(): void {
-    if (!this.donation || this.updatingStatus) return;
+    if (!this.donation || this.updatingStatus || !this.canEditStatus) return;
 
     this.updatingStatus = true;
     this.errorMessage = '';
