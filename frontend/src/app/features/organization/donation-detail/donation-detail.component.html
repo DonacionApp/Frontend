@@ -196,7 +196,7 @@
               id="status-select"
               [(ngModel)]="selectedStatusId"
               (change)="onStatusChange()"
-              [disabled]="updatingStatus || loading"
+              [disabled]="!canEditStatus || updatingStatus || loading"
               class="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-200 disabled:cursor-not-allowed">
               <option *ngFor="let status of allStatuses" [value]="status.id">
                 {{ status.status }}
@@ -205,6 +205,9 @@
             <span *ngIf="updatingStatus" class="text-sm text-gray-600">
               <div class="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
               Actualizando...
+            </span>
+            <span *ngIf="!canEditStatus && !updatingStatus" class="text-sm text-red-600 italic">
+              Solo el donador puede editar el estado
             </span>
           </div>
         </div>
