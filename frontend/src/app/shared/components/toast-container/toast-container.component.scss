@@ -1,0 +1,63 @@
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  pointer-events: none;
+  max-width: 420px; /* slightly smaller */
+  width: auto;
+
+  .toast-wrapper {
+    pointer-events: all;
+  }
+
+  /* make the notification a bit smaller via wrapper overrides */
+  .toast-wrapper .notification-toast {
+    min-width: 300px;
+    max-width: 380px;
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .toast-wrapper .notification-toast {
+    animation: slideIn 0.36s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* animación de salida aplicada cuando el wrapper tiene .leaving */
+  .toast-wrapper.leaving .notification-toast {
+    animation: slideOut 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+    height: 0;
+    margin-bottom: -24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toast-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: 100%;
+    gap: 12px;
+  }
+}

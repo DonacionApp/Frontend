@@ -148,16 +148,21 @@ export class EditDonationComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Convertir fecha ISO a formato compatible con input datetime-local
+   * Convertir fecha a formato compatible con input date (YYYY-MM-DD)
+   * El backend devuelve la fecha en formato "YYYY-MM-DD", la usamos directamente
    */
   private formatDateForInput(isoDate: string): string {
+    // Si la fecha viene solo como "YYYY-MM-DD" (sin hora), usarla directamente
+    if (isoDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return isoDate; // Ya está en formato correcto
+    }
+    
+    // Si viene en formato ISO completo, extraer solo la fecha
     const date = new Date(isoDate);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   /**
@@ -196,13 +201,17 @@ export class EditDonationComponent implements OnInit, OnDestroy {
 
     const formValue = this.donationForm.value;
 
-    // Convertir fecha a ISO 8601
-    const fechaMaximaEntrega = new Date(formValue.fechaMaximaEntrega).toISOString();
+    // Enviar la fecha en formato ISO con hora (18:00:00 UTC) como Postman lo hace
+    // El input type="date" devuelve "YYYY-MM-DD", lo convertimos a ISO con hora
+    const fechaString = formValue.fechaMaximaEntrega; // Formato: "YYYY-MM-DD"
+    const [year, month, day] = fechaString.split('-').map(Number);
+    // Crear fecha a las 18:00:00 UTC del día seleccionado (igual que Postman)
+    const fechaDate = new Date(Date.UTC(year, month - 1, day, 18, 0, 0, 0));
 
     const updateData: any = {
       lugarRecogida: formValue.lugarRecogida?.trim(),
       lugarDonacion: formValue.lugarDonacion?.trim(),
-      fechaMaximaEntrega
+      fechaMaximaEntrega: fechaDate.toISOString() // Formato: "YYYY-MM-DDTHH:mm:ss.sssZ"
     };
 
     this.donationService.updateDonation(this.donationId, updateData)

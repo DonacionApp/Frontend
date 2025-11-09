@@ -1,0 +1,8 @@
+<div class="toast-container">
+  <div class="toast-wrapper" *ngFor="let item of visible; trackBy: trackByToastId" [class.leaving]="item.leaving">
+    <app-notification-toast
+      [notification]="item.notification"
+      (closed)="onChildClosed(item)">
+    </app-notification-toast>
+  </div>
+</div>

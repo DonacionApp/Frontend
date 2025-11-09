@@ -198,11 +198,29 @@ export class UserDonationsListComponent implements OnChanges {
   }
 
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
+    if (!dateString) return 'No especificado';
+    
+    // Si la fecha viene solo como "YYYY-MM-DD" (sin hora), formatearla directamente
+    // para evitar problemas de zona horaria
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Formato solo fecha (YYYY-MM-DD), extraer componentes directamente
+      const [year, month, day] = dateString.split('-').map(Number);
+      // Usar Intl.DateTimeFormat con UTC para evitar cambios de zona horaria
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return new Intl.DateTimeFormat('es-ES', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: 'UTC'
+      }).format(date);
+    } else {
+      // Formato ISO completo, usar directamente
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+    }
   }
 }

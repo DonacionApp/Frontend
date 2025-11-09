@@ -39,6 +39,25 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Suscribirse al observable reactivo de notificaciones
+    // Esto se actualizará automáticamente cuando lleguen nuevas notificaciones por WebSocket
+    this.notificationService.notifications$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(nots => {
+        console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
+        this.notifications = nots;
+        this.isLoading = false;
+        this.hasError = false;
+      });
+
+    // Suscribirse al contador de no leídas para actualizarlo automáticamente
+    this.notificationService.unreadCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        console.log('🔔 Contador de no leídas actualizado:', count);
+      });
+
+    // Cargar las notificaciones iniciales desde el backend
     this.loadNotifications();
   }
 
@@ -158,10 +177,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           console.log('Notificación marcada como leída:', response.message);
-          // Actualizar el estado local de la notificación
-          this.notifications = this.notifications.map(n => 
-            n.id === notificationId ? { ...n, read: true } : n
-          );
+          // El estado se actualiza automáticamente por el servicio
         },
         error: (error: any) => {
           console.error('Error al marcar como leída:', error);
@@ -211,8 +227,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           console.log('Notificación eliminada:', response.message);
-          // Actualizar el estado local eliminando la notificación
-          this.notifications = this.notifications.filter(n => n.id !== notificationId);
+          // El estado se actualiza automáticamente por el servicio
           this.closeDeleteModal();
         },
         error: (error: any) => {
@@ -221,8 +236,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           
           if (error.status === 404) {
             alert('Notificación no encontrada');
-            // Eliminar del estado local de todas formas
-            this.notifications = this.notifications.filter(n => n.id !== notificationId);
+            // El estado se actualiza automáticamente por el servicio
           } else if (error.status === 401) {
             alert('No autorizado. Por favor inicia sesión nuevamente.');
             this.router.navigate(['/auth/login']);
