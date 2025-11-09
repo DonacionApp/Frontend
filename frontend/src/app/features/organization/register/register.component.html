@@ -272,53 +272,7 @@
           </div>
         </div>
 
-        <div class="form-field">
-          <label class="field-label">Documentos de Soporte (PDF/JPG, máx. 5MB)</label>
-          <div class="file-upload-area">
-            <input 
-              type="file" 
-              (change)="onFilesSelected($event)" 
-              multiple 
-              accept=".pdf,.jpg,.jpeg,.png"
-              class="file-input"
-              id="fileInput"
-            />
-            <label for="fileInput" class="file-upload-label">
-              <svg class="upload-icon" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-              </svg>
-              <span class="upload-text">Haz clic para seleccionar archivos</span>
-              <span class="upload-hint">o arrastra y suelta aquí</span>
-            </label>
-          </div>
-
-          <div *ngIf="uploadFiles.length" class="files-list">
-            <div *ngFor="let f of uploadFiles; let i = index" class="file-item">
-              <div class="file-info">
-                <svg class="file-icon" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-                </svg>
-                <div class="file-details">
-                  <span class="file-name">{{ f.name }}</span>
-                  <span class="file-error" *ngIf="f.error">{{ f.error }}</span>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                (click)="removeFile(i)" 
-                class="remove-file-btn"
-                aria-label="Eliminar archivo"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                </svg>
-              </button>
-              <div class="file-progress" *ngIf="!f.error">
-                <div class="progress-bar" [style.width.%]="f.progress"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Documentos de soporte removidos por requerimiento - el registro seguirá enviando datos en JSON al backend -->
 
         <div class="info-box warning">
           <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">

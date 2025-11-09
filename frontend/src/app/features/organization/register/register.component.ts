@@ -4,14 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { OrganizationRegistrationService } from '../../../core/services';
 import { RegistrationStateService } from '../../../core/services/registration-state.service';
-import { HttpEventType } from '@angular/common/http';
 
-type UploadFile = {
-  file: File;
-  name: string;
-  progress: number;
-  error?: string | null;
-};
 
 @Component({
   selector: 'app-organization-register',
@@ -28,9 +21,7 @@ export class OrganizationRegisterComponent implements OnInit {
   states: Array<any> = [];
   cities: Array<any> = [];
 
-  uploadFiles: UploadFile[] = [];
-  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-  maxFileSize = 5 * 1024 * 1024; // 5MB
+  // Se removió el manejo de archivos; el registro enviará siempre JSON al backend
 
   isSubmitting = false;
   message: string | null = null;
@@ -102,37 +93,7 @@ export class OrganizationRegisterComponent implements OnInit {
     }
   }
 
-  onFilesSelected(event: any): void {
-    const files: FileList = event.target.files;
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      const fileMeta: UploadFile = { file: f, name: f.name, progress: 0, error: null };
-      const valid = this.validateFile(fileMeta);
-      if (valid) {
-        this.uploadFiles.push(fileMeta);
-      } else {
-        // push with error so UI shows it
-        this.uploadFiles.push(fileMeta);
-      }
-    }
-  }
-
-  validateFile(f: UploadFile): boolean {
-    if (f.file.size > this.maxFileSize) {
-      f.error = 'Archivo demasiado grande (máx 5MB).';
-      return false;
-    }
-    if (!this.allowedTypes.includes(f.file.type)) {
-      f.error = 'Tipo de archivo no permitido.';
-      return false;
-    }
-    f.error = null;
-    return true;
-  }
-
-  removeFile(idx: number): void {
-    this.uploadFiles.splice(idx, 1);
-  }
+  // Removed file upload handlers: onFilesSelected, validateFile, removeFile
 
   canProceed(): boolean {
     if (this.step === 1) {
@@ -158,14 +119,6 @@ export class OrganizationRegisterComponent implements OnInit {
     // Basic password confirm
     if (this.orgForm.value.password !== this.orgForm.value.confirmPassword) {
       this.message = 'Las contraseñas no coinciden';
-      this.success = false;
-      return;
-    }
-
-    // Validate files before sending
-    const invalid = this.uploadFiles.find(f => !!f.error);
-    if (invalid) {
-      this.message = 'Corrija los archivos antes de continuar.';
       this.success = false;
       return;
     }
@@ -200,77 +153,35 @@ export class OrganizationRegisterComponent implements OnInit {
     this.isSubmitting = true;
     this.message = null;
 
-    // Si no hay archivos, el backend probablemente espera JSON puro.
-    if (!this.uploadFiles.length) {
-      this.regService.registerOrganizationJson(payload).subscribe({
-        next: (res: any) => {
-          // Respuesta esperada: 201 o body con estado 'pending'
-          this.success = true;
-          if (res?.status === 'pending' || res?.message?.toLowerCase?.().includes('pending')) {
-            this.message = 'Registro recibido. Su organización está en estado "pendiente". Verificaremos su correo electrónico.';
-          } else {
-            this.message = res?.message || 'Registro completado.';
-          }
-          this.state.setSuccessMessage(this.message || '');
-          // Redirigir a verificación de email con el email como parámetro
-          setTimeout(() => this.router.navigate(['/auth/email-verification'], {
-            queryParams: { email: this.orgForm.value.email }
-          }), 1500);
-          this.isSubmitting = false;
-        },
-        error: (err: any) => {
-          this.isSubmitting = false;
-          this.success = false;
-          // Mostrar mensajes del backend si existen
-          if (err?.status === 400) {
-            // backend puede devolver un array o string de errores
-            const body = err.error;
-            if (typeof body === 'string') {
-              this.message = body;
-            } else if (body?.message) {
-              this.message = body.message;
-            } else if (Array.isArray(body)) {
-              this.message = body.join(',');
-            } else {
-              this.message = 'Datos inválidos. Revise el formulario.';
-            }
-          } else if (err?.status === 409) {
-            this.message = err.error?.message || 'Ya existe una cuenta con esos datos.';
-          } else {
-            this.message = 'Error del servidor. Intente de nuevo más tarde.';
-          }
-        }
-      });
-      return;
-    }
-
-    // Si hay archivos, enviar multipart/form-data
-    const formData = new FormData();
-    formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-    this.uploadFiles.forEach((uf) => formData.append('files', uf.file, uf.name));
-
-    this.regService.registerOrganization(formData).subscribe({
-      next: (event: any) => {
-        if (event.type === HttpEventType.UploadProgress) {
-          const percent = event.total ? Math.round(100 * (event.loaded / event.total)) : 0;
-          this.uploadFiles.forEach(f => f.progress = percent);
-        } else if (event.type === HttpEventType.Response) {
-          const res = event.body;
-          this.success = true;
+    // Enviar siempre JSON (sin archivos)
+    this.regService.registerOrganizationJson(payload).subscribe({
+      next: (res: any) => {
+        this.success = true;
+        if (res?.status === 'pending' || res?.message?.toLowerCase?.().includes('pending')) {
+          this.message = 'Registro recibido. Su organización está en estado "pendiente". Verificaremos su correo electrónico.';
+        } else {
           this.message = res?.message || 'Registro completado.';
-          this.state.setSuccessMessage(this.message || '');
-          // Redirigir a verificación de email con el email como parámetro
-          setTimeout(() => this.router.navigate(['/auth/email-verification'], {
-            queryParams: { email: this.orgForm.value.email }
-          }), 1500);
-          this.isSubmitting = false;
         }
+        this.state.setSuccessMessage(this.message || '');
+        setTimeout(() => this.router.navigate(['/auth/email-verification'], {
+          queryParams: { email: this.orgForm.value.email }
+        }), 1500);
+        this.isSubmitting = false;
       },
       error: (err: any) => {
         this.isSubmitting = false;
         this.success = false;
         if (err?.status === 400) {
-          this.message = err.error?.message || 'Datos inválidos. Revise el formulario.';
+          const body = err.error;
+          if (typeof body === 'string') {
+            this.message = body;
+          } else if (body?.message) {
+            this.message = body.message;
+          } else if (Array.isArray(body)) {
+            this.message = body.join(',');
+          } else {
+            this.message = 'Datos inválidos. Revise el formulario.';
+          }
         } else if (err?.status === 409) {
           this.message = err.error?.message || 'Ya existe una cuenta con esos datos.';
         } else {
