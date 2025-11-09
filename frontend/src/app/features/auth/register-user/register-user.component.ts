@@ -54,6 +54,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     private router: Router,
   ) { }
 
+  goToOrganizationRegister(): void {
+    try {
+      this.router.navigate(['/organization/register']);
+    } catch (err) {
+      console.warn('Navigation to organization register failed', err);
+    }
+  }
+
   ngOnInit(): void {
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
