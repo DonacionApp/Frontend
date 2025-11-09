@@ -132,6 +132,36 @@ export class OrganizationProfileService {
    * Transformar la respuesta del backend al formato OrganizationProfile
    */
   private transformBackendResponse(response: any): OrganizationProfile {
+    // Intentar extraer description y redes si backend guardó esos datos en people.lastName como JSON
+    let parsedDescription = '';
+    const social: any = { facebook: '', twitter: '', instagram: '', linkedin: '' };
+    try {
+      const lastNameRaw = response?.people?.lastName;
+      if (lastNameRaw && typeof lastNameRaw === 'string') {
+        const maybe = JSON.parse(lastNameRaw);
+        if (maybe && typeof maybe === 'object') {
+          parsedDescription = String(maybe.description || '') || '';
+          // redes: puede venir en maybe.networks como array de URLs
+          if (Array.isArray(maybe.networks) && maybe.networks.length) {
+            // asignar la primera como website, y el resto a social.linkedin si aplica
+            social.facebook = '';
+            social.twitter = '';
+            social.instagram = '';
+            social.linkedin = maybe.networks[0] || '';
+          }
+          // también aceptar objetos con socialMedia directo
+          if (maybe.socialMedia && typeof maybe.socialMedia === 'object') {
+            social.facebook = maybe.socialMedia.facebook || social.facebook;
+            social.twitter = maybe.socialMedia.twitter || social.twitter;
+            social.instagram = maybe.socialMedia.instagram || social.instagram;
+            social.linkedin = maybe.socialMedia.linkedin || social.linkedin;
+          }
+        }
+      }
+    } catch (err) {
+      // ignore parse errors, mantener parsedDescription vacío
+    }
+
     return {
       id: response.id?.toString() || '',
       username: response.username || '', // Username de la tabla 'user'
@@ -145,7 +175,8 @@ export class OrganizationProfileService {
       postalCode: '',
       taxId: response.people?.dni || '',
       website: '',
-      description: '',
+      // Preferir el campo directo del backend; si no existe, usar el valor parseado desde people.lastName
+      description: response.description || parsedDescription || '',
       missionStatement: '',
       logo: response.profilePhoto || '',
       coverImage: '',
@@ -158,10 +189,10 @@ export class OrganizationProfileService {
       createdAt: response.createdAt || '',
       lastLogin: response.lastLogin || '',
       socialMedia: {
-        facebook: '',
-        twitter: '',
-        instagram: '',
-        linkedin: ''
+        facebook: response.socialMedia?.facebook || social.facebook || '',
+        twitter: response.socialMedia?.twitter || social.twitter || '',
+        instagram: response.socialMedia?.instagram || social.instagram || '',
+        linkedin: response.socialMedia?.linkedin || social.linkedin || ''
       }
     };
   }
