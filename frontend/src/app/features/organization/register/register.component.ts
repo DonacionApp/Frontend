@@ -39,7 +39,7 @@ export class OrganizationRegisterComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]],
-      description: [''],
+      description: ['', [Validators.required, Validators.minLength(10)]], // Descripción requerida
       countryIso: [''],
       stateIso: [''],
       cityName: [''],
@@ -97,10 +97,17 @@ export class OrganizationRegisterComponent implements OnInit {
 
   canProceed(): boolean {
     if (this.step === 1) {
-      return !!(this.orgForm.get('organizationName') && this.orgForm.get('organizationName').valid && this.orgForm.get('email') && this.orgForm.get('email').valid && this.orgForm.get('password') && this.orgForm.get('password').valid && this.orgForm.get('confirmPassword') && this.orgForm.get('confirmPassword').valid);
+      return !!(this.orgForm.get('organizationName')?.valid && 
+                this.orgForm.get('email')?.valid && 
+                this.orgForm.get('password')?.valid && 
+                this.orgForm.get('confirmPassword')?.valid &&
+                this.orgForm.get('description')?.valid); // Validar descripción
     }
     if (this.step === 2) {
-      return !!(this.orgForm.get('countryIso')?.value && this.orgForm.get('stateIso')?.value && this.orgForm.get('cityName')?.value && this.orgForm.get('address') && this.orgForm.get('address').valid);
+      return !!(this.orgForm.get('countryIso')?.value && 
+                this.orgForm.get('stateIso')?.value && 
+                this.orgForm.get('cityName')?.value && 
+                this.orgForm.get('address')?.valid);
     }
     return true;
   }

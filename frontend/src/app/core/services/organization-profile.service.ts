@@ -8,6 +8,7 @@ export interface OrganizationProfile {
   id: string;
   username: string; // Username de la tabla 'user'
   name: string; // Nombre de la organización de la tabla 'people'
+  lastName?: string; // raw lastName from people (may be plain surname or JSON string)
   email: string;
   phone?: string;
   address?: string;
@@ -52,6 +53,7 @@ export interface UpdateOrganizationProfileDTO {
   description?: string;
   missionStatement?: string;
   legalRepresentative?: string;
+  lastName?: string; // Para organizaciones, contiene JSON con description y networks
   socialMedia?: {
     facebook?: string;
     twitter?: string;
@@ -132,40 +134,44 @@ export class OrganizationProfileService {
    * Transformar la respuesta del backend al formato OrganizationProfile
    */
   private transformBackendResponse(response: any): OrganizationProfile {
-    // Intentar extraer description y redes si backend guardó esos datos en people.lastName como JSON
-    let parsedDescription = '';
-    const social: any = { facebook: '', twitter: '', instagram: '', linkedin: '' };
-    try {
-      const lastNameRaw = response?.people?.lastName;
-      if (lastNameRaw && typeof lastNameRaw === 'string') {
-        const maybe = JSON.parse(lastNameRaw);
-        if (maybe && typeof maybe === 'object') {
-          parsedDescription = String(maybe.description || '') || '';
-          // redes: puede venir en maybe.networks como array de URLs
-          if (Array.isArray(maybe.networks) && maybe.networks.length) {
-            // asignar la primera como website, y el resto a social.linkedin si aplica
-            social.facebook = '';
-            social.twitter = '';
-            social.instagram = '';
-            social.linkedin = maybe.networks[0] || '';
+    // Verificar si es una organización por el rol
+    const isOrganization = response.rol?.rol?.toLowerCase() === 'organizacion' || 
+                           response.rol?.rol?.toLowerCase() === 'organization' ||
+                           response.rol?.id === 3;
+    
+    // Parsear lastName si es JSON (para organizaciones)
+    let description = '';
+    let networks: string[] = [];
+    let lastNameRaw = response.people?.lastName || '';
+    
+    if (isOrganization && lastNameRaw) {
+      try {
+        // Intentar parsear como JSON
+        const parsed = JSON.parse(lastNameRaw);
+        if (parsed && typeof parsed === 'object') {
+          description = parsed.description || '';
+          networks = Array.isArray(parsed.networks) ? parsed.networks : [];
+          // Si hay networks, usar el primero como website
+          if (networks.length > 0 && !response.website) {
+            response.website = networks[0];
           }
-          // también aceptar objetos con socialMedia directo
-          if (maybe.socialMedia && typeof maybe.socialMedia === 'object') {
-            social.facebook = maybe.socialMedia.facebook || social.facebook;
-            social.twitter = maybe.socialMedia.twitter || social.twitter;
-            social.instagram = maybe.socialMedia.instagram || social.instagram;
-            social.linkedin = maybe.socialMedia.linkedin || social.linkedin;
-          }
+        } else {
+          // Si no es un objeto, usar como descripción simple
+          description = lastNameRaw;
         }
+      } catch (e) {
+        // Si no es JSON válido, usar como descripción simple
+        description = lastNameRaw;
       }
-    } catch (err) {
-      // ignore parse errors, mantener parsedDescription vacío
+    } else if (!isOrganization) {
+      // Para usuarios normales, mantener lastName tal cual
+      description = lastNameRaw;
     }
-
+    
     return {
       id: response.id?.toString() || '',
-      username: response.username || '', // Username de la tabla 'user'
-      name: response.people?.name || response.username || '', // Nombre de la tabla 'people'
+      username: response.username || '',
+      name: response.people?.name || response.username || '',
       email: response.email || '',
       phone: response.people?.telefono || '',
       address: response.people?.residencia || '',
@@ -174,9 +180,8 @@ export class OrganizationProfileService {
       country: response.people?.municipio?.country?.name || '',
       postalCode: '',
       taxId: response.people?.dni || '',
-      website: '',
-      // Preferir el campo directo del backend; si no existe, usar el valor parseado desde people.lastName
-      description: response.description || parsedDescription || '',
+      website: response.website || (networks.length > 0 ? networks[0] : ''),
+      description: description || response.description || '',
       missionStatement: '',
       logo: response.profilePhoto || '',
       coverImage: '',
@@ -188,11 +193,12 @@ export class OrganizationProfileService {
       verificationDate: response.emailVerified ? response.lastLogin : undefined,
       createdAt: response.createdAt || '',
       lastLogin: response.lastLogin || '',
+      lastName: description, // Para organizaciones, lastName contiene la descripción
       socialMedia: {
-        facebook: response.socialMedia?.facebook || social.facebook || '',
-        twitter: response.socialMedia?.twitter || social.twitter || '',
-        instagram: response.socialMedia?.instagram || social.instagram || '',
-        linkedin: response.socialMedia?.linkedin || social.linkedin || ''
+        facebook: response.socialMedia?.facebook || '',
+        twitter: response.socialMedia?.twitter || '',
+        instagram: response.socialMedia?.instagram || '',
+        linkedin: response.socialMedia?.linkedin || ''
       }
     };
   }
@@ -219,17 +225,37 @@ export class OrganizationProfileService {
     this.profileSubject.next(optimisticProfile);
     this.loadingSubject.next(true);
 
-    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, updates).pipe(
+    // Construir el requestBody en el formato que espera el backend
+    // El backend espera people.lastName para organizaciones
+    const requestBody: any = {
+      people: {
+        name: updates.name,
+        lastName: updates.lastName || (updates.description ? JSON.stringify({ description: updates.description, networks: [] }) : undefined),
+        residencia: updates.address,
+        telefono: updates.phone
+      }
+    };
+
+    // Si hay lastName en updates, usarlo directamente (ya viene como JSON)
+    if (updates.lastName) {
+      requestBody.people.lastName = updates.lastName;
+    }
+
+    // Agregar otros campos si existen
+    if (updates.website) {
+      requestBody.website = updates.website;
+    }
+
+    return this.http.post<any>(`${environment.apiBaseUrl}/update-me`, requestBody).pipe(
       map(response => this.transformBackendResponse(response)),
       tap(updatedProfile => {
-        // Confirmar con datos del servidor
         this.profileSubject.next(updatedProfile);
         this.lastUpdateSubject.next(new Date());
         this.loadingSubject.next(false);
       }),
       catchError(error => {
+        console.error('Error al actualizar perfil de organización:', error);
         // Rollback: restaurar estado anterior
-        console.error('Error al actualizar perfil de organización, realizando rollback:', error);
         this.profileSubject.next(currentProfile);
         this.loadingSubject.next(false);
         return throwError(() => error);
