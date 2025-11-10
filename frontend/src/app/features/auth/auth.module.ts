@@ -11,14 +11,15 @@ import { VerifyEmailTokenComponent } from './verify-email-token/verify-email-tok
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { RegisterUserComponent } from './register-user/register-user.component';
+import { GuestGuard } from '../../core/guards/guest.guard';
 
 const routes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', component: LoginComponent, canActivate: [GuestGuard] },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
   { path: 'reset-password-token', component: VerifyResetTokenComponent },
   { path: 'email-verification', component: EmailVerificationComponent },
-  {path: 'register', component: RegisterUserComponent},
+  { path: 'register', component: RegisterUserComponent, canActivate: [GuestGuard] },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'verify/email-token', component: VerifyEmailTokenComponent }, // Ruta exacta del correo
   { path: 'verify-email-token/:token', component: VerifyEmailTokenComponent },
