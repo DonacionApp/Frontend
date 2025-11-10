@@ -92,7 +92,7 @@
       </div>
 
       <!-- Card 3: Solicitudes Recibidas -->
-      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring opacity-75" tabindex="0">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
             <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -102,8 +102,7 @@
           <span class="text-orange-600 text-2xl" aria-hidden="true"></span>
         </div>
         <p class="text-sm text-gray-600 mb-1">Solicitudes Recibidas</p>
-        <p class="text-3xl font-bold text-gray-900 count-animation">{{ stats.requestsReceived }}</p>
-        <p class="text-xs text-orange-600 font-semibold mt-1">Próximamente</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation">{{ solicitudes.length }}</p>
       </div>
 
       <!-- Card 4: Mensajes -->
@@ -173,11 +172,10 @@
             [class]="activeTab === 'solicitudes' 
               ? 'border-green-500 text-green-600' 
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring opacity-75"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring"
             role="tab"
             [attr.aria-selected]="activeTab === 'solicitudes'"
-            [attr.aria-controls]="'solicitudes-panel'"
-            disabled>
+            [attr.aria-controls]="'solicitudes-panel'">
             <div class="flex items-center">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -304,17 +302,74 @@
 
       <!-- Tab: Mis Donaciones -->
       <div *ngIf="activeTab === 'mis-donaciones'" class="animate-fade-in">
-        <div class="mb-6 flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-gray-900">Mis Donaciones</h2>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-500">{{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
-            <button (click)="onCreateDonation()"
-                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              Nueva Donación
-            </button>
+        <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div class="flex items-center justify-between w-full xl:w-auto">
+            <div class="flex items-center space-x-4 ml-4">
+              <span class="text-sm text-gray-500">{{ filteredDonations.length }} / {{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="w-full bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <!-- Búsqueda -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Buscar</label>
+                <div class="relative">
+                  <input [(ngModel)]="filters.search" (ngModelChange)="applyFilters()" type="text" placeholder="Título, lugar, artículo, usuario..." class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm pr-10" />
+                  <svg class="w-4 h-4 text-gray-400 absolute right-2 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Estado -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Estado</label>
+                <select [(ngModel)]="filters.status" (change)="applyFilters()" class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm">
+                  <option value="all">Todos</option>
+                  <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+                </select>
+              </div>
+
+              <!-- Lugar -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Lugar</label>
+                <select [(ngModel)]="filters.location" (change)="applyFilters()" class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm">
+                  <option value="all">Todos</option>
+                  <option *ngFor="let l of locationOptions" [value]="l">{{ l }}</option>
+                </select>
+              </div>
+
+              <!-- Artículo -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Artículo</label>
+                <select [(ngModel)]="filters.article" (change)="applyFilters()" class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm">
+                  <option value="all">Todos</option>
+                  <option *ngFor="let a of articleOptions" [value]="a">{{ a }}</option>
+                </select>
+              </div>
+
+              <!-- Desde -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Desde</label>
+                <input [(ngModel)]="filters.dateFrom" (change)="applyFilters()" type="date" class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm" />
+              </div>
+
+              <!-- Hasta -->
+              <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 mb-1">Hasta</label>
+                <input [(ngModel)]="filters.dateTo" (change)="applyFilters()" type="date" class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm" />
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button (click)="clearFilters()" class="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200 transition-colors">
+                Limpiar filtros
+                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -330,10 +385,10 @@
           </div>
         </div>
 
-        <!-- Grid de Cards de Donaciones -->
-        <div *ngIf="!loadingDonations && donations.length > 0" 
-             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div *ngFor="let donation of donations" 
+      <!-- Grid de Cards de Donaciones -->
+    <div *ngIf="!loadingDonations && pagedDonations.length > 0" 
+     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   <div *ngFor="let donation of pagedDonations" 
                class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
                [attr.aria-label]="'Donación ' + donation.post.title + ', estado ' + getStatusBadge(donation.statusDonation).text"
                tabindex="0">
@@ -385,6 +440,22 @@
                 </div>
               </div>
 
+              <!-- Cambio de estado (solo admin/propia) -->
+              <div *ngIf="canChangeStatus(donation)" class="mb-3">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+                <div class="relative">
+                  <select [ngModel]="donation.statusDonation.id" (ngModelChange)="onChangeDonationStatus(donation, $event)"
+                          [disabled]="updatingStatus[donation.id]"
+                          class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm pr-8">
+                    <option *ngFor="let s of statusCatalog" [value]="s.id">{{ getStatusBadge({status: s.status}).text }}</option>
+                  </select>
+                  <svg class="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <p *ngIf="updatingStatus[donation.id]" class="text-xs text-gray-500 mt-1">Actualizando estado...</p>
+              </div>
+
               <!-- Botón Ver Detalle -->
               <button 
                 (click)="viewDonation(donation.id)"
@@ -400,7 +471,16 @@
           </div>
         </div>
 
-        <!-- Estado Vacío -->
+        <!-- Paginación -->
+        <div *ngIf="!loadingDonations && totalPages > 1" class="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <button (click)="prevPage()" [disabled]="page === 1" class="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
+          <ng-container *ngFor="let p of pages">
+            <button (click)="goToPage(p)" [class]="page === p ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'" class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">{{ p }}</button>
+          </ng-container>
+          <button (click)="nextPage()" [disabled]="page === totalPages" class="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
+        </div>
+
+        <!-- Estado: sin donaciones -->
         <div *ngIf="!loadingDonations && donations.length === 0" 
              class="bg-white rounded-lg shadow-sm p-12 text-center">
           <div class="max-w-md mx-auto">
@@ -420,19 +500,113 @@
             </button>
           </div>
         </div>
+
+  <!-- Estado: sin resultados con filtros -->
+  <div *ngIf="!loadingDonations && donations.length > 0 && filteredDonations.length === 0" 
+             class="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div class="max-w-md mx-auto">
+            <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No hay resultados</h3>
+            <p class="text-gray-500 mb-6">No encontramos donaciones que coincidan con los filtros aplicados.</p>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <button (click)="clearFilters()"
+                      class="inline-flex items-center px-5 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                Limpiar filtros
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <button (click)="onCreateDonation()"
+                      class="inline-flex items-center px-5 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Crear Donación
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Tab: Solicitudes -->
       <div *ngIf="activeTab === 'solicitudes'" class="animate-fade-in">
-        <div class="bg-white rounded-lg shadow-sm p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6">Solicitudes de Donación</h2>
-          
-          <div class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Próximamente</h3>
-            <p class="mt-1 text-sm text-gray-500">Esta funcionalidad estará disponible pronto</p>
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-900">Solicitudes (soy donador)</h2>
+          <span class="text-sm text-gray-500">{{ solicitudes.length }} {{ solicitudes.length === 1 ? 'solicitud' : 'solicitudes' }}</span>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div *ngIf="loadingSolicitudes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let item of [1,2,3]" class="bg-white rounded-lg shadow-md overflow-hidden skeleton-shimmer border border-gray-200">
+            <div class="h-32 bg-gray-200"></div>
+            <div class="p-5">
+              <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div class="h-3 bg-gray-200 rounded w-full mb-4"></div>
+              <div class="h-8 bg-gray-200 rounded w-full"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid de Cards de Solicitudes -->
+        <div *ngIf="!loadingSolicitudes && solicitudes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let donation of solicitudes" class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200" tabindex="0"
+               [attr.aria-label]="'Solicitud ' + donation.post.title + ', estado ' + getStatusBadge(donation.statusDonation).text">
+
+            <!-- Header y badge -->
+            <div class="relative h-32 bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 overflow-hidden">
+              <div class="absolute inset-0 bg-pattern opacity-10"></div>
+              <div class="absolute top-3 right-3">
+                <span [class]="getStatusBadge(donation.statusDonation).class" class="px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                  {{ getStatusBadge(donation.statusDonation).text }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Contenido -->
+            <div class="p-5">
+              <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-1">{{ donation.post.title }}</h3>
+              <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ getArticlesSummary(donation.articles) }}</p>
+              <div class="space-y-2 mb-4">
+                <div class="flex items-center text-xs text-gray-500">
+                  <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span class="truncate">{{ donation.lugarRecogida }}</span>
+                </div>
+                <div class="flex items-center text-xs text-gray-500">
+                  <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <span>{{ formatDate(donation.createdAt) }}</span>
+                </div>
+              </div>
+              <button (click)="viewDonation(donation.id)" class="w-full bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-emerald-100 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple hover:scale-105"
+                      [attr.aria-label]="'Ver detalles de la solicitud ' + donation.post.title">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                Ver Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado vacio -->
+        <div *ngIf="!loadingSolicitudes && solicitudes.length === 0" class="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div class="max-w-md mx-auto">
+            <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No tienes solicitudes como donador</h3>
+            <p class="text-gray-500">Cuando ofrezcas una donación a una organización, aparecerá aquí.</p>
           </div>
         </div>
       </div>

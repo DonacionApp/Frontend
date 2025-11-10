@@ -1,13 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { DonationService, Donation, Comment } from '../../../core/services/donation.service';
+import { FormsModule } from '@angular/forms';
+import { DonationService, Donation, Comment, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { HttpClient } from '@angular/common/http';
+import { AlertService } from '../../../shared/services/alert.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -17,23 +21,43 @@ export class DonationDetailComponent implements OnInit {
   errorMessage = '';
   canEditDonation = false;
   canDeleteDonation = false;
+  canEditStatus = false;
+  isBeneficiary = false;
+  isDonator = false;
+
+  allStatuses: StatusDonation[] = [];
+  selectedStatusId: number = 0;
+  updatingStatus = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private donationService: DonationService,
     private authService: AuthService,
-    private location: Location
-  ) {}
+    private location: Location,
+    private http: HttpClient,
+    private alertService: AlertService
+  ) { }
 
   ngOnInit(): void {
-    // Obtener el ID de la donación desde la URL
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadDonation(parseInt(id));
+      this.loadStatuses();
     } else {
       this.errorMessage = 'ID de donación no válido';
     }
+  }
+
+  private loadStatuses(): void {
+    this.donationService.getAllDonationStatuses().subscribe({
+      next: (statuses) => {
+        this.allStatuses = statuses;
+      },
+      error: (error) => {
+        console.error('Error al cargar estados:', error);
+      }
+    });
   }
 
   private loadDonation(id: number): void {
@@ -43,15 +67,15 @@ export class DonationDetailComponent implements OnInit {
     this.donationService.getDonationById(id).subscribe({
       next: (donation) => {
         this.donation = donation;
+        this.selectedStatusId = donation.statusDonation.id;
         this.loading = false;
-        
-        // Verificar si el usuario actual puede editar/eliminar
+
         this.checkPermissions();
       },
       error: (error) => {
         this.loading = false;
         console.error('Error al cargar donación:', error);
-        
+
         if (error.status === 404) {
           this.errorMessage = 'Donación no encontrada';
         } else if (error.status === 403) {
@@ -73,25 +97,31 @@ export class DonationDetailComponent implements OnInit {
     if (!currentUser) {
       this.canEditDonation = false;
       this.canDeleteDonation = false;
+      this.canEditStatus = false;
       return;
     }
 
     const currentUserId = String(currentUser.id);
     const beneficiaryId = String(this.donation.beneficiary?.id);
     const donatorId = String(this.donation.donator?.id);
-    
-    // Verificar si el usuario es el beneficiario (creador) o el donador
+
     const isBeneficiary = currentUserId === beneficiaryId;
     const isDonator = currentUserId === donatorId;
-    
-    // Verificar si el estado es "pendiente"
+    const isOwner = this.donation.owner === true;
+    this.isBeneficiary = isBeneficiary;
+    this.isDonator = isDonator;
+
     const isPending = this.donation.statusDonation?.status?.toLowerCase() === 'pendiente';
 
-    // Editar: Solo si es beneficiario o donador Y el estado es pendiente
-    this.canEditDonation = (isBeneficiary || isDonator) && isPending;
-    
-    // Eliminar: Solo el beneficiario (creador) puede eliminar, sin importar el estado
-    this.canDeleteDonation = isBeneficiary;
+    const currentStatus = this.donation.statusDonation?.status?.toLowerCase().trim() || '';
+    const finalStatuses = ['entregada', 'completada', 'cancelada', 'rechazada'];
+    const isFinalStatus = finalStatuses.includes(currentStatus);
+
+    this.canEditDonation = isDonator && isPending;
+
+    this.canDeleteDonation = isDonator;
+
+    this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
 
   // Navegar a editar
@@ -149,7 +179,7 @@ export class DonationDetailComponent implements OnInit {
         error: (error) => {
           this.loading = false;
           console.error('Error al eliminar:', error);
-          
+
           if (error.status === 404) {
             this.errorMessage = 'La donación no existe o ya fue eliminada.';
           } else if (error.status === 403) {
@@ -168,49 +198,52 @@ export class DonationDetailComponent implements OnInit {
     }
   }
 
-  // Extender fecha de entrega en 10 días
-  onExtendDate(): void {
+  // Extender fecha de entrega en 10 días (usa alerta personalizada)
+  async onExtendDate(): Promise<void> {
     if (!this.donation) return;
 
-    if (confirm('¿Deseas extender la fecha máxima de entrega en 10 días?')) {
-      this.loading = true;
-      this.donationService.extendDeliveryDate(this.donation.id).subscribe({
-        next: (updatedDonation) => {
-          this.donation = updatedDonation;
-          this.loading = false;
-          alert('Fecha extendida exitosamente');
-        },
-        error: (error) => {
-          this.loading = false;
-          console.error('Error al extender fecha:', error);
-          
-          if (error.status === 404) {
-            this.errorMessage = 'La donación no existe o ya fue eliminada.';
-          } else if (error.status === 403) {
-            this.errorMessage = 'No tienes permiso para extender la fecha de esta donación.';
-          } else if (error.status === 400) {
-            this.errorMessage = 'No se puede extender la fecha. Verifica que la donación esté en estado válido.';
-          } else if (error.status === 500) {
-            this.errorMessage = 'Error en el servidor al extender la fecha. Intenta nuevamente más tarde.';
-          } else if (error.status === 0) {
-            this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
-          } else {
-            this.errorMessage = 'Error al extender la fecha. Por favor intenta nuevamente.';
-          }
-        }
+    const confirmed = await this.alertService.warning(
+      'Extender fecha',
+      '¿Deseas extender la fecha máxima de entrega en 10 días?',
+      'Sí, extender',
+      'Cancelar'
+    );
+
+    if (!confirmed) return;
+
+    this.loading = true;
+    const url = `${environment.apiBackendUrl}/donation/update-date/${this.donation.id}`;
+
+    try {
+      const updatedDonation = await new Promise<Donation>((resolve, reject) => {
+        this.http.put<Donation>(url, {}).subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err)
+        });
       });
+
+      this.donation = updatedDonation;
+      this.loading = false;
+      await this.alertService.success('Fecha extendida', 'La fecha máxima de entrega se extendió exitosamente por 10 días más.');
+
+    } catch (error: any) {
+      this.loading = false;
+      console.error('Error al extender fecha:', error);
+      const title = 'No se pudo extender la fecha';
+      const message = error?.error?.message || 'Esta donación ya fue extendida una vez o no es posible extenderla.';
+      await this.alertService.error(title, message);
     }
   }
 
   // Volver a la lista
   onBack(): void {
-     this.location.back();
+    this.location.back();
   }
 
   // Formatear fecha
   formatDate(dateString: string): string {
     if (!dateString) return 'No especificado';
-    
+
     // Si la fecha viene solo como "YYYY-MM-DD" (sin hora), formatearla directamente
     // para evitar problemas de zona horaria
     if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -238,11 +271,11 @@ export class DonationDetailComponent implements OnInit {
   // Calcular días restantes
   getDaysRemaining(): number {
     if (!this.donation?.fechaMaximaEntrega) return 0;
-    
+
     // Manejar correctamente las fechas que vienen del backend
     let maxDate: Date;
     const fechaString = this.donation.fechaMaximaEntrega;
-    
+
     if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
       // Formato solo fecha (YYYY-MM-DD), crear en UTC para evitar cambios de fecha
       const [year, month, day] = fechaString.split('-').map(Number);
@@ -251,11 +284,11 @@ export class DonationDetailComponent implements OnInit {
       // Formato ISO completo, usar directamente
       maxDate = new Date(fechaString);
     }
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
     maxDate.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
-    
+
     const diff = maxDate.getTime() - today.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
@@ -276,5 +309,38 @@ export class DonationDetailComponent implements OnInit {
       return this.donation.comments;
     }
     return [];
+  }
+
+  onStatusChange(): void {
+    if (!this.donation || this.updatingStatus || !this.canEditStatus) return;
+
+    this.updatingStatus = true;
+    this.errorMessage = '';
+
+    this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
+      next: (updatedDonation) => {
+        this.donation = updatedDonation;
+        this.selectedStatusId = updatedDonation.statusDonation.id;
+        console.log('responses ', updatedDonation)
+        this.updatingStatus = false;
+        this.checkPermissions();
+      },
+      error: (error) => {
+        this.updatingStatus = false;
+        console.error('Error al actualizar estado:', error);
+
+        if (error.status === 404) {
+          this.errorMessage = 'Donación no encontrada';
+        } else if (error.status === 403) {
+          this.errorMessage = 'No tienes permiso para actualizar el estado';
+        } else {
+          this.errorMessage = 'Error al actualizar el estado';
+        }
+
+        if (this.donation) {
+          this.selectedStatusId = this.donation.statusDonation.id;
+        }
+      }
+    });
   }
 }

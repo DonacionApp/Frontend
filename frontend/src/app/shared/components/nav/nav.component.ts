@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
 import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
@@ -17,43 +18,51 @@ import { Subject, takeUntil, filter } from 'rxjs';
 export class NavComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   isMobileMenuOpen = false;
+  private isLoadingProfile = false;
   
-  // Estado del usuario
   isAuthenticated = false;
   user: User | null = null;
   userProfileImage: string | null = null;
   userFullName: string = '';
   isOnProfilePage = false;
   isDocumentVerified = false;
+  unreadNotificationsCount = 0;
   
   constructor(
     private router: Router,
     private authService: AuthService,
     private profileService: UserProfileService,
     private organizationProfileService: OrganizationProfileService,
+    private notificationService: NotificationService,
     private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
-    // Suscribirse al estado del usuario
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {
+        const previousUserId = this.user?.id;
         this.user = user;
         this.isAuthenticated = !!user;
         this.userFullName = user?.name || 'Usuario';
         this.isDocumentVerified = user?.isDocumentVerified || false;
         
-        // Cargar foto de perfil si el usuario está autenticado
-        if (user) {
+        if (user && previousUserId !== user.id && !this.isLoadingProfile) {
           this.loadUserProfile();
-        } else {
+          this.loadNotifications();
+        } else if (!user) {
           this.userProfileImage = null;
           this.userFullName = '';
+          this.unreadNotificationsCount = 0;
         }
       });
     
-    // Detectar cambios de ruta para saber si estamos en la página de perfil
+    this.notificationService.unreadCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        this.unreadNotificationsCount = count;
+      });
+    
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
@@ -63,10 +72,8 @@ export class NavComponent implements OnInit, OnDestroy {
         this.isOnProfilePage = event.url.includes('/profile');
       });
     
-    // Verificar ruta inicial
     this.isOnProfilePage = this.router.url.includes('/profile');
     
-    // Suscribirse a cambios en el perfil para actualizar la foto y nombre
     this.profileService.profile$
       .pipe(takeUntil(this.destroy$))
       .subscribe(profile => {
@@ -76,28 +83,33 @@ export class NavComponent implements OnInit, OnDestroy {
         }
       });
     
-    // Suscribirse a cambios en el perfil de organización para verificación
     this.organizationProfileService.profile$
       .pipe(takeUntil(this.destroy$))
       .subscribe(orgProfile => {
         if (orgProfile && this.user?.role === 'organization') {
-          // Actualizar estado de verificación desde el perfil de organización
           this.isDocumentVerified = orgProfile.isVerified || false;
         }
       });
   }
   
   private loadUserProfile(): void {
+    if (this.isLoadingProfile) {
+      return;
+    }
+    
+    this.isLoadingProfile = true;
+    
     if (this.user?.role === 'donor') {
       this.profileService.getMyProfile().subscribe({
         next: (profile) => {
           this.userProfileImage = profile.profileImage || null;
           this.userFullName = profile.name || this.user?.name || 'Usuario';
+          this.isLoadingProfile = false;
         },
         error: (error) => {
           console.error('Error loading user profile:', error);
-          // Si falla la carga del perfil, usar el nombre del usuario del auth
           this.userFullName = this.user?.name || 'Usuario';
+          this.isLoadingProfile = false;
         }
       });
     } else if (this.user?.role === 'organization') {
@@ -105,15 +117,31 @@ export class NavComponent implements OnInit, OnDestroy {
         next: (profile) => {
           this.userProfileImage = profile.logo || null;
           this.userFullName = profile.name || this.user?.name || 'Organización';
-          // Actualizar estado de verificación desde el perfil
           this.isDocumentVerified = profile.isVerified || false;
+          this.isLoadingProfile = false;
         },
         error: (error) => {
           console.error('Error loading organization profile:', error);
           this.userFullName = this.user?.name || 'Organización';
+          this.isLoadingProfile = false;
         }
       });
+    } else {
+      this.isLoadingProfile = false;
     }
+  }
+
+  private loadNotifications(): void {
+    this.notificationService.getMyNotifications().subscribe({
+      next: () => {
+        // Las notificaciones se actualizan automáticamente via BehaviorSubject
+      },
+      error: (error) => {
+        if (error?.status !== 404) {
+          console.error('Error loading notifications:', error);
+        }
+      }
+    });
   }
   
   get displayName(): string {
@@ -201,25 +229,21 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onDonateClick(): void {
     this.closeMobileMenu();
-    // Funcionalidad próximamente
     this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onOrganizationsClick(): void {
     this.closeMobileMenu();
-    // Funcionalidad próximamente
     this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onMessagesClick(): void {
     this.closeMobileMenu();
-    // Funcionalidad próximamente
     this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onStatisticsClick(): void {
     this.closeMobileMenu();
-    // Funcionalidad próximamente
     this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
@@ -241,7 +265,6 @@ export class NavComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Cerrar menú móvil al hacer clic fuera
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement;

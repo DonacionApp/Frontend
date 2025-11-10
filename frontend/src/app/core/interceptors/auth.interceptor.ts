@@ -1,33 +1,37 @@
 import { Injectable, Injector } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, switchMap, filter, take } from 'rxjs/operators';
+import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  private lastTokenUpdate = 0;
+  private TOKEN_UPDATE_COOLDOWN = 30000;
 
   constructor(private injector: Injector) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // No agregar token a peticiones de autenticación (login, refresh, register)
     if (this.isAuthRequest(req.url)) {
       return next.handle(req);
     }
 
-    // Obtener el token desde localStorage
     const token = localStorage.getItem('accessToken');
     
-    // Si hay token y la petición es hacia el backend
     if (token && this.isBackendRequest(req.url)) {
-      // Clonar la petición y agregar el header de autorización Bearer
       const clonedReq = this.addTokenHeader(req, token);
       
       return next.handle(clonedReq).pipe(
+        tap((event: HttpEvent<any>) => {
+          if (event.type === 4) {
+            this.captureNewToken(event);
+          }
+        }),
         catchError((error: HttpErrorResponse) => {
-          // Si el error es 401 (no autorizado) y no es una petición de login/refresh
+          this.captureNewToken(error);
+          
           if (error.status === 401 && !this.isAuthRequest(req.url)) {
             return this.handle401Error(req, next);
           }
@@ -40,23 +44,93 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(req);
   }
 
-  /**
-   * Verificar si la petición es hacia el backend
-   */
+  private captureNewToken(response: any): void {
+    if (!response || !response.headers) return;
+    
+    const newToken = response.headers.get('X-New-Token') || response.headers.get('x-new-token');
+    
+    if (!newToken) return;
+    
+    const currentToken = localStorage.getItem('accessToken');
+    
+    if (currentToken === newToken) return;
+    
+    const now = Date.now();
+    const isInCooldown = now - this.lastTokenUpdate < this.TOKEN_UPDATE_COOLDOWN;
+    
+    const isSignificant = currentToken ? this.isSignificantTokenChange(currentToken, newToken) : true;
+    
+    if (isInCooldown && !isSignificant) {
+      return;
+    }
+    
+    if (!isSignificant) {
+      return;
+    }
+    
+    localStorage.setItem('accessToken', newToken);
+    this.lastTokenUpdate = now;
+    
+    if (response.body?.refreshToken) {
+      localStorage.setItem('refreshToken', response.body.refreshToken);
+    }
+    
+    try {
+      const authService = this.injector.get(AuthService);
+      authService.updateTokenSilently(newToken);
+    } catch (error) {
+      console.error('Error notificando cambio de token:', error);
+    }
+  }
+  
+  private isSignificantTokenChange(oldToken: string, newToken: string): boolean {
+    try {
+      const oldPayload = this.decodeToken(oldToken);
+      const newPayload = this.decodeToken(newToken);
+      
+      if (!oldPayload || !newPayload) {
+        return true;
+      }
+      
+      if (oldPayload.sub !== newPayload.sub) {
+        return true;
+      }
+      
+      const oldExp = oldPayload.exp || 0;
+      const newExp = newPayload.exp || 0;
+      const expDiff = Math.abs(newExp - oldExp);
+      
+      return expDiff > 60;
+      
+    } catch (error) {
+      return true;
+    }
+  }
+  
+  private decodeToken(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      return null;
+    }
+  }
+
   private isBackendRequest(url: string): boolean {
     return url.includes('localhost:5000') || url.includes('/auth/') || url.includes('/api/');
   }
 
-  /**
-   * Verificar si la petición es de autenticación (login, refresh, etc.)
-   */
   private isAuthRequest(url: string): boolean {
     return url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register');
   }
 
-  /**
-   * Agregar el token de autorización al header de la petición
-   */
   private addTokenHeader(request: HttpRequest<any>, token: string): HttpRequest<any> {
     return request.clone({
       setHeaders: {
@@ -65,11 +139,7 @@ export class AuthInterceptor implements HttpInterceptor {
     });
   }
 
-  /**
-   * Manejar error 401: intentar refrescar el token
-   */
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Si no estamos refrescando, iniciar el proceso
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
@@ -80,18 +150,15 @@ export class AuthInterceptor implements HttpInterceptor {
         switchMap((res: any) => {
           this.isRefreshing = false;
           
-          // El nuevo token puede venir en la respuesta o en headers
           const newToken = res?.access_token || res?.accessToken || res?.token || 
                           localStorage.getItem('accessToken');
           
           if (newToken) {
             this.refreshTokenSubject.next(newToken);
-            // Reintentar la petición original con el nuevo token
             return next.handle(this.addTokenHeader(request, newToken));
           }
           
-          // Si no hay token, limpiar y redirigir
-          console.error('❌ No se recibió un nuevo token después del refresh');
+          console.error('No se recibió un nuevo token después del refresh');
           authService.logoutAndRedirect();
           return throwError(() => new Error('No se pudo refrescar el token'));
         }),
@@ -100,7 +167,6 @@ export class AuthInterceptor implements HttpInterceptor {
           this.refreshTokenSubject.next(null);
           const authService = this.injector.get(AuthService);
           
-          // Verificar si es un error de token expirado o inválido
           const isTokenError = err?.status === 401 || 
                                err?.status === 403 || 
                                err?.status === 400 ||
@@ -109,10 +175,9 @@ export class AuthInterceptor implements HttpInterceptor {
                                err?.message?.includes('invalid');
           
           if (isTokenError) {
-            console.error('❌ Error de autenticación al refrescar token:', err);
+            console.error('Error de autenticación al refrescar token:', err);
             authService.logoutAndRedirect();
           } else {
-            // Para otros errores, solo hacer logout sin redirigir (el error se propagará)
             authService.logout();
           }
           
@@ -120,7 +185,6 @@ export class AuthInterceptor implements HttpInterceptor {
         })
       );
     } else {
-      // Si ya estamos refrescando, esperar a que termine y usar el nuevo token
       return this.refreshTokenSubject.pipe(
         filter(token => token !== null),
         take(1),
@@ -128,14 +192,12 @@ export class AuthInterceptor implements HttpInterceptor {
           if (token) {
             return next.handle(this.addTokenHeader(request, token));
           } else {
-            // Si el token es null, significa que el refresh falló
             const authService = this.injector.get(AuthService);
             authService.logoutAndRedirect();
             return throwError(() => new Error('Token refresh failed'));
           }
         }),
         catchError((err) => {
-          // Si hay un error esperando el token, limpiar y redirigir
           const authService = this.injector.get(AuthService);
           authService.logoutAndRedirect();
           return throwError(() => err);

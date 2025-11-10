@@ -36,7 +36,7 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['posts']) {
-      console.log('Posts received:', this.posts);
+      //console.log('Posts received:', this.posts);
     }
   }
 

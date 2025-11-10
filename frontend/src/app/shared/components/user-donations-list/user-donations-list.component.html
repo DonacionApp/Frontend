@@ -289,11 +289,32 @@
         <div class="flex items-center justify-between gap-4">
           <!-- Donator Info -->
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <img 
-              [src]="donation.donator.profilePhoto || 'assets/default-avatar.png'" 
-              [alt]="donation.donator.username"
-              class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm"
-            />
+            <div class="relative w-10 h-10 flex-shrink-0">
+              <ng-container *ngIf="donation.donator?.profilePhoto; else donatorAvatarSvg">
+                <img 
+                  #donatorImg
+                  [src]="donation.donator.profilePhoto"
+                  [alt]="donation.donator.username + ' avatar'"
+                  class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                  (error)="donatorImg.style.display='none'; donatorAvatarFallback.style.display='flex'"
+                  loading="lazy"
+                />
+                <div #donatorAvatarFallback style="display:none" class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-container>
+              <ng-template #donatorAvatarSvg>
+                <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-template>
+            </div>
             <div class="min-w-0">
               <p class="text-xs text-gray-500 font-medium">Donante:</p>
               <p class="font-semibold text-sm text-gray-900 truncate">{{ donation.donator.username }}</p>
@@ -302,11 +323,32 @@
 
           <!-- Beneficiary Info -->
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <img 
-              [src]="donation.beneficiary.profilePhoto || 'assets/default-avatar.png'" 
-              [alt]="donation.beneficiary.username"
-              class="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm"
-            />
+            <div class="relative w-10 h-10 flex-shrink-0">
+              <ng-container *ngIf="donation.beneficiary?.profilePhoto; else beneficiaryAvatarSvg">
+                <img 
+                  #beneficiaryImg
+                  [src]="donation.beneficiary.profilePhoto"
+                  [alt]="donation.beneficiary.username + ' avatar'"
+                  class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                  (error)="beneficiaryImg.style.display='none'; beneficiaryAvatarFallback.style.display='flex'"
+                  loading="lazy"
+                />
+                <div #beneficiaryAvatarFallback style="display:none" class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-container>
+              <ng-template #beneficiaryAvatarSvg>
+                <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-template>
+            </div>
             <div class="min-w-0">
               <p class="text-xs text-gray-500 font-medium">Beneficiario:</p>
               <p class="font-semibold text-sm text-gray-900 truncate">{{ donation.beneficiary.username }}</p>

@@ -84,6 +84,7 @@ export class NotificationService {
       notification => notification.id !== notificationId
     );
     this.notificationsSubject.next(updatedNotifications);
+    this.updateUnreadCount(updatedNotifications);
   }
 
   /**
@@ -94,7 +95,6 @@ export class NotificationService {
 
     return this.http.patch<{ message: string }>(url, {}).pipe(
       tap(() => {
-        // Actualizar el estado local de la notificación
         const currentNotifications = this.notificationsSubject.value;
         const updatedNotifications = currentNotifications.map(notification => 
           notification.id === notificationId 
@@ -102,6 +102,7 @@ export class NotificationService {
             : notification
         );
         this.notificationsSubject.next(updatedNotifications);
+        this.updateUnreadCount(updatedNotifications);
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
@@ -179,30 +180,19 @@ export class NotificationService {
    * Manejar notificaciones recibidas por WebSocket
    */
   private handleWebSocketNotification(raw: any): void {
-    console.log('📬 Notificación recibida por WebSocket:', raw);
-
-    // Si la notificación tiene una acción específica
     if (raw.action === 'deleted') {
-      // Eliminar la notificación de la lista local
       this.deleteNotificationLocally(raw.notificationId);
       return;
     }
 
-    // Si es una actualización, recargar todas las notificaciones para obtener el estado actualizado
     if (raw.action === 'updated') {
-      // Recargar todas las notificaciones para obtener el estado actualizado
       this.getMyNotifications().subscribe();
       return;
     }
 
-    // Si es una nueva notificación, recargar todas las notificaciones
-    // Esto asegura que tenemos la estructura completa con userNotify y el estado correcto
-      if (raw.id) {
-      // Recargar todas las notificaciones para obtener la estructura completa
+    if (raw.id) {
       this.getMyNotifications().subscribe({
         next: () => {
-          console.log('✅ Notificaciones recargadas después de recibir nueva notificación por WebSocket');
-          // además, notificar visualmente mediante el servicio de toasts compartido
           try {
             this.sharedNotificationService.notify({
               title: raw.title || 'Nueva notificación',
@@ -212,13 +202,11 @@ export class NotificationService {
               createdAt: raw.createdAt
             });
           } catch (e) {
-            // silencioso si falla
-            console.warn('No se pudo emitir toast por sharedNotificationService', e);
+            console.warn('No se pudo emitir toast:', e);
           }
         },
         error: (error) => {
-          console.error('❌ Error al recargar notificaciones después de WebSocket:', error);
-          // Si falla la recarga, intentar agregar la notificación directamente
+          console.error('Error al recargar notificaciones:', error);
           this.addNotificationDirectly(raw);
         }
       });
@@ -229,26 +217,22 @@ export class NotificationService {
    * Agregar notificación directamente sin recargar (fallback)
    */
   private addNotificationDirectly(raw: any): void {
-    // El backend envía: { id, title, message, type, createdAt, updatedAt?, data? }
-    // Necesitamos construir la estructura Notify
     const notification: Notify = {
       id: raw.id,
       title: raw.title,
       message: raw.message,
-      type: raw.type, // El backend envía el objeto type completo
-      read: false, // Por defecto, las nuevas notificaciones no están leídas
+      type: raw.type,
+      read: false,
       createdAt: raw.createdAt ? new Date(raw.createdAt) : new Date(),
       updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : new Date()
     };
 
     const currentNotifications = this.notificationsSubject.value;
-    // Evitar duplicados por id
     if (!currentNotifications.some(n => n.id === notification.id)) {
       const updatedNotifications = [notification, ...currentNotifications];
       this.notificationsSubject.next(updatedNotifications);
       this.updateUnreadCount(updatedNotifications);
-      console.log('✅ Notificación agregada directamente a la lista');
-      // emitir también como toast visual
+      
       try {
         this.sharedNotificationService.notify({
           title: raw.title || notification.title || 'Nueva notificación',
@@ -258,7 +242,7 @@ export class NotificationService {
           createdAt: raw.createdAt || notification.createdAt?.toString()
         });
       } catch (e) {
-        console.warn('No se pudo emitir toast por sharedNotificationService', e);
+        console.warn('No se pudo emitir toast:', e);
       }
     }
   }

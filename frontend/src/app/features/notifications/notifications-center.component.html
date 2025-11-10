@@ -141,6 +141,7 @@
 
       <!-- Notifications Items -->
       <div *ngFor="let notification of filteredNotifications" 
+           (click)="onNotificationClick(notification)"
            [ngClass]="[
              getNotificationBorderColor(notification.type.type, notification.read), 
              getNotificationBgColor(notification.type.type, notification.read),
@@ -177,14 +178,23 @@
 
           <!-- Content -->
           <div class="flex-1 min-w-0 pr-16 sm:pr-20 md:pr-24">
-            <h3 [class.font-normal]="notification.read"
-                [class.font-semibold]="!notification.read"
-                [class.text-gray-600]="notification.read"
-                [class.text-gray-900]="!notification.read"
-                class="text-sm sm:text-base mb-1 leading-tight">
-              {{ notification.title }}
-              <span *ngIf="notification.read" class="ml-3 text-xs font-normal text-gray-400 italic">(leída)</span>
-            </h3>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 [class.font-normal]="notification.read"
+                  [class.font-semibold]="!notification.read"
+                  [class.text-gray-600]="notification.read"
+                  [class.text-gray-900]="!notification.read"
+                  class="text-sm sm:text-base leading-tight">
+                {{ notification.title }}
+                <span *ngIf="notification.read" class="ml-3 text-xs font-normal text-gray-400 italic">(leída)</span>
+              </h3>
+              <svg *ngIf="hasLink(notification)" 
+                   class="w-4 h-4 text-blue-500 flex-shrink-0" 
+                   fill="none" 
+                   stroke="currentColor" 
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </div>
             <p [class.text-gray-500]="notification.read"
                [class.text-gray-700]="!notification.read"
                class="text-xs sm:text-sm font-normal mb-1 leading-relaxed line-clamp-2">

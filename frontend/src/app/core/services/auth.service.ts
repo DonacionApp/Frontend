@@ -199,6 +199,31 @@ export class AuthService {
   }
 
   /**
+   * Actualizar token silenciosamente sin emitir cambios de usuario
+   * Usado por el interceptor cuando el backend envía un token renovado
+   */
+  updateTokenSilently(newToken: string): void {
+    try {
+      const payload = this.decodeToken(newToken);
+      if (payload) {
+        // Solo actualizar si el usuario es el mismo
+        const currentUser = this.currentUserSubject.value;
+        if (currentUser && currentUser.id === (payload.sub || payload.id)) {
+          console.log('🔄 Token renovado silenciosamente para usuario:', currentUser.id);
+          // El token ya está en localStorage (actualizado por el interceptor)
+          // No es necesario emitir cambios en currentUserSubject
+          // Solo reconectar WebSocket si existe
+          if (this.websocketService) {
+            this.websocketService.reconnectWithNewToken(newToken);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error actualizando token silenciosamente:', error);
+    }
+  }
+
+  /**
    * Limpiar todos los datos de autenticación del localStorage
    */
   private clearAuthData(): void {
