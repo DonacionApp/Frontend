@@ -34,6 +34,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   showDeleteModal = false;
   notificationToDelete: number | null = null;
 
+  // Filtros
+  showFilters = false;
+  notificationTypes: any[] = [];
+  selectedType: number | null = null;
+  minDate: string = '';
+  maxDate: string = '';
+
   constructor(
     private notificationService: NotificationService,
     private router: Router
@@ -138,6 +145,19 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.activeTab = tab;
   }
 
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+
+  clearFilters(): void {
+    this.selectedType = null;
+    this.minDate = '';
+    this.maxDate = '';
+  }
+
+  /**
+   * Marca todas las notificaciones como leídas
+   */
   markAllAsRead(): void {
     const hasUnreadNotifications = this.notifications.some(n => !n.read);
     
