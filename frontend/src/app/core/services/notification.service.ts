@@ -169,6 +169,35 @@ export class NotificationService {
     );
   }
 
+  markAllNotificationsAsRead(): Observable<{ message: string; status: number; updated: number; refreshToken?: string }> {
+    const url = `${this.baseUrl}/user-notify/my-notifications/mark-all-as-read`;
+
+    return this.http.put<{ message: string; status: number; updated: number; refreshToken?: string }>(url, {}).pipe(
+      tap((response) => {
+        const currentNotifications = this.notificationsSubject.value;
+        const updatedNotifications = currentNotifications.map(notification => ({
+          ...notification,
+          read: true
+        }));
+        this.notificationsSubject.next(updatedNotifications);
+        this.updateUnreadCount(updatedNotifications);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          return throwError(() => ({
+            status: 401,
+            message: 'Token inválido'
+          }));
+        }
+
+        return throwError(() => ({
+          status: error.status || 500,
+          message: error.error?.message || 'Error al marcar todas las notificaciones como leídas'
+        }));
+      })
+    );
+  }
+
   /**
    * Obtener contador de notificaciones no leídas
    */

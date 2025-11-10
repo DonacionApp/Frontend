@@ -139,7 +139,30 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   markAllAsRead(): void {
-    console.log('Marcar todas como leídas - Funcionalidad pendiente');
+    const hasUnreadNotifications = this.notifications.some(n => !n.read);
+    
+    if (!hasUnreadNotifications) {
+      return;
+    }
+
+    this.notificationService.markAllNotificationsAsRead()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.notifications = this.notifications.map(n => ({
+            ...n,
+            read: true
+          }));
+        },
+        error: (error: any) => {
+          if (error.status === 401) {
+            alert('No autorizado. Por favor inicia sesión nuevamente.');
+            this.router.navigate(['/auth/login']);
+          } else {
+            alert(error.message || 'Error al marcar todas las notificaciones como leídas.');
+          }
+        }
+      });
   }
 
   allowNotifications(): void {
