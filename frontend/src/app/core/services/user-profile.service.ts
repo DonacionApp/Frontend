@@ -157,12 +157,32 @@ export class UserProfileService {
       return String(value).trim();
     };
 
+    // Verificar si es una organización
+    const isOrganization = this.normalizeRole(backendProfile.rol?.rol || 'donor') === 'organization';
+    
+    // Parsear lastName si es JSON (para organizaciones)
+    let lastNameValue = cleanValue(backendProfile.people?.lastName);
+    if (isOrganization && lastNameValue) {
+      try {
+        // Intentar parsear como JSON
+        const parsed = JSON.parse(lastNameValue);
+        if (parsed && typeof parsed === 'object' && parsed.description) {
+          // Si es JSON válido con descripción, usar la descripción
+          lastNameValue = parsed.description;
+        }
+        // Si no tiene descripción, mantener el valor original
+      } catch (e) {
+        // Si no es JSON válido, mantener el valor original
+        // lastNameValue ya tiene el valor limpio
+      }
+    }
+
     return {
       id: backendProfile.id.toString(),
       username: backendProfile.username || '', // Username de la tabla 'user'
       email: backendProfile.email || '',
       name: cleanValue(backendProfile.people?.name), // Nombre de la tabla 'people'
-      lastName: cleanValue(backendProfile.people?.lastName),
+      lastName: lastNameValue, // Para organizaciones, contiene la descripción parseada
       phone: cleanValue(backendProfile.people?.telefono),
       address: cleanValue(backendProfile.people?.residencia),
       city: cleanValue(backendProfile.people?.municipio?.city?.name),

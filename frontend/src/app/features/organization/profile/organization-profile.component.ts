@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { OrganizationProfileService, OrganizationProfile, OrganizationActivityLog } from '../../../core/services/organization-profile.service';
 import { AuthService, User } from '../../../core/services/auth.service';
@@ -10,7 +10,7 @@ import { VerificationService } from '../../../core/services/verification.service
 @Component({
   selector: 'app-organization-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './organization-profile.component.html',
   styleUrls: ['./organization-profile.component.scss']
 })
@@ -80,6 +80,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   private initializeForms(): void {
     this.profileForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: [''],
       email: [{ value: '', disabled: true }],
       phone: ['', [Validators.pattern(/^[0-9\-\+\(\)\s]*$/)]],
       address: [''],
@@ -88,7 +89,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       country: [''],
       postalCode: [''],
       website: ['', [Validators.pattern(/^https?:\/\/.+/)]],
-      description: ['', [Validators.maxLength(500)]],
       missionStatement: ['', [Validators.maxLength(1000)]],
       legalRepresentative: [''],
       facebookUrl: [''],
@@ -165,6 +165,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   private populateForm(profile: OrganizationProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
+      lastName: profile.lastName || '',
       email: profile.email,
       phone: profile.phone || '',
       address: profile.address || '',
@@ -173,8 +174,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       country: profile.country || '',
       postalCode: profile.postalCode || '',
       website: profile.website || '',
-      description: profile.description || '',
-      missionStatement: profile.missionStatement || '',
+  missionStatement: profile.missionStatement || '',
       legalRepresentative: profile.legalRepresentative || '',
       facebookUrl: profile.socialMedia?.facebook || '',
       twitterUrl: profile.socialMedia?.twitter || '',
@@ -344,6 +344,21 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.clearMessages();
 
     const formValue = this.profileForm.getRawValue();
+    
+    // Para organizaciones, enviar descripción y networks como JSON en lastName
+    const description = formValue.lastName || '';
+    const networks: string[] = [];
+    if (formValue.website) {
+      networks.push(formValue.website);
+    }
+    // Agregar otras redes sociales si existen
+    if (formValue.facebookUrl) networks.push(formValue.facebookUrl);
+    if (formValue.twitterUrl) networks.push(formValue.twitterUrl);
+    if (formValue.instagramUrl) networks.push(formValue.instagramUrl);
+    if (formValue.linkedinUrl) networks.push(formValue.linkedinUrl);
+    
+    const lastNameJson = JSON.stringify({ description, networks });
+    
     const updates = {
       name: formValue.name,
       phone: formValue.phone,
@@ -353,9 +368,10 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       country: formValue.country,
       postalCode: formValue.postalCode,
       website: formValue.website,
-      description: formValue.description,
       missionStatement: formValue.missionStatement,
       legalRepresentative: formValue.legalRepresentative,
+      description: description, // También enviar description directamente
+      lastName: lastNameJson, // Enviar JSON en lastName para el backend
       socialMedia: {
         facebook: formValue.facebookUrl,
         twitter: formValue.twitterUrl,

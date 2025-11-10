@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { DonationService, OrganizationStats, Donation, DonationArticle } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
+import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
 
 type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
 
@@ -22,6 +23,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   public activeTab$ = this.activeTabSubject.asObservable();
   
   currentUser: User | null = null;
+  organizationProfile: OrganizationProfile | null = null;
   stats: OrganizationStats | null = null;
   donations: Donation[] = [];
   recentDonations: Donation[] = [];
@@ -32,7 +34,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private donationService: DonationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private organizationProfileService: OrganizationProfileService
   ) {}
 
   ngOnInit(): void {
@@ -41,6 +44,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.currentUser = user;
       });
+
+    // Cargar perfil de la organización
+    this.loadOrganizationProfile();
 
     // Cargar datos iniciales
     this.loadStats();
@@ -157,10 +163,27 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Cargar perfil de la organización
+   */
+  loadOrganizationProfile(): void {
+    this.organizationProfileService.getMyOrganizationProfile()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (profile) => {
+          this.organizationProfile = profile;
+        },
+        error: (error) => {
+          console.error('Error al cargar perfil de organización:', error);
+        }
+      });
+  }
+
+  /**
    * Obtener nombre de la organización
    */
   get organizationName(): string {
-    return this.currentUser?.username || 'Organización';
+    // Usar el nombre de la organización del perfil, no el username
+    return this.organizationProfile?.name || this.currentUser?.name || 'Organización';
   }
 
   /**

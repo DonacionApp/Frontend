@@ -45,10 +45,18 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
+  get canLike(): boolean {
+    return this.authService.canLike();
+  }
+
+  get canRequestDonation(): boolean {
+    return this.authService.canRequestDonation();
+  }
+
   toggleLike(post: Post, event: Event): void {
     event.stopPropagation();
     
-    if (!this.isAuthenticated) {
+    if (!this.authService.canLike()) {
       this.router.navigate(['/auth/login']);
       return;
     }
@@ -91,6 +99,17 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
 
   requestDonation(post: Post, event: Event): void {
     event.stopPropagation();
+    
+    if (!this.authService.canRequestDonation()) {
+      if (!this.authService.isAuthenticated()) {
+        this.router.navigate(['/auth/login']);
+      } else {
+        // Mostrar mensaje de que necesita verificación
+        alert('Debes verificar tu cuenta para solicitar donaciones');
+      }
+      return;
+    }
+    
     this.router.navigate(['/organization/donations/create'], {
       queryParams: { post: post.id }
     });

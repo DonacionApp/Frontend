@@ -17,6 +17,12 @@
         <!-- Navigation for non-authenticated users -->
         <ng-container *ngIf="!isAuthenticated">
           <button 
+            (click)="onPostsClick()"
+            class="text-gray-700 hover:text-green-600 px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-all duration-300 hover:scale-105 whitespace-nowrap">
+            Publicaciones
+          </button>
+          
+          <button 
             (click)="onAboutClick()"
             class="text-gray-700 hover:text-green-600 px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-all duration-300 hover:scale-105 whitespace-nowrap">
             Acerca de
@@ -39,32 +45,49 @@
         <!-- Navigation for authenticated users -->
         <ng-container *ngIf="isAuthenticated">
           <!-- Menu items for authenticated users -->
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
+          <button 
+            (click)="onPostsClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
+            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="ml-1 hidden xl:inline whitespace-nowrap">Publicaciones</span>
+            <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Posts</span>
+          </button>
+          <button 
+            (click)="onMyDonationsClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <span class="ml-1 hidden xl:inline whitespace-nowrap">Mis Donaciones</span>
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Donaciones</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
+          </button>
+          <button 
+            (click)="onDonateClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
             </svg>
             <span class="ml-1 hidden xl:inline whitespace-nowrap">Donar Artículo</span>
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Donar</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
+          </button>
+          <button 
+            (click)="onOrganizationsClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Organizaciones</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group">
+          </button>
+          <button 
+            (click)="onMessagesClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Mensajes</span>
-          </a>
+          </button>
           <button 
             (click)="onNotificationsClick()"
             class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center relative">
@@ -75,12 +98,14 @@
             <!-- Badge estático por ahora -->
             <span class="absolute top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
           </button>
-          <a href="#" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center">
+          <button 
+            (click)="onStatisticsClick()"
+            class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center">
             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Estadísticas</span>
-          </a>
+          </button>
           
           <div class="flex items-center ml-2 lg:ml-4">
             <!-- User Menu Dropdown -->
@@ -181,6 +206,15 @@
         <!-- Mobile Navigation for non-authenticated users -->
         <ng-container *ngIf="!isAuthenticated">
           <button 
+            (click)="onPostsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 block px-3 py-2.5 text-sm font-medium w-full text-left transition-all duration-200 rounded-md">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Publicaciones
+          </button>
+          
+          <button 
             (click)="onAboutClick()"
             class="text-gray-700 hover:text-green-600 hover:bg-gray-50 block px-3 py-2.5 text-sm font-medium w-full text-left transition-all duration-200 rounded-md">
             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,43 +305,63 @@
           </div>
 
           <!-- Menu items optimizados para mobile -->
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all">
+          <button 
+            (click)="onPostsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span>Publicaciones</span>
+          </button>
+          <button 
+            (click)="onMyDonationsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <span>Mis Donaciones</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all">
+          </button>
+          <button 
+            (click)="onDonateClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
             </svg>
             <span>Donar Artículo</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all">
+          </button>
+          <button 
+            (click)="onOrganizationsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
             <span>Organizaciones</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all relative">
+          </button>
+          <button 
+            (click)="onMessagesClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left relative">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
             </svg>
             <span>Mensajes</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all relative">
+          </button>
+          <button 
+            (click)="onNotificationsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left relative">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
             <span>Notificaciones</span>
             <span class="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">3</span>
-          </a>
-          <a href="#" class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all">
+          </button>
+          <button 
+            (click)="onStatisticsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             <span>Estadísticas</span>
-          </a>
+          </button>
 
           <div class="border-t border-gray-200 pt-2 mt-2">
             <!-- Mostrar "Mi Perfil" solo si NO estamos en la página de perfil -->

@@ -94,4 +94,14 @@ export class AlertService {
       cancelButtonText: cancelText
     });
   }
+
+  async showAlert(message: string, type: 'warning' | 'error' | 'success' | 'info' = 'info'): Promise<void> {
+    await this.confirm({
+      title: type === 'warning' ? 'Advertencia' : type === 'error' ? 'Error' : type === 'success' ? 'Éxito' : 'Información',
+      message,
+      type,
+      showCancelButton: false,
+      confirmButtonText: 'Aceptar'
+    });
+  }
 }

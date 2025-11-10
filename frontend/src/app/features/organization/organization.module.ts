@@ -10,9 +10,10 @@ import { EditDonationComponent } from './edit-donation/edit-donation.component';
 import { ManageDonationArticlesComponent } from './manage-donation-articles/manage-donation-articles.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { OrganizationGuard } from '../../core/guards/organization.guard';
+import { GuestGuard } from '../../core/guards/guest.guard';
 
 const routes: Routes = [
-  { path: 'register', component: OrganizationRegisterComponent },
+  { path: 'register', component: OrganizationRegisterComponent, canActivate: [GuestGuard] },
   { path: '', component: OrganizationDashboardComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'profile', component: OrganizationProfileComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/create', component: CreateDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },

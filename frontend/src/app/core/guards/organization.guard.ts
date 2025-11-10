@@ -23,12 +23,12 @@ export class OrganizationGuard implements CanActivate {
       return false;
     }
 
-    // Verificar si tiene rol de organización
-    if (user.role === 'organization') {
+    // Verificar si tiene rol de organización o admin (los admins pueden acceder a todo)
+    if (user.role === 'organization' || user.role === 'admin') {
       return true;
     }
 
-    // Si no es organización, redirigir a página de acceso denegado
+    // Si no es organización ni admin, redirigir a página de acceso denegado
     this.router.navigate(['/access-denied'], {
       queryParams: { 
         requiredRole: 'Organización',

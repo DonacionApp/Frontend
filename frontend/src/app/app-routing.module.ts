@@ -7,6 +7,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { DonorGuard } from './core/guards/donor.guard';
 import { OrganizationGuard } from './core/guards/organization.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { VerifiedGuard } from './core/guards/verified.guard';
 import { NotificationsCenterComponent } from './features/notifications/notifications-center.component';
 
 const routes: Routes = [

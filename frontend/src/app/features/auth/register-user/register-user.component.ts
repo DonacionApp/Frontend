@@ -44,6 +44,9 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   isFormValid: boolean = false;
 
+  // Variables para mostrar/ocultar contraseñas
+  showPassword = false;
+  showConfirmPassword = false;
 
   private destroy$ = new Subject<void>();
 
@@ -53,6 +56,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
   ) { }
+
+  goToOrganizationRegister(): void {
+    try {
+      this.router.navigate(['/organization/register']);
+    } catch (err) {
+      console.warn('Navigation to organization register failed', err);
+    }
+  }
 
   ngOnInit(): void {
     this.registerForm = this.fb.group({
@@ -327,6 +338,14 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (checked) {
 
     }
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
 }

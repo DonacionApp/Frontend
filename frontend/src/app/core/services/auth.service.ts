@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, switchMap } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
 
 export interface User {
@@ -13,6 +14,7 @@ export interface User {
   username?: string;
   firstLogin?: boolean;
   isDocumentVerified?: boolean;
+  verified?: boolean; // Campo verified del token
 }
 
 @Injectable({
@@ -23,8 +25,13 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
   private api=environment.apiBackendUrl;
+  private router: Router | null = null;
 
-  constructor(private http: HttpClient, private websocketService: WebsocketService) {
+  constructor(
+    private http: HttpClient, 
+    private websocketService: WebsocketService,
+    private injector: Injector
+  ) {
     // Verificar si hay un usuario en localStorage al iniciar
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -42,7 +49,8 @@ export class AuthService {
           id: payload.sub || payload.id || '',
           email: payload.email || '',
           role: normalizedRole,
-          name: payload.name || ''
+          name: payload.name || '',
+          verified: payload.verified || false
         };
         this.currentUserSubject.next(user);
       }
@@ -169,7 +177,8 @@ export class AuthService {
             role: normalizedRole,
             name: payload?.name || '',
             firstLogin: res.firstLogin || payload?.firstLogin || false,
-            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false
+            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
+            verified: payload?.verified || res.verified || false
           };
           console.log('👤 Usuario final guardado:', user);
           console.log('🎯 firstLogin:', user.firstLogin);
@@ -186,13 +195,57 @@ export class AuthService {
   }
 
   logout(): void {
+    this.clearAuthData();
+  }
+
+  /**
+   * Limpiar todos los datos de autenticación del localStorage
+   */
+  private clearAuthData(): void {
+    // Limpiar todos los datos relacionados con autenticación
     localStorage.removeItem('currentUser');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    
+    // Limpiar cualquier otro dato relacionado que pueda existir
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('token') || key.includes('auth') || key.includes('user'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Actualizar el estado del usuario
     this.currentUserSubject.next(null);
+    
     // Desconectar WebSocket
     this.websocketService.disconnect();
-    console.log('❌ WebSocket desconectado en logout');
+    console.log('❌ WebSocket desconectado y datos de autenticación limpiados');
+  }
+
+  /**
+   * Limpiar datos de autenticación y redirigir al login
+   * Usado cuando el token expira y el refresh token falla
+   */
+  logoutAndRedirect(): void {
+    this.clearAuthData();
+    
+    // Obtener Router de forma lazy para evitar dependencias circulares
+    if (!this.router) {
+      this.router = this.injector.get(Router);
+    }
+    
+    // Redirigir al login
+    this.router?.navigate(['/auth/login'], {
+      queryParams: { 
+        expired: 'true',
+        message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+      }
+    });
+    
+    console.log('🔄 Sesión expirada, redirigiendo al login');
   }
 
   get currentUserValue(): User | null {
@@ -205,6 +258,190 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     return this.currentUserValue?.role === role;
+  }
+
+  isVerified(): boolean {
+    // Los admins siempre están verificados
+    if (this.currentUserValue?.role === 'admin') {
+      return true;
+    }
+    return this.currentUserValue?.verified === true || this.currentUserValue?.isDocumentVerified === true;
+  }
+
+  canCreatePost(): boolean {
+    // Los admins pueden crear posts sin verificación
+    if (this.currentUserValue?.role === 'admin') {
+      return this.isAuthenticated();
+    }
+    return this.isAuthenticated() && this.isVerified();
+  }
+
+  canRequestDonation(): boolean {
+    // Los admins pueden solicitar donaciones sin verificación
+    if (this.currentUserValue?.role === 'admin') {
+      return this.isAuthenticated();
+    }
+    return this.isAuthenticated() && this.isVerified();
+  }
+
+  canLike(): boolean {
+    return this.isAuthenticated(); // Los autenticados pueden dar like, incluso sin verificar
+  }
+
+  /**
+   * Refrescar el token de acceso usando el refresh token
+   * El refresh token puede venir en el body, headers o respuesta del backend
+   */
+  refreshToken(): Observable<any> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      // Si no hay refresh token, limpiar y redirigir
+      console.warn('⚠️ No hay refresh token disponible');
+      this.logoutAndRedirect();
+      return throwError(() => new Error('No hay refresh token disponible'));
+    }
+
+    // Intentar diferentes endpoints según la implementación del backend
+    // El refresh token puede enviarse en el body o en headers
+    // Intentamos primero en el body (más común)
+    const url = `${this.baseUrl}/refresh`;
+    
+    // Intentar primero con el refresh token en el body
+    return this.http.post<any>(url, { refresh_token: refreshToken }, {
+      observe: 'response' // Observar la respuesta completa para acceder a headers
+    }).pipe(
+      switchMap((response) => {
+        // El nuevo access token puede venir en:
+        // 1. El body de la respuesta (más común)
+        // 2. Los headers de la respuesta (x-access-token, authorization, etc.)
+        // 3. Ambos (body tiene prioridad)
+        
+        const body = response.body || {};
+        const headers = response.headers;
+        
+        // Intentar obtener el token del body primero
+        let newToken = body.access_token || body.accessToken || body.token;
+        
+        // Si no está en el body, intentar desde headers
+        if (!newToken) {
+          newToken = headers.get('x-access-token') || 
+                    headers.get('authorization')?.replace('Bearer ', '') ||
+                    headers.get('access-token');
+        }
+        
+        // El refresh token también puede venir en el body o headers
+        let newRefreshToken = body.refresh_token || body.refreshToken || refreshToken;
+        if (!newRefreshToken || newRefreshToken === refreshToken) {
+          newRefreshToken = headers.get('x-refresh-token') || 
+                          headers.get('refresh-token') || 
+                          refreshToken;
+        }
+        
+        if (newToken) {
+          localStorage.setItem('accessToken', newToken);
+          
+          // Actualizar refresh token si viene uno nuevo
+          if (newRefreshToken && newRefreshToken !== refreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+          }
+          
+          // Actualizar usuario si viene información en el token
+          const payload = this.decodeToken(newToken);
+          if (payload) {
+            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+            const normalizedRole = this.normalizeRole(rawRole);
+            
+            const user: User = {
+              id: payload.sub || payload.id || '',
+              email: payload.email || '',
+              role: normalizedRole,
+              name: payload.name || '',
+              verified: payload.verified || false
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            this.currentUserSubject.next(user);
+          }
+          
+          // Reconectar WebSocket con el nuevo token
+          this.websocketService.connect(newToken);
+          console.log('✅ Token refrescado y WebSocket reconectado');
+          
+          // Retornar el body de la respuesta para compatibilidad
+          return new Observable(observer => {
+            observer.next(body);
+            observer.complete();
+          });
+        }
+        
+        return throwError(() => new Error('No se recibió un nuevo token'));
+      }),
+      catchError(err => {
+        // Si el refresh falla, intentar con headers si no se intentó antes
+        if (err.status === 400 || err.status === 401) {
+          // Intentar con refresh token en headers
+          return this.http.post<any>(url, {}, {
+            headers: {
+              'x-refresh-token': refreshToken,
+              'refresh-token': refreshToken
+            },
+            observe: 'response'
+          }).pipe(
+            switchMap((response) => {
+              const body = response.body || {};
+              const headers = response.headers;
+              
+              let newToken = body.access_token || body.accessToken || body.token ||
+                            headers.get('x-access-token') || 
+                            headers.get('authorization')?.replace('Bearer ', '') ||
+                            headers.get('access-token');
+              
+              if (newToken) {
+                localStorage.setItem('accessToken', newToken);
+                const payload = this.decodeToken(newToken);
+                if (payload) {
+                  const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+                  const normalizedRole = this.normalizeRole(rawRole);
+                  
+                  const user: User = {
+                    id: payload.sub || payload.id || '',
+                    email: payload.email || '',
+                    role: normalizedRole,
+                    name: payload.name || '',
+                    verified: payload.verified || false
+                  };
+                  
+                  localStorage.setItem('currentUser', JSON.stringify(user));
+                  this.currentUserSubject.next(user);
+                }
+                
+                this.websocketService.connect(newToken);
+                console.log('✅ Token refrescado desde headers y WebSocket reconectado');
+                
+                return new Observable(observer => {
+                  observer.next(body);
+                  observer.complete();
+                });
+              }
+              
+              return throwError(() => new Error('No se recibió un nuevo token'));
+            }),
+            catchError(finalErr => {
+              // Si el refresh falla completamente, limpiar y redirigir
+              console.error('Error al refrescar token (intento con headers):', finalErr);
+              this.logoutAndRedirect();
+              return throwError(() => finalErr);
+            })
+          );
+        }
+        
+        // Si el refresh falla, limpiar y redirigir
+        console.error('Error al refrescar token:', err);
+        this.logoutAndRedirect();
+        return throwError(() => err);
+      })
+    );
   }
 
   /**

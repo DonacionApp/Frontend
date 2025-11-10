@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
 import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
+import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
@@ -29,7 +30,8 @@ export class NavComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private profileService: UserProfileService,
-    private organizationProfileService: OrganizationProfileService
+    private organizationProfileService: OrganizationProfileService,
+    private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
@@ -179,6 +181,46 @@ export class NavComponent implements OnInit, OnDestroy {
   onNotificationsClick(): void {
     this.closeMobileMenu();
     this.router.navigate(['/notifications']);
+  }
+
+  onPostsClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/post']);
+  }
+
+  onMyDonationsClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization']);
+    } else if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else {
+      this.router.navigate(['/post']);
+    }
+  }
+
+  onDonateClick(): void {
+    this.closeMobileMenu();
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+  }
+
+  onOrganizationsClick(): void {
+    this.closeMobileMenu();
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+  }
+
+  onMessagesClick(): void {
+    this.closeMobileMenu();
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+  }
+
+  onStatisticsClick(): void {
+    this.closeMobileMenu();
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   getProfileRoute(): string {

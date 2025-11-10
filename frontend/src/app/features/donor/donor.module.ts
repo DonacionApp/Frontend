@@ -5,9 +5,10 @@ import { DonorRegisterComponent } from './register/register.component';
 import { DonorProfileComponent } from './profile/donor-profile.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { DonorGuard } from '../../core/guards/donor.guard';
+import { GuestGuard } from '../../core/guards/guest.guard';
 
 const routes: Routes = [
-  { path: 'register', component: DonorRegisterComponent },
+  { path: 'register', component: DonorRegisterComponent, canActivate: [GuestGuard] },
   { path: 'profile', component: DonorProfileComponent, canActivate: [AuthGuard, DonorGuard] },
   // { path: '', component: DonorDashboardComponent },
   // { path: 'donations', component: DonorDonationsComponent },

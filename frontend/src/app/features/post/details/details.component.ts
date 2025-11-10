@@ -100,8 +100,25 @@ export class DetailsComponent implements OnInit, OnDestroy {
       });
   }
 
+  get canLike(): boolean {
+    return this.authService.canLike();
+  }
+
+  get canRequestDonation(): boolean {
+    return this.authService.canRequestDonation();
+  }
+
+  get canCreatePost(): boolean {
+    return this.authService.canCreatePost();
+  }
+
   toggleLike(): void {
     if (!this.post) return;
+
+    if (!this.authService.canLike()) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
 
     if (this.post.userHasLiked) {
       this.postsService.removeLikeFromPost(this.post.id)
@@ -132,6 +149,16 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   requestDonation(): void {
     if (!this.post) return;
+
+    if (!this.authService.canRequestDonation()) {
+      if (!this.authService.isAuthenticated()) {
+        this.router.navigate(['/auth/login']);
+      } else {
+        this.alertService.showAlert('Debes verificar tu cuenta para solicitar donaciones', 'warning');
+      }
+      return;
+    }
+
     this.router.navigate(['/organization/donations/create'], {
       queryParams: { post: this.post.id }
     });
@@ -213,6 +240,14 @@ export class DetailsComponent implements OnInit, OnDestroy {
   }
 
   handleCreatePost(): void {
+    if (!this.authService.canCreatePost()) {
+      if (!this.authService.isAuthenticated()) {
+        this.router.navigate(['/auth/login']);
+      } else {
+        this.alertService.showAlert('Debes verificar tu cuenta para crear publicaciones', 'warning');
+      }
+      return;
+    }
     this.router.navigate(['/post/create']);
   }
 
