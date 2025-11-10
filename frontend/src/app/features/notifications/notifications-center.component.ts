@@ -17,6 +17,7 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 })
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private isFirstLoad = true;
   
   notifications: Notify[] = [];
   isLoading = true;
@@ -45,9 +46,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
         console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
-        this.notifications = nots;
-        this.isLoading = false;
-        this.hasError = false;
+        if (!this.isFirstLoad) {
+          this.notifications = nots;
+          this.isLoading = false;
+          this.hasError = false;
+        }
       });
 
     // Suscribirse al contador de no leídas para actualizarlo automáticamente
@@ -79,9 +82,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
         next: (notifications: Notify[]) => {
           this.notifications = notifications;
           this.isLoading = false;
+          this.isFirstLoad = false;
         },
         error: (error: any) => {
           this.isLoading = false;
+          this.isFirstLoad = false;
           if (error.status === 404) {
             this.notifications = [];
             this.hasError = false;
