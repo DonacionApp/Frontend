@@ -52,8 +52,7 @@ export class OrganizationRegisterComponent implements OnInit {
   // Campos requeridos por el backend (dni ahora opcional)
   birdthDate: ['', Validators.required],
   tipodDni: [1, Validators.required],
-  dni: [''],
-      website: ['']
+  dni: ['']
     });
   }
 
@@ -144,11 +143,11 @@ export class OrganizationRegisterComponent implements OnInit {
       password: this.orgForm.value.password,
       // El backend espera el id de rol para organización. Usamos 3 según el formato del backend.
       rolId: 3,
-      profilePhoto: this.orgForm.value.website || '',
+      profilePhoto: '',
       people: {
         name: this.orgForm.value.organizationName,
-        // Serializamos la descripción (y posibles redes) en lastName para enviarla al backend
-        lastName: JSON.stringify({ description: this.orgForm.value.description || '', networks: this.orgForm.value.website ? [this.orgForm.value.website] : [] }),
+        // Serializamos la descripción en lastName para enviarla al backend
+        lastName: JSON.stringify({ description: this.orgForm.value.description || '', networks: [] }),
         birdthDate: birdth || '',
         tipodDni: tipod,
         dni: this.orgForm.value.dni || '',
