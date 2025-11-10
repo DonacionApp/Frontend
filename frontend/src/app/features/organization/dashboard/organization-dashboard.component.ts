@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { DonationService, OrganizationStats, Donation, DonationArticle } from '../../../core/services/donation.service';
@@ -10,7 +11,7 @@ type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
 @Component({
   selector: 'app-organization-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './organization-dashboard.component.html',
   styleUrls: ['./organization-dashboard.component.scss']
 })
@@ -24,10 +25,33 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   stats: OrganizationStats | null = null;
   donations: Donation[] = [];
+  filteredDonations: Donation[] = [];
   recentDonations: Donation[] = [];
   loading = true;
   loadingDonations = false;
   errorMessage = '';
+
+  // Filtros (cliente)
+  filters: {
+    search: string;
+    status: string; // usa el texto normalizado de getStatusBadge (e.g., 'Pendiente', 'Entregada') o 'all'
+    location: string; // lugar de recogida o donación
+    article: string; // nombre de artículo
+    dateFrom: string | null; // 'YYYY-MM-DD'
+    dateTo: string | null;   // 'YYYY-MM-DD'
+  } = {
+    search: '',
+    status: 'all',
+    location: 'all',
+    article: 'all',
+    dateFrom: null,
+    dateTo: null,
+  };
+
+  // Opciones derivadas
+  statusOptions: string[] = [];
+  locationOptions: string[] = [];
+  articleOptions: string[] = [];
 
   constructor(
     private router: Router,
@@ -112,6 +136,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
           this.donations = donations.sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+          // Construir opciones y aplicar filtros
+          this.buildFilterOptions();
+          this.applyFilters();
           this.loadingDonations = false;
         },
         error: (error) => {
@@ -154,6 +181,109 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    */
   clearError(): void {
     this.errorMessage = '';
+  }
+
+  /**
+   * Construir opciones de filtros a partir de las donaciones cargadas
+   */
+  private buildFilterOptions(): void {
+    const statusSet = new Set<string>();
+    const locationSet = new Set<string>();
+    const articleSet = new Set<string>();
+
+    for (const d of this.donations) {
+      // Status normalizado a como se muestra en badge
+      const badge = this.getStatusBadge(d.statusDonation);
+      if (badge?.text) statusSet.add(badge.text);
+
+      // Lugares
+      if (d.lugarRecogida) locationSet.add(d.lugarRecogida.trim());
+      if ((d as any).lugarDonacion) {
+        const ld = (d as any).lugarDonacion;
+        if (ld) locationSet.add(String(ld).trim());
+      }
+
+      // Artículos
+      if (d.articles && d.articles.length > 0) {
+        for (const a of d.articles) {
+          if (a?.article?.name) articleSet.add(a.article.name.trim());
+        }
+      }
+    }
+
+    this.statusOptions = Array.from(statusSet).sort();
+    this.locationOptions = Array.from(locationSet).sort();
+    this.articleOptions = Array.from(articleSet).sort();
+  }
+
+  /**
+   * Aplicar filtros en cliente
+   */
+  applyFilters(): void {
+    const search = this.filters.search.trim().toLowerCase();
+    const statusSel = this.filters.status;
+    const locSel = this.filters.location;
+    const artSel = this.filters.article;
+    const from = this.filters.dateFrom ? new Date(this.filters.dateFrom + 'T00:00:00') : null;
+    const to = this.filters.dateTo ? new Date(this.filters.dateTo + 'T23:59:59') : null;
+
+    this.filteredDonations = this.donations.filter(d => {
+      // Status
+      if (statusSel !== 'all') {
+        const badge = this.getStatusBadge(d.statusDonation);
+        if (badge.text !== statusSel) return false;
+      }
+
+      // Location
+      if (locSel !== 'all') {
+        const lr = (d.lugarRecogida || '').toString().trim();
+        const ld = ((d as any).lugarDonacion || '').toString().trim();
+        if (lr !== locSel && ld !== locSel) return false;
+      }
+
+      // Article name
+      if (artSel !== 'all') {
+        const names = (d.articles || []).map(a => a?.article?.name?.trim()).filter(Boolean);
+        if (!names.includes(artSel)) return false;
+      }
+
+      // Date range (createdAt)
+      if (from || to) {
+        const created = new Date(d.createdAt);
+        if (from && created < from) return false;
+        if (to && created > to) return false;
+      }
+
+      // Search across title, locations, articles
+      if (search) {
+        const title = (d.post?.title || '').toString().toLowerCase();
+        const lr = (d.lugarRecogida || '').toString().toLowerCase();
+        const ld = ((d as any).lugarDonacion || '').toString().toLowerCase();
+        const arts = (d.articles || []).map(a => a?.article?.name?.toLowerCase()).filter(Boolean).join(' ');
+        const creator = (d.user?.username || '').toLowerCase();
+        const beneficiary = (d.beneficiary?.username || '').toLowerCase();
+        const donator = (d.donator?.username || '').toLowerCase();
+        const haystack = `${title} ${lr} ${ld} ${arts} ${creator} ${beneficiary} ${donator}`;
+        if (!haystack.includes(search)) return false;
+      }
+
+      return true;
+    });
+  }
+
+  /**
+   * Limpiar filtros
+   */
+  clearFilters(): void {
+    this.filters = {
+      search: '',
+      status: 'all',
+      location: 'all',
+      article: 'all',
+      dateFrom: null,
+      dateTo: null,
+    };
+    this.applyFilters();
   }
 
   /**
