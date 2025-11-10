@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError, switchMap } from 'rxjs/operators';
@@ -24,8 +25,13 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
   private api=environment.apiBackendUrl;
+  private router: Router | null = null;
 
-  constructor(private http: HttpClient, private websocketService: WebsocketService) {
+  constructor(
+    private http: HttpClient, 
+    private websocketService: WebsocketService,
+    private injector: Injector
+  ) {
     // Verificar si hay un usuario en localStorage al iniciar
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -189,13 +195,57 @@ export class AuthService {
   }
 
   logout(): void {
+    this.clearAuthData();
+  }
+
+  /**
+   * Limpiar todos los datos de autenticación del localStorage
+   */
+  private clearAuthData(): void {
+    // Limpiar todos los datos relacionados con autenticación
     localStorage.removeItem('currentUser');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    
+    // Limpiar cualquier otro dato relacionado que pueda existir
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('token') || key.includes('auth') || key.includes('user'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Actualizar el estado del usuario
     this.currentUserSubject.next(null);
+    
     // Desconectar WebSocket
     this.websocketService.disconnect();
-    console.log('❌ WebSocket desconectado en logout');
+    console.log('❌ WebSocket desconectado y datos de autenticación limpiados');
+  }
+
+  /**
+   * Limpiar datos de autenticación y redirigir al login
+   * Usado cuando el token expira y el refresh token falla
+   */
+  logoutAndRedirect(): void {
+    this.clearAuthData();
+    
+    // Obtener Router de forma lazy para evitar dependencias circulares
+    if (!this.router) {
+      this.router = this.injector.get(Router);
+    }
+    
+    // Redirigir al login
+    this.router?.navigate(['/auth/login'], {
+      queryParams: { 
+        expired: 'true',
+        message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+      }
+    });
+    
+    console.log('🔄 Sesión expirada, redirigiendo al login');
   }
 
   get currentUserValue(): User | null {
@@ -246,6 +296,9 @@ export class AuthService {
     const refreshToken = localStorage.getItem('refreshToken');
     
     if (!refreshToken) {
+      // Si no hay refresh token, limpiar y redirigir
+      console.warn('⚠️ No hay refresh token disponible');
+      this.logoutAndRedirect();
       return throwError(() => new Error('No hay refresh token disponible'));
     }
 
@@ -375,17 +428,17 @@ export class AuthService {
               return throwError(() => new Error('No se recibió un nuevo token'));
             }),
             catchError(finalErr => {
-              // Si el refresh falla completamente, hacer logout
-              console.error('Error al refrescar token:', finalErr);
-              this.logout();
+              // Si el refresh falla completamente, limpiar y redirigir
+              console.error('Error al refrescar token (intento con headers):', finalErr);
+              this.logoutAndRedirect();
               return throwError(() => finalErr);
             })
           );
         }
         
-        // Si el refresh falla, hacer logout
+        // Si el refresh falla, limpiar y redirigir
         console.error('Error al refrescar token:', err);
-        this.logout();
+        this.logoutAndRedirect();
         return throwError(() => err);
       })
     );

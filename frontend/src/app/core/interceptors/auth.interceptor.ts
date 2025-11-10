@@ -90,14 +90,32 @@ export class AuthInterceptor implements HttpInterceptor {
             return next.handle(this.addTokenHeader(request, newToken));
           }
           
-          // Si no hay token, hacer logout
-          authService.logout();
+          // Si no hay token, limpiar y redirigir
+          console.error('❌ No se recibió un nuevo token después del refresh');
+          authService.logoutAndRedirect();
           return throwError(() => new Error('No se pudo refrescar el token'));
         }),
         catchError((err) => {
           this.isRefreshing = false;
+          this.refreshTokenSubject.next(null);
           const authService = this.injector.get(AuthService);
-          authService.logout();
+          
+          // Verificar si es un error de token expirado o inválido
+          const isTokenError = err?.status === 401 || 
+                               err?.status === 403 || 
+                               err?.status === 400 ||
+                               err?.message?.includes('token') ||
+                               err?.message?.includes('expired') ||
+                               err?.message?.includes('invalid');
+          
+          if (isTokenError) {
+            console.error('❌ Error de autenticación al refrescar token:', err);
+            authService.logoutAndRedirect();
+          } else {
+            // Para otros errores, solo hacer logout sin redirigir (el error se propagará)
+            authService.logout();
+          }
+          
           return throwError(() => err);
         })
       );
@@ -106,7 +124,22 @@ export class AuthInterceptor implements HttpInterceptor {
       return this.refreshTokenSubject.pipe(
         filter(token => token !== null),
         take(1),
-        switchMap((token) => next.handle(this.addTokenHeader(request, token)))
+        switchMap((token) => {
+          if (token) {
+            return next.handle(this.addTokenHeader(request, token));
+          } else {
+            // Si el token es null, significa que el refresh falló
+            const authService = this.injector.get(AuthService);
+            authService.logoutAndRedirect();
+            return throwError(() => new Error('Token refresh failed'));
+          }
+        }),
+        catchError((err) => {
+          // Si hay un error esperando el token, limpiar y redirigir
+          const authService = this.injector.get(AuthService);
+          authService.logoutAndRedirect();
+          return throwError(() => err);
+        })
       );
     }
   }
