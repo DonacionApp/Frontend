@@ -5,10 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { DonationService, OrganizationStats, Donation, DonationArticle, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
-<<<<<<< HEAD
 import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
-=======
->>>>>>> bd2f0348b4685ac042a55259552c62a16d31629d
 import { ToastService } from '../../../core/services/toast.service';
 
 type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
@@ -78,10 +75,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private donationService: DonationService,
     private authService: AuthService,
-<<<<<<< HEAD
     private organizationProfileService: OrganizationProfileService,
-=======
->>>>>>> bd2f0348b4685ac042a55259552c62a16d31629d
     private toast: ToastService
   ) {}
 
@@ -269,7 +263,6 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-<<<<<<< HEAD
    * Cargar perfil de la organización
    */
   loadOrganizationProfile(): void {
@@ -286,8 +279,6 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-=======
->>>>>>> bd2f0348b4685ac042a55259552c62a16d31629d
    * Construir opciones de filtros a partir de las donaciones cargadas
    */
   private buildFilterOptions(): void {
