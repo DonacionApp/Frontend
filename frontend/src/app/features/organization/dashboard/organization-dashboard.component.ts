@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
-import { DonationService, OrganizationStats, Donation, DonationArticle } from '../../../core/services/donation.service';
+import { DonationService, OrganizationStats, Donation, DonationArticle, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
 
@@ -52,11 +53,22 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   statusOptions: string[] = [];
   locationOptions: string[] = [];
   articleOptions: string[] = [];
+  // Catálogo de estados (backend)
+  statusCatalog: StatusDonation[] = [];
+  // Mapa de carga al actualizar estado
+  updatingStatus: Record<number, boolean> = {};
+
+  // Paginación
+  page = 1;
+  pageSize = 9;
+  totalPages = 1;
+  pagedDonations: Donation[] = [];
 
   constructor(
     private router: Router,
     private donationService: DonationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -67,7 +79,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       });
 
     // Cargar datos iniciales
-    this.loadStats();
+  this.loadStats();
+  this.loadStatusCatalog();
     this.loadRecentDonations();
 
     // Suscribirse a cambios de pestaña
@@ -144,6 +157,25 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error al cargar donaciones:', error);
           this.loadingDonations = false;
+        }
+      });
+  }
+
+  /**
+   * Cargar catálogo de estados desde backend
+   */
+  private loadStatusCatalog(): void {
+    this.donationService.getAllDonationStatuses()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (statuses) => {
+          this.statusCatalog = statuses;
+          // Mapear a textos normalizados (coinciden con getStatusBadge)
+          const texts = statuses.map(s => this.getStatusBadge({ status: s.status }).text);
+          this.statusOptions = Array.from(new Set(texts)).sort();
+        },
+        error: (err) => {
+          console.error('Error al obtener estados de donación:', err);
         }
       });
   }
@@ -227,7 +259,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     const from = this.filters.dateFrom ? new Date(this.filters.dateFrom + 'T00:00:00') : null;
     const to = this.filters.dateTo ? new Date(this.filters.dateTo + 'T23:59:59') : null;
 
-    this.filteredDonations = this.donations.filter(d => {
+  this.filteredDonations = this.donations.filter(d => {
       // Status
       if (statusSel !== 'all') {
         const badge = this.getStatusBadge(d.statusDonation);
@@ -269,6 +301,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
 
       return true;
     });
+    this.updatePagination();
   }
 
   /**
@@ -283,7 +316,75 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       dateFrom: null,
       dateTo: null,
     };
+    this.page = 1;
     this.applyFilters();
+  }
+
+  /** Paginación en cliente */
+  updatePagination(): void {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredDonations.length / this.pageSize));
+    if (this.page > this.totalPages) this.page = this.totalPages;
+    if (this.page < 1) this.page = 1;
+    const start = (this.page - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.pagedDonations = this.filteredDonations.slice(start, end);
+  }
+
+  goToPage(p: number): void {
+    if (p < 1 || p > this.totalPages) return;
+    this.page = p;
+    this.updatePagination();
+  }
+
+  prevPage(): void {
+    if (this.page > 1) {
+      this.page--;
+      this.updatePagination();
+    }
+  }
+
+  nextPage(): void {
+    if (this.page < this.totalPages) {
+      this.page++;
+      this.updatePagination();
+    }
+  }
+
+  get pages(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  /** Permisos para cambiar estado */
+  canChangeStatus(d: Donation): boolean {
+    const isAdmin = this.currentUser?.role === 'admin';
+    const isOwnerFlag = (d as any).owner === true;
+    const isCreator = (d.user?.id?.toString() || '') === (this.currentUser?.id?.toString() || '');
+    return isAdmin || isOwnerFlag || isCreator;
+  }
+
+  /** Cambiar estado de una donación */
+  async onChangeDonationStatus(donation: Donation, newStatusId: string | number): Promise<void> {
+    const statusId = typeof newStatusId === 'string' ? parseInt(newStatusId, 10) : newStatusId;
+    if (!statusId || isNaN(statusId as number)) return;
+    try {
+      this.updatingStatus[donation.id] = true;
+      const updated = await this.donationService.updateDonationStatus(donation.id, { status: statusId as number }).toPromise();
+      if (updated) {
+        const idx = this.donations.findIndex(x => x.id === donation.id);
+        if (idx !== -1) this.donations[idx] = updated;
+        const idxF = this.filteredDonations.findIndex(x => x.id === donation.id);
+        if (idxF !== -1) this.filteredDonations[idxF] = updated;
+        const idxP = this.pagedDonations.findIndex(x => x.id === donation.id);
+        if (idxP !== -1) this.pagedDonations[idxP] = updated;
+        this.toast.success('Estado actualizado', `La donación #${donation.id} ahora está en estado "${this.getStatusBadge(updated.statusDonation).text}"`);
+        this.applyFilters();
+      }
+    } catch (err) {
+      console.error('Error al cambiar estado de donación:', err);
+      this.toast.error('No se pudo actualizar', 'Intenta nuevamente en unos segundos.');
+    } finally {
+      this.updatingStatus[donation.id] = false;
+    }
   }
 
   /**
@@ -316,7 +417,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     
     // Si es un objeto con propiedad status (respuesta del backend)
     if (typeof statusDonation === 'object' && statusDonation.status) {
-      const status = statusDonation.status.toLowerCase();
+      const status = statusDonation.status.toLowerCase().trim();
       switch (status) {
         case 'pendiente':
           return { text: 'Pendiente', class: 'bg-yellow-100 text-yellow-800' };
@@ -326,6 +427,21 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
           return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
         case 'entregada':
           return { text: 'Entregada', class: 'bg-blue-100 text-blue-800' };
+        case 'cancelada':
+          return { text: 'Cancelada', class: 'bg-gray-200 text-gray-700' };
+        case 'en progreso':
+          return { text: 'En Progreso', class: 'bg-indigo-100 text-indigo-800' };
+        case 'completada':
+          return { text: 'Completada', class: 'bg-blue-100 text-blue-800' };
+        case 'recogida':
+        case 'recogida ':
+          return { text: 'Recogida', class: 'bg-emerald-100 text-emerald-800' };
+        case 'en camino':
+          return { text: 'En Camino', class: 'bg-purple-100 text-purple-800' };
+        case 'en espera':
+          return { text: 'En Espera', class: 'bg-orange-100 text-orange-800' };
+        case 'recibida':
+          return { text: 'Recibida', class: 'bg-teal-100 text-teal-800' };
         default:
           return { text: statusDonation.status, class: 'bg-gray-100 text-gray-800' };
       }
@@ -348,8 +464,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     }
     
     // Si es string
-    const statusStr = String(statusDonation);
-    const status = statusStr.toLowerCase();
+  const statusStr = String(statusDonation);
+  const status = statusStr.toLowerCase().trim();
     
     switch (status) {
       case 'pendiente':
@@ -360,8 +476,22 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       case 'rechazada':
         return { text: 'Rechazada', class: 'bg-red-100 text-red-800' };
       case 'entregada':
-      case 'completada':
         return { text: 'Entregada', class: 'bg-blue-100 text-blue-800' };
+      case 'completada':
+        return { text: 'Completada', class: 'bg-blue-100 text-blue-800' };
+      case 'cancelada':
+        return { text: 'Cancelada', class: 'bg-gray-200 text-gray-700' };
+      case 'en progreso':
+        return { text: 'En Progreso', class: 'bg-indigo-100 text-indigo-800' };
+      case 'recogida':
+      case 'recogida ':
+        return { text: 'Recogida', class: 'bg-emerald-100 text-emerald-800' };
+      case 'en camino':
+        return { text: 'En Camino', class: 'bg-purple-100 text-purple-800' };
+      case 'en espera':
+        return { text: 'En Espera', class: 'bg-orange-100 text-orange-800' };
+      case 'recibida':
+        return { text: 'Recibida', class: 'bg-teal-100 text-teal-800' };
       default:
         return { text: statusStr, class: 'bg-gray-100 text-gray-800' };
     }

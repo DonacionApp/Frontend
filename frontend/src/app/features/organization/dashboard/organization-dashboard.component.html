@@ -388,10 +388,10 @@
           </div>
         </div>
 
-        <!-- Grid de Cards de Donaciones -->
-     <div *ngIf="!loadingDonations && filteredDonations.length > 0" 
-       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div *ngFor="let donation of filteredDonations" 
+      <!-- Grid de Cards de Donaciones -->
+    <div *ngIf="!loadingDonations && pagedDonations.length > 0" 
+     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   <div *ngFor="let donation of pagedDonations" 
                class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
                [attr.aria-label]="'Donación ' + donation.post.title + ', estado ' + getStatusBadge(donation.statusDonation).text"
                tabindex="0">
@@ -443,6 +443,22 @@
                 </div>
               </div>
 
+              <!-- Cambio de estado (solo admin/propia) -->
+              <div *ngIf="canChangeStatus(donation)" class="mb-3">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+                <div class="relative">
+                  <select [ngModel]="donation.statusDonation?.id" (ngModelChange)="onChangeDonationStatus(donation, $event)"
+                          [disabled]="updatingStatus[donation.id]"
+                          class="w-full rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500 text-sm pr-8">
+                    <option *ngFor="let s of statusCatalog" [value]="s.id">{{ getStatusBadge({status: s.status}).text }}</option>
+                  </select>
+                  <svg class="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                <p *ngIf="updatingStatus[donation.id]" class="text-xs text-gray-500 mt-1">Actualizando estado...</p>
+              </div>
+
               <!-- Botón Ver Detalle -->
               <button 
                 (click)="viewDonation(donation.id)"
@@ -456,6 +472,15 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Paginación -->
+        <div *ngIf="!loadingDonations && totalPages > 1" class="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <button (click)="prevPage()" [disabled]="page === 1" class="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">Anterior</button>
+          <ng-container *ngFor="let p of pages">
+            <button (click)="goToPage(p)" [class]="page === p ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'" class="px-3 py-1.5 text-sm rounded-md border hover:bg-gray-50">{{ p }}</button>
+          </ng-container>
+          <button (click)="nextPage()" [disabled]="page === totalPages" class="px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
         </div>
 
         <!-- Estado: sin donaciones -->
@@ -479,8 +504,8 @@
           </div>
         </div>
 
-        <!-- Estado: sin resultados con filtros -->
-        <div *ngIf="!loadingDonations && donations.length > 0 && filteredDonations.length === 0" 
+  <!-- Estado: sin resultados con filtros -->
+  <div *ngIf="!loadingDonations && donations.length > 0 && filteredDonations.length === 0" 
              class="bg-white rounded-lg shadow-sm p-12 text-center">
           <div class="max-w-md mx-auto">
             <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
