@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, switchMap } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
 
 export interface User {
@@ -236,6 +236,159 @@ export class AuthService {
 
   canLike(): boolean {
     return this.isAuthenticated(); // Los autenticados pueden dar like, incluso sin verificar
+  }
+
+  /**
+   * Refrescar el token de acceso usando el refresh token
+   * El refresh token puede venir en el body, headers o respuesta del backend
+   */
+  refreshToken(): Observable<any> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      return throwError(() => new Error('No hay refresh token disponible'));
+    }
+
+    // Intentar diferentes endpoints según la implementación del backend
+    // El refresh token puede enviarse en el body o en headers
+    // Intentamos primero en el body (más común)
+    const url = `${this.baseUrl}/refresh`;
+    
+    // Intentar primero con el refresh token en el body
+    return this.http.post<any>(url, { refresh_token: refreshToken }, {
+      observe: 'response' // Observar la respuesta completa para acceder a headers
+    }).pipe(
+      switchMap((response) => {
+        // El nuevo access token puede venir en:
+        // 1. El body de la respuesta (más común)
+        // 2. Los headers de la respuesta (x-access-token, authorization, etc.)
+        // 3. Ambos (body tiene prioridad)
+        
+        const body = response.body || {};
+        const headers = response.headers;
+        
+        // Intentar obtener el token del body primero
+        let newToken = body.access_token || body.accessToken || body.token;
+        
+        // Si no está en el body, intentar desde headers
+        if (!newToken) {
+          newToken = headers.get('x-access-token') || 
+                    headers.get('authorization')?.replace('Bearer ', '') ||
+                    headers.get('access-token');
+        }
+        
+        // El refresh token también puede venir en el body o headers
+        let newRefreshToken = body.refresh_token || body.refreshToken || refreshToken;
+        if (!newRefreshToken || newRefreshToken === refreshToken) {
+          newRefreshToken = headers.get('x-refresh-token') || 
+                          headers.get('refresh-token') || 
+                          refreshToken;
+        }
+        
+        if (newToken) {
+          localStorage.setItem('accessToken', newToken);
+          
+          // Actualizar refresh token si viene uno nuevo
+          if (newRefreshToken && newRefreshToken !== refreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+          }
+          
+          // Actualizar usuario si viene información en el token
+          const payload = this.decodeToken(newToken);
+          if (payload) {
+            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+            const normalizedRole = this.normalizeRole(rawRole);
+            
+            const user: User = {
+              id: payload.sub || payload.id || '',
+              email: payload.email || '',
+              role: normalizedRole,
+              name: payload.name || '',
+              verified: payload.verified || false
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            this.currentUserSubject.next(user);
+          }
+          
+          // Reconectar WebSocket con el nuevo token
+          this.websocketService.connect(newToken);
+          console.log('✅ Token refrescado y WebSocket reconectado');
+          
+          // Retornar el body de la respuesta para compatibilidad
+          return new Observable(observer => {
+            observer.next(body);
+            observer.complete();
+          });
+        }
+        
+        return throwError(() => new Error('No se recibió un nuevo token'));
+      }),
+      catchError(err => {
+        // Si el refresh falla, intentar con headers si no se intentó antes
+        if (err.status === 400 || err.status === 401) {
+          // Intentar con refresh token en headers
+          return this.http.post<any>(url, {}, {
+            headers: {
+              'x-refresh-token': refreshToken,
+              'refresh-token': refreshToken
+            },
+            observe: 'response'
+          }).pipe(
+            switchMap((response) => {
+              const body = response.body || {};
+              const headers = response.headers;
+              
+              let newToken = body.access_token || body.accessToken || body.token ||
+                            headers.get('x-access-token') || 
+                            headers.get('authorization')?.replace('Bearer ', '') ||
+                            headers.get('access-token');
+              
+              if (newToken) {
+                localStorage.setItem('accessToken', newToken);
+                const payload = this.decodeToken(newToken);
+                if (payload) {
+                  const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+                  const normalizedRole = this.normalizeRole(rawRole);
+                  
+                  const user: User = {
+                    id: payload.sub || payload.id || '',
+                    email: payload.email || '',
+                    role: normalizedRole,
+                    name: payload.name || '',
+                    verified: payload.verified || false
+                  };
+                  
+                  localStorage.setItem('currentUser', JSON.stringify(user));
+                  this.currentUserSubject.next(user);
+                }
+                
+                this.websocketService.connect(newToken);
+                console.log('✅ Token refrescado desde headers y WebSocket reconectado');
+                
+                return new Observable(observer => {
+                  observer.next(body);
+                  observer.complete();
+                });
+              }
+              
+              return throwError(() => new Error('No se recibió un nuevo token'));
+            }),
+            catchError(finalErr => {
+              // Si el refresh falla completamente, hacer logout
+              console.error('Error al refrescar token:', finalErr);
+              this.logout();
+              return throwError(() => finalErr);
+            })
+          );
+        }
+        
+        // Si el refresh falla, hacer logout
+        console.error('Error al refrescar token:', err);
+        this.logout();
+        return throwError(() => err);
+      })
+    );
   }
 
   /**
