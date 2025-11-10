@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { DonationService, OrganizationStats, Donation, DonationArticle, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
@@ -32,7 +32,11 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   recentDonations: Donation[] = [];
   loading = true;
   loadingDonations = false;
+  loadingSolicitudes = false;
   errorMessage = '';
+
+  // Solicitudes donde soy donador
+  solicitudes: Donation[] = [];
 
   // Filtros (cliente)
   filters: {
@@ -68,6 +72,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private donationService: DonationService,
     private authService: AuthService,
     private organizationProfileService: OrganizationProfileService,
@@ -83,16 +88,30 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
 
     // Cargar perfil de la organización
     this.loadOrganizationProfile();
+    // Leer query param 'section' y actualizar pestaña activa
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const section = params['section'];
+      let tab: TabType = 'resumen'; // default
+      if (section === 'myDonations') tab = 'mis-donaciones';
+      else if (section === 'requests') tab = 'solicitudes';
+      else if (section === 'overview') tab = 'resumen';
+      this.activeTabSubject.next(tab);
+    });
 
     // Cargar datos iniciales
-  this.loadStats();
-  this.loadStatusCatalog();
+    this.loadStats();
+    this.loadStatusCatalog();
     this.loadRecentDonations();
+    // Precalcular solicitudes después de cargar (cuando se entra a ese tab)
+    this.loadAllDonations();
 
     // Suscribirse a cambios de pestaña
     this.activeTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => {
-      if (tab === 'mis-donaciones' && this.donations.length === 0) {
+      if ((tab === 'mis-donaciones' || tab === 'solicitudes') && this.donations.length === 0) {
         this.loadAllDonations();
+      }
+      if (tab === 'solicitudes') {
+        this.computeSolicitudes();
       }
     });
   }
@@ -159,12 +178,25 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
           this.buildFilterOptions();
           this.applyFilters();
           this.loadingDonations = false;
+          // Recalcular solicitudes
+          this.computeSolicitudes();
         },
         error: (error) => {
           console.error('Error al cargar donaciones:', error);
           this.loadingDonations = false;
         }
       });
+  }
+
+  /**
+   * Calcular solicitudes donde el usuario autenticado es el donador
+   */
+  private computeSolicitudes(): void {
+    if (!this.currentUser) { this.solicitudes = []; return; }
+    this.loadingSolicitudes = true;
+    const myId = (this.currentUser.id || '').toString();
+    this.solicitudes = (this.donations || []).filter(d => (d.donator?.id || '').toString() === myId);
+    this.loadingSolicitudes = false;
   }
 
   /**
@@ -191,6 +223,15 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    */
   setActiveTab(tab: TabType): void {
     this.activeTabSubject.next(tab);
+    // Actualizar query param según la pestaña
+    let sectionParam = 'overview';
+    if (tab === 'mis-donaciones') sectionParam = 'myDonations';
+    else if (tab === 'solicitudes') sectionParam = 'requests';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: sectionParam },
+      queryParamsHandling: 'merge'
+    });
   }
 
   /**
