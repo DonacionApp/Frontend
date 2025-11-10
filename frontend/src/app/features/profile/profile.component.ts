@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, PostUser } from '../../core/services/posts.service';
+import { UserProfileService, UserMinimal } from '../../core/services/user-profile.service';
 import { DonationService, DonationByUser } from '../../core/services/donation.service';
 import { ScrollRestorationService } from '../../core/services/scroll-restoration.service';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
@@ -30,6 +31,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   
   userId!: number;
   user: PostUser | null = null;
+  minimalUser: UserMinimal | null = null;
   posts: Post[] = [];
   donations: DonationByUser[] = [];
   activeTab: ProfileTab = 'posts';
@@ -44,7 +46,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private router: Router,
     private postsService: PostsService,
     private donationService: DonationService,
-    private scrollService: ScrollRestorationService
+    private scrollService: ScrollRestorationService,
+    private userProfileService: UserProfileService
   ) {}
 
   ngOnInit(): void {
@@ -53,6 +56,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
       .subscribe(params => {
         this.userId = +params['id'];
         if (this.userId) {
+          // Cargar datos mínimos del usuario de forma inmediata (independiente de posts/donaciones)
+          this.loadUserMinimal(this.userId);
+
           this.route.queryParams
             .pipe(takeUntil(this.destroy$))
             .subscribe(queryParams => {
@@ -65,6 +71,37 @@ export class ProfileComponent implements OnInit, OnDestroy {
                 this.loadUserPosts();
               }
             });
+        }
+      });
+  }
+
+  private mapMinimalToPostUser(u: UserMinimal): PostUser {
+    return {
+      id: u.id,
+      username: u.username,
+      profilePhoto: u.profilePhoto,
+      emailVerified: u.emailVerified,
+      verified: u.verified,
+      createdAt: u.createdAt
+    } as PostUser;
+  }
+
+  private loadUserMinimal(userId: number): void {
+    this.isLoadingUser = true;
+    this.userProfileService.getUserMinimal(userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (u: UserMinimal) => {
+          this.minimalUser = u;
+          // Solo establecer si aún no se obtuvo desde posts/donations, para evitar parpadeos
+          if (!this.user) {
+            this.user = this.mapMinimalToPostUser(u);
+          }
+          this.isLoadingUser = false;
+        },
+        error: () => {
+          // Silencioso: mantenemos la lógica actual basada en posts/donations
+          this.isLoadingUser = false;
         }
       });
   }

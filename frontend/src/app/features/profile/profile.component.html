@@ -22,7 +22,9 @@
       <!-- Profile Header -->
       <app-profile-header
         [user]="user"
+        [minimal]="minimalUser"
         [postsCount]="posts.length"
+        [donationsCount]="donations.length"
         [isLoading]="isLoadingUser"
       ></app-profile-header>
 
