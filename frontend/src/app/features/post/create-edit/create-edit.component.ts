@@ -7,6 +7,7 @@ import { PostsService, TypePost } from '../../../core/services/posts.service';
 import { ArticlesService, Article } from '../../../core/services/articles.service';
 import { Tag } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface SelectedArticle {
   articleId: number;
@@ -73,7 +74,8 @@ export class CreateEditComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private postsService: PostsService,
-    private articlesService: ArticlesService
+    private articlesService: ArticlesService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -178,7 +180,18 @@ export class CreateEditComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (types) => {
-          this.typesPosts = types;
+          const currentUser = this.authService.currentUserValue;
+          const userRole = currentUser?.role?.toLowerCase();
+          
+          // Si NO es organización, filtrar "solicitud de donación"
+          if (userRole !== 'organization') {
+            this.typesPosts = types.filter(type => 
+              type.type.toLowerCase() !== 'solicitud de donacion'
+            );
+          } else {
+            // Si es organización, mostrar todos los tipos
+            this.typesPosts = types;
+          }
         },
         error: (err) => {
           console.error('Error loading post types:', err);
