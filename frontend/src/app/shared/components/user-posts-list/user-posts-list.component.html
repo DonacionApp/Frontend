@@ -42,11 +42,32 @@
           <!-- User Info + Type Badge -->
           <div class="flex items-center gap-3 flex-1 min-w-0">
             <!-- User Photo & Name -->
-            <img 
-              [src]="post.user.profilePhoto || 'assets/default-avatar.png'" 
-              [alt]="post.user.username"
-              class="w-10 h-10 rounded-full object-cover flex-shrink-0"
-            />
+            <div class="relative w-10 h-10 flex-shrink-0">
+              <ng-container *ngIf="post.user.profilePhoto; else postUserAvatarSvg">
+                <img 
+                  #postUserImg
+                  [src]="post.user.profilePhoto"
+                  [alt]="post.user.username + ' avatar'"
+                  class="w-10 h-10 rounded-full object-cover"
+                  (error)="postUserImg.style.display='none'; postUserAvatarFallback.style.display='flex'"
+                  loading="lazy"
+                />
+                <div #postUserAvatarFallback style="display:none" class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-container>
+              <ng-template #postUserAvatarSvg>
+                <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-template>
+            </div>
             <div class="flex-1 min-w-0">
               <p class="font-semibold text-sm text-gray-900 truncate">{{ post.user.username }}</p>
               <div class="flex items-center gap-2 mt-0.5">

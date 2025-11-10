@@ -72,12 +72,32 @@
         <!-- Header: User Info -->
         <div class="p-3 lg:p-4 flex items-start justify-between border-b">
           <div class="flex items-center flex-1 min-w-0">
-            <img 
-              [src]="post.user.profilePhoto || 'assets/default-avatar.png'" 
-              [alt]="post.user.username"
-              class="w-8 h-8 lg:w-10 lg:h-10 rounded-full mr-2 lg:mr-3 object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-              (click)="navigateToProfile(post.user.id, $event)"
-            />
+            <div class="relative w-8 h-8 lg:w-10 lg:h-10 mr-2 lg:mr-3 flex-shrink-0 cursor-pointer" (click)="navigateToProfile(post.user.id, $event)">
+              <ng-container *ngIf="post.user.profilePhoto; else postListAvatarSvg">
+                <img 
+                  #postListImg
+                  [src]="post.user.profilePhoto"
+                  [alt]="post.user.username + ' avatar'"
+                  class="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
+                  (error)="postListImg.style.display='none'; postListAvatarFallback.style.display='flex'"
+                  loading="lazy"
+                />
+                <div #postListAvatarFallback style="display:none" class="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-container>
+              <ng-template #postListAvatarSvg>
+                <div class="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-template>
+            </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5">
                 <p 
@@ -510,11 +530,32 @@
              class="p-4 hover:bg-gray-50 transition-colors">
           <div class="flex items-center gap-3">
             <!-- Profile Photo -->
-            <img 
-              [src]="userLike.user.profilePhoto || 'assets/default-avatar.png'" 
-              [alt]="userLike.user.username"
-              class="w-12 h-12 rounded-full object-cover flex-shrink-0"
-            />
+            <div class="relative w-12 h-12 flex-shrink-0">
+              <ng-container *ngIf="userLike.user.profilePhoto; else likeUserAvatarSvg">
+                <img 
+                  #likeUserImg
+                  [src]="userLike.user.profilePhoto"
+                  [alt]="userLike.user.username + ' avatar'"
+                  class="w-12 h-12 rounded-full object-cover"
+                  (error)="likeUserImg.style.display='none'; likeUserAvatarFallback.style.display='flex'"
+                  loading="lazy"
+                />
+                <div #likeUserAvatarFallback style="display:none" class="w-12 h-12 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-container>
+              <ng-template #likeUserAvatarSvg>
+                <div class="w-12 h-12 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </ng-template>
+            </div>
             
             <!-- User Info -->
             <div class="flex-1 min-w-0">

@@ -36,4 +36,26 @@ export class ProfileHeaderComponent {
     if (raw.includes('don')) return 'Donador';
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }
+
+  // Avatar helpers
+  get hasPhoto(): boolean {
+    const photo = this.user?.profilePhoto?.trim();
+    return !!photo && photo !== 'assets/default-avatar.png';
+  }
+
+  get initials(): string {
+    const username = this.user?.username?.trim();
+    if (!username) return '?';
+    // Take first two letters if multi-word or length > 1
+    const parts = username.split(/\s+/).filter(Boolean);
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return username.slice(0, 2).toUpperCase();
+  }
+
+  imageFailed = false;
+  onImageError(): void {
+    this.imageFailed = true;
+  }
 }
