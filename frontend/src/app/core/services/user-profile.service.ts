@@ -4,6 +4,63 @@ import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
+// Tipos para el endpoint /user/minimal/{id}
+export interface UserMinimalMunicipioCountry {
+  id: number;
+  name: string;
+  iso2?: string;
+  iso3?: string;
+  phonecode?: string;
+  capital?: string;
+  currency?: string;
+  native?: string;
+  emoji?: string;
+}
+
+export interface UserMinimalMunicipioState {
+  id: number;
+  name: string;
+  country_id?: number;
+  country_code?: string;
+  iso2?: string;
+  iso3166_2?: string;
+  type?: string | null;
+  level?: number | null;
+  parent_id?: number | null;
+  native?: string;
+  latitude?: string | null;
+  longitude?: string | null;
+  timezone?: string;
+  translations?: string | null;
+  population?: number | null;
+}
+
+export interface UserMinimalMunicipioCity {
+  id: number;
+  name: string;
+}
+
+export interface UserMinimalMunicipio {
+  country?: UserMinimalMunicipioCountry;
+  state?: UserMinimalMunicipioState;
+  city?: UserMinimalMunicipioCity;
+}
+
+export interface UserMinimal {
+  id: number;
+  username: string;
+  email: string;
+  profilePhoto: string;
+  emailVerified: boolean;
+  verified: boolean;
+  createdAt: string;
+  rol: string;
+  residencia?: string;
+  municipio?: UserMinimalMunicipio;
+  countPosts?: number;
+  countDonations?: number;
+}
+
 // Interfaces que coinciden con el backend
 export interface BackendUserProfile {
   id: number;
@@ -224,6 +281,20 @@ export class UserProfileService {
       catchError(error => {
         this.loadingSubject.next(false);
         console.error('Error al cargar perfil:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener datos mínimos de un usuario por id usando /user/minimal/{id}
+   * No normaliza porque la estructura ya es "ligera" y específica.
+   */
+  getUserMinimal(idUser: number): Observable<UserMinimal> {
+    const url = `${environment.apiBackendUrl}/user/minimal/${idUser}`;
+    return this.http.get<UserMinimal>(url).pipe(
+      catchError(error => {
+        console.error('Error al cargar usuario minimal:', error);
         return throwError(() => error);
       })
     );
