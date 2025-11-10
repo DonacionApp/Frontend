@@ -124,7 +124,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   onDateChange(): void {
-    this.applyFilters();
+    if ((this.minDate !== '' && this.maxDate !== '') || (this.minDate === '' && this.maxDate === '')) {
+      this.applyFilters();
+    }
   }
 
   /**
@@ -191,18 +193,14 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     const hasActiveFilters = 
       (this.searchTerm && this.searchTerm.trim() !== '') ||
       this.selectedType !== null ||
-      this.minDate !== '' ||
-      this.maxDate !== '';
+      (this.minDate !== '' && this.maxDate !== '');
 
     if (!hasActiveFilters) {
       this.loadNotifications();
       return;
     }
 
-    if (this.notifications.length === 0 && !this.isLoading) {
-      return;
-    }
-
+    this.notifications = [];
     this.isLoading = true;
     this.hasError = false;
 
@@ -221,11 +219,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       filters.type = this.selectedType;
     }
 
-    if (this.minDate !== '') {
+    if (this.minDate !== '' && this.maxDate !== '') {
       filters.minDate = this.minDate;
-    }
-
-    if (this.maxDate !== '') {
       filters.maxDate = this.maxDate;
     }
 
