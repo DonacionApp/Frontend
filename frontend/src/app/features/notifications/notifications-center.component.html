@@ -97,8 +97,9 @@
             <select
               id="typeFilter"
               [(ngModel)]="selectedType"
+              (change)="onTypeChange()"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white">
-              <option [value]="null">Todos los tipos</option>
+              <option [value]="null" disabled selected>Selecciona una opción</option>
               <option *ngFor="let type of notificationTypes" [value]="type.id">
                 {{ type.type }}
               </option>
@@ -113,6 +114,7 @@
               id="minDate"
               type="date"
               [(ngModel)]="minDate"
+              (change)="onDateChange()"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
           </div>
 
@@ -124,6 +126,7 @@
               id="maxDate"
               type="date"
               [(ngModel)]="maxDate"
+              (change)="onDateChange()"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
           </div>
         </div>

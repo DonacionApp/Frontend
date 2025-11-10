@@ -61,6 +61,77 @@ export class NotificationService {
     );
   }
 
+  getNotificationTypes(): Observable<any[]> {
+    const url = `${this.baseUrl}/type-notify`;
+
+    return this.http.get<any[]>(url).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          return throwError(() => ({
+            status: 404,
+            message: 'No hay tipos de notificaciones'
+          }));
+        }
+        
+        return throwError(() => error);
+      })
+    );
+  }
+
+  filterNotifications(filters: {
+    search?: string;
+    type?: number;
+    minDate?: string;
+    maxDate?: string;
+  }): Observable<Notify[]> {
+    const url = `${this.baseUrl}/user-notify/my-notifications/filters`;
+    
+    const body: any = {};
+    
+    if (filters.search && filters.search.trim() !== '') {
+      body.search = filters.search.trim();
+    }
+    
+    if (filters.type !== null && filters.type !== undefined) {
+      body.type = filters.type;
+    }
+    
+    if (filters.minDate && filters.minDate !== '') {
+      body.minDate = new Date(filters.minDate).toISOString();
+    }
+    
+    if (filters.maxDate && filters.maxDate !== '') {
+      const maxDateObj = new Date(filters.maxDate);
+      maxDateObj.setHours(23, 59, 59, 999);
+      body.maxDate = maxDateObj.toISOString();
+    }
+
+    return this.http.post<Notify[]>(url, body).pipe(
+      tap(notifications => {
+        this.notificationsSubject.next(notifications);
+        this.updateUnreadCount(notifications);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          this.notificationsSubject.next([]);
+          return throwError(() => ({
+            status: 404,
+            message: 'No se encontraron notificaciones con los filtros aplicados'
+          }));
+        }
+        
+        if (error.status === 401) {
+          return throwError(() => ({
+            status: 401,
+            message: 'No autorizado'
+          }));
+        }
+
+        return throwError(() => error);
+      })
+    );
+  }
+
   /**
    * Obtiene las notificaciones actuales del subject
    */
