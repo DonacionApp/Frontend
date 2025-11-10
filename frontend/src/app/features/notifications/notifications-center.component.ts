@@ -39,25 +39,18 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Suscribirse al observable reactivo de notificaciones
-    // Esto se actualizará automáticamente cuando lleguen nuevas notificaciones por WebSocket
     this.notificationService.notifications$
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
-        console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
         this.notifications = nots;
         this.isLoading = false;
         this.hasError = false;
       });
 
-    // Suscribirse al contador de no leídas para actualizarlo automáticamente
     this.notificationService.unreadCount$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(count => {
-        console.log('🔔 Contador de no leídas actualizado:', count);
-      });
+      .subscribe();
 
-    // Cargar las notificaciones iniciales desde el backend
     this.loadNotifications();
   }
 
@@ -103,21 +96,15 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
    * Maneja el cambio en el campo de búsqueda
    */
   onSearchChange(): void {
-    // La búsqueda se hace en tiempo real en el getter filteredNotifications
   }
 
-  /**
-   * Obtiene las notificaciones filtradas según el tab activo y búsqueda
-   */
   get filteredNotifications(): Notify[] {
     let filtered = this.notifications;
     
-    // Filtrar por tab activo
     if (this.activeTab === 'unread') {
       filtered = filtered.filter(notification => !notification.read);
     }
     
-    // Filtrar por búsqueda
     if (this.searchTerm && this.searchTerm.trim() !== '') {
       const searchLower = this.searchTerm.toLowerCase().trim();
       filtered = filtered.filter(notification => 
@@ -130,9 +117,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     return filtered;
   }
 
-  /**
-   * Obtiene el contador de notificaciones para cada tab
-   */
   get allCount(): number {
     return this.notifications.length;
   }
@@ -141,32 +125,19 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     return this.notifications.filter(n => !n.read).length;
   }
 
-  /**
-   * Cambia el tab activo
-   */
   setActiveTab(tab: 'all' | 'unread'): void {
     this.activeTab = tab;
   }
 
-  /**
-   * Maneja el click en marcar todas como leídas (funcionalidad futura)
-   */
   markAllAsRead(): void {
     console.log('Marcar todas como leídas - Funcionalidad pendiente');
   }
 
-  /**
-   * Maneja el click en permitir notificaciones (funcionalidad futura)
-   */
   allowNotifications(): void {
     console.log('Permitir notificaciones - Funcionalidad pendiente');
   }
 
-  /**
-   * Marca una notificación como leída
-   */
   markAsRead(notificationId: number): void {
-    // Evitar marcar si ya está leída
     const notification = this.notifications.find(n => n.id === notificationId);
     if (notification && notification.read) {
       return;
@@ -175,10 +146,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.markNotificationAsRead(notificationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          console.log('Notificación marcada como leída:', response.message);
-          // El estado se actualiza automáticamente por el servicio
-        },
+        next: () => {},
         error: (error: any) => {
           console.error('Error al marcar como leída:', error);
           if (error.status === 404) {
@@ -195,9 +163,26 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Muestra el modal de confirmación para eliminar
-   */
+  onNotificationClick(notification: Notify): void {
+    this.markAsRead(notification.id);
+    
+    if (notification.link && notification.link.trim() !== '') {
+      const link = notification.link.trim();
+      
+      if (link.startsWith('http://') || link.startsWith('https://')) {
+        window.open(link, '_blank');
+      } else if (link.startsWith('/')) {
+        this.router.navigate([link]);
+      } else {
+        this.router.navigate(['/' + link]);
+      }
+    }
+  }
+
+  hasLink(notification: Notify): boolean {
+    return !!(notification.link && notification.link.trim() !== '');
+  }
+
   openDeleteModal(notificationId: number, event: Event): void {
     event.stopPropagation();
     this.notificationToDelete = notificationId;
@@ -225,9 +210,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.deleteNotification(notificationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          console.log('Notificación eliminada:', response.message);
-          // El estado se actualiza automáticamente por el servicio
+        next: () => {
           this.closeDeleteModal();
         },
         error: (error: any) => {
@@ -236,7 +219,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           
           if (error.status === 404) {
             alert('Notificación no encontrada');
-            // El estado se actualiza automáticamente por el servicio
           } else if (error.status === 401) {
             alert('No autorizado. Por favor inicia sesión nuevamente.');
             this.router.navigate(['/auth/login']);
@@ -249,9 +231,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Obtiene el tiempo relativo desde que se creó la notificación
-   */
   getRelativeTime(date: Date): string {
     const now = new Date();
     const notificationDate = new Date(date);
@@ -271,9 +250,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Obtiene el color del borde izquierdo según el tipo de notificación y estado de lectura
-   */
   getNotificationBorderColor(type: string, isRead: boolean): string {
     if (isRead) {
       return 'border-gray-200';
@@ -292,9 +268,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Obtiene el color de fondo según el tipo de notificación y estado de lectura
-   */
   getNotificationBgColor(type: string, isRead: boolean): string {
     if (isRead) {
       return 'bg-white';
@@ -313,9 +286,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Obtiene el color de fondo del ícono según el tipo de notificación y estado de lectura
-   */
   getNotificationIconBg(type: string, isRead: boolean): string {
     if (isRead) {
       return 'bg-gray-100';
@@ -334,9 +304,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Obtiene el color del ícono según el tipo de notificación y estado de lectura
-   */
   getNotificationIconColor(type: string, isRead: boolean): string {
     if (isRead) {
       return 'text-gray-500';
@@ -355,9 +322,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Obtiene el color del badge según el tipo de notificación y estado de lectura
-   */
   getNotificationBadgeColor(type: string, isRead: boolean): string {
     if (isRead) {
       return 'bg-gray-100 text-gray-600';
@@ -376,16 +340,10 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Obtiene las clases de opacidad según el estado de lectura
-   */
   getReadOpacity(isRead: boolean): string {
     return isRead ? 'opacity-50' : 'opacity-100';
   }
 
-  /**
-   * Obtiene las clases adicionales de estilo para notificaciones leídas
-   */
   getReadStyles(isRead: boolean): string {
     return isRead ? 'grayscale' : '';
   }
