@@ -26,18 +26,47 @@ export class AuthInterceptor implements HttpInterceptor {
       const clonedReq = this.addTokenHeader(req, token);
       
       return next.handle(clonedReq).pipe(
+        // Usar tap para interceptar la respuesta exitosa y capturar el nuevo token
         catchError((error: HttpErrorResponse) => {
+          // Capturar nuevo token incluso en errores
+          this.captureNewToken(error);
+          
           // Si el error es 401 (no autorizado) y no es una petición de login/refresh
           if (error.status === 401 && !this.isAuthRequest(req.url)) {
             return this.handle401Error(req, next);
           }
           
           return throwError(() => error);
+        }),
+        // También capturar en respuestas exitosas
+        switchMap((event: HttpEvent<any>) => {
+          if (event.type === 4) { // HttpEventType.Response
+            this.captureNewToken(event);
+          }
+          return [event];
         })
       );
     }
 
     return next.handle(req);
+  }
+
+  /**
+   * Capturar nuevo token del header X-New-Token
+   */
+  private captureNewToken(response: any): void {
+    if (!response || !response.headers) return;
+    
+    const newToken = response.headers.get('X-New-Token') || response.headers.get('x-new-token');
+    
+    if (newToken) {
+      localStorage.setItem('accessToken', newToken);
+      
+      // También actualizar el refreshToken si viene en el body
+      if (response.body?.refreshToken) {
+        localStorage.setItem('refreshToken', response.body.refreshToken);
+      }
+    }
   }
 
   /**

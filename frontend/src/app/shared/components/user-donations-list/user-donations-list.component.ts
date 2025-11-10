@@ -55,7 +55,7 @@ export class UserDonationsListComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['donations']) {
-      console.log('Donations received:', this.donations);
+      //console.log('Donations received:', this.donations);
       this.filteredDonations = [...this.donations];
       this.extractFilterOptions();
     }
