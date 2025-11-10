@@ -69,6 +69,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
 
     // Cargar las notificaciones iniciales desde el backend
     this.loadNotifications();
+    this.loadNotificationTypes();
   }
 
   ngOnDestroy(): void {
@@ -115,11 +116,19 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
    * Maneja el cambio en el campo de búsqueda
    */
   onSearchChange(): void {
-    // La búsqueda se hace en tiempo real en el getter filteredNotifications
+    this.applyFilters();
+  }
+
+  onTypeChange(): void {
+    this.applyFilters();
+  }
+
+  onDateChange(): void {
+    this.applyFilters();
   }
 
   /**
-   * Obtiene las notificaciones filtradas según el tab activo y búsqueda
+   * Obtiene las notificaciones filtradas según el tab activo
    */
   get filteredNotifications(): Notify[] {
     let filtered = this.notifications;
@@ -127,16 +136,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     // Filtrar por tab activo
     if (this.activeTab === 'unread') {
       filtered = filtered.filter(notification => !notification.read);
-    }
-    
-    // Filtrar por búsqueda
-    if (this.searchTerm && this.searchTerm.trim() !== '') {
-      const searchLower = this.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(notification => 
-        notification.message.toLowerCase().includes(searchLower) ||
-        notification.type.type.toLowerCase().includes(searchLower) ||
-        notification.title.toLowerCase().includes(searchLower)
-      );
     }
     
     return filtered;
@@ -168,6 +167,92 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.selectedType = null;
     this.minDate = '';
     this.maxDate = '';
+    this.applyFilters();
+  }
+
+  loadNotificationTypes(): void {
+    this.notificationService.getNotificationTypes()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (types) => {
+          this.notificationTypes = types;
+        },
+        error: (error) => {
+          if (error.status === 404) {
+            this.notificationTypes = [];
+          } else {
+            console.error('Error al cargar tipos de notificaciones:', error);
+          }
+        }
+      });
+  }
+
+  applyFilters(): void {
+    const hasActiveFilters = 
+      (this.searchTerm && this.searchTerm.trim() !== '') ||
+      this.selectedType !== null ||
+      this.minDate !== '' ||
+      this.maxDate !== '';
+
+    if (!hasActiveFilters) {
+      this.loadNotifications();
+      return;
+    }
+
+    if (this.notifications.length === 0 && !this.isLoading) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.hasError = false;
+
+    const filters: {
+      search?: string;
+      type?: number;
+      minDate?: string;
+      maxDate?: string;
+    } = {};
+
+    if (this.searchTerm && this.searchTerm.trim() !== '') {
+      filters.search = this.searchTerm;
+    }
+
+    if (this.selectedType !== null) {
+      filters.type = this.selectedType;
+    }
+
+    if (this.minDate !== '') {
+      filters.minDate = this.minDate;
+    }
+
+    if (this.maxDate !== '') {
+      filters.maxDate = this.maxDate;
+    }
+
+    this.notificationService.filterNotifications(filters)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (notifications) => {
+          this.notifications = notifications;
+          this.isLoading = false;
+        },
+        error: (error) => {
+          this.isLoading = false;
+          if (error.status === 404) {
+            this.notifications = [];
+            this.hasError = false;
+          } else if (error.status === 401) {
+            this.hasError = true;
+            this.errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
+            setTimeout(() => {
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+          } else {
+            this.hasError = true;
+            this.errorMessage = 'Error al filtrar las notificaciones. Intenta nuevamente.';
+          }
+        }
+      });
   }
 
   /**
