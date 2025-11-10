@@ -40,6 +40,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   selectedType: number | null = null;
   minDate: string = '';
   maxDate: string = '';
+  hasActiveFilters = false;
 
   constructor(
     private notificationService: NotificationService,
@@ -78,6 +79,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
    * Carga las notificaciones del backend
    */
   loadNotifications(): void {
+    this.notifications = [];
     this.isLoading = true;
     this.hasError = false;
     
@@ -165,10 +167,16 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
+    if (!this.hasActiveFilters) {
+      return;
+    }
+
     this.selectedType = null;
     this.minDate = '';
     this.maxDate = '';
-    this.applyFilters();
+    this.searchTerm = '';
+    this.hasActiveFilters = false;
+    this.loadNotifications();
   }
 
   loadNotificationTypes(): void {
@@ -189,16 +197,18 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    const hasActiveFilters = 
+    const checkActiveFilters = 
       (this.searchTerm && this.searchTerm.trim() !== '') ||
       this.selectedType !== null ||
       (this.minDate !== '' && this.maxDate !== '');
 
-    if (!hasActiveFilters) {
+    if (!checkActiveFilters) {
+      this.hasActiveFilters = false;
       this.loadNotifications();
       return;
     }
 
+    this.hasActiveFilters = true;
     this.notifications = [];
     this.isLoading = true;
     this.hasError = false;

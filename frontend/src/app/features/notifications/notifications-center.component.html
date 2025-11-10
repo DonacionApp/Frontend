@@ -134,10 +134,12 @@
         <div class="flex items-center justify-end gap-2 mt-4">
           <button
             (click)="clearFilters()"
-            class="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+            [disabled]="!hasActiveFilters"
+            [class.opacity-50]="!hasActiveFilters"
+            [class.cursor-not-allowed]="!hasActiveFilters"
+            [class.hover:bg-green-50]="hasActiveFilters"
+            [class.hover:border-green-500]="hasActiveFilters"
+            class="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm disabled:hover:bg-green-600 disabled:hover:border-green-600">
             <span>Limpiar filtros</span>
           </button>
         </div>
