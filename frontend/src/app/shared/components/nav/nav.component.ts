@@ -181,6 +181,62 @@ export class NavComponent implements OnInit, OnDestroy {
     this.router.navigate(['/notifications']);
   }
 
+  onPostsClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/post']);
+  }
+
+  onMyDonationsClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization']);
+    } else if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else {
+      this.router.navigate(['/post']);
+    }
+  }
+
+  onDonateClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization/donations/create']);
+    } else if (this.user?.role === 'donor') {
+      // Para donantes, crear un post
+      this.router.navigate(['/post/create']);
+    } else {
+      // Si no está autenticado, redirigir al login
+      this.router.navigate(['/auth/login']);
+    }
+  }
+
+  onOrganizationsClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization']);
+    } else {
+      // Para otros usuarios, mostrar posts o una lista de organizaciones
+      this.router.navigate(['/post']);
+    }
+  }
+
+  onMessagesClick(): void {
+    this.closeMobileMenu();
+    // Por ahora redirigir a notificaciones, pero esto puede cambiar cuando se implemente mensajería
+    this.router.navigate(['/notifications']);
+  }
+
+  onStatisticsClick(): void {
+    this.closeMobileMenu();
+    if (this.user?.role === 'organization') {
+      this.router.navigate(['/organization']);
+    } else if (this.user?.role === 'donor') {
+      this.router.navigate(['/donor/profile']);
+    } else {
+      this.router.navigate(['/']);
+    }
+  }
+
   getProfileRoute(): string {
     if (this.user?.role === 'donor') {
       return '/donor/profile';
