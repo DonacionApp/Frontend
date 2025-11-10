@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
 import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
+import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
@@ -29,7 +30,8 @@ export class NavComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private profileService: UserProfileService,
-    private organizationProfileService: OrganizationProfileService
+    private organizationProfileService: OrganizationProfileService,
+    private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
@@ -199,42 +201,26 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onDonateClick(): void {
     this.closeMobileMenu();
-    if (this.user?.role === 'organization') {
-      this.router.navigate(['/organization/donations/create']);
-    } else if (this.user?.role === 'donor') {
-      // Para donantes, crear un post
-      this.router.navigate(['/post/create']);
-    } else {
-      // Si no está autenticado, redirigir al login
-      this.router.navigate(['/auth/login']);
-    }
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onOrganizationsClick(): void {
     this.closeMobileMenu();
-    if (this.user?.role === 'organization') {
-      this.router.navigate(['/organization']);
-    } else {
-      // Para otros usuarios, mostrar posts o una lista de organizaciones
-      this.router.navigate(['/post']);
-    }
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onMessagesClick(): void {
     this.closeMobileMenu();
-    // Por ahora redirigir a notificaciones, pero esto puede cambiar cuando se implemente mensajería
-    this.router.navigate(['/notifications']);
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onStatisticsClick(): void {
     this.closeMobileMenu();
-    if (this.user?.role === 'organization') {
-      this.router.navigate(['/organization']);
-    } else if (this.user?.role === 'donor') {
-      this.router.navigate(['/donor/profile']);
-    } else {
-      this.router.navigate(['/']);
-    }
+    // Funcionalidad próximamente
+    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   getProfileRoute(): string {
