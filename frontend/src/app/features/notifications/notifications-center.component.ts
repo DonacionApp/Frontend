@@ -18,6 +18,7 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private isFirstLoad = true;
+  private hasLoadedNotifications = false; // Rastrea si alguna vez se cargaron notificaciones
   
   notifications: Notify[] = [];
   isLoading = true;
@@ -90,6 +91,10 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           this.notifications = notifications;
           this.isLoading = false;
           this.isFirstLoad = false;
+          // Marcar que se cargaron notificaciones si hay al menos una
+          if (notifications.length > 0) {
+            this.hasLoadedNotifications = true;
+          }
         },
         error: (error: any) => {
           this.isLoading = false;
@@ -112,12 +117,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja el cambio en el campo de búsqueda
+   * Maneja el cambio en el tipo de notificación
    */
-  onSearchChange(): void {
-    this.applyFilters();
-  }
-
   onTypeChange(): void {
     this.applyFilters();
   }
@@ -161,11 +162,23 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     return this.notifications.filter(n => !n.read).length;
   }
 
+  /**
+   * Verifica si el usuario tiene o ha tenido notificaciones
+   * Permite usar filtros incluso si los resultados filtrados están vacíos
+   */
+  get hasNotifications(): boolean {
+    return this.hasLoadedNotifications || (Array.isArray(this.notifications) && this.notifications.length > 0);
+  }
+
   setActiveTab(tab: 'all' | 'unread'): void {
     this.activeTab = tab;
   }
 
   toggleFilters(): void {
+    // Solo permitir desplegar filtros si hay notificaciones
+    if (!this.hasNotifications) {
+      return;
+    }
     this.showFilters = !this.showFilters;
   }
 
@@ -177,7 +190,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.selectedType = null;
     this.minDate = '';
     this.maxDate = '';
-    this.searchTerm = '';
+    this.searchTerm = ''; // Limpiar búsqueda local también
     this.hasActiveFilters = false;
     this.loadNotifications();
   }
@@ -200,8 +213,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
+    // Solo validar filtros de backend (tipo y fechas), NO búsqueda local
     const checkActiveFilters = 
-      (this.searchTerm && this.searchTerm.trim() !== '') ||
       this.selectedType !== null ||
       (this.minDate !== '' && this.maxDate !== '');
 
@@ -217,15 +230,10 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.hasError = false;
 
     const filters: {
-      search?: string;
       type?: number;
       minDate?: string;
       maxDate?: string;
     } = {};
-
-    if (this.searchTerm && this.searchTerm.trim() !== '') {
-      filters.search = this.searchTerm;
-    }
 
     if (this.selectedType !== null) {
       filters.type = this.selectedType;
@@ -242,6 +250,10 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
         next: (notifications) => {
           this.notifications = notifications;
           this.isLoading = false;
+          // Marcar que se cargaron notificaciones si hay al menos una
+          if (notifications.length > 0) {
+            this.hasLoadedNotifications = true;
+          }
         },
         error: (error) => {
           this.isLoading = false;

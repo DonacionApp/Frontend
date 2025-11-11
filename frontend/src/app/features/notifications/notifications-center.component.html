@@ -59,18 +59,22 @@
           <input 
             type="text"
             [(ngModel)]="searchTerm"
-            (input)="onSearchChange()"
-            placeholder="Buscar notificaciones..." 
+            placeholder="Buscar notificaciones..."
+            [disabled]="!hasNotifications"
             class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 focus:shadow-md"
             title="Buscar por título o mensaje">
         </div>
 
         <button 
           (click)="toggleFilters()"
-          [class.bg-green-50]="showFilters"
-          [class.text-green-600]="showFilters"
-          [class.border-green-500]="showFilters"
-          class="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 whitespace-nowrap">
+          [disabled]="!hasNotifications"
+          [title]="!hasNotifications ? 'No tienes notificaciones' : 'Mostrar/Ocultar filtros'"
+          [class.bg-green-50]="showFilters && hasNotifications"
+          [class.text-green-600]="showFilters && hasNotifications"
+          [class.border-green-500]="showFilters && hasNotifications"
+          [class.opacity-50]="!hasNotifications"
+          [class.cursor-not-allowed]="!hasNotifications"
+          class="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 whitespace-nowrap disabled:hover:bg-white">
           <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
           </svg>
