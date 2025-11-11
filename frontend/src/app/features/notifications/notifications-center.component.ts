@@ -51,7 +51,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.notifications$
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
-        this.notifications = nots;
+        this.notifications = Array.isArray(nots) ? nots : [];
         this.isLoading = false;
         this.hasError = false;
         console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
@@ -155,6 +155,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   get unreadCount(): number {
+    if (!Array.isArray(this.notifications)) {
+      return 0;
+    }
     return this.notifications.filter(n => !n.read).length;
   }
 
