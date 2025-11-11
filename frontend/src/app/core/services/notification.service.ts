@@ -30,13 +30,65 @@ export class NotificationService {
   }
 
   /**
+   * Normaliza la respuesta del backend para devolver siempre un array de notificaciones.
+   * Algunos endpoints o respuestas (especialmente tras refresh de token) pueden devolver
+   * { success: true, data: [...] } u otros wrappers. Normalizamos ambos casos.
+   */
+  private normalizeNotificationsPayload(payload: any): Notify[] {
+    if (!payload) return [];
+
+    // Caso 1: ya es un array
+    if (Array.isArray(payload)) {
+      return payload as Notify[];
+    }
+
+    // Caso 2: wrappers comunes (data, notifications, items)
+    if (payload.data && Array.isArray(payload.data)) {
+      return payload.data as Notify[];
+    }
+
+    if (payload.notifications && Array.isArray(payload.notifications)) {
+      return payload.notifications as Notify[];
+    }
+
+    if (payload.items && Array.isArray(payload.items)) {
+      return payload.items as Notify[];
+    }
+
+    // Caso 3: objeto con claves numéricas (p.ej. {0: {...}, 1: {...}, refreshToken: '...'})
+    if (typeof payload === 'object' && payload !== null) {
+      const numericKeys = Object.keys(payload).filter(k => /^\d+$/.test(k));
+      if (numericKeys.length > 0) {
+        // Ordenar por índice numérico y mapear a array
+        const ordered = numericKeys
+          .map(k => parseInt(k, 10))
+          .sort((a, b) => a - b)
+          .map(idx => (payload as any)[String(idx)]);
+
+        // Filtrar valores falsy por seguridad
+        return ordered.filter(Boolean) as Notify[];
+      }
+    }
+
+    // Caso 4: single notification object (backend or websocket may enviar un objeto único)
+    if (payload && typeof payload === 'object' && (payload.id || payload.title || payload.message)) {
+      return [payload as Notify];
+    }
+
+    // No es iterable ni reconocible: devolver array vacío y loggear para diagnóstico
+    console.warn('normalizeNotificationsPayload: payload no contiene un array de notificaciones', payload);
+    return [];
+  }
+
+  /**
    * Obtiene todas las notificaciones del usuario autenticado
    */
   getMyNotifications(): Observable<Notify[]> {
     const url = `${this.baseUrl}/user-notify/my-notifications`;
 
     return this.http.get<Notify[]>(url).pipe(
-      tap(notifications => {
+      tap(raw => {
+        const notifications = this.normalizeNotificationsPayload(raw);
         this.notificationsSubject.next(notifications);
         this.updateUnreadCount(notifications);
       }),
@@ -107,7 +159,8 @@ export class NotificationService {
     }
 
     return this.http.post<Notify[]>(url, body).pipe(
-      tap(notifications => {
+      tap(raw => {
+        const notifications = this.normalizeNotificationsPayload(raw);
         this.notificationsSubject.next(notifications);
         this.updateUnreadCount(notifications);
       }),
@@ -351,7 +404,27 @@ export class NotificationService {
    * Actualizar contador de no leídas
    */
   private updateUnreadCount(notifications: Notify[]): void {
-    const unreadCount = notifications.filter(n => !n.read).length;
+    // Aceptar también una notificación única pasada por error (convertir a array)
+    let list: Notify[] = [];
+
+    if (!notifications) {
+      console.warn('updateUnreadCount: recibido valor no definido', notifications);
+      this.unreadCountSubject.next(0);
+      return;
+    }
+
+    if (Array.isArray(notifications)) {
+      list = notifications;
+    } else if ((notifications as any).id) {
+      // Un solo objeto de notificación
+      list = [notifications as any as Notify];
+    } else {
+      console.warn('updateUnreadCount: recibido valor no iterable', notifications);
+      this.unreadCountSubject.next(0);
+      return;
+    }
+
+    const unreadCount = list.filter(n => !n.read).length;
     this.unreadCountSubject.next(unreadCount);
   }
 }

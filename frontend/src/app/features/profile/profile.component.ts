@@ -120,11 +120,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (posts) => {
-          this.posts = posts;
+            // Defensa: algunos refresh/interceptor pueden hacer que la respuesta sea un objeto.
+            const normalized = Array.isArray(posts)
+              ? posts
+              : (posts && Array.isArray((posts as any).data) ? (posts as any).data : []);
+
+            this.posts = normalized;
           
           // Extraer información del usuario del primer post
-          if (posts.length > 0 && posts[0]?.user) {
-            this.user = posts[0].user;
+          if (this.posts.length > 0 && this.posts[0]?.user) {
+            this.user = this.posts[0].user;
             this.isLoadingUser = false;
             this.isLoadingPosts = false;
             // Restaurar el scroll (perfil suele demorar un poco más en renderizar)
@@ -136,7 +141,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
             // Restaurar scroll incluso si no hay posts
             this.scrollService.restorePosition('profileScrollPosition', 600);
             // No marcar como error si simplemente no tiene posts
-            if (posts.length === 0) {
+            if (this.posts.length === 0) {
               // Crear un usuario temporal con datos mínimos
               this.user = {
                 id: this.userId,
