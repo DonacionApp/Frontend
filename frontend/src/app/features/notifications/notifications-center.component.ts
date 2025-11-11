@@ -68,7 +68,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       .subscribe();
 
     this.loadNotifications();
-    this.loadNotificationTypes();
   }
 
   ngOnDestroy(): void {
@@ -95,6 +94,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           if (notifications.length > 0) {
             this.hasLoadedNotifications = true;
           }
+          // Cargar tipos después de que las notificaciones se hayan cargado
+          this.loadNotificationTypes();
         },
         error: (error: any) => {
           this.isLoading = false;
@@ -102,6 +103,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           if (error.status === 404) {
             this.notifications = [];
             this.hasError = false;
+            // Intentar cargar tipos incluso si no hay notificaciones
+            this.loadNotificationTypes();
           } else if (error.status === 401) {
             this.hasError = true;
             this.errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
@@ -196,6 +199,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   loadNotificationTypes(): void {
+    // Si ya se cargaron los tipos, no hacer la petición nuevamente
+    if (this.notificationTypes && this.notificationTypes.length > 0) {
+      return;
+    }
+
     this.notificationService.getNotificationTypes()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -213,7 +221,6 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    // Solo validar filtros de backend (tipo y fechas), NO búsqueda local
     const checkActiveFilters = 
       this.selectedType !== null ||
       (this.minDate !== '' && this.maxDate !== '');
