@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface Article {
@@ -56,7 +57,30 @@ export class ArticlesService {
   constructor(private http: HttpClient) { }
 
   getAllArticles(filters?: ArticleFilterDTO): Observable<Article[]> {
-    return this.http.post<Article[]>(`${this.apiUrl}/all`, filters || {});
+    return this.http.post<any>(`${this.apiUrl}/all`, filters || {}).pipe(
+      map((raw) => {
+        // Normalize common response shapes into an array
+        if (!raw) return [] as Article[];
+        if (Array.isArray(raw)) return raw as Article[];
+        if (raw.data && Array.isArray(raw.data)) return raw.data as Article[];
+        if (raw.items && Array.isArray(raw.items)) return raw.items as Article[];
+
+        if (typeof raw === 'object' && raw !== null) {
+          const numericKeys = Object.keys(raw).filter(k => /^\d+$/.test(k));
+          if (numericKeys.length > 0) {
+            const ordered = numericKeys
+              .map(k => parseInt(k, 10))
+              .sort((a, b) => a - b)
+              .map(idx => (raw as any)[String(idx)]);
+            return ordered.filter(Boolean) as Article[];
+          }
+          // Single object
+          return [raw] as Article[];
+        }
+
+        return [] as Article[];
+      })
+    );
   }
 
   getArticleById(id: number): Observable<Article> {

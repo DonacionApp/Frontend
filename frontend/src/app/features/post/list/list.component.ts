@@ -110,10 +110,15 @@ export class ListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (posts) => {
+          // Defensa: asegurarse de que el backend devolvió un array.
+          const normalizedPosts = Array.isArray(posts)
+            ? posts
+            : (posts && Array.isArray((posts as any).data) ? (posts as any).data : []);
+
           if (append) {
-            this.posts = [...this.posts, ...posts];
+            this.posts = [...this.posts, ...normalizedPosts];
           } else {
-            this.posts = posts;
+            this.posts = normalizedPosts;
           }
           
           this.hasMore = posts.length === this.limit;

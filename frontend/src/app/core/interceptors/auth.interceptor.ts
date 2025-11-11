@@ -18,24 +18,28 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    const token = localStorage.getItem('accessToken');
-    
-    if (token && this.isBackendRequest(req.url)) {
-      const clonedReq = this.addTokenHeader(req, token);
-      
-      return next.handle(clonedReq).pipe(
+    const authService = this.injector.get(AuthService);
+    const token = authService.getAccessToken();
+
+    // Si es una request al backend, queremos interceptar la respuesta para capturar
+    // tokens que el servidor pueda devolver incluso si no tenemos token en memoria.
+    if (this.isBackendRequest(req.url)) {
+      const requestToSend = token ? this.addTokenHeader(req, token) : req;
+
+      return next.handle(requestToSend).pipe(
         tap((event: HttpEvent<any>) => {
           if (event.type === 4) {
             this.captureNewToken(event);
           }
         }),
         catchError((error: HttpErrorResponse) => {
+          // Intentar capturar token incluso desde respuestas de error
           this.captureNewToken(error);
-          
+
           if (error.status === 401 && !this.isAuthRequest(req.url)) {
             return this.handle401Error(req, next);
           }
-          
+
           return throwError(() => error);
         })
       );
@@ -45,39 +49,96 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private captureNewToken(response: any): void {
-    if (!response || !response.headers) return;
-    
-    const newToken = response.headers.get('X-New-Token') || response.headers.get('x-new-token');
-    
+    if (!response) return;
+
+    // Helper to safely read headers
+    const getHeader = (name: string) => {
+      try {
+        return response.headers?.get?.(name) || response.headers?.get?.(name.toLowerCase()) || null;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Preferir token en headers
+    let newToken: string | null = getHeader('X-New-Token');
+
+    // Determine where the body might live for success vs HttpErrorResponse
+    let body: any = null;
+    if (response.body !== undefined) {
+      body = response.body;
+    } else if (response.error !== undefined) {
+      // HttpErrorResponse typically exposes the response payload in `error`
+      body = response.error;
+    }
+
+    // If body is a string (sometimes servers return JSON as string), try to parse
+    if (body && typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        // leave as-is
+      }
+    }
+
+    // Si no hay token en headers, revisar el body por claves comunes
+    if (!newToken && body) {
+      newToken = body?.accessToken || body?.access_token || body?.token || null;
+    }
+
+    // Si no hay token de acceso pero sí hay refreshToken, actualizarlo silenciosamente
+    const refreshFromBody = body?.refreshToken || body?.refresh_token || null;
+    if (!newToken && refreshFromBody) {
+      try {
+        const authService = this.injector.get(AuthService);
+        authService.updateRefreshTokenSilently(refreshFromBody);
+      } catch (e) {
+        try {
+          localStorage.setItem('refreshToken', refreshFromBody);
+        } catch (inner) {
+          console.error('No se pudo guardar refreshToken:', inner);
+        }
+      }
+      return;
+    }
+
     if (!newToken) return;
-    
-    const currentToken = localStorage.getItem('accessToken');
-    
+
+    const authServiceInstance = this.injector.get(AuthService);
+    const currentToken = authServiceInstance.getAccessToken();
     if (currentToken === newToken) return;
-    
+
     const now = Date.now();
     const isInCooldown = now - this.lastTokenUpdate < this.TOKEN_UPDATE_COOLDOWN;
-    
     const isSignificant = currentToken ? this.isSignificantTokenChange(currentToken, newToken) : true;
-    
-    if (isInCooldown && !isSignificant) {
+
+    if ((isInCooldown && !isSignificant) || !isSignificant) {
       return;
     }
-    
-    if (!isSignificant) {
-      return;
-    }
-    
-    localStorage.setItem('accessToken', newToken);
-    this.lastTokenUpdate = now;
-    
-    if (response.body?.refreshToken) {
-      localStorage.setItem('refreshToken', response.body.refreshToken);
-    }
-    
+
     try {
-      const authService = this.injector.get(AuthService);
-      authService.updateTokenSilently(newToken);
+      authServiceInstance.setAccessToken(newToken);
+      this.lastTokenUpdate = now;
+    } catch (e) {
+      console.error('No se pudo actualizar accessToken en memoria:', e);
+    }
+
+    // Si el body trae refreshToken, actualizarlo silenciosamente (y reconectar si corresponde)
+    if (refreshFromBody) {
+      try {
+        authServiceInstance.updateRefreshTokenSilently(refreshFromBody);
+      } catch (e) {
+        try {
+          localStorage.setItem('refreshToken', refreshFromBody);
+        } catch (inner) {
+          console.error('No se pudo guardar refreshToken:', inner);
+        }
+      }
+    }
+
+    try {
+      // Notificar al servicio de auth para que actualice estado sin forzar un refresh-http
+      authServiceInstance.updateTokenSilently(newToken);
     } catch (error) {
       console.error('Error notificando cambio de token:', error);
     }
@@ -140,24 +201,44 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const authService = this.injector.get(AuthService);
+
+    // Si ya se capturó un nuevo access token (por ejemplo el backend lo devolvió
+    // en la respuesta de error), usarlo y reintentar la petición sin intentar
+    // un refresh adicional.
+    const capturedToken = authService.getAccessToken();
+    if (capturedToken) {
+      // Reintentar inmediatamente con el token capturado
+      this.refreshTokenSubject.next(capturedToken);
+      return next.handle(this.addTokenHeader(request, capturedToken));
+    }
+
+    // Si no hay token capturado, comprobar si existe refreshToken persistente.
+    // Si no existe, forzar logout (no podemos refrescar).
+    const storedRefresh = localStorage.getItem('refreshToken');
+    if (!storedRefresh) {
+      // No hay refresh token persistente: no forzamos un redirect automático aquí.
+      // Dejar que el llamador maneje la 401 (por ejemplo mostrar login o intentar acción alternativa).
+      console.warn('No hay refreshToken almacenado y no se capturó token: no se intentará refresh automático');
+      return throwError(() => new Error('No refresh token available'));
+    }
+
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
 
-      const authService = this.injector.get(AuthService);
-      
       return authService.refreshToken().pipe(
         switchMap((res: any) => {
           this.isRefreshing = false;
-          
+
           const newToken = res?.access_token || res?.accessToken || res?.token || 
-                          localStorage.getItem('accessToken');
-          
+                          authService.getAccessToken();
+
           if (newToken) {
             this.refreshTokenSubject.next(newToken);
             return next.handle(this.addTokenHeader(request, newToken));
           }
-          
+
           console.error('No se recibió un nuevo token después del refresh');
           authService.logoutAndRedirect();
           return throwError(() => new Error('No se pudo refrescar el token'));
@@ -165,22 +246,21 @@ export class AuthInterceptor implements HttpInterceptor {
         catchError((err) => {
           this.isRefreshing = false;
           this.refreshTokenSubject.next(null);
-          const authService = this.injector.get(AuthService);
-          
+
           const isTokenError = err?.status === 401 || 
                                err?.status === 403 || 
                                err?.status === 400 ||
                                err?.message?.includes('token') ||
                                err?.message?.includes('expired') ||
                                err?.message?.includes('invalid');
-          
+
           if (isTokenError) {
             console.error('Error de autenticación al refrescar token:', err);
             authService.logoutAndRedirect();
           } else {
             authService.logout();
           }
-          
+
           return throwError(() => err);
         })
       );
@@ -192,13 +272,11 @@ export class AuthInterceptor implements HttpInterceptor {
           if (token) {
             return next.handle(this.addTokenHeader(request, token));
           } else {
-            const authService = this.injector.get(AuthService);
             authService.logoutAndRedirect();
             return throwError(() => new Error('Token refresh failed'));
           }
         }),
         catchError((err) => {
-          const authService = this.injector.get(AuthService);
           authService.logoutAndRedirect();
           return throwError(() => err);
         })

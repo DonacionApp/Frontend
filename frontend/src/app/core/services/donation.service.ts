@@ -166,6 +166,33 @@ export class DonationService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Normalizar respuestas que pueden venir como array, wrapper o objeto numerado
+   */
+  private normalizeGenericArray<T = any>(payload: any): T[] {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload as T[];
+    if (payload.data && Array.isArray(payload.data)) return payload.data as T[];
+    if (payload.items && Array.isArray(payload.items)) return payload.items as T[];
+    if (payload.results && Array.isArray(payload.results)) return payload.results as T[];
+
+    if (typeof payload === 'object' && payload !== null) {
+      const numericKeys = Object.keys(payload).filter(k => /^\d+$/.test(k));
+      if (numericKeys.length > 0) {
+        const ordered = numericKeys
+          .map(k => parseInt(k, 10))
+          .sort((a, b) => a - b)
+          .map(idx => (payload as any)[String(idx)]);
+        return ordered.filter(Boolean) as T[];
+      }
+
+      // Single object -> wrap
+      return [payload] as T[];
+    }
+
+    return [];
+  }
+
+  /**
    * Crear una nueva donación
    */
   createDonation(donationData: CreateDonationDTO): Observable<Donation> {
@@ -195,7 +222,8 @@ export class DonationService {
    */
   getMyDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<Donation[]>(`${this.apiUrl}/me/all`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/me/all`).pipe(
+      map(raw => this.normalizeGenericArray<Donation>(raw)),
       tap(donations => {
         this.donationsSubject.next(donations);
         this.loadingSubject.next(false);
@@ -371,7 +399,8 @@ export class DonationService {
 
   getAllDonationStatuses(): Observable<StatusDonation[]> {
     const url = `${environment.apiBackendUrl}/statusdonation`;
-    return this.http.get<StatusDonation[]>(url).pipe(
+    return this.http.get<any>(url).pipe(
+      map(raw => this.normalizeGenericArray<StatusDonation>(raw)),
       catchError(error => {
         console.error('Error al obtener estados de donación:', error);
         return throwError(() => error);

@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { tap, catchError, switchMap } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
+import { NotificationService } from './notification.service';
 
 export interface User {
   id: string;
@@ -23,6 +24,10 @@ export interface User {
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private accessTokenSubject = new BehaviorSubject<string | null>(null);
+  public accessToken$ = this.accessTokenSubject.asObservable();
+  // Llave unificada para persistir el token de acceso (usar siempre la misma nomenclatura)
+  private readonly TOKEN_STORAGE_KEY = 'token';
   private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
   private api=environment.apiBackendUrl;
   private router: Router | null = null;
@@ -30,6 +35,7 @@ export class AuthService {
   constructor(
     private http: HttpClient, 
     private websocketService: WebsocketService,
+    private notificationService: NotificationService,
     private injector: Injector
   ) {
     // Verificar si hay un usuario en localStorage al iniciar
@@ -37,9 +43,11 @@ export class AuthService {
     if (savedUser) {
       this.currentUserSubject.next(JSON.parse(savedUser));
     }
-    // Cargar token si existe
-    const token = localStorage.getItem('accessToken');
+    // Cargar token si existe (usar la llave unificada)
+    const token = localStorage.getItem(this.TOKEN_STORAGE_KEY);
     if (token) {
+      // Cargar token en memoria y mantenerlo persistido para compatibilidad con reloads
+      this.setAccessToken(token);
       const payload = this.decodeToken(token);
       if (payload) {
         const rawRole = payload.role || payload.roles || payload.rol || 'donor';
@@ -55,6 +63,31 @@ export class AuthService {
         this.currentUserSubject.next(user);
       }
     }
+  }
+
+  // Access token management (in-memory only)
+  setAccessToken(token: string | null): void {
+    this.accessTokenSubject.next(token);
+    try {
+      if (token) {
+        localStorage.setItem(this.TOKEN_STORAGE_KEY, token);
+      } else {
+        localStorage.removeItem(this.TOKEN_STORAGE_KEY);
+      }
+    } catch (e) {
+      // Si no se puede persistir por alguna razón, seguir funcionando en memoria
+      console.warn('No se pudo persistir token en localStorage:', e);
+    }
+  }
+
+  getAccessToken(): string | null {
+    // Preferir token en memoria, pero fall back a la persistencia para reloads
+    return this.accessTokenSubject.value || localStorage.getItem(this.TOKEN_STORAGE_KEY);
+  }
+
+  clearAccessToken(): void {
+    this.accessTokenSubject.next(null);
+    try { localStorage.removeItem(this.TOKEN_STORAGE_KEY); } catch(e) {}
   }
 
   /** Solicitar enlace de recuperación */
@@ -153,7 +186,8 @@ export class AuthService {
         const token = res.access_token || res.accessToken || res.token;
         const refresh = res.refresh_token || res.refreshToken;
         if (token) {
-          localStorage.setItem('accessToken', token);
+          // No persistir accessToken en localStorage por seguridad
+          this.setAccessToken(token);
           // Conectar WebSocket con el token
           this.websocketService.connect(token);
           console.log('✅ WebSocket conectado después del login');
@@ -204,6 +238,8 @@ export class AuthService {
    */
   updateTokenSilently(newToken: string): void {
     try {
+      // Mantener token en memoria por seguridad
+      this.setAccessToken(newToken);
       const payload = this.decodeToken(newToken);
       if (payload) {
         // Solo actualizar si el usuario es el mismo
@@ -224,12 +260,47 @@ export class AuthService {
   }
 
   /**
+   * Procesar silenciosamente la recepción de un nuevo refresh token.
+   * - Reemplaza el refreshToken en localStorage si cambia
+   * - Si hay un accessToken válido, reconecta WebSocket y recarga notificaciones
+   */
+  updateRefreshTokenSilently(newRefreshToken: string): void {
+    try {
+      if (!newRefreshToken) return;
+      const current = localStorage.getItem('refreshToken');
+      if (current === newRefreshToken) return; // no hay cambio
+
+      localStorage.setItem('refreshToken', newRefreshToken);
+      console.log('🔁 Refresh token actualizado silenciosamente');
+
+      const access = this.getAccessToken();
+      if (access) {
+        // Reconectar WebSocket usando el access token actual
+        try {
+          this.websocketService.reconnectWithNewToken(access);
+          // Intentar recargar notificaciones vía NotificationService
+          try {
+            this.notificationService.getMyNotifications().subscribe({ next: () => {}, error: () => {} });
+          } catch (e) {
+            console.warn('No se pudo recargar notificaciones tras actualizar refreshToken:', e);
+          }
+        } catch (e) {
+          console.warn('Error reconectando WebSocket tras refreshToken:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error en updateRefreshTokenSilently:', error);
+    }
+  }
+
+  /**
    * Limpiar todos los datos de autenticación del localStorage
    */
   private clearAuthData(): void {
     // Limpiar todos los datos relacionados con autenticación
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('accessToken');
+    // El access token se mantiene en memoria, limpiarlo también
+    this.clearAccessToken();
     localStorage.removeItem('refreshToken');
     
     // Limpiar cualquier otro dato relacionado que pueda existir
@@ -364,7 +435,8 @@ export class AuthService {
         }
         
         if (newToken) {
-          localStorage.setItem('accessToken', newToken);
+          // Guardar el access token solo en memoria
+          this.setAccessToken(newToken);
           
           // Actualizar refresh token si viene uno nuevo
           if (newRefreshToken && newRefreshToken !== refreshToken) {
@@ -423,7 +495,8 @@ export class AuthService {
                             headers.get('access-token');
               
               if (newToken) {
-                localStorage.setItem('accessToken', newToken);
+          // Guardar token de acceso solo en memoria
+          this.setAccessToken(newToken);
                 const payload = this.decodeToken(newToken);
                 if (payload) {
                   const rawRole = payload.role || payload.roles || payload.rol || 'donor';

@@ -158,8 +158,19 @@ export class WebsocketService {
    * Reconectar WebSocket con nuevo token (usado cuando el token se renueva)
    */
   reconnectWithNewToken(newToken: string): void {
+    if (!newToken) {
+      console.warn('reconnectWithNewToken llamado sin token');
+      return;
+    }
+
     if (!this.socket) {
-      console.log('⚠️ No hay socket activo, no se puede reconectar');
+      // No hay socket inicializado: intentar conectar directamente con el nuevo token
+      console.log('⚠️ No hay socket activo, intentando conectar con el nuevo token');
+      try {
+        this.connect(newToken);
+      } catch (e) {
+        console.error('Error intentando conectar WebSocket con nuevo token:', e);
+      }
       return;
     }
     

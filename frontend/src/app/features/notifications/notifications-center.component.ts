@@ -17,6 +17,8 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 })
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private isFirstLoad = true;
+  private hasLoadedNotifications = false; // Rastrea si alguna vez se cargaron notificaciones
   
   notifications: Notify[] = [];
   isLoading = true;
@@ -33,6 +35,14 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   showDeleteModal = false;
   notificationToDelete: number | null = null;
 
+  // Filtros
+  showFilters = false;
+  notificationTypes: any[] = [];
+  selectedType: number | null = null;
+  minDate: string = '';
+  maxDate: string = '';
+  hasActiveFilters = false;
+
   constructor(
     private notificationService: NotificationService,
     private router: Router
@@ -42,9 +52,15 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.notifications$
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
-        this.notifications = nots;
+        this.notifications = Array.isArray(nots) ? nots : [];
         this.isLoading = false;
         this.hasError = false;
+        console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
+        if (!this.isFirstLoad) {
+          this.notifications = nots;
+          this.isLoading = false;
+          this.hasError = false;
+        }
       });
 
     this.notificationService.unreadCount$
@@ -63,6 +79,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
    * Carga las notificaciones del backend
    */
   loadNotifications(): void {
+    this.notifications = [];
     this.isLoading = true;
     this.hasError = false;
     
@@ -72,12 +89,22 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
         next: (notifications: Notify[]) => {
           this.notifications = notifications;
           this.isLoading = false;
+          this.isFirstLoad = false;
+          // Marcar que se cargaron notificaciones si hay al menos una
+          if (notifications.length > 0) {
+            this.hasLoadedNotifications = true;
+          }
+          // Cargar tipos después de que las notificaciones se hayan cargado
+          this.loadNotificationTypes();
         },
         error: (error: any) => {
           this.isLoading = false;
+          this.isFirstLoad = false;
           if (error.status === 404) {
             this.notifications = [];
             this.hasError = false;
+            // Intentar cargar tipos incluso si no hay notificaciones
+            this.loadNotificationTypes();
           } else if (error.status === 401) {
             this.hasError = true;
             this.errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
@@ -93,11 +120,21 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja el cambio en el campo de búsqueda
+   * Maneja el cambio en el tipo de notificación
    */
-  onSearchChange(): void {
+  onTypeChange(): void {
+    this.applyFilters();
   }
 
+  onDateChange(): void {
+    if ((this.minDate !== '' && this.maxDate !== '') || (this.minDate === '' && this.maxDate === '')) {
+      this.applyFilters();
+    }
+  }
+
+  /**
+   * Obtiene las notificaciones filtradas según el tab activo
+   */
   get filteredNotifications(): Notify[] {
     let filtered = this.notifications;
     
@@ -122,15 +159,156 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   get unreadCount(): number {
+    if (!Array.isArray(this.notifications)) {
+      return 0;
+    }
     return this.notifications.filter(n => !n.read).length;
+  }
+
+  /**
+   * Verifica si el usuario tiene o ha tenido notificaciones
+   * Permite usar filtros incluso si los resultados filtrados están vacíos
+   */
+  get hasNotifications(): boolean {
+    return this.hasLoadedNotifications || (Array.isArray(this.notifications) && this.notifications.length > 0);
   }
 
   setActiveTab(tab: 'all' | 'unread'): void {
     this.activeTab = tab;
   }
 
+  toggleFilters(): void {
+    // Solo permitir desplegar filtros si hay notificaciones
+    if (!this.hasNotifications) {
+      return;
+    }
+    this.showFilters = !this.showFilters;
+  }
+
+  clearFilters(): void {
+    if (!this.hasActiveFilters) {
+      return;
+    }
+
+    this.selectedType = null;
+    this.minDate = '';
+    this.maxDate = '';
+    this.searchTerm = ''; // Limpiar búsqueda local también
+    this.hasActiveFilters = false;
+    this.loadNotifications();
+  }
+
+  loadNotificationTypes(): void {
+    // Si ya se cargaron los tipos, no hacer la petición nuevamente
+    if (this.notificationTypes && this.notificationTypes.length > 0) {
+      return;
+    }
+
+    this.notificationService.getNotificationTypes()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (types) => {
+          this.notificationTypes = types;
+        },
+        error: (error) => {
+          if (error.status === 404) {
+            this.notificationTypes = [];
+          } else {
+            console.error('Error al cargar tipos de notificaciones:', error);
+          }
+        }
+      });
+  }
+
+  applyFilters(): void {
+    const checkActiveFilters = 
+      this.selectedType !== null ||
+      (this.minDate !== '' && this.maxDate !== '');
+
+    if (!checkActiveFilters) {
+      this.hasActiveFilters = false;
+      this.loadNotifications();
+      return;
+    }
+
+    this.hasActiveFilters = true;
+    this.notifications = [];
+    this.isLoading = true;
+    this.hasError = false;
+
+    const filters: {
+      type?: number;
+      minDate?: string;
+      maxDate?: string;
+    } = {};
+
+    if (this.selectedType !== null) {
+      filters.type = this.selectedType;
+    }
+
+    if (this.minDate !== '' && this.maxDate !== '') {
+      filters.minDate = this.minDate;
+      filters.maxDate = this.maxDate;
+    }
+
+    this.notificationService.filterNotifications(filters)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (notifications) => {
+          this.notifications = notifications;
+          this.isLoading = false;
+          // Marcar que se cargaron notificaciones si hay al menos una
+          if (notifications.length > 0) {
+            this.hasLoadedNotifications = true;
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          if (error.status === 404) {
+            this.notifications = [];
+            this.hasError = false;
+          } else if (error.status === 401) {
+            this.hasError = true;
+            this.errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
+            setTimeout(() => {
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+          } else {
+            this.hasError = true;
+            this.errorMessage = 'Error al filtrar las notificaciones. Intenta nuevamente.';
+          }
+        }
+      });
+  }
+
+  /**
+   * Marca todas las notificaciones como leídas
+   */
   markAllAsRead(): void {
-    console.log('Marcar todas como leídas - Funcionalidad pendiente');
+    const hasUnreadNotifications = this.notifications.some(n => !n.read);
+    
+    if (!hasUnreadNotifications) {
+      return;
+    }
+
+    this.notificationService.markAllNotificationsAsRead()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.notifications = this.notifications.map(n => ({
+            ...n,
+            read: true
+          }));
+        },
+        error: (error: any) => {
+          if (error.status === 401) {
+            alert('No autorizado. Por favor inicia sesión nuevamente.');
+            this.router.navigate(['/auth/login']);
+          } else {
+            alert(error.message || 'Error al marcar todas las notificaciones como leídas.');
+          }
+        }
+      });
   }
 
   allowNotifications(): void {
