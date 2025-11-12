@@ -1,9 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { PostsService, Post, PostUser } from '../../core/services/posts.service';
 import { UserProfileService, UserMinimal } from '../../core/services/user-profile.service';
+import { LocationMapComponent } from '../../shared/components/location-map/location-map.component';
 import { DonationService, DonationByUser } from '../../core/services/donation.service';
 import { ScrollRestorationService } from '../../core/services/scroll-restoration.service';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
@@ -22,11 +24,14 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
     UserPostsListComponent,
     UserDonationsListComponent,
     SidebarComponent
+    ,
+    LocationMapComponent
   ],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
 export class ProfileComponent implements OnInit, OnDestroy {
+  @ViewChild(LocationMapComponent) locationMap?: LocationMapComponent;
   private destroy$ = new Subject<void>();
   
   userId!: number;
@@ -40,6 +45,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   isLoadingPosts = true;
   isLoadingDonations = true;
   errorMessage = '';
+  public env = environment;
 
   constructor(
     private route: ActivatedRoute,
@@ -63,13 +69,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe(queryParams => {
               const loaded = queryParams['loaded'];
-              if (loaded === 'donations') {
-                this.activeTab = 'donations';
-                this.loadUserDonations();
-              } else {
-                this.activeTab = 'posts';
-                this.loadUserPosts();
-              }
+                if (loaded === 'donations') {
+                  this.activeTab = 'donations';
+                  this.loadUserDonations();
+                } else if (loaded === 'location') {
+                  this.activeTab = 'location';
+                } else {
+                  this.activeTab = 'posts';
+                  this.loadUserPosts();
+                }
             });
         }
       });
@@ -86,6 +94,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
     } as PostUser;
   }
 
+  getStaticMapUrl(loc: { lat: number; lng: number } | null | undefined): string {
+    if (!loc) return '';
+    const lat = loc.lat;
+    const lng = loc.lng;
+    const size = '600x300';
+    const zoom = 14;
+    const marker = `color:red%7C${lat},${lng}`;
+    const key = encodeURIComponent(this.env.apiKeyGoogleMaps || '');
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&markers=${marker}&key=${key}`;
+  }
+
   private loadUserMinimal(userId: number): void {
     this.isLoadingUser = true;
     this.userProfileService.getUserMinimal(userId)
@@ -96,6 +115,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
           // Solo establecer si aún no se obtuvo desde posts/donations, para evitar parpadeos
           if (!this.user) {
             this.user = this.mapMinimalToPostUser(u);
+          }
+          // If we're currently viewing the location tab, try to initialize the map
+          if (this.activeTab === 'location') {
+            if (!this.minimalUser?.location) {
+              this.activeTab = 'posts';
+              this.router.navigate([], { relativeTo: this.route, queryParams: { loaded: null }, queryParamsHandling: 'merge' });
+            } else {
+              setTimeout(() => this.locationMap?.ensureInit(), 100);
+            }
           }
           this.isLoadingUser = false;
         },
@@ -178,7 +206,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { loaded: tab === 'donations' ? 'donations' : null },
+      queryParams: { loaded: tab === 'donations' ? 'donations' : (tab === 'location' ? 'location' : null) },
       queryParamsHandling: 'merge'
     });
 
@@ -186,6 +214,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.loadUserDonations();
     } else if (tab === 'posts' && this.posts.length === 0) {
       this.loadUserPosts();
+    }
+
+    // If switched to location tab, ensure map child initializes after view is ready
+    if (tab === 'location') {
+      setTimeout(() => this.locationMap?.ensureInit(), 100);
     }
   }
 

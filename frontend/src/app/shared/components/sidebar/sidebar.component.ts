@@ -196,7 +196,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   openChat(chatId: number): void {
     // Funcionalidad no implementada aún
-    console.log('Chat - Funcionalidad próximamente:', chatId);
+    // Chat functionality pending
   }
 
   getIconPath(icon: string): string {

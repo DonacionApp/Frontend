@@ -57,6 +57,8 @@ export interface UserMinimal {
   rol: string;
   residencia?: string;
   municipio?: UserMinimalMunicipio;
+  // Coordenadas opcionales devueltas por el backend
+  location?: { lat: number; lng: number } | null;
   countPosts?: number;
   countDonations?: number;
 }

@@ -1,23 +1,26 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { OrganizationProfileService, OrganizationProfile, OrganizationActivityLog } from '../../../core/services/organization-profile.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { VerificationService } from '../../../core/services/verification.service';
+import { environment } from '../../../../environments/environment';
+import { LocationPickerComponent } from '../../../shared/components/location-picker/location-picker.component';
+import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-organization-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, LocationPickerComponent, SpinnerComponent],
   templateUrl: './organization-profile.component.html',
   styleUrls: ['./organization-profile.component.scss']
 })
 export class OrganizationProfileComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
-  activeTab: 'general' | 'security' | 'activity' = 'general';
+  activeTab: 'general' | 'security' | 'activity' | 'location' = 'general';
   profile: OrganizationProfile | null = null;
   activityLog: OrganizationActivityLog[] = [];
   currentUser: User | null = null;
@@ -36,15 +39,15 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   logoPreview: string | null = null;
   selectedCover: File | null = null;
   coverPreview: string | null = null;
-  
-  // Verificación de documento
+
+  showLocationPicker = false;
+  selectedLocation: { lat: number; lng: number } | null = null;
+  public env = environment;
   selectedDocument: File | null = null;
   documentPreview: string | null = null;
   isUploadingDocument = false;
-  // Estado de verificación: 'none' | 'uploading' | 'pending' | 'verified' | 'error'
   verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
   
-  // Control de visibilidad de contraseñas
   showCurrentPassword = false;
   showNewPassword = false;
   showConfirmPassword = false;
@@ -52,12 +55,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
+    private router: Router,
     private profileService: OrganizationProfileService,
     private authService: AuthService,
     private verificationService: VerificationService
   ) {
     this.initializeForms();
   }
+
 
   ngOnInit(): void {
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
@@ -70,6 +75,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     
     this.subscribeToProfileChanges();
     this.checkVerificationStatus();
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(q => {
+      const tab = q.get('tab');
+      if (tab === 'security' || tab === 'activity' || tab === 'location') {
+        this.activeTab = tab as any;
+      } else {
+        this.activeTab = 'general';
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -131,11 +144,9 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadProfile(): void {
-    // Usar getMyOrganizationProfile() que llama a /auth/profile
     this.profileService.getMyOrganizationProfile().subscribe({
       next: (profile) => {
         this.populateForm(profile);
-        // Actualizar estado de verificación después de cargar el perfil
         this.checkVerificationStatus();
       },
       error: (error) => {
@@ -145,23 +156,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Poblar el formulario con los datos del perfil de la organización
-   * 
-   * Campos editables:
-   * - name: Nombre de la organización
-   * - phone: Teléfono de contacto
-   * - address: Dirección física
-   * - postalCode: Código postal
-   * - website: Sitio web
-   * - description: Descripción breve
-   * - missionStatement: Declaración de misión
-   * - legalRepresentative: Representante legal
-   * - facebookUrl, twitterUrl, instagramUrl, linkedinUrl: Redes sociales
-   * 
-   * Campos de solo lectura (disabled):
-   * - email: No se puede cambiar (definido en el registro)
-   */
   private populateForm(profile: OrganizationProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
@@ -188,12 +182,16 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (profile.coverImage) {
       this.coverPreview = profile.coverImage;
     }
+
+    // Si el perfil incluye ubicación, precargarla en el selector
+    if ((profile as any).location && (profile as any).location.lat && (profile as any).location.lng) {
+      this.selectedLocation = {
+        lat: (profile as any).location.lat,
+        lng: (profile as any).location.lng
+      };
+    }
   }
 
-  /**
-   * Comprueba si el perfil tiene un valor no vacío para la ruta indicada.
-   * Soporta rutas con punto para propiedades anidadas, por ejemplo: 'socialMedia.facebook'
-   */
   profileHas(path: string): boolean {
     if (!this.profile) return false;
     const parts = path.split('.');
@@ -206,14 +204,17 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadActivity(): void {
-    // Endpoint de actividad no implementado en el backend
-    // El historial de actividad se implementará en el futuro
     this.activityLog = [];
   }
 
-  setActiveTab(tab: 'general' | 'security' | 'activity'): void {
+  setActiveTab(tab: 'general' | 'security' | 'activity' | 'location'): void {
     this.activeTab = tab;
     this.clearMessages();
+    // Actualizar query param 'tab' para recordar la pestaña seleccionada.
+    // No añadimos el parámetro cuando es 'general' para mantener la URL limpia.
+    const queryParams: any = {};
+    if (tab && tab !== 'general') queryParams.tab = tab;
+    this.router.navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge' });
   }
 
   onLogoSelected(event: Event): void {
@@ -380,6 +381,9 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       }
     };
 
+    // Nota: la ubicación la gestiona el LocationPicker (se envía directamente
+    // desde allí). No añadimos `location` aquí para evitar duplicidad.
+
     this.profileService.updateOrganizationProfile(this.organizationId, updates).subscribe({
       next: () => {
         this.successMessage = 'Perfil actualizado exitosamente';
@@ -496,6 +500,79 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   
   toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
+  // ============ MÉTODOS DEL SELECTOR DE UBICACIÓN ============
+
+  openLocationPicker(): void {
+    this.showLocationPicker = true;
+  }
+  
+  onLocationSaved(loc: { lat: number; lng: number }): void {
+    this.selectedLocation = loc;
+    this.showLocationPicker = false;
+  }
+
+  /** Handler específico cuando el picker está renderizado inline en la pestaña Ubicación */
+  onLocationSavedInline(loc: { lat: number; lng: number }): void {
+    this.selectedLocation = loc;
+    // Recargar el perfil para sincronizar cualquier cambio retornado por backend
+    this.loadProfile();
+  }
+
+  /** Getter que unifica la ubicación a mostrar (seleccionada por el usuario o la del perfil) */
+  get displayLocation(): { lat: number; lng: number } | null {
+    return this.selectedLocation || ((this.profile as any)?.location ?? null);
+  }
+
+  /** Coordenadas formateadas para mostrar en la plantilla */
+  get displayLocationString(): string {
+    const d = this.displayLocation;
+    return d ? `${d.lat.toFixed(6)}, ${d.lng.toFixed(6)}` : '';
+  }
+
+  /**
+   * Obtener la URL de la imagen estática de Google Maps para previsualizar la ubicación
+   */
+  getStaticMapUrl(loc: { lat: number; lng: number } | null | undefined): string {
+    if (!loc) return '';
+    const lat = loc.lat;
+    const lng = loc.lng;
+    const size = '600x300';
+    const zoom = 14;
+    const marker = `color:red%7C${lat},${lng}`;
+    const key = encodeURIComponent(this.env.apiKeyGoogleMaps || '');
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&markers=${marker}&key=${key}`;
+  }
+
+  /**
+   * Eliminar la ubicación del perfil (setear null en backend)
+   */
+  removeLocation(): void {
+    if (!this.organizationId) return;
+    const updates: any = { location: null };
+    this.saving = true;
+    this.clearMessages();
+    this.profileService.updateOrganizationProfile(this.organizationId, updates).subscribe({
+      next: () => {
+        this.successMessage = 'Ubicación eliminada correctamente';
+        this.selectedLocation = null;
+        this.saving = false;
+        // Recargar perfil para sincronizar el estado
+        this.loadProfile();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'No se pudo eliminar la ubicación';
+        this.saving = false;
+        console.error('Error removing location:', err);
+      }
+    });
+  }
+
+  cancelLocationPicker(): void {
+    // Cerrar sin guardar
+    this.showLocationPicker = false;
   }
 
   // ============ MÉTODOS DE VERIFICACIÓN DE DOCUMENTO ============

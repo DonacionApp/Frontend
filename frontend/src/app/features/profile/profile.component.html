@@ -32,6 +32,7 @@
       <app-profile-tabs
         [activeTab]="activeTab"
         (tabChange)="onTabChange($event)"
+        [showLocation]="!!minimalUser?.location"
       ></app-profile-tabs>
 
       <!-- Content Based on Active Tab -->
@@ -62,6 +63,23 @@
             </svg>
             <h3 class="mt-4 text-lg font-medium text-gray-900">Estadísticas</h3>
             <p class="mt-2 text-sm text-gray-500">Esta sección estará disponible próximamente.</p>
+          </div>
+        </div>
+        <!-- Location Tab -->
+        <div *ngSwitchCase="'location'">
+          <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div *ngIf="minimalUser?.location; else noLoc">
+              <app-location-map
+                [location]="minimalUser?.location"
+                [mapId]="env.mapsMapId"
+                [apiKey]="env.apiKeyGoogleMaps"
+                [zoom]="14"
+              ></app-location-map>
+              <p class="mt-2 text-sm text-gray-700">Ubicación: {{ minimalUser?.location?.lat }}, {{ minimalUser?.location?.lng }}</p>
+            </div>
+            <ng-template #noLoc>
+              <p class="text-sm text-red-600">Aún no hay ubicación para este usuario.</p>
+            </ng-template>
           </div>
         </div>
       </div>

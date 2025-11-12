@@ -319,9 +319,8 @@ export class DonationDetailComponent implements OnInit {
 
     this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
       next: (updatedDonation) => {
-        this.donation = updatedDonation;
-        this.selectedStatusId = updatedDonation.statusDonation.id;
-        console.log('responses ', updatedDonation)
+  this.donation = updatedDonation;
+  this.selectedStatusId = updatedDonation.statusDonation.id;
         this.updatingStatus = false;
         this.checkPermissions();
       },

@@ -1,0 +1,14 @@
+<div class="location-picker-root">
+  <div *ngIf="loading" class="p-4 text-center text-sm text-gray-600">Cargando mapa...</div>
+  <div *ngIf="error" class="p-4 text-center text-sm text-red-600">{{ error }}</div>
+
+  <div id="shared-location-picker-map" class="map-container" *ngIf="!loading && !error"></div>
+
+  <div class="actions p-3 flex justify-end gap-2">
+    <button (click)="doCancel()" class="px-4 py-2 bg-white border rounded-md">Cancelar</button>
+    <button (click)="save()" [disabled]="saving" class="px-4 py-2 bg-green-600 text-white rounded-md disabled:opacity-60">
+      <span *ngIf="!saving">Guardar ubicación</span>
+      <span *ngIf="saving">Guardando...</span>
+    </button>
+  </div>
+</div>
