@@ -106,7 +106,6 @@ export class DonationDetailComponent implements OnInit {
         if (!this.donation) return;
         if (!this.donation.reviews) this.donation.reviews = [];
 
-        // If backend returned a minimal user (only id), try to fill username from current user for better UX
         const currentUser = this.authService.currentUserValue;
         if (createdReview && createdReview.user && currentUser && String(createdReview.user.id) === String(currentUser.id)) {
           createdReview.user = {
@@ -115,13 +114,9 @@ export class DonationDetailComponent implements OnInit {
           } as Partial<any>;
         }
 
-        // Optimistically append the created review so the user sees it immediately
         this.donation.reviews = [...this.donation.reviews, createdReview];
         this.newReviewText = '';
         this.submittingReview = false;
-
-        // Refresh the donation from server to ensure we have canonical data (and any fields the backend fills)
-        // This also guarantees the list will render exactly as the server has it.
         this.donationService.getDonationById(this.donation.id).subscribe({
           next: (fresh) => {
             this.donation = fresh;
@@ -177,9 +172,6 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
-  /**
-   * Verificar permisos del usuario actual sobre la donación
-   */
   private checkPermissions(): void {
     if (!this.donation) return;
 
