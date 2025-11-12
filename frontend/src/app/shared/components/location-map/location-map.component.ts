@@ -20,6 +20,7 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
 
   map: any = null;
   marker: any = null;
+  circle: any = null;
   loading = true;
   error: string | null = null;
   showStaticFallback = false;
@@ -48,6 +49,29 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     } finally {
       this.loading = false;
       this.maybeInitMap();
+    }
+  }
+
+  private setLocation(loc?: { lat: number; lng: number } | null): void {
+    const win: any = window as any;
+    if (!loc || !this.map) return;
+    const pos = { lat: loc.lat, lng: loc.lng };
+    try {
+      if (this.marker) {
+        try {
+          if (typeof this.marker.setPosition === 'function') {
+            this.marker.setPosition(pos);
+          } else if (typeof this.marker.setOptions === 'function') {
+            this.marker.setOptions({ position: pos });
+          } else if ('position' in this.marker) {
+            try { (this.marker as any).position = pos; } catch (e) { /* ignore */ }
+          }
+        } catch (e) { /* ignore marker update errors */ }
+      }
+      if (this.circle && typeof this.circle.setCenter === 'function') this.circle.setCenter(pos);
+      if (win.google && win.google.maps && this.map) this.map.setCenter(pos);
+    } catch (e) {
+      console.error('LocationMap: error setting position', e);
     }
   }
 
@@ -92,7 +116,8 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
         }
       };
       const mapIdParam = this.mapId ? `&map_ids=${encodeURIComponent(this.mapId)}` : '';
-      const libs = '';
+  // load the marker library to support AdvancedMarkerElement
+  const libs = 'marker';
       const script = document.createElement('script');
   // Use loading=async to follow Google's best-practice loading pattern
   // and avoid the console warning about suboptimal loading.
@@ -146,8 +171,47 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
 
     this.zone.run(() => {
       this.map = new win.google.maps.Map(el, { center, zoom: this.zoom, mapId: this.mapId || undefined });
-      try { this.marker = new win.google.maps.Marker({ position: center, map: this.map, draggable: false }); } catch (e) { console.warn('LocationMap: marker creation failed', e); }
-      this.mapCreated = true; this.setLocation(center);
+      try {
+        // Ensure any existing marker is removed
+        try { if (this.marker && typeof this.marker.setMap === 'function') this.marker.setMap(null); } catch (e) { }
+
+        // Prefer AdvancedMarkerElement (new recommended API) when available
+        if (win.google && win.google.maps && win.google.maps.marker && (win.google.maps.marker as any).AdvancedMarkerElement) {
+          try {
+            const content = document.createElement('div');
+            content.className = 'adv-marker';
+            // Use an <img> inside the AdvancedMarkerElement so the official pin is displayed
+            const img = document.createElement('img');
+            img.src = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
+            img.alt = 'Ubicación';
+            img.className = 'adv-marker-img';
+            content.appendChild(img);
+            // @ts-ignore
+            this.marker = new win.google.maps.marker.AdvancedMarkerElement({ position: center, map: this.map, content, title: 'Ubicación', zIndex: 999999 });
+            try { (this.marker as any).setVisible?.(true); } catch (e) { }
+          } catch (e) {
+            // If AdvancedMarker creation fails, fall back to classic Marker
+            const iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+            this.marker = new win.google.maps.Marker({ position: center, map: this.map, draggable: false, icon: { url: iconUrl }, zIndex: 999999 });
+          }
+        } else {
+          // Fallback to classic Marker if marker library not present
+          // Use the default Google Maps marker (no custom icon) so the standard teardrop pin is shown
+          this.marker = new win.google.maps.Marker({ position: center, map: this.map, draggable: false, zIndex: 999999 });
+        }
+      } catch (e) {
+        console.warn('LocationMap: marker creation failed', e);
+      }
+
+      // Always create a small circle overlay as a guaranteed visual cue for the location
+      try {
+  // make circle small and subtle so it doesn't visually replace the marker
+  this.circle = new win.google.maps.Circle({ strokeColor: '#a94442', strokeOpacity: 0.9, strokeWeight: 1, fillColor: '#d9534f', fillOpacity: 0.25, map: this.map, center, radius: 8 });
+  try { this.circle.setOptions?.({ zIndex: 99998 }); } catch (e) { }
+      } catch (e) { }
+
+      this.mapCreated = true;
+      this.setLocation(center);
     });
 
     // trigger resize in case container was hidden initially
@@ -160,31 +224,14 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
       } catch (e) { /* ignore */ }
     }, 150);
 
-    // If after a short delay no marker or no visible map children exist,
-    // enable static fallback so the user still sees a visual.
+    // If after a short delay no marker or no visible map children exist, enable static fallback.
     setTimeout(() => {
       try {
-        const el = this.mapContainer && (this.mapContainer as any).nativeElement;
-        const hasMapChildren = el && el.querySelector && el.querySelector('.gm-style');
+        const el2 = this.mapContainer && (this.mapContainer as any).nativeElement;
+        const hasMapChildren = el2 && el2.querySelector && el2.querySelector('.gm-style');
         if (!this.marker || !hasMapChildren) { this.showStaticFallback = true; }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) { /* ignore */ }
     }, 700);
-  }
-
-  private setLocation(loc?: { lat: number; lng: number } | null): void {
-    const win: any = window as any;
-    if (!loc || !this.map) return;
-    const pos = { lat: loc.lat, lng: loc.lng };
-    try {
-      if (this.marker && typeof this.marker.setPosition === 'function') {
-        this.marker.setPosition(pos);
-      }
-      if (win.google && win.google.maps && this.map) this.map.setCenter(pos);
-    } catch (e) {
-      console.error('LocationMap: error setting position', e);
-    }
   }
 
   // Build static map URL as fallback
