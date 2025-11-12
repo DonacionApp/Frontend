@@ -21,8 +21,8 @@ jobs:
       API_BASE_URL: ${{vars.API_BASE_URL}}
       API_BACKEND_URL: ${{vars.API_BACKEND_URL}}
       SOCKET_URL: ${{vars.SOCKET_URL}}
-      API_KEY_GOOGLE_MAPS: ${{secret.API_KEY_GOOGLE_MAPS}}
-      MAPS_MAP_ID: ${{secret.MAPS_MAP_ID}}
+      API_KEY_GOOGLE_MAPS: ${{secrets.API_KEY_GOOGLE_MAPS}}
+      MAPS_MAP_ID: ${{secrets.MAPS_MAP_ID}}
 
     steps:
       - name: Checkout del código
