@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, NgZone, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -10,7 +10,7 @@ import { environment } from '../../../../environments/environment';
   templateUrl: './location-picker.component.html',
   styleUrls: ['./location-picker.component.scss']
 })
-export class LocationPickerComponent implements OnInit {
+export class LocationPickerComponent implements OnInit, OnChanges {
   @Input() initialLocation?: { lat: number; lng: number } | null;
   @Input() apiKey?: string | null;
   @Input() mapId?: string | null;
@@ -41,6 +41,42 @@ export class LocationPickerComponent implements OnInit {
       setTimeout(() => {
         try { this.initMap(); } catch (err) { console.error('initMap error:', err); }
       }, 0);
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // If initialLocation is provided/updated after the map has been created,
+    // update the marker & center accordingly.
+    if (changes['initialLocation'] && this.map && this.initialLocation) {
+      try {
+        this.setLocation(this.initialLocation);
+      } catch (e) {
+        // Ignore errors during change reaction
+      }
+    }
+  }
+
+  /** Set marker position and recenter map to the given location */
+  private setLocation(loc: { lat: number; lng: number } | null | undefined): void {
+    const win: any = window as any;
+    if (!loc || !this.map) return;
+    const pos = { lat: loc.lat, lng: loc.lng };
+    try {
+      if (this.marker) {
+        if (typeof this.marker.setPosition === 'function') {
+          this.marker.setPosition(pos);
+        } else if ('position' in this.marker) {
+          (this.marker as any).position = pos;
+        } else if (typeof (this.marker as any).set === 'function') {
+          (this.marker as any).set('position', pos);
+        }
+      }
+      // Recenter map
+      if (win.google && win.google.maps && this.map) {
+        this.map.setCenter(pos);
+      }
+    } catch (e) {
+      console.error('Error setting location on map:', e);
     }
   }
 

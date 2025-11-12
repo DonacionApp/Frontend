@@ -39,6 +39,8 @@ export interface OrganizationProfile {
   category?: string;
   totalDonationsReceived?: number;
   activeCampaigns?: number;
+  // Coordenadas opcionales (mapeo del backend: { lat, lng })
+  location?: { lat: number; lng: number } | null;
 }
 
 export interface UpdateOrganizationProfileDTO {
@@ -118,6 +120,7 @@ export class OrganizationProfileService {
       map(response => {
         // Transformar respuesta del backend al formato del frontend
         const profile = this.transformBackendResponse(response);
+        console.log('response', response);
         this.profileSubject.next(profile);
         this.loadingSubject.next(false);
         return profile; // ← Retornar el perfil transformado
@@ -160,6 +163,7 @@ export class OrganizationProfileService {
         bankAccount: '',
         isVerified: false,
         verificationDate: undefined,
+  location: null,
         createdAt: '',
         lastLogin: '',
         lastName: '',
@@ -233,6 +237,9 @@ export class OrganizationProfileService {
         instagram: response.socialMedia?.instagram || '',
         linkedin: response.socialMedia?.linkedin || ''
       }
+    ,
+      // Mapear location si viene desde el backend (ej. { lat, lng })
+      location: response.location ? { lat: Number(response.location.lat), lng: Number(response.location.lng) } : null
     };
   }
 

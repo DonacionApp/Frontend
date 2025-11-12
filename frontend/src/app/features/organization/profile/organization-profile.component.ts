@@ -19,7 +19,7 @@ import { LocationPickerComponent } from '../../../shared/components/location-pic
 export class OrganizationProfileComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
-  activeTab: 'general' | 'security' | 'activity' = 'general';
+  activeTab: 'general' | 'security' | 'activity' | 'location' = 'general';
   profile: OrganizationProfile | null = null;
   activityLog: OrganizationActivityLog[] = [];
   currentUser: User | null = null;
@@ -142,6 +142,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.profileService.getMyOrganizationProfile().subscribe({
       next: (profile) => {
         this.populateForm(profile);
+        console.log('Perfil cargado:', profile);
         // Actualizar estado de verificación después de cargar el perfil
         this.checkVerificationStatus();
       },
@@ -226,7 +227,7 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     this.activityLog = [];
   }
 
-  setActiveTab(tab: 'general' | 'security' | 'activity'): void {
+  setActiveTab(tab: 'general' | 'security' | 'activity' | 'location'): void {
     this.activeTab = tab;
     this.clearMessages();
   }
@@ -395,10 +396,8 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       }
     };
 
-    // Agregar ubicación solo si el usuario la seleccionó
-    if (this.selectedLocation) {
-      (updates as any).location = { lat: this.selectedLocation.lat, lng: this.selectedLocation.lng };
-    }
+    // Nota: la ubicación la gestiona el LocationPicker (se envía directamente
+    // desde allí). No añadimos `location` aquí para evitar duplicidad.
 
     this.profileService.updateOrganizationProfile(this.organizationId, updates).subscribe({
       next: () => {
@@ -527,6 +526,63 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   onLocationSaved(loc: { lat: number; lng: number }): void {
     this.selectedLocation = loc;
     this.showLocationPicker = false;
+  }
+
+  /** Handler específico cuando el picker está renderizado inline en la pestaña Ubicación */
+  onLocationSavedInline(loc: { lat: number; lng: number }): void {
+    this.selectedLocation = loc;
+    // Recargar el perfil para sincronizar cualquier cambio retornado por backend
+    this.loadProfile();
+  }
+
+  /** Getter que unifica la ubicación a mostrar (seleccionada por el usuario o la del perfil) */
+  get displayLocation(): { lat: number; lng: number } | null {
+    return this.selectedLocation || ((this.profile as any)?.location ?? null);
+  }
+
+  /** Coordenadas formateadas para mostrar en la plantilla */
+  get displayLocationString(): string {
+    const d = this.displayLocation;
+    return d ? `${d.lat.toFixed(6)}, ${d.lng.toFixed(6)}` : '';
+  }
+
+  /**
+   * Obtener la URL de la imagen estática de Google Maps para previsualizar la ubicación
+   */
+  getStaticMapUrl(loc: { lat: number; lng: number } | null | undefined): string {
+    if (!loc) return '';
+    const lat = loc.lat;
+    const lng = loc.lng;
+    const size = '600x300';
+    const zoom = 14;
+    const marker = `color:red%7C${lat},${lng}`;
+    const key = encodeURIComponent(this.env.apiKeyGoogleMaps || '');
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&markers=${marker}&key=${key}`;
+  }
+
+  /**
+   * Eliminar la ubicación del perfil (setear null en backend)
+   */
+  removeLocation(): void {
+    if (!this.organizationId) return;
+    const updates: any = { location: null };
+    this.saving = true;
+    this.clearMessages();
+    this.profileService.updateOrganizationProfile(this.organizationId, updates).subscribe({
+      next: () => {
+        this.successMessage = 'Ubicación eliminada correctamente';
+        this.selectedLocation = null;
+        this.saving = false;
+        // Recargar perfil para sincronizar el estado
+        this.loadProfile();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (err) => {
+        this.errorMessage = err.error?.message || 'No se pudo eliminar la ubicación';
+        this.saving = false;
+        console.error('Error removing location:', err);
+      }
+    });
   }
 
   cancelLocationPicker(): void {
