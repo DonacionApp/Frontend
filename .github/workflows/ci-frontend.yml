@@ -1,0 +1,52 @@
+name: CI-Frontend(Angular)
+on:
+  push:
+    branches: [ "main", "64-frontend-configurar-ci" ]
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  ci-frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    env:
+      PRODUCTION: ${{vars.PRODUCTION}}
+      API_URL: ${{vars.API_URL}}
+      API_BASE_URL: ${{vars.API_BASE_URL}}
+      API_BACKEND_URL: ${{vars.API_BACKEND_URL}}
+      SOCKET_URL: ${{vars.SOCKET_URL}}
+      API_KEY_GOOGLE_MAPS: ${{secrets.API_KEY_GOOGLE_MAPS}}
+      MAPS_MAP_ID: ${{secrets.MAPS_MAP_ID}}
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Verificar linting
+        run: npm run lint --if-present
+
+      - name: Compilar aplicación Angular
+        run: npm run build --if-present
+
+      - name: Subir artefacto de build (opcional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build
+          path: frontend/dist/**
+          retention-days: 1
+      - name: Verificación final
+        run: echo "CI Frontend completado correctamente "
