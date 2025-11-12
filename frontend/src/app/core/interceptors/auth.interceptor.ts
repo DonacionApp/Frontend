@@ -21,8 +21,6 @@ export class AuthInterceptor implements HttpInterceptor {
     const authService = this.injector.get(AuthService);
     const token = authService.getAccessToken();
 
-    // Si es una request al backend, queremos interceptar la respuesta para capturar
-    // tokens que el servidor pueda devolver incluso si no tenemos token en memoria.
     if (this.isBackendRequest(req.url)) {
       const requestToSend = token ? this.addTokenHeader(req, token) : req;
 
@@ -51,7 +49,6 @@ export class AuthInterceptor implements HttpInterceptor {
   private captureNewToken(response: any): void {
     if (!response) return;
 
-    // Helper to safely read headers
     const getHeader = (name: string) => {
       try {
         return response.headers?.get?.(name) || response.headers?.get?.(name.toLowerCase()) || null;
@@ -60,10 +57,8 @@ export class AuthInterceptor implements HttpInterceptor {
       }
     };
 
-    // Preferir token en headers (el backend ahora envía el nuevo token únicamente por headers)
     const newToken: string | null = getHeader('X-New-Token');
 
-    // También soportar un header opcional para refresh token si el backend lo proporciona
     const newRefreshToken: string | null = getHeader('X-New-Refresh-Token') || getHeader('X-New-Refresh');
 
     if (!newToken && !newRefreshToken) return;
@@ -87,7 +82,6 @@ export class AuthInterceptor implements HttpInterceptor {
       console.error('No se pudo actualizar accessToken en memoria:', e);
     }
 
-    // Si hay nuevo refresh token en headers, guardarlo silenciosamente
     if (newRefreshToken) {
       try {
         authServiceInstance.updateRefreshTokenSilently(newRefreshToken);
@@ -101,7 +95,6 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     try {
-      // Notificar al servicio de auth para que actualice estado sin forzar un refresh-http
       if (newToken) {
         authServiceInstance.updateTokenSilently(newToken);
       }
@@ -169,22 +162,13 @@ export class AuthInterceptor implements HttpInterceptor {
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const authService = this.injector.get(AuthService);
 
-    // Si ya se capturó un nuevo access token (por ejemplo el backend lo devolvió
-    // en la respuesta de error), usarlo y reintentar la petición sin intentar
-    // un refresh adicional.
     const capturedToken = authService.getAccessToken();
     if (capturedToken) {
-      // Reintentar inmediatamente con el token capturado
       this.refreshTokenSubject.next(capturedToken);
       return next.handle(this.addTokenHeader(request, capturedToken));
     }
-
-    // Si no hay token capturado, comprobar si existe refreshToken persistente.
-    // Si no existe, forzar logout (no podemos refrescar).
     const storedRefresh = localStorage.getItem('refreshToken');
     if (!storedRefresh) {
-      // No hay refresh token persistente: no forzamos un redirect automático aquí.
-      // Dejar que el llamador maneje la 401 (por ejemplo mostrar login o intentar acción alternativa).
       console.warn('No hay refreshToken almacenado y no se capturó token: no se intentará refresh automático');
       return throwError(() => new Error('No refresh token available'));
     }
