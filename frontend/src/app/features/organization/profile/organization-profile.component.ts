@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { OrganizationProfileService, OrganizationProfile, OrganizationActivityLog } from '../../../core/services/organization-profile.service';
 import { AuthService, User } from '../../../core/services/auth.service';
@@ -59,12 +59,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
+    private router: Router,
     private profileService: OrganizationProfileService,
     private authService: AuthService,
     private verificationService: VerificationService
   ) {
     this.initializeForms();
   }
+
 
   ngOnInit(): void {
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
@@ -77,6 +79,16 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     
     this.subscribeToProfileChanges();
     this.checkVerificationStatus();
+    // Leer tab desde query params para mantener la pestaña activa al recargar
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(q => {
+      const tab = q.get('tab');
+      if (tab === 'security' || tab === 'activity' || tab === 'location') {
+        this.activeTab = tab as any;
+      } else {
+        // Default a 'general' si no viene o viene un valor no válido
+        this.activeTab = 'general';
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -230,6 +242,11 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   setActiveTab(tab: 'general' | 'security' | 'activity' | 'location'): void {
     this.activeTab = tab;
     this.clearMessages();
+    // Actualizar query param 'tab' para recordar la pestaña seleccionada.
+    // No añadimos el parámetro cuando es 'general' para mantener la URL limpia.
+    const queryParams: any = {};
+    if (tab && tab !== 'general') queryParams.tab = tab;
+    this.router.navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge' });
   }
 
   onLogoSelected(event: Event): void {
