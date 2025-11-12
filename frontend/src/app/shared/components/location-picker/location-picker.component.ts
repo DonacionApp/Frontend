@@ -22,6 +22,7 @@ export class LocationPickerComponent implements OnInit, OnChanges {
   marker: any = null;
   loading = true;
   error: string | null = null;
+  saving = false;
 
   constructor(private zone: NgZone, private http: HttpClient) {}
 
@@ -218,18 +219,21 @@ export class LocationPickerComponent implements OnInit, OnChanges {
       const payload = { location: { lat, lng } };
       const url = `${environment.apiBaseUrl}/update-me`;
 
+      this.saving = true;
       this.http.post<any>(url, payload).subscribe({
         next: (res) => {
-          console.log('Location saved to backend:', res);
-          // Emit saved so parent can update UI as well.
-          this.zone.run(() => this.saved.emit({ lat, lng }));
-          // Optionally close the picker by emitting cancel (parent can choose to hide)
-          this.zone.run(() => this.cancel.emit());
+          this.zone.run(() => {
+            this.saving = false;
+            this.saved.emit({ lat, lng });
+            this.cancel.emit();
+          });
         },
         error: (err) => {
           console.error('Failed saving location to backend:', err);
-          // Still emit saved locally so parent can handle it if desired
-          this.zone.run(() => this.saved.emit({ lat, lng }));
+          this.zone.run(() => {
+            this.saving = false;
+            this.saved.emit({ lat, lng });
+          });
         }
       });
     } catch (e) {

@@ -435,6 +435,9 @@
       <div *ngIf="activeTab === 'location'" class="p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
         <div class="bg-white rounded-lg shadow p-4">
+            <div *ngIf="!displayLocation" class="mb-3">
+              <span class="text-sm text-gray-500">Aún no tienes una ubicación para tu organización.</span>
+            </div>
           <!-- Render the picker inline when the tab is active so the map is always mounted -->
           <app-location-picker
             [initialLocation]="displayLocation"
