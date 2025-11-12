@@ -310,19 +310,12 @@
               <textarea [(ngModel)]="newReviewText" rows="3" class="w-full p-3 border rounded-md" placeholder="Escribe tu valoración aquí..."></textarea>
 
               <div class="flex items-center justify-between mt-3">
-                <div class="flex items-center space-x-2">
-                  <label class="text-sm text-gray-700">Puntaje</label>
-                  <select [(ngModel)]="newReviewRating" class="px-3 py-1 border rounded-md">
-                    <option *ngFor="let s of [5,4,3,2,1]" [value]="s">{{ s }}</option>
-                  </select>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                  <button (click)="addReview()" [disabled]="submittingReview" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60">
-                    <span *ngIf="!submittingReview">Enviar valoración</span>
-                    <span *ngIf="submittingReview">Enviando...</span>
-                  </button>
-                </div>
+                  <div class="flex items-center space-x-2">
+                    <button (click)="addReview()" [disabled]="submittingReview" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60">
+                      <span *ngIf="!submittingReview">Enviar valoración</span>
+                      <span *ngIf="submittingReview">Enviando...</span>
+                    </button>
+                  </div>
               </div>
 
               <p *ngIf="reviewError" class="text-sm text-red-600 mt-2">{{ reviewError }}</p>

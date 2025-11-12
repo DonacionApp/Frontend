@@ -46,7 +46,7 @@ export interface Review {
   review: string;
   raiting: number;
   // backend may return a minimal user object (only id) so allow partial
-  user: Partial<DonationUser>;
+  user?: Partial<DonationUser>;
   createdAt?: string;
 }
 

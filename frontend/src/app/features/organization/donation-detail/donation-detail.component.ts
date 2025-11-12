@@ -25,9 +25,7 @@ export class DonationDetailComponent implements OnInit {
   isBeneficiary = false;
   isDonator = false;
 
-  // Review form state
   newReviewText = '';
-  newReviewRating = 5;
   submittingReview = false;
   reviewError = '';
 
@@ -38,8 +36,8 @@ export class DonationDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-  private donationService: DonationService,
-  public authService: AuthService,
+    private donationService: DonationService,
+    public authService: AuthService,
     private location: Location,
     private http: HttpClient,
     private alertService: AlertService
@@ -66,10 +64,6 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
-  /**
-   * Whether the current user (authenticated) can add a review for this donation.
-   * Business rule: only beneficiary can add a review, and only once.
-   */
   canAddReview(): boolean {
     if (!this.donation) return false;
     if (!this.isBeneficiary) return false;
@@ -77,14 +71,10 @@ export class DonationDetailComponent implements OnInit {
     if (!currentUser) return false;
 
     const reviews = (this.donation.reviews || []);
-    // if any review exists from current user, disallow
     const already = reviews.some(r => String(r.user?.id) === String(currentUser.id));
     return !already;
   }
 
-  /**
-   * Submit a new review. Endpoint: POST {api}/donation/{id}/reviews
-   */
   addReview(): void {
     if (!this.donation) return;
     if (!this.canAddReview()) {
@@ -103,24 +93,20 @@ export class DonationDetailComponent implements OnInit {
     this.submittingReview = true;
     this.reviewError = '';
 
-    // Backend expects POST to /donationreview/create with { review, donationId }
     const url = `${environment.apiBackendUrl}/donationreview/create`;
     const payload = {
       review: text,
-      donationId: this.donation.id,
-      // send rating back to backend so it stores the correct value
-      raiting: this.newReviewRating
+      donationId: this.donation.id
     };
 
     this.http.post<any>(url, payload).subscribe({
       next: (created) => {
-        // Normalize response (some backends wrap in data)
         const createdReview = created?.data ?? created?.review ?? created;
-        // push into local donation.reviews safely and trigger change detection by replacing the array
+
         if (!this.donation) return;
         if (!this.donation.reviews) this.donation.reviews = [];
 
-        // If backend returns only user.id, fill minimal info from currentUser so UI shows immediate username/avatar
+        // If backend returned a minimal user (only id), try to fill username from current user for better UX
         const currentUser = this.authService.currentUserValue;
         if (createdReview && createdReview.user && currentUser && String(createdReview.user.id) === String(currentUser.id)) {
           createdReview.user = {
@@ -129,10 +115,23 @@ export class DonationDetailComponent implements OnInit {
           } as Partial<any>;
         }
 
+        // Optimistically append the created review so the user sees it immediately
         this.donation.reviews = [...this.donation.reviews, createdReview];
         this.newReviewText = '';
-        this.newReviewRating = 5;
         this.submittingReview = false;
+
+        // Refresh the donation from server to ensure we have canonical data (and any fields the backend fills)
+        // This also guarantees the list will render exactly as the server has it.
+        this.donationService.getDonationById(this.donation.id).subscribe({
+          next: (fresh) => {
+            this.donation = fresh;
+            this.checkPermissions();
+          },
+          error: (err) => {
+            // Non-fatal: log but keep optimistic UI
+            console.warn('No se pudo refrescar la donación tras crear review:', err);
+          }
+        });
       },
       error: (err) => {
         console.error('Error al crear review:', err);
@@ -410,8 +409,8 @@ export class DonationDetailComponent implements OnInit {
 
     this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
       next: (updatedDonation) => {
-  this.donation = updatedDonation;
-  this.selectedStatusId = updatedDonation.statusDonation.id;
+        this.donation = updatedDonation;
+        this.selectedStatusId = updatedDonation.statusDonation.id;
         this.updatingStatus = false;
         this.checkPermissions();
       },
