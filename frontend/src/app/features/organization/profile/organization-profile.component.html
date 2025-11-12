@@ -179,7 +179,7 @@
     </div>
 
   <!-- Sección de Verificación de Organización -->
-  <div *ngIf="isVerificationNoneOrError()" class="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6 rounded-lg shadow">
+  <div *ngIf="activeTab === 'general' && isVerificationNoneOrError()" class="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6 rounded-lg shadow">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,7 +260,7 @@
     </div>
 
     <!-- Estado pendiente -->
-  <div *ngIf="isVerificationPending()" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-lg shadow">
+  <div *ngIf="activeTab === 'general' && isVerificationPending()" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-lg shadow">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -275,7 +275,7 @@
     </div>
 
     <!-- Badge de Verificado -->
-  <div *ngIf="isVerificationVerified()" class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-lg shadow">
+  <div *ngIf="activeTab === 'general' && isVerificationVerified()" class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-lg shadow">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -436,7 +436,7 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Ubicación</h2>
         <div class="bg-white rounded-lg shadow p-4">
             <div *ngIf="!displayLocation" class="mb-3">
-              <span class="text-sm text-gray-500">Aún no tienes una ubicación para tu organización.</span>
+              <span class="text-sm text-red-600">Aún no tienes una ubicación para tu organización.</span>
             </div>
           <!-- Render the picker inline when the tab is active so the map is always mounted -->
           <app-location-picker
