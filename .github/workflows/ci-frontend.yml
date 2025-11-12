@@ -1,7 +1,7 @@
 name: CI-Frontend(Angular)
 on:
   push:
-    branches: [ "main", "configuracion-inicial-ci" ]
+    branches: [ "main", "64-frontend-configurar-ci " ]
   pull_request:
     branches: [ "main" ]
     paths:
