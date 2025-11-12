@@ -8,7 +8,7 @@ on:
       - 'frontend/**'
 
 jobs:
- ci frontend:
+  ci-frontend:
     runs-on: ubuntu-latest
 
     defaults:
