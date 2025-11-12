@@ -34,9 +34,9 @@
         <div *ngIf="selectedOrg.createdAt"><strong>Creado:</strong> {{ selectedOrg.createdAt | date }}</div>
         <div *ngIf="selectedOrg.location" class="mt-2"><strong>Coordenadas:</strong> {{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</div>
       </div>
-      <div class="mt-4">
-  <button (click)="goToProfile(selectedOrg?.id)" class="bg-secondary-600 text-white px-3 py-2 rounded hover:bg-secondary-700">Ver perfil</button>
-      </div>
+    <div class="mt-4">
+  <button (click)="goToProfile(selectedOrg.id)" class="bg-secondary-600 text-white px-3 py-2 rounded hover:bg-secondary-700">Ver perfil</button>
+    </div>
     </ng-container>
     <ng-template #none>
       <div class="text-gray-500">Selecciona un marcador para ver detalles.</div>
