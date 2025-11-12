@@ -25,6 +25,12 @@ export class DonationDetailComponent implements OnInit {
   isBeneficiary = false;
   isDonator = false;
 
+  // Review form state
+  newReviewText = '';
+  newReviewRating = 5;
+  submittingReview = false;
+  reviewError = '';
+
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
   updatingStatus = false;
@@ -32,8 +38,8 @@ export class DonationDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private donationService: DonationService,
-    private authService: AuthService,
+  private donationService: DonationService,
+  public authService: AuthService,
     private location: Location,
     private http: HttpClient,
     private alertService: AlertService
@@ -56,6 +62,91 @@ export class DonationDetailComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al cargar estados:', error);
+      }
+    });
+  }
+
+  /**
+   * Whether the current user (authenticated) can add a review for this donation.
+   * Business rule: only beneficiary can add a review, and only once.
+   */
+  canAddReview(): boolean {
+    if (!this.donation) return false;
+    if (!this.isBeneficiary) return false;
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+
+    const reviews = (this.donation.reviews || []);
+    // if any review exists from current user, disallow
+    const already = reviews.some(r => String(r.user?.id) === String(currentUser.id));
+    return !already;
+  }
+
+  /**
+   * Submit a new review. Endpoint: POST {api}/donation/{id}/reviews
+   */
+  addReview(): void {
+    if (!this.donation) return;
+    if (!this.canAddReview()) {
+      this.reviewError = 'No puedes añadir otra valoración.';
+      setTimeout(() => this.reviewError = '', 3000);
+      return;
+    }
+
+    const text = (this.newReviewText || '').trim();
+    if (!text) {
+      this.reviewError = 'El comentario no puede estar vacío.';
+      setTimeout(() => this.reviewError = '', 3000);
+      return;
+    }
+
+    this.submittingReview = true;
+    this.reviewError = '';
+
+    // Backend expects POST to /donationreview/create with { review, donationId }
+    const url = `${environment.apiBackendUrl}/donationreview/create`;
+    const payload = {
+      review: text,
+      donationId: this.donation.id,
+      // send rating back to backend so it stores the correct value
+      raiting: this.newReviewRating
+    };
+
+    this.http.post<any>(url, payload).subscribe({
+      next: (created) => {
+        // Normalize response (some backends wrap in data)
+        const createdReview = created?.data ?? created?.review ?? created;
+        // push into local donation.reviews safely and trigger change detection by replacing the array
+        if (!this.donation) return;
+        if (!this.donation.reviews) this.donation.reviews = [];
+
+        // If backend returns only user.id, fill minimal info from currentUser so UI shows immediate username/avatar
+        const currentUser = this.authService.currentUserValue;
+        if (createdReview && createdReview.user && currentUser && String(createdReview.user.id) === String(currentUser.id)) {
+          createdReview.user = {
+            ...createdReview.user,
+            username: createdReview.user.username || (currentUser as any).username
+          } as Partial<any>;
+        }
+
+        this.donation.reviews = [...this.donation.reviews, createdReview];
+        this.newReviewText = '';
+        this.newReviewRating = 5;
+        this.submittingReview = false;
+      },
+      error: (err) => {
+        console.error('Error al crear review:', err);
+        this.submittingReview = false;
+        if (err?.status === 403) {
+          this.reviewError = 'No tienes permiso para agregar una valoración.';
+        } else if (err?.status === 409) {
+          this.reviewError = 'Ya existe una valoración desde este usuario.';
+        } else if (err?.status === 0) {
+          this.reviewError = 'Error de conexión. Verifica tu internet.';
+        } else {
+          this.reviewError = err?.error?.message || 'No se pudo agregar la valoración.';
+        }
+        setTimeout(() => this.reviewError = '', 4000);
       }
     });
   }

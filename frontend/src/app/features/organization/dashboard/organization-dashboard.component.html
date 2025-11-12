@@ -151,6 +151,23 @@
           </button>
 
           <button
+            (click)="setActiveTab('donadas-a-mi')"
+            [class]="activeTab === 'donadas-a-mi' 
+              ? 'border-green-500 text-green-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 focus-ring"
+            role="tab"
+            [attr.aria-selected]="activeTab === 'donadas-a-mi'"
+            [attr.aria-controls]="'donadas-a-mi-panel'">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Donaciones a mí
+            </div>
+          </button>
+
+          <button
             (click)="setActiveTab('mis-donaciones')"
             [class]="activeTab === 'mis-donaciones' 
               ? 'border-green-500 text-green-600' 
@@ -300,9 +317,12 @@
         </ng-template>
       </div>
 
-      <!-- Tab: Mis Donaciones -->
-      <div *ngIf="activeTab === 'mis-donaciones'" class="animate-fade-in">
-        <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+  <!-- Tab: Mis Donaciones or Donaciones a mí -->
+  <div *ngIf="activeTab === 'mis-donaciones' || activeTab === 'donadas-a-mi'" class="animate-fade-in">
+          <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div class="flex items-center">
+              <h2 class="text-2xl font-bold text-gray-900 mb-2 mr-4">{{ activeTab === 'donadas-a-mi' ? 'Donaciones recibidas por mí' : 'Mis Donaciones' }}</h2>
+            </div>
           <div class="flex items-center justify-between w-full xl:w-auto">
             <div class="flex items-center space-x-4 ml-4">
               <span class="text-sm text-gray-500">{{ filteredDonations.length }} / {{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
