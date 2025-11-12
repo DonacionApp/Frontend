@@ -1,0 +1,22 @@
+<div class="location-map">
+  <div *ngIf="loading" class="py-6 text-center text-sm text-gray-500">Cargando mapa…</div>
+
+  <div *ngIf="!loading">
+    <!-- show dynamic map when available and not explicitly falling back -->
+    <div *ngIf="!error && !showStaticFallback" #mapContainer class="map-container" aria-hidden="false" style="min-height:200px"></div>
+
+    <!-- if there's an error OR we've chosen to use the static fallback, show the static image or OSM embed -->
+    <div *ngIf="(error || showStaticFallback)" class="py-4 text-center">
+      <p *ngIf="error" class="text-sm text-red-600">{{ error }}</p>
+      <div *ngIf="location" class="mt-2">
+        <!-- Prefer Google Static Maps if we have a key, otherwise use OpenStreetMap embed -->
+        <ng-container *ngIf="apiKey; else osmEmbed">
+          <img [src]="getStaticMapUrl()" alt="Mapa estático" class="w-full rounded" />
+        </ng-container>
+        <ng-template #osmEmbed>
+          <iframe [src]="getOsmEmbedSafeUrl()" width="100%" height="300" frameborder="0" class="rounded" style="border:1px solid #ccc"></iframe>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>
