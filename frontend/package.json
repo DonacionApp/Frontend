@@ -26,7 +26,8 @@
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.1",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "@googlemaps/js-api-loader": "^1.15.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.7",

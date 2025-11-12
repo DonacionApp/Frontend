@@ -6,11 +6,13 @@ import { Subject, takeUntil } from 'rxjs';
 import { OrganizationProfileService, OrganizationProfile, OrganizationActivityLog } from '../../../core/services/organization-profile.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { VerificationService } from '../../../core/services/verification.service';
+import { environment } from '../../../../environments/environment';
+import { LocationPickerComponent } from '../../../shared/components/location-picker/location-picker.component';
 
 @Component({
   selector: 'app-organization-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, LocationPickerComponent],
   templateUrl: './organization-profile.component.html',
   styleUrls: ['./organization-profile.component.scss']
 })
@@ -36,6 +38,11 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   logoPreview: string | null = null;
   selectedCover: File | null = null;
   coverPreview: string | null = null;
+
+  // Mini-mapa para seleccionar la ubicación
+  showLocationPicker = false;
+  selectedLocation: { lat: number; lng: number } | null = null;
+  public env = environment;
   
   // Verificación de documento
   selectedDocument: File | null = null;
@@ -187,6 +194,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     }
     if (profile.coverImage) {
       this.coverPreview = profile.coverImage;
+    }
+
+    // Si el perfil incluye ubicación, precargarla en el selector
+    if ((profile as any).location && (profile as any).location.lat && (profile as any).location.lng) {
+      this.selectedLocation = {
+        lat: (profile as any).location.lat,
+        lng: (profile as any).location.lng
+      };
     }
   }
 
@@ -380,6 +395,11 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       }
     };
 
+    // Agregar ubicación solo si el usuario la seleccionó
+    if (this.selectedLocation) {
+      (updates as any).location = { lat: this.selectedLocation.lat, lng: this.selectedLocation.lng };
+    }
+
     this.profileService.updateOrganizationProfile(this.organizationId, updates).subscribe({
       next: () => {
         this.successMessage = 'Perfil actualizado exitosamente';
@@ -496,6 +516,22 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   
   toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
+  // ============ MÉTODOS DEL SELECTOR DE UBICACIÓN ============
+
+  openLocationPicker(): void {
+    this.showLocationPicker = true;
+  }
+  
+  onLocationSaved(loc: { lat: number; lng: number }): void {
+    this.selectedLocation = loc;
+    this.showLocationPicker = false;
+  }
+
+  cancelLocationPicker(): void {
+    // Cerrar sin guardar
+    this.showLocationPicker = false;
   }
 
   // ============ MÉTODOS DE VERIFICACIÓN DE DOCUMENTO ============
