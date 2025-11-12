@@ -167,7 +167,7 @@ export class AuthService {
   registerUser(userData:any):Observable<any>{
     try {
       return this.http.post<any>(`${this.api}/auth/register`, userData, { headers: { 'Content-Type': 'application/json' } }).pipe(
-        tap((data) => console.log('User registered:', data)),
+          tap(() => {}),
         catchError((error) => {
           console.error('Error registering user:', error);
           return throwError(error);
@@ -190,21 +190,16 @@ export class AuthService {
           this.setAccessToken(token);
           // Conectar WebSocket con el token
           this.websocketService.connect(token);
-          console.log('✅ WebSocket conectado después del login');
         }
         if (refresh) {
           localStorage.setItem('refreshToken', refresh);
         }
 
         // Decodificar token para extraer user
-        if (token) {
+          if (token) {
           const payload = this.decodeToken(token);
-          console.log('🔍 JWT Payload del backend:', payload);
           const rawRole = payload?.role || payload?.roles || payload?.rol || 'donor';
-          console.log('🎭 Rol extraído del token:', rawRole);
           const normalizedRole = this.normalizeRole(rawRole);
-          console.log('✅ Rol normalizado:', normalizedRole);
-          
           const user: User = {
             id: payload?.sub || payload?.id || '',
             email: payload?.email || '',
@@ -214,9 +209,6 @@ export class AuthService {
             isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
             verified: payload?.verified || res.verified || false
           };
-          console.log('👤 Usuario final guardado:', user);
-          console.log('🎯 firstLogin:', user.firstLogin);
-          console.log('📄 isDocumentVerified:', user.isDocumentVerified);
           localStorage.setItem('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
         }
@@ -244,8 +236,7 @@ export class AuthService {
       if (payload) {
         // Solo actualizar si el usuario es el mismo
         const currentUser = this.currentUserSubject.value;
-        if (currentUser && currentUser.id === (payload.sub || payload.id)) {
-          console.log('🔄 Token renovado silenciosamente para usuario:', currentUser.id);
+          if (currentUser && currentUser.id === (payload.sub || payload.id)) {
           // El token ya está en localStorage (actualizado por el interceptor)
           // No es necesario emitir cambios en currentUserSubject
           // Solo reconectar WebSocket si existe
@@ -271,7 +262,7 @@ export class AuthService {
       if (current === newRefreshToken) return; // no hay cambio
 
       localStorage.setItem('refreshToken', newRefreshToken);
-      console.log('🔁 Refresh token actualizado silenciosamente');
+  // Refresh token actualizado silenciosamente
 
       const access = this.getAccessToken();
       if (access) {
@@ -316,9 +307,8 @@ export class AuthService {
     // Actualizar el estado del usuario
     this.currentUserSubject.next(null);
     
-    // Desconectar WebSocket
-    this.websocketService.disconnect();
-    console.log('❌ WebSocket desconectado y datos de autenticación limpiados');
+  // Desconectar WebSocket
+  this.websocketService.disconnect();
   }
 
   /**
@@ -341,7 +331,7 @@ export class AuthService {
       }
     });
     
-    console.log('🔄 Sesión expirada, redirigiendo al login');
+  // Sesión expirada, redirigiendo al login
   }
 
   get currentUserValue(): User | null {
@@ -463,7 +453,6 @@ export class AuthService {
           
           // Reconectar WebSocket con el nuevo token
           this.websocketService.connect(newToken);
-          console.log('✅ Token refrescado y WebSocket reconectado');
           
           // Retornar el body de la respuesta para compatibilidad
           return new Observable(observer => {
@@ -515,7 +504,6 @@ export class AuthService {
                 }
                 
                 this.websocketService.connect(newToken);
-                console.log('✅ Token refrescado desde headers y WebSocket reconectado');
                 
                 return new Observable(observer => {
                   observer.next(body);

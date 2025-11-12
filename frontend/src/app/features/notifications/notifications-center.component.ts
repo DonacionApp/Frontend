@@ -52,10 +52,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.notifications$
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
-        this.notifications = Array.isArray(nots) ? nots : [];
-        this.isLoading = false;
-        this.hasError = false;
-        console.log('📋 Notificaciones actualizadas en el componente:', nots.length);
+  this.notifications = Array.isArray(nots) ? nots : [];
+  this.isLoading = false;
+  this.hasError = false;
         if (!this.isFirstLoad) {
           this.notifications = nots;
           this.isLoading = false;
@@ -312,7 +311,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   allowNotifications(): void {
-    console.log('Permitir notificaciones - Funcionalidad pendiente');
+    // Permitir notificaciones: funcionalidad pendiente
   }
 
   markAsRead(notificationId: number): void {

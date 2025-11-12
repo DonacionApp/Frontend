@@ -24,7 +24,6 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
   loading = true;
   error: string | null = null;
   showStaticFallback = false;
-  // diagnostics visible in template
   public scriptUrl: string | null = null;
   public mapCreated = false;
 
@@ -44,34 +43,10 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     try {
       await this.loadMaps();
     } catch (e: any) {
-      console.warn('LocationMap: loadMaps failed, will show static map fallback', e);
       this.error = e?.message || 'No se pudo cargar Google Maps';
     } finally {
       this.loading = false;
       this.maybeInitMap();
-    }
-  }
-
-  private setLocation(loc?: { lat: number; lng: number } | null): void {
-    const win: any = window as any;
-    if (!loc || !this.map) return;
-    const pos = { lat: loc.lat, lng: loc.lng };
-    try {
-      if (this.marker) {
-        try {
-          if (typeof this.marker.setPosition === 'function') {
-            this.marker.setPosition(pos);
-          } else if (typeof this.marker.setOptions === 'function') {
-            this.marker.setOptions({ position: pos });
-          } else if ('position' in this.marker) {
-            try { (this.marker as any).position = pos; } catch (e) { /* ignore */ }
-          }
-        } catch (e) { /* ignore marker update errors */ }
-      }
-      if (this.circle && typeof this.circle.setCenter === 'function') this.circle.setCenter(pos);
-      if (win.google && win.google.maps && this.map) this.map.setCenter(pos);
-    } catch (e) {
-      console.error('LocationMap: error setting position', e);
     }
   }
 
@@ -81,7 +56,6 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['location']) {
-      // If map exists, update position; otherwise attempt init (maps script may already be present)
       if (this.map) {
         this.setLocation(this.location);
       } else {
@@ -98,7 +72,6 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     const win: any = window as any;
     if (win.google && win.google.maps) return;
 
-    // Traditional script injection with callback (works like the plain HTML approach)
     return new Promise<void>((resolve, reject) => {
       const apiKey = this.apiKey || (win.__GMAPS_API_KEY__ || '');
       if (!apiKey) {
@@ -106,34 +79,20 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
         return;
       }
 
-      // Create a unique callback name to avoid clashes
       const cbName = '__initLocationMap_' + Math.random().toString(36).slice(2);
-      (win as any)[cbName] = () => {
-        try {
-          this.zone.run(() => { resolve(); });
-        } finally {
-          try { delete (win as any)[cbName]; } catch (e) { }
-        }
-      };
+      (win as any)[cbName] = () => { try { this.zone.run(() => { resolve(); }); } finally { try { delete (win as any)[cbName]; } catch (e) { } } };
       const mapIdParam = this.mapId ? `&map_ids=${encodeURIComponent(this.mapId)}` : '';
-  // load the marker library to support AdvancedMarkerElement
-  const libs = 'marker';
+      const libs = 'marker';
       const script = document.createElement('script');
-  // Use loading=async to follow Google's best-practice loading pattern
-  // and avoid the console warning about suboptimal loading.
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${cbName}${mapIdParam}${libs ? `&libraries=${libs}` : ''}&loading=async`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${cbName}${mapIdParam}${libs ? `&libraries=${libs}` : ''}&loading=async`;
       script.async = true;
       script.defer = true;
-      script.onerror = (e) => {
-        try { delete (win as any)[cbName]; } catch (err) { /* ignore */ }
-        reject(new Error('Failed to load Google Maps script'));
-      };
+      script.onerror = (e) => { try { delete (win as any)[cbName]; } catch (err) { } reject(new Error('Failed to load Google Maps script')); };
       this.scriptUrl = script.src;
       document.head.appendChild(script);
     });
   }
 
-  // Public wrapper so parent can force initialization after tabs render
   public ensureInit(): void { this.maybeInitMap(); }
 
   private maybeInitMap(attempts = 0): void {
@@ -142,7 +101,7 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
       if (this.loading) return;
       const el = this.mapContainer && (this.mapContainer as any).nativeElement;
       if (!el) {
-        const MAX = 20; // retry up to ~2s (20 * 100ms)
+        const MAX = 20;
         if (attempts < MAX) {
           setTimeout(() => this.maybeInitMap(attempts + 1), 100);
         } else {
@@ -172,69 +131,79 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     this.zone.run(() => {
       this.map = new win.google.maps.Map(el, { center, zoom: this.zoom, mapId: this.mapId || undefined });
       try {
-        // Ensure any existing marker is removed
         try { if (this.marker && typeof this.marker.setMap === 'function') this.marker.setMap(null); } catch (e) { }
-
-        // Prefer AdvancedMarkerElement (new recommended API) when available
         if (win.google && win.google.maps && win.google.maps.marker && (win.google.maps.marker as any).AdvancedMarkerElement) {
           try {
             const content = document.createElement('div');
             content.className = 'adv-marker';
-            // Use an <img> inside the AdvancedMarkerElement so the official pin is displayed
             const img = document.createElement('img');
             img.src = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
             img.alt = 'Ubicación';
             img.className = 'adv-marker-img';
             content.appendChild(img);
-            // @ts-ignore
             this.marker = new win.google.maps.marker.AdvancedMarkerElement({ position: center, map: this.map, content, title: 'Ubicación', zIndex: 999999 });
             try { (this.marker as any).setVisible?.(true); } catch (e) { }
           } catch (e) {
-            // If AdvancedMarker creation fails, fall back to classic Marker
             const iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
             this.marker = new win.google.maps.Marker({ position: center, map: this.map, draggable: false, icon: { url: iconUrl }, zIndex: 999999 });
           }
         } else {
-          // Fallback to classic Marker if marker library not present
-          // Use the default Google Maps marker (no custom icon) so the standard teardrop pin is shown
           this.marker = new win.google.maps.Marker({ position: center, map: this.map, draggable: false, zIndex: 999999 });
         }
       } catch (e) {
         console.warn('LocationMap: marker creation failed', e);
       }
 
-      // Always create a small circle overlay as a guaranteed visual cue for the location
       try {
-  // make circle small and subtle so it doesn't visually replace the marker
-  this.circle = new win.google.maps.Circle({ strokeColor: '#a94442', strokeOpacity: 0.9, strokeWeight: 1, fillColor: '#d9534f', fillOpacity: 0.25, map: this.map, center, radius: 8 });
-  try { this.circle.setOptions?.({ zIndex: 99998 }); } catch (e) { }
+        this.circle = new win.google.maps.Circle({ strokeColor: '#a94442', strokeOpacity: 0.9, strokeWeight: 1, fillColor: '#d9534f', fillOpacity: 0.25, map: this.map, center, radius: 8 });
+        try { this.circle.setOptions?.({ zIndex: 99998 }); } catch (e) { }
       } catch (e) { }
 
       this.mapCreated = true;
       this.setLocation(center);
     });
 
-    // trigger resize in case container was hidden initially
     setTimeout(() => {
       try {
         if (win.google && win.google.maps && this.map) {
           win.google.maps.event.trigger(this.map, 'resize');
           this.map.setCenter(center);
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) { }
     }, 150);
 
-    // If after a short delay no marker or no visible map children exist, enable static fallback.
     setTimeout(() => {
       try {
         const el2 = this.mapContainer && (this.mapContainer as any).nativeElement;
         const hasMapChildren = el2 && el2.querySelector && el2.querySelector('.gm-style');
         if (!this.marker || !hasMapChildren) { this.showStaticFallback = true; }
-      } catch (e) { /* ignore */ }
+      } catch (e) { }
     }, 700);
   }
 
-  // Build static map URL as fallback
+  private setLocation(loc?: { lat: number; lng: number } | null): void {
+    const win: any = window as any;
+    if (!loc || !this.map) return;
+    const pos = { lat: loc.lat, lng: loc.lng };
+    try {
+      if (this.marker) {
+        try {
+          if (typeof this.marker.setPosition === 'function') {
+            this.marker.setPosition(pos);
+          } else if (typeof this.marker.setOptions === 'function') {
+            this.marker.setOptions({ position: pos });
+          } else if ('position' in this.marker) {
+            try { (this.marker as any).position = pos; } catch (e) { }
+          }
+        } catch (e) { }
+      }
+      if (this.circle && typeof this.circle.setCenter === 'function') this.circle.setCenter(pos);
+      if (win.google && win.google.maps && this.map) this.map.setCenter(pos);
+    } catch (e) {
+      console.error('LocationMap: error setting position', e);
+    }
+  }
+
   public getStaticMapUrl(): string {
     if (!this.location) return '';
     const lat = this.location.lat;
@@ -246,12 +215,10 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&markers=${marker}&key=${key}`;
   }
 
-  // Build an OpenStreetMap embed URL (no API key required) as a reliable fallback
   public getOsmEmbedUrl(): string {
     if (!this.location) return '';
     const lat = this.location.lat;
     const lng = this.location.lng;
-    // bbox around the point for a nice zoomed view
     const delta = 0.02;
     const left = lng - delta;
     const right = lng + delta;

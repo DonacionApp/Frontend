@@ -98,7 +98,7 @@ export class AccountVerifiedComponent implements OnInit {
   autoLogin(): void {
     // Simular login automático después de verificación
     // En un sistema real, aquí se haría una llamada al backend para obtener el token
-    console.log('Login automático para:', this.userEmail);
+  // auto login for verified account (simulated)
     
     // Simular almacenamiento de datos de usuario en localStorage
     const userData = {
@@ -114,13 +114,10 @@ export class AccountVerifiedComponent implements OnInit {
     localStorage.setItem('isLoggedIn', 'true');
     
     // Usuario logueado exitosamente - mantener en la página actual
-    console.log('✅ Usuario logueado exitosamente');
-    console.log('📍 URL actual:', window.location.href);
-    console.log('📍 Debería mantenerse en:', '/account-verified');
+  // Usuario logueado exitosamente (simulado)
     
     // Prevenir cualquier navegación automática
-    setTimeout(() => {
-      console.log('📍 URL después de 1 segundo:', window.location.href);
-    }, 1000);
+    // no-op timeout for UI stability
+    setTimeout(() => {}, 1000);
   }
 }

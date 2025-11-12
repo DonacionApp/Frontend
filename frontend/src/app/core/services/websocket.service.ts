@@ -35,7 +35,6 @@ export class WebsocketService {
     // Si ya hay una conexión activa, desconectar primero
     if (this.socket) {
       if (this.socket.connected) {
-        console.log('WebSocket ya está conectado');
         return;
       }
       // Si hay un socket pero no está conectado, limpiarlo
@@ -47,7 +46,7 @@ export class WebsocketService {
     // Limpiar el token si viene con "Bearer "
     const cleanToken = token.replace('Bearer ', '').trim();
     
-    console.log('Conectando WebSocket al namespace /notifications con token');
+  // Connecting WebSocket to /notifications namespace
     // El backend usa el namespace /notifications según notify.gateway.ts
     this.socket = io(`${environment.socketUrl}/notifications`, {
       transports: ['websocket', 'polling'],
@@ -85,7 +84,6 @@ export class WebsocketService {
 
     // Evento: Conexión establecida (evento nativo de socket.io)
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket conectado:', this.socket?.id);
       this.connectionStatus.next(true);
       clearTimeout(notificationTimeout);
     });
@@ -93,14 +91,12 @@ export class WebsocketService {
     // Evento: Conectado exitosamente (emitido por el backend después de validar el token)
     // El backend emite este evento en handleConnection después de validar el token
     this.socket.on('connected', (data: { message: string; userId: number; userName: string; timestamp: Date }) => {
-      console.log('✅ Conectado al servidor de notificaciones:', data);
       this.connectionStatus.next(true);
       clearTimeout(notificationTimeout);
     });
 
     // Evento: Desconexión
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket desconectado:', reason);
       this.connectionStatus.next(false);
       clearTimeout(notificationTimeout);
     });
@@ -114,7 +110,6 @@ export class WebsocketService {
 
     // Evento: Nueva notificación (emitido por el backend)
     this.socket.on('notification', (notification: Notification) => {
-      console.log('📬 Evento WebSocket recibido:', notification);
       clearTimeout(notificationTimeout);
       this.notificationSubject.next(notification);
     });
@@ -150,7 +145,7 @@ export class WebsocketService {
       this.socket.disconnect();
       this.socket = null;
       this.connectionStatus.next(false);
-      console.log('WebSocket desconectado manualmente');
+      // WebSocket disconnected manually
     }
   }
 
@@ -165,7 +160,7 @@ export class WebsocketService {
 
     if (!this.socket) {
       // No hay socket inicializado: intentar conectar directamente con el nuevo token
-      console.log('⚠️ No hay socket activo, intentando conectar con el nuevo token');
+  // No active socket, attempting to connect with new token
       try {
         this.connect(newToken);
       } catch (e) {
@@ -176,12 +171,11 @@ export class WebsocketService {
     
     // Si el socket está conectado, no hacer nada (evitar desconexiones innecesarias)
     if (this.socket.connected) {
-      console.log('✅ WebSocket ya está conectado, no es necesario reconectar');
       return;
     }
     
     // Si no está conectado, reconectar con el nuevo token
-    console.log('🔄 Reconectando WebSocket con nuevo token...');
+  // Reconnecting WebSocket with new token
     this.disconnect();
     this.connect(newToken);
   }
@@ -217,7 +211,7 @@ export class WebsocketService {
       // El backend espera el evento 'markAsRead' con { notificationId: number }
       this.socket.emit('markAsRead', { notificationId }, (response: any) => {
         if (response?.success) {
-          console.log('✓ Notificación marcada como leída:', notificationId);
+          // Notification marked as read
           resolve(response);
         } else {
           console.error('❌ Error al marcar notificación como leída:', response?.error);

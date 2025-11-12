@@ -32,6 +32,7 @@
       <app-profile-tabs
         [activeTab]="activeTab"
         (tabChange)="onTabChange($event)"
+        [showLocation]="!!minimalUser?.location"
       ></app-profile-tabs>
 
       <!-- Content Based on Active Tab -->

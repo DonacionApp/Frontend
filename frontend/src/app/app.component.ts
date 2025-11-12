@@ -196,9 +196,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onLogoutClick(): void {
     this.appState.logout();
-    // Desconectar WebSocket
-    this.websocketService.disconnect();
-    console.log('WebSocket desconectado en logout');
+  // Desconectar WebSocket
+  this.websocketService.disconnect();
     this.router.navigate(['/']);
   }
 
@@ -222,7 +221,6 @@ export class AppComponent implements OnInit, OnDestroy {
     const token = localStorage.getItem('accessToken');
     if (token) {
       this.websocketService.connect(token);
-      console.log('WebSocket conectado en inicialización');
     }
   }
 

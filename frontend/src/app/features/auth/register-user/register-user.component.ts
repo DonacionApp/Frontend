@@ -5,7 +5,7 @@ import { CountriesService } from '../../../core/services/countries.service';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
-import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, tap, throwError, finalize } from 'rxjs';
+import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, throwError, finalize } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
@@ -214,15 +214,13 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      console.log('No hay datos para registrar el usuario');
+      // No payload to register
     }
   }
 
   registerUser(): Observable<any> {
     try {
-      return this.authService.registerUser(this.lastPayload).pipe(
-        tap((response) => console.log(response))
-      );
+      return this.authService.registerUser(this.lastPayload);
     } catch (error) {
       return throwError(error);
     }

@@ -118,8 +118,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
           }
           // If we're currently viewing the location tab, try to initialize the map
           if (this.activeTab === 'location') {
-            // give Angular a tick to render the child before forcing init
-            setTimeout(() => this.locationMap?.ensureInit(), 100);
+            if (!this.minimalUser?.location) {
+              this.activeTab = 'posts';
+              this.router.navigate([], { relativeTo: this.route, queryParams: { loaded: null }, queryParamsHandling: 'merge' });
+            } else {
+              setTimeout(() => this.locationMap?.ensureInit(), 100);
+            }
           }
           this.isLoadingUser = false;
         },

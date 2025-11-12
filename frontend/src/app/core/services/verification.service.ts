@@ -35,16 +35,13 @@ export class VerificationService {
     const formData = new FormData();
     formData.append('supportId', file);
 
-    console.log('📤 Enviando documento al backend...');
-    console.log('📄 Archivo:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+  // Uploading support document
 
     return this.http.post<VerificationResponse>(
       `${this.apiUrl}/update-support-id`,
       formData
     ).pipe(
       tap(response => {
-        console.log('✅ Documento subido exitosamente:', response);
-        
         // Actualizar el estado del usuario en AuthService
         if (response.isDocumentVerified) {
           this.updateUserVerificationStatus(true);
@@ -104,8 +101,7 @@ export class VerificationService {
       // Actualizar en el BehaviorSubject del AuthService
       // Como el BehaviorSubject es privado, necesitamos actualizar el usuario
       // Esta es una forma de hacerlo sin exponer el subject
-      console.log('🔄 Actualizando estado de verificación en AuthService...');
-      console.log('✅ Usuario actualizado:', updatedUser);
+  // Updating verification state in AuthService
     }
   }
 

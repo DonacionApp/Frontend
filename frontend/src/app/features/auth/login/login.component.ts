@@ -67,13 +67,11 @@ export class LoginComponent implements OnDestroy {
           // Obtener el usuario actual con toda la información
           const user = this.auth.currentUserValue;
           
-          console.log('🎯 Login exitoso, usuario:', user);
-          console.log('🔍 firstLogin:', user?.firstLogin);
-          console.log('📄 isDocumentVerified:', user?.isDocumentVerified);
+          // login successful
           
           // Si el usuario NO está verificado (isDocumentVerified === false), redirigir al perfil
           if (user?.isDocumentVerified === false) {
-            console.log('⚠️ Usuario sin verificar, redirigiendo al perfil para subir documento...');
+            // usuario sin verificar, redirigiendo al perfil para subir documento
             if (user.role === 'organization') {
               this.router.navigate(['/organization/profile']);
             } else if (user.role === 'donor') {
@@ -83,7 +81,7 @@ export class LoginComponent implements OnDestroy {
             }
           } else {
             // Usuario ya verificado, redirigir al dashboard normal
-            console.log('✅ Usuario verificado, redirigiendo al dashboard...');
+            // usuario verificado, se redirige al dashboard
             if (user?.role === 'admin') {
               this.router.navigate(['/admin']);
             } else if (user?.role === 'organization') {
