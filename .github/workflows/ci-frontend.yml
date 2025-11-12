@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: angular-build
-          path: dist/
+          path: dist/**
           retention-days: 1
       - name: Verificación final
         run: echo "CI Frontend completado correctamente "
