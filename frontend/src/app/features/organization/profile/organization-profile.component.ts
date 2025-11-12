@@ -8,11 +8,12 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { VerificationService } from '../../../core/services/verification.service';
 import { environment } from '../../../../environments/environment';
 import { LocationPickerComponent } from '../../../shared/components/location-picker/location-picker.component';
+import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
 
 @Component({
   selector: 'app-organization-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, LocationPickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, LocationPickerComponent, SpinnerComponent],
   templateUrl: './organization-profile.component.html',
   styleUrls: ['./organization-profile.component.scss']
 })
@@ -39,19 +40,14 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   selectedCover: File | null = null;
   coverPreview: string | null = null;
 
-  // Mini-mapa para seleccionar la ubicación
   showLocationPicker = false;
   selectedLocation: { lat: number; lng: number } | null = null;
   public env = environment;
-  
-  // Verificación de documento
   selectedDocument: File | null = null;
   documentPreview: string | null = null;
   isUploadingDocument = false;
-  // Estado de verificación: 'none' | 'uploading' | 'pending' | 'verified' | 'error'
   verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
   
-  // Control de visibilidad de contraseñas
   showCurrentPassword = false;
   showNewPassword = false;
   showConfirmPassword = false;
@@ -79,13 +75,11 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     
     this.subscribeToProfileChanges();
     this.checkVerificationStatus();
-    // Leer tab desde query params para mantener la pestaña activa al recargar
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(q => {
       const tab = q.get('tab');
       if (tab === 'security' || tab === 'activity' || tab === 'location') {
         this.activeTab = tab as any;
       } else {
-        // Default a 'general' si no viene o viene un valor no válido
         this.activeTab = 'general';
       }
     });
@@ -150,12 +144,9 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadProfile(): void {
-    // Usar getMyOrganizationProfile() que llama a /auth/profile
     this.profileService.getMyOrganizationProfile().subscribe({
       next: (profile) => {
         this.populateForm(profile);
-        console.log('Perfil cargado:', profile);
-        // Actualizar estado de verificación después de cargar el perfil
         this.checkVerificationStatus();
       },
       error: (error) => {
@@ -165,23 +156,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Poblar el formulario con los datos del perfil de la organización
-   * 
-   * Campos editables:
-   * - name: Nombre de la organización
-   * - phone: Teléfono de contacto
-   * - address: Dirección física
-   * - postalCode: Código postal
-   * - website: Sitio web
-   * - description: Descripción breve
-   * - missionStatement: Declaración de misión
-   * - legalRepresentative: Representante legal
-   * - facebookUrl, twitterUrl, instagramUrl, linkedinUrl: Redes sociales
-   * 
-   * Campos de solo lectura (disabled):
-   * - email: No se puede cambiar (definido en el registro)
-   */
   private populateForm(profile: OrganizationProfile): void {
     this.profileForm.patchValue({
       name: profile.name,
@@ -218,10 +192,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Comprueba si el perfil tiene un valor no vacío para la ruta indicada.
-   * Soporta rutas con punto para propiedades anidadas, por ejemplo: 'socialMedia.facebook'
-   */
   profileHas(path: string): boolean {
     if (!this.profile) return false;
     const parts = path.split('.');
@@ -234,8 +204,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadActivity(): void {
-    // Endpoint de actividad no implementado en el backend
-    // El historial de actividad se implementará en el futuro
     this.activityLog = [];
   }
 

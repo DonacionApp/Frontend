@@ -120,7 +120,6 @@ export class OrganizationProfileService {
       map(response => {
         // Transformar respuesta del backend al formato del frontend
         const profile = this.transformBackendResponse(response);
-        console.log('response', response);
         this.profileSubject.next(profile);
         this.loadingSubject.next(false);
         return profile; // ← Retornar el perfil transformado
