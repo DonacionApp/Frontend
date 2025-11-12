@@ -1,0 +1,19 @@
+<div class="max-w-6xl mx-auto px-4 py-6">
+  <h2 class="text-2xl font-semibold mb-4">Organizaciones en el mapa</h2>
+
+  <div *ngIf="loading" class="text-center py-12">Cargando organizaciones...</div>
+  <div *ngIf="error" class="text-red-600">{{ error }}</div>
+
+  <div id="org-list-map" class="w-full h-96 rounded-md shadow-sm bg-gray-100"></div>
+
+  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div *ngFor="let o of orgs" class="bg-white p-3 rounded shadow-sm flex items-center gap-3">
+      <img *ngIf="o.profilePhoto" [src]="o.profilePhoto" class="w-12 h-12 rounded-full object-cover" alt="avatar">
+      <div>
+        <div class="font-medium">{{ o.username }}</div>
+        <div class="text-sm text-gray-500">{{ o.residencia || o.email }}</div>
+        <div *ngIf="o.location" class="text-xs text-gray-400">{{ o.location.lat }}, {{ o.location.lng }}</div>
+      </div>
+    </div>
+  </div>
+</div>

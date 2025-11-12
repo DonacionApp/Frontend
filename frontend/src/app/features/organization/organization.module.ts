@@ -8,6 +8,7 @@ import { CreateDonationComponent } from './create-donation/create-donation.compo
 import { DonationDetailComponent } from './donation-detail/donation-detail.component';
 import { EditDonationComponent } from './edit-donation/edit-donation.component';
 import { ManageDonationArticlesComponent } from './manage-donation-articles/manage-donation-articles.component';
+import { OrganizationListComponent } from './list/list.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { OrganizationGuard } from '../../core/guards/organization.guard';
 import { GuestGuard } from '../../core/guards/guest.guard';
@@ -20,6 +21,7 @@ const routes: Routes = [
   { path: 'donations/:id/edit', component: EditDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/manage-articles', component: ManageDonationArticlesComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id', component: DonationDetailComponent, canActivate: [AuthGuard, OrganizationGuard] },
+  { path: 'list', component: OrganizationListComponent },
 ];
 
 @NgModule({
@@ -36,6 +38,8 @@ const routes: Routes = [
     DonationDetailComponent,
     EditDonationComponent,
     ManageDonationArticlesComponent
+    ,
+    OrganizationListComponent
   ],
   providers: [
     // Aquí irán los servicios específicos de la organización
