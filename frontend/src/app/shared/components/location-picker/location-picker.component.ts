@@ -1,10 +1,12 @@
 import { Component, EventEmitter, Input, NgZone, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-location-picker',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HttpClientModule],
   templateUrl: './location-picker.component.html',
   styleUrls: ['./location-picker.component.scss']
 })
@@ -21,7 +23,7 @@ export class LocationPickerComponent implements OnInit {
   loading = true;
   error: string | null = null;
 
-  constructor(private zone: NgZone) {}
+  constructor(private zone: NgZone, private http: HttpClient) {}
 
   async ngOnInit(): Promise<void> {
     try {
@@ -118,7 +120,27 @@ export class LocationPickerComponent implements OnInit {
     // Click map to move marker
     this.map.addListener('click', (e: any) => {
       const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-      try { this.marker.setPosition(pos); } catch (err) { /* ignore */ }
+      try {
+        if (!this.marker) return;
+        // Prefer setPosition (Marker), but AdvancedMarkerElement uses a
+        // .position property. Try multiple strategies to be defensive.
+        if (typeof this.marker.setPosition === 'function') {
+          this.marker.setPosition(pos);
+        } else if ('position' in this.marker) {
+          try {
+            // AdvancedMarkerElement accepts a LatLngLiteral
+            (this.marker as any).position = pos;
+          } catch (inner) {
+            if (typeof (this.marker as any).set === 'function') {
+              (this.marker as any).set('position', pos);
+            }
+          }
+        } else if (typeof (this.marker as any).set === 'function') {
+          (this.marker as any).set('position', pos);
+        }
+      } catch (err) {
+        console.error('Failed moving marker:', err);
+      }
     });
 
     // Sometimes the map appears blank if the container was hidden when initialized.
@@ -143,12 +165,37 @@ export class LocationPickerComponent implements OnInit {
         lat = typeof p.lat === 'function' ? p.lat() : p.lat;
         lng = typeof p.lng === 'function' ? p.lng() : p.lng;
       } else if (this.marker.position) {
-        lat = this.marker.position.lat;
-        lng = this.marker.position.lng;
+        const p: any = this.marker.position;
+        lat = typeof p.lat === 'function' ? p.lat() : p.lat;
+        lng = typeof p.lng === 'function' ? p.lng() : p.lng;
+      } else if ((this.marker as any).geometry && (this.marker as any).geometry.location) {
+        const p: any = (this.marker as any).geometry.location;
+        lat = typeof p.lat === 'function' ? p.lat() : p.lat;
+        lng = typeof p.lng === 'function' ? p.lng() : p.lng;
       }
-      if (lat != null && lng != null) {
-        this.zone.run(() => this.saved.emit({ lat, lng }));
+      if (lat == null || lng == null) {
+        console.warn('LocationPicker.save: could not determine marker coordinates');
+        return;
       }
+
+      // Prefer to send the update directly to the backend for a quicker UX.
+      const payload = { location: { lat, lng } };
+      const url = `${environment.apiBaseUrl}/update-me`;
+
+      this.http.post<any>(url, payload).subscribe({
+        next: (res) => {
+          console.log('Location saved to backend:', res);
+          // Emit saved so parent can update UI as well.
+          this.zone.run(() => this.saved.emit({ lat, lng }));
+          // Optionally close the picker by emitting cancel (parent can choose to hide)
+          this.zone.run(() => this.cancel.emit());
+        },
+        error: (err) => {
+          console.error('Failed saving location to backend:', err);
+          // Still emit saved locally so parent can handle it if desired
+          this.zone.run(() => this.saved.emit({ lat, lng }));
+        }
+      });
     } catch (e) {
       console.error('Error leyendo posición:', e);
     }
