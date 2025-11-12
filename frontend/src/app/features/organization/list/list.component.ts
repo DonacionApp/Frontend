@@ -9,7 +9,9 @@ export interface OrgMinimal {
   email?: string;
   profilePhoto?: string;
   location?: { lat: number; lng: number } | null;
+  locationJson?: { lat: number; lng: number } | null;
   residencia?: string;
+  createdAt?: string;
 }
 
 @Component({
@@ -25,6 +27,9 @@ export class OrganizationListComponent implements OnInit {
   error: string | null = null;
   map: any = null;
   markers: any[] = [];
+  // sidebar state
+  selectedOrg: OrgMinimal | null = null;
+  sidebarOpen = false;
 
   // Query params (all optional)
   params = {
@@ -109,10 +114,18 @@ export class OrganizationListComponent implements OnInit {
     this.markers = [];
 
     this.orgs.forEach(o => {
-      if (!o.location) return;
+      // support `location` or `locationJson`
+      const loc = (o.location && o.location.lat != null && o.location.lng != null) ? o.location : ((o as any).locationJson || null);
+      if (!loc) return;
       try {
-        const marker = new win.google.maps.Marker({ position: o.location, map: this.map, title: o.username });
+        const marker = new win.google.maps.Marker({ position: loc, map: this.map, title: o.username });
         this.markers.push(marker);
+        try {
+          win.google.maps.event.addListener(marker, 'click', () => {
+            // open sidebar inside Angular zone
+            this.zone.run(() => this.openSidebar(o, loc));
+          });
+        } catch (e) {}
       } catch (e) {}
     });
 
@@ -121,6 +134,20 @@ export class OrganizationListComponent implements OnInit {
       this.markers.forEach(m => bounds.extend(m.getPosition()));
       this.map.fitBounds(bounds);
     }
+  }
+
+  openSidebar(org: OrgMinimal, loc?: { lat: number; lng: number }) {
+    this.selectedOrg = { ...org } as OrgMinimal;
+    // ensure coordinates are present on selectedOrg for display
+    if (loc) {
+      (this.selectedOrg as any).location = loc;
+    }
+    this.sidebarOpen = true;
+  }
+
+  closeSidebar() {
+    this.sidebarOpen = false;
+    this.selectedOrg = null;
   }
 
 }

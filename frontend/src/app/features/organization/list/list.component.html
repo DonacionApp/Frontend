@@ -5,15 +5,32 @@
   <div *ngIf="error" class="text-red-600">{{ error }}</div>
 
   <div id="org-list-map" class="w-full h-96 rounded-md shadow-sm bg-gray-100"></div>
+</div>
 
-  <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-    <div *ngFor="let o of orgs" class="bg-white p-3 rounded shadow-sm flex items-center gap-3">
-      <img *ngIf="o.profilePhoto" [src]="o.profilePhoto" class="w-12 h-12 rounded-full object-cover" alt="avatar">
-      <div>
-        <div class="font-medium">{{ o.username }}</div>
-        <div class="text-sm text-gray-500">{{ o.residencia || o.email }}</div>
-        <div *ngIf="o.location" class="text-xs text-gray-400">{{ o.location.lat }}, {{ o.location.lng }}</div>
+<!-- Sidebar (right) -->
+<div class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl border-l-4 border-gray-300 transform transition-transform" [class.translate-x-0]="sidebarOpen" [class.translate-x-full]="!sidebarOpen" style="z-index:9999">
+  <div class="p-4 border-b flex items-center justify-between bg-gray-50">
+    <div class="font-semibold">Información</div>
+    <button (click)="closeSidebar()" aria-label="Cerrar" class="text-gray-600 hover:text-gray-900">✕</button>
+  </div>
+  <div class="p-4 overflow-auto h-full">
+    <ng-container *ngIf="selectedOrg; else none">
+      <div class="flex items-center gap-3">
+        <img *ngIf="selectedOrg.profilePhoto" [src]="selectedOrg.profilePhoto" class="w-16 h-16 rounded-full object-cover" alt="avatar">
+        <div>
+          <div class="font-bold text-lg">{{ selectedOrg.username }}</div>
+          <div class="text-sm text-gray-500">{{ selectedOrg.email }}</div>
+        </div>
       </div>
-    </div>
+      <div class="mt-3 text-sm text-gray-600">
+        <div *ngIf="selectedOrg.residencia"><strong>Residencia:</strong> {{ selectedOrg.residencia }}</div>
+        <div *ngIf="selectedOrg.createdAt"><strong>Creado:</strong> {{ selectedOrg.createdAt | date }}</div>
+        <div *ngIf="selectedOrg.location" class="mt-2"><strong>Coordenadas:</strong> {{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</div>
+      </div>
+    </ng-container>
+    <ng-template #none>
+      <div class="text-gray-500">Selecciona un marcador para ver detalles.</div>
+    </ng-template>
   </div>
 </div>
+ 
