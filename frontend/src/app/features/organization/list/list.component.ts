@@ -26,7 +26,6 @@ export interface OrgMinimal {
   styleUrls: ['./list.component.scss']
 })
 export class OrganizationListComponent implements OnInit {
-  // live search
   private search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
 
@@ -35,11 +34,10 @@ export class OrganizationListComponent implements OnInit {
   error: string | null = null;
   map: any = null;
   markers: any[] = [];
-  // sidebar state
   selectedOrg: OrgMinimal | null = null;
   sidebarOpen = false;
+  private _outsideClickHandler: any = null;
 
-  // Query params (all optional)
   params = {
     limit: 20 as number | null,
     offset: 0 as number | null,
@@ -53,7 +51,6 @@ export class OrganizationListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrgs();
-    // subscribe to live search with debounce
     this.search$.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(q => {
       this.params.searchParam = q || '';
       this.loadOrgs();
@@ -62,6 +59,7 @@ export class OrganizationListComponent implements OnInit {
 
   ngOnDestroy(): void {
     try { this.destroy$.next(); this.destroy$.complete(); } catch (e) {}
+    try { this.removeOutsideClickListener(); } catch (e) {}
   }
 
   private buildUrl(): string {
@@ -72,7 +70,7 @@ export class OrganizationListComponent implements OnInit {
     this.loading = true;
     this.error = null;
     let httpParams = new HttpParams();
-    // Ignore `limit` when requesting organizations for the map; only use searchParam and other relevant filters
+    // build params; ignore `limit` for map rendering
     Object.keys(this.params).forEach(k => {
       if (k === 'limit') return; // skip limit
       const v: any = (this.params as any)[k];
@@ -85,22 +83,38 @@ export class OrganizationListComponent implements OnInit {
       next: (data) => {
         this.orgs = Array.isArray(data) ? data : [];
         this.loading = false;
+        if (!this.orgs.length) {
+          this.error = 'No se encontraron organizaciones para la búsqueda.';
+        } else {
+          this.error = null;
+        }
         this.zone.runOutsideAngular(() => { this.ensureMapAndMarkers(); });
       },
       error: (err) => {
-        this.error = err?.message || 'Error cargando organizaciones';
         this.loading = false;
+        if (!err || typeof err !== 'object') {
+          this.error = 'Error desconocido al conectar con el servidor.';
+          return;
+        }
+        // network error
+        if (err.status === 0) {
+          this.error = 'No hay conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
+          return;
+        }
+        if (err.status === 404) {
+          this.error = 'No se encontraron organizaciones (404).';
+          return;
+        }
+        // other errors
+        this.error = err?.message || `Error cargando organizaciones (status: ${err.status || 'N/A'})`;
       }
     });
   }
 
-  // Called by the search input/button to reload orgs filtered by searchParam
   onSearch(): void {
-    // reset pagination/cursor if you want; keep simple: reload with current params.searchParam
     this.loadOrgs();
   }
 
-  // called from ngModelChange to feed the debounced search stream
   onSearchTerm(term: string) {
     this.search$.next(String(term || ''));
   }
@@ -133,7 +147,7 @@ export class OrganizationListComponent implements OnInit {
             try {
               const first = args && args[0];
               if (typeof first === 'string' && first.includes('google.maps.Marker is deprecated')) {
-                return; // drop this specific deprecation message
+                return; 
               }
             } catch (e) {}
             _warn(...args);
@@ -144,7 +158,6 @@ export class OrganizationListComponent implements OnInit {
 
       this.zone.run(() => this.initMap());
     } catch (e) {
-      // ignore - user will see fallback
     }
   }
 
@@ -165,23 +178,22 @@ export class OrganizationListComponent implements OnInit {
       const loc = (o.location && o.location.lat != null && o.location.lng != null) ? o.location : ((o as any).locationJson || null);
       if (!loc) return;
       try {
-        // Prefer the AdvancedMarkerElement when available to avoid deprecation warnings
         const Adv = win.google?.maps?.marker?.AdvancedMarkerElement;
         let marker: any = null;
         if (Adv) {
-          // Use an IMG inside AdvancedMarkerElement to mimic the classic Google pin
           const content = document.createElement('div');
           const img = document.createElement('img');
-          // Use a Google-hosted marker icon that resembles the classic pin.
           img.src = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
           img.style.width = '28px';
           img.style.height = '40px';
-          // Shift up so the tip points to the exact lat/lng
-          img.style.transform = 'translateY(-10px)';
+          img.style.transform = 'translateY(-10px) scale(1)';
           img.style.display = 'block';
+          img.style.cursor = 'pointer';
+          img.style.transition = 'transform 140ms ease, box-shadow 140ms ease';
+          try { img.addEventListener('mouseenter', () => { img.style.transform = 'translateY(-14px) scale(1.18)'; img.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)'; }); } catch (e) {}
+          try { img.addEventListener('mouseleave', () => { img.style.transform = 'translateY(-10px) scale(1)'; img.style.boxShadow = 'none'; }); } catch (e) {}
           content.appendChild(img);
           marker = new Adv({ map: this.map, position: loc, title: o.username, content });
-          // attach click on the DOM content as a fallback
           try { content.addEventListener('click', () => this.zone.run(() => this.openSidebar(o, loc))); } catch (e) {}
         } else {
           // fallback: classic Marker (may emit deprecation warning)
@@ -195,8 +207,6 @@ export class OrganizationListComponent implements OnInit {
     if (this.markers.length) {
       try {
         if (this.markers.length === 1) {
-          // When there's a single marker, avoid an extreme zoom from fitBounds.
-          // Center the map on the marker and use a moderate zoom so the context is visible.
           const single = this.markers[0];
           let pos: any = null;
           try { pos = (typeof single.getPosition === 'function') ? single.getPosition() : (single.position || null); } catch (e) { pos = null; }
@@ -207,7 +217,6 @@ export class OrganizationListComponent implements OnInit {
           const bounds = new win.google.maps.LatLngBounds();
           this.markers.forEach(m => {
             try { bounds.extend(m.getPosition()); } catch (e) {
-              // fallback: if marker has no getPosition, try to extend by corresponding org location
               try {
                 // find a matching org by title
                 const title = m && m.getTitle ? m.getTitle() : (m && m.title) || null;
@@ -227,27 +236,50 @@ export class OrganizationListComponent implements OnInit {
 
   openSidebar(org: OrgMinimal, loc?: { lat: number; lng: number }) {
     this.selectedOrg = { ...org } as OrgMinimal;
-    // ensure coordinates are present on selectedOrg for display
     if (loc) {
       (this.selectedOrg as any).location = loc;
     }
     this.sidebarOpen = true;
+    this.attachOutsideClickListener();
   }
 
   closeSidebar() {
     this.sidebarOpen = false;
     this.selectedOrg = null;
+    this.removeOutsideClickListener();
+  }
+
+  private attachOutsideClickListener() {
+    try {
+      if (this._outsideClickHandler) return;
+      this._outsideClickHandler = (ev: MouseEvent) => {
+        try {
+          const sidebar = document.getElementById('org-sidebar');
+          if (!sidebar) return;
+          const target = ev.target as Node;
+          if (!sidebar.contains(target)) {
+            this.zone.run(() => this.closeSidebar());
+          }
+        } catch (e) {}
+      };
+      document.addEventListener('click', this._outsideClickHandler, true);
+    } catch (e) {}
+  }
+
+  private removeOutsideClickListener() {
+    try {
+      if (!this._outsideClickHandler) return;
+      document.removeEventListener('click', this._outsideClickHandler, true);
+      this._outsideClickHandler = null;
+    } catch (e) {}
   }
 
   goToProfile(id?: number | null) {
     if (!id) return;
-    // close sidebar then navigate
     this.closeSidebar();
-    // navigate to /profile/:id
     try {
       this.router.navigate(['/profile', id]);
     } catch (e) {
-      // ignore navigation errors
     }
   }
 

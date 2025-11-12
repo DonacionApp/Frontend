@@ -1,21 +1,24 @@
-<div class="max-w-6xl mx-auto px-4 py-6">
+<div class="org-list-page max-w-6xl mx-auto px-4 py-6">
   <h2 class="text-2xl font-semibold mb-4">Organizaciones en el mapa</h2>
 
   <div class="flex items-center gap-3 mb-4">
-  <input type="text" [(ngModel)]="params.searchParam" (ngModelChange)="onSearchTerm($event)" (keyup.enter)="onSearch()" placeholder="Buscar organizaciones..." class="border rounded px-3 py-2 w-72" />
-    <button (click)="onSearch()" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Buscar</button>
+    <input type="text" [(ngModel)]="params.searchParam" (ngModelChange)="onSearchTerm($event)" (keyup.enter)="onSearch()" placeholder="Buscar organizaciones..." class="border border-secondary-200 focus:border-secondary-400 rounded px-3 py-2 w-72" />
+    <button (click)="onSearch()" class="bg-secondary-600 text-white px-3 py-2 rounded hover:bg-secondary-700">Buscar</button>
     <div *ngIf="loading" class="text-sm text-gray-500">Cargando...</div>
-    <div *ngIf="error" class="text-sm text-red-600">{{ error }}</div>
+    <div *ngIf="error" class="flex items-center gap-2">
+      <div class="text-sm text-red-600">{{ error }}</div>
+      <button *ngIf="error" (click)="loadOrgs()" class="text-sm bg-secondary-50 text-secondary-700 px-2 py-1 rounded border">Reintentar</button>
+    </div>
   </div>
 
   <div id="org-list-map" class="w-full h-96 rounded-md shadow-sm bg-gray-100"></div>
 </div>
 
 <!-- Sidebar (right) -->
-<div class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl border-l-4 border-gray-300 transform transition-transform" [class.translate-x-0]="sidebarOpen" [class.translate-x-full]="!sidebarOpen" style="z-index:9999">
-  <div class="p-4 border-b flex items-center justify-between bg-gray-50">
-    <div class="font-semibold">Información</div>
-    <button (click)="closeSidebar()" aria-label="Cerrar" class="text-gray-600 hover:text-gray-900">✕</button>
+<div id="org-sidebar" class="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl border-l-4 border-secondary-300 transform transition-transform" [class.translate-x-0]="sidebarOpen" [class.translate-x-full]="!sidebarOpen" style="z-index:9999">
+  <div class="p-4 border-b flex items-center justify-between bg-secondary-50">
+    <div class="font-semibold text-secondary-800">Información</div>
+    <button (click)="closeSidebar()" aria-label="Cerrar" class="text-secondary-600 hover:text-secondary-800">✕</button>
   </div>
   <div class="p-4 overflow-auto h-full">
     <ng-container *ngIf="selectedOrg; else none">
@@ -32,7 +35,7 @@
         <div *ngIf="selectedOrg.location" class="mt-2"><strong>Coordenadas:</strong> {{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</div>
       </div>
       <div class="mt-4">
-        <button (click)="goToProfile(selectedOrg?.id)" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Ver perfil</button>
+  <button (click)="goToProfile(selectedOrg?.id)" class="bg-secondary-600 text-white px-3 py-2 rounded hover:bg-secondary-700">Ver perfil</button>
       </div>
     </ng-container>
     <ng-template #none>

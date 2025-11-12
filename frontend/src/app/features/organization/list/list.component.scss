@@ -6,3 +6,25 @@
     overflow: hidden;
   }
 }
+
+/* Small improvements to make the component match the site's palette */
+.org-list-page {
+  input[type="text"] {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .w-96, #org-list-map {
+    box-shadow: 0 6px 18px rgba(12, 12, 13, 0.08);
+  }
+
+  /* Sidebar tweaks */
+  #org-sidebar {
+    transition: transform 200ms ease, opacity 200ms ease;
+  }
+
+  /* Make sidebar take full width on small screens */
+  @media (max-width: 768px) {
+    #org-sidebar { width: 100% !important; }
+  }
+}
