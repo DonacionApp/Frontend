@@ -134,10 +134,43 @@ export class OrganizationProfileService {
    * Transformar la respuesta del backend al formato OrganizationProfile
    */
   private transformBackendResponse(response: any): OrganizationProfile {
+    // Defensive: si la respuesta es nula/indefinida, devolver un perfil vacío para evitar errores en templates
+    if (!response) {
+      console.warn('transformBackendResponse recibió response vacío');
+      return {
+        id: '',
+        username: '',
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        country: '',
+        postalCode: '',
+        taxId: '',
+        website: '',
+        description: '',
+        missionStatement: '',
+        logo: '',
+        coverImage: '',
+        registrationNumber: '',
+        registrationDate: '',
+        legalRepresentative: '',
+        bankAccount: '',
+        isVerified: false,
+        verificationDate: undefined,
+        createdAt: '',
+        lastLogin: '',
+        lastName: '',
+        socialMedia: {}
+      } as OrganizationProfile;
+    }
+
     // Verificar si es una organización por el rol
-    const isOrganization = response.rol?.rol?.toLowerCase() === 'organizacion' || 
-                           response.rol?.rol?.toLowerCase() === 'organization' ||
-                           response.rol?.id === 3;
+    const isOrganization = response?.rol?.rol?.toLowerCase() === 'organizacion' || 
+                           response?.rol?.rol?.toLowerCase() === 'organization' ||
+                           response?.rol?.id === 3;
     
     // Parsear lastName si es JSON (para organizaciones)
     let description = '';

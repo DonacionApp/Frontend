@@ -60,57 +60,21 @@ export class AuthInterceptor implements HttpInterceptor {
       }
     };
 
-    // Preferir token en headers
-    let newToken: string | null = getHeader('X-New-Token');
+    // Preferir token en headers (el backend ahora envía el nuevo token únicamente por headers)
+    const newToken: string | null = getHeader('X-New-Token');
 
-    // Determine where the body might live for success vs HttpErrorResponse
-    let body: any = null;
-    if (response.body !== undefined) {
-      body = response.body;
-    } else if (response.error !== undefined) {
-      // HttpErrorResponse typically exposes the response payload in `error`
-      body = response.error;
-    }
+    // También soportar un header opcional para refresh token si el backend lo proporciona
+    const newRefreshToken: string | null = getHeader('X-New-Refresh-Token') || getHeader('X-New-Refresh');
 
-    // If body is a string (sometimes servers return JSON as string), try to parse
-    if (body && typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        // leave as-is
-      }
-    }
+    if (!newToken && !newRefreshToken) return;
 
-    // Si no hay token en headers, revisar el body por claves comunes
-    if (!newToken && body) {
-      newToken = body?.accessToken || body?.access_token || body?.token || null;
-    }
-
-    // Si no hay token de acceso pero sí hay refreshToken, actualizarlo silenciosamente
-    const refreshFromBody = body?.refreshToken || body?.refresh_token || null;
-    if (!newToken && refreshFromBody) {
-      try {
-        const authService = this.injector.get(AuthService);
-        authService.updateRefreshTokenSilently(refreshFromBody);
-      } catch (e) {
-        try {
-          localStorage.setItem('refreshToken', refreshFromBody);
-        } catch (inner) {
-          console.error('No se pudo guardar refreshToken:', inner);
-        }
-      }
-      return;
-    }
-
-    if (!newToken) return;
-
-    const authServiceInstance = this.injector.get(AuthService);
-    const currentToken = authServiceInstance.getAccessToken();
-    if (currentToken === newToken) return;
+  const authServiceInstance = this.injector.get(AuthService);
+  const currentToken = authServiceInstance.getAccessToken();
+  if (newToken && currentToken === newToken) return;
 
     const now = Date.now();
     const isInCooldown = now - this.lastTokenUpdate < this.TOKEN_UPDATE_COOLDOWN;
-    const isSignificant = currentToken ? this.isSignificantTokenChange(currentToken, newToken) : true;
+  const isSignificant = currentToken ? (newToken ? this.isSignificantTokenChange(currentToken, newToken) : true) : true;
 
     if ((isInCooldown && !isSignificant) || !isSignificant) {
       return;
@@ -123,13 +87,13 @@ export class AuthInterceptor implements HttpInterceptor {
       console.error('No se pudo actualizar accessToken en memoria:', e);
     }
 
-    // Si el body trae refreshToken, actualizarlo silenciosamente (y reconectar si corresponde)
-    if (refreshFromBody) {
+    // Si hay nuevo refresh token en headers, guardarlo silenciosamente
+    if (newRefreshToken) {
       try {
-        authServiceInstance.updateRefreshTokenSilently(refreshFromBody);
+        authServiceInstance.updateRefreshTokenSilently(newRefreshToken);
       } catch (e) {
         try {
-          localStorage.setItem('refreshToken', refreshFromBody);
+          localStorage.setItem('refreshToken', newRefreshToken);
         } catch (inner) {
           console.error('No se pudo guardar refreshToken:', inner);
         }
@@ -138,7 +102,9 @@ export class AuthInterceptor implements HttpInterceptor {
 
     try {
       // Notificar al servicio de auth para que actualice estado sin forzar un refresh-http
-      authServiceInstance.updateTokenSilently(newToken);
+      if (newToken) {
+        authServiceInstance.updateTokenSilently(newToken);
+      }
     } catch (error) {
       console.error('Error notificando cambio de token:', error);
     }
