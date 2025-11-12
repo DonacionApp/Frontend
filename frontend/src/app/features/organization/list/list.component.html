@@ -1,8 +1,12 @@
 <div class="max-w-6xl mx-auto px-4 py-6">
   <h2 class="text-2xl font-semibold mb-4">Organizaciones en el mapa</h2>
 
-  <div *ngIf="loading" class="text-center py-12">Cargando organizaciones...</div>
-  <div *ngIf="error" class="text-red-600">{{ error }}</div>
+  <div class="flex items-center gap-3 mb-4">
+  <input type="text" [(ngModel)]="params.searchParam" (ngModelChange)="onSearchTerm($event)" (keyup.enter)="onSearch()" placeholder="Buscar organizaciones..." class="border rounded px-3 py-2 w-72" />
+    <button (click)="onSearch()" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Buscar</button>
+    <div *ngIf="loading" class="text-sm text-gray-500">Cargando...</div>
+    <div *ngIf="error" class="text-sm text-red-600">{{ error }}</div>
+  </div>
 
   <div id="org-list-map" class="w-full h-96 rounded-md shadow-sm bg-gray-100"></div>
 </div>
@@ -26,6 +30,9 @@
         <div *ngIf="selectedOrg.residencia"><strong>Residencia:</strong> {{ selectedOrg.residencia }}</div>
         <div *ngIf="selectedOrg.createdAt"><strong>Creado:</strong> {{ selectedOrg.createdAt | date }}</div>
         <div *ngIf="selectedOrg.location" class="mt-2"><strong>Coordenadas:</strong> {{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</div>
+      </div>
+      <div class="mt-4">
+        <button (click)="goToProfile(selectedOrg?.id)" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Ver perfil</button>
       </div>
     </ng-container>
     <ng-template #none>

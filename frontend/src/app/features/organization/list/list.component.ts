@@ -1,5 +1,9 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
@@ -17,11 +21,15 @@ export interface OrgMinimal {
 @Component({
   selector: 'app-organization-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './list.component.html',
   styleUrls: ['./list.component.scss']
 })
 export class OrganizationListComponent implements OnInit {
+  // live search
+  private search$ = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
   orgs: OrgMinimal[] = [];
   loading = false;
   error: string | null = null;
@@ -41,10 +49,19 @@ export class OrganizationListComponent implements OnInit {
     orderBy: '' as string | null
   };
 
-  constructor(private http: HttpClient, private zone: NgZone) {}
+  constructor(private http: HttpClient, private zone: NgZone, private router: Router) {}
 
   ngOnInit(): void {
     this.loadOrgs();
+    // subscribe to live search with debounce
+    this.search$.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(q => {
+      this.params.searchParam = q || '';
+      this.loadOrgs();
+    });
+  }
+
+  ngOnDestroy(): void {
+    try { this.destroy$.next(); this.destroy$.complete(); } catch (e) {}
   }
 
   private buildUrl(): string {
@@ -55,7 +72,9 @@ export class OrganizationListComponent implements OnInit {
     this.loading = true;
     this.error = null;
     let httpParams = new HttpParams();
+    // Ignore `limit` when requesting organizations for the map; only use searchParam and other relevant filters
     Object.keys(this.params).forEach(k => {
+      if (k === 'limit') return; // skip limit
       const v: any = (this.params as any)[k];
       if (v !== null && v !== undefined && v !== '') {
         httpParams = httpParams.set(k, String(v));
@@ -73,6 +92,17 @@ export class OrganizationListComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  // Called by the search input/button to reload orgs filtered by searchParam
+  onSearch(): void {
+    // reset pagination/cursor if you want; keep simple: reload with current params.searchParam
+    this.loadOrgs();
+  }
+
+  // called from ngModelChange to feed the debounced search stream
+  onSearchTerm(term: string) {
+    this.search$.next(String(term || ''));
   }
 
   private loadMapsScript(): Promise<void> {
@@ -95,6 +125,23 @@ export class OrganizationListComponent implements OnInit {
   private async ensureMapAndMarkers(): Promise<void> {
     try {
       await this.loadMapsScript();
+      // Optionally suppress the Google Maps deprecation warning for google.maps.Marker
+      try {
+        if (typeof console !== 'undefined' && !(console as any).__suppressGoogleMarkerDeprecated) {
+          const _warn = console.warn.bind(console);
+          console.warn = (...args: any[]) => {
+            try {
+              const first = args && args[0];
+              if (typeof first === 'string' && first.includes('google.maps.Marker is deprecated')) {
+                return; // drop this specific deprecation message
+              }
+            } catch (e) {}
+            _warn(...args);
+          };
+          (console as any).__suppressGoogleMarkerDeprecated = true;
+        }
+      } catch (e) {}
+
       this.zone.run(() => this.initMap());
     } catch (e) {
       // ignore - user will see fallback
@@ -118,21 +165,63 @@ export class OrganizationListComponent implements OnInit {
       const loc = (o.location && o.location.lat != null && o.location.lng != null) ? o.location : ((o as any).locationJson || null);
       if (!loc) return;
       try {
-        const marker = new win.google.maps.Marker({ position: loc, map: this.map, title: o.username });
+        // Prefer the AdvancedMarkerElement when available to avoid deprecation warnings
+        const Adv = win.google?.maps?.marker?.AdvancedMarkerElement;
+        let marker: any = null;
+        if (Adv) {
+          // Use an IMG inside AdvancedMarkerElement to mimic the classic Google pin
+          const content = document.createElement('div');
+          const img = document.createElement('img');
+          // Use a Google-hosted marker icon that resembles the classic pin.
+          img.src = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
+          img.style.width = '28px';
+          img.style.height = '40px';
+          // Shift up so the tip points to the exact lat/lng
+          img.style.transform = 'translateY(-10px)';
+          img.style.display = 'block';
+          content.appendChild(img);
+          marker = new Adv({ map: this.map, position: loc, title: o.username, content });
+          // attach click on the DOM content as a fallback
+          try { content.addEventListener('click', () => this.zone.run(() => this.openSidebar(o, loc))); } catch (e) {}
+        } else {
+          // fallback: classic Marker (may emit deprecation warning)
+          marker = new win.google.maps.Marker({ position: loc, map: this.map, title: o.username });
+          try { win.google.maps.event.addListener(marker, 'click', () => { this.zone.run(() => this.openSidebar(o, loc)); }); } catch (e) {}
+        }
         this.markers.push(marker);
-        try {
-          win.google.maps.event.addListener(marker, 'click', () => {
-            // open sidebar inside Angular zone
-            this.zone.run(() => this.openSidebar(o, loc));
-          });
-        } catch (e) {}
       } catch (e) {}
     });
 
     if (this.markers.length) {
-      const bounds = new win.google.maps.LatLngBounds();
-      this.markers.forEach(m => bounds.extend(m.getPosition()));
-      this.map.fitBounds(bounds);
+      try {
+        if (this.markers.length === 1) {
+          // When there's a single marker, avoid an extreme zoom from fitBounds.
+          // Center the map on the marker and use a moderate zoom so the context is visible.
+          const single = this.markers[0];
+          let pos: any = null;
+          try { pos = (typeof single.getPosition === 'function') ? single.getPosition() : (single.position || null); } catch (e) { pos = null; }
+          if (pos) {
+            try { this.map.setCenter(pos); this.map.setZoom(8); } catch (e) { try { this.map.setCenter({ lat: pos.lat || pos.lat(), lng: pos.lng || pos.lng() }); this.map.setZoom(8); } catch (e2) {} }
+          }
+        } else {
+          const bounds = new win.google.maps.LatLngBounds();
+          this.markers.forEach(m => {
+            try { bounds.extend(m.getPosition()); } catch (e) {
+              // fallback: if marker has no getPosition, try to extend by corresponding org location
+              try {
+                // find a matching org by title
+                const title = m && m.getTitle ? m.getTitle() : (m && m.title) || null;
+                const org = title ? this.orgs.find(x => String(x.username) === String(title)) : null;
+                const loc = org ? (org.location || (org as any).locationJson) : null;
+                if (loc) bounds.extend(loc as any);
+              } catch (e2) {}
+            }
+          });
+          this.map.fitBounds(bounds);
+        }
+      } catch (e) {
+        try { this.map.fitBounds(new win.google.maps.LatLngBounds()); } catch (e2) {}
+      }
     }
   }
 
@@ -148,6 +237,18 @@ export class OrganizationListComponent implements OnInit {
   closeSidebar() {
     this.sidebarOpen = false;
     this.selectedOrg = null;
+  }
+
+  goToProfile(id?: number | null) {
+    if (!id) return;
+    // close sidebar then navigate
+    this.closeSidebar();
+    // navigate to /profile/:id
+    try {
+      this.router.navigate(['/profile', id]);
+    } catch (e) {
+      // ignore navigation errors
+    }
   }
 
 }
