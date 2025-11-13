@@ -9,6 +9,7 @@ export interface TableColumn {
   width?: string;
   align?: 'left' | 'center' | 'right';
   render?: (value: any, row: any) => string;
+  renderAsHtml?: boolean; // Si es true, el resultado de render se interpreta como HTML
 }
 
 export interface TableAction {
@@ -168,6 +169,10 @@ export class DataTableComponent implements OnInit, OnChanges {
       return column.render(value, row);
     }
     return value?.toString() || '';
+  }
+
+  shouldRenderAsHtml(column: TableColumn): boolean {
+    return column.renderAsHtml === true;
   }
 
   onRowClick(row: any): void {

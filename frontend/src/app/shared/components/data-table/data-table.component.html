@@ -148,7 +148,8 @@
             [class]="'px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-' + (column.align || 'left')"
             [style.width]="column.width"
           >
-            {{ getCellDisplayValue(row, column) }}
+            <span *ngIf="!shouldRenderAsHtml(column)">{{ getCellDisplayValue(row, column) }}</span>
+            <span *ngIf="shouldRenderAsHtml(column)" [innerHTML]="getCellDisplayValue(row, column)"></span>
           </td>
           
           <!-- Actions cell -->
