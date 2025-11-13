@@ -49,9 +49,24 @@ export interface UserManagement {
 }
 
 export interface UpdateUserDTO {
+  username?: string;
+  email?: string;
+  password?: string;
+  rolId?: number;
+  people?: any; // PeopleEntity
+  profilePhoto?: string;
   block?: boolean;
+  verificationCode?: string;
+  isVerifiedEmail?: boolean;
   verified?: boolean;
-  emailVerified?: boolean;
+}
+
+export interface ChangeRoleDTO {
+  roleId: number;
+}
+
+export interface ChangeBlockStatusDTO {
+  block: boolean;
 }
 
 @Injectable({
@@ -81,7 +96,7 @@ export class UserManagementService {
   }
 
   updateUser(id: number, user: UpdateUserDTO): Observable<UserManagement> {
-    return this.http.put<UserManagement>(`${this.apiUrl}/${id}`, user).pipe(
+    return this.http.post<UserManagement>(`${this.apiUrl}/update/${id}`, user).pipe(
       catchError((error) => {
         console.error(`Error updating user ${id}:`, error);
         return throwError(() => error);
@@ -89,12 +104,35 @@ export class UserManagementService {
     );
   }
 
+  changeUserRole(id: number, roleId: number): Observable<UserManagement> {
+    // El backend espera roleId como número, pero lo enviamos en el formato correcto
+    const body: ChangeRoleDTO = { roleId: Number(roleId) };
+    return this.http.post<UserManagement>(`${this.apiUrl}/change-role/${id}`, body).pipe(
+      catchError((error) => {
+        console.error(`Error changing role for user ${id}:`, error);
+        console.error('Request body:', body);
+        console.error('Error details:', error.error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  changeBlockStatus(id: number, block: boolean): Observable<UserManagement> {
+    const body: ChangeBlockStatusDTO = { block };
+    return this.http.post<UserManagement>(`${this.apiUrl}/change-block-status/${id}`, body).pipe(
+      catchError((error) => {
+        console.error(`Error changing block status for user ${id}:`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   blockUser(id: number): Observable<UserManagement> {
-    return this.updateUser(id, { block: true });
+    return this.changeBlockStatus(id, true);
   }
 
   unblockUser(id: number): Observable<UserManagement> {
-    return this.updateUser(id, { block: false });
+    return this.changeBlockStatus(id, false);
   }
 
   verifyUser(id: number): Observable<UserManagement> {
@@ -106,7 +144,7 @@ export class UserManagementService {
   }
 
   deleteUser(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`).pipe(
       catchError((error) => {
         console.error(`Error deleting user ${id}:`, error);
         return throwError(() => error);

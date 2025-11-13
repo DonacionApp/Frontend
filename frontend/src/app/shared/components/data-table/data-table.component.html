@@ -155,18 +155,20 @@
           <!-- Actions cell -->
           <td *ngIf="actions && actions.length > 0" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" (click)="$event.stopPropagation()">
             <div class="flex items-center justify-end gap-2">
-              <button
-                *ngFor="let action of actions"
-                (click)="onActionClick(action, row, $event)"
-                [disabled]="action.disabled && action.disabled(row)"
-                [class]="getActionButtonClasses(action)"
-                type="button"
-              >
-                <svg *ngIf="action.icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="action.icon"></path>
-                </svg>
-                <span>{{ action.label }}</span>
-              </button>
+              <ng-container *ngFor="let action of actions">
+                <button
+                  *ngIf="isActionVisible(action, row)"
+                  (click)="onActionClick(action, row, $event)"
+                  [disabled]="action.disabled && action.disabled(row)"
+                  [class]="getActionButtonClasses(action)"
+                  type="button"
+                >
+                  <svg *ngIf="getActionIcon(action, row)" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getActionIcon(action, row)"></path>
+                  </svg>
+                  <span>{{ getActionLabel(action, row) }}</span>
+                </button>
+              </ng-container>
             </div>
           </td>
         </tr>

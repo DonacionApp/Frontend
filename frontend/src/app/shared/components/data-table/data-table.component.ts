@@ -13,11 +13,12 @@ export interface TableColumn {
 }
 
 export interface TableAction {
-  label: string;
-  icon?: string;
+  label: string | ((row: any) => string);
+  icon?: string | ((row: any) => string);
   action: (row: any) => void;
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: (row: any) => boolean;
+  visible?: (row: any) => boolean; // Función para mostrar/ocultar la acción
 }
 
 export interface BatchAction {
@@ -185,6 +186,30 @@ export class DataTableComponent implements OnInit, OnChanges {
       return;
     }
     action.action(row);
+  }
+
+  getActionLabel(action: TableAction, row: any): string {
+    if (typeof action.label === 'function') {
+      return action.label(row);
+    }
+    return action.label;
+  }
+
+  getActionIcon(action: TableAction, row: any): string | undefined {
+    if (!action.icon) {
+      return undefined;
+    }
+    if (typeof action.icon === 'function') {
+      return action.icon(row);
+    }
+    return action.icon;
+  }
+
+  isActionVisible(action: TableAction, row: any): boolean {
+    if (action.visible === undefined) {
+      return true; // Por defecto, todas las acciones son visibles
+    }
+    return action.visible(row);
   }
 
   // Selección

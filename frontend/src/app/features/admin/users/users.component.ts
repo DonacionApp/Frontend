@@ -1,15 +1,19 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../../../shared/components/data-table/data-table.component';
-import { UserManagementService, UserManagement } from '../../../core/services/user-management.service';
+import { UserManagementService, UserManagement, UpdateUserDTO } from '../../../core/services/user-management.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { RoleService } from '../../../core/services/role.service';
+import { Rol } from '../../../shared/model/rol.model';
+import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, DataTableComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -19,6 +23,18 @@ export class UsersComponent implements OnInit, OnDestroy {
   users: UserManagement[] = [];
   loading = false;
   errorMessage = '';
+  
+  // Modal de cambio de rol
+  showChangeRoleModal = false;
+  selectedUser: UserManagement | null = null;
+  availableRoles: Rol[] = [];
+  selectedRoleId: number | null = null;
+  changingRole = false;
+
+  // Modal de edición completa
+  showEditUserModal = false;
+  editUserForm!: FormGroup;
+  editingUser = false;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -126,16 +142,44 @@ export class UsersComponent implements OnInit, OnDestroy {
       variant: 'primary'
     },
     {
-      label: 'Bloquear/Desbloquear',
-      icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
-      action: (row) => this.toggleBlockUser(row),
-      variant: 'secondary'
+      label: 'Editar',
+      icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+      action: (row) => this.openEditUserModal(row),
+      variant: 'primary'
     },
     {
-      label: 'Verificar/Desverificar',
+      label: 'Bloquear',
+      icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+      action: (row) => this.blockUser(row),
+      variant: 'secondary',
+      visible: (row) => !row.block // Solo mostrar si el usuario NO está bloqueado
+    },
+    {
+      label: 'Desbloquear',
+      icon: 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z',
+      action: (row) => this.unblockUser(row),
+      variant: 'secondary',
+      visible: (row) => row.block === true // Solo mostrar si el usuario está bloqueado
+    },
+    {
+      label: 'Verificar',
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-      action: (row) => this.toggleVerifyUser(row),
-      variant: 'primary'
+      action: (row) => this.verifyUser(row),
+      variant: 'primary',
+      visible: (row) => !row.verified // Solo mostrar si el usuario NO está verificado
+    },
+    {
+      label: 'Desverificar',
+      icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+      action: (row) => this.unverifyUser(row),
+      variant: 'primary',
+      visible: (row) => row.verified === true // Solo mostrar si el usuario está verificado
+    },
+    {
+      label: 'Cambiar Rol',
+      icon: 'M12 4v16m8-8H4',
+      action: (row) => this.openChangeRoleModal(row),
+      variant: 'secondary'
     },
     {
       label: 'Eliminar',
@@ -173,11 +217,29 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   constructor(
     private userService: UserManagementService,
-    private toastService: ToastService
-  ) {}
+    private roleService: RoleService,
+    private toastService: ToastService,
+    private fb: FormBuilder
+  ) {
+    this.initializeEditForm();
+  }
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadRoles();
+  }
+
+  loadRoles(): void {
+    this.roleService.getAllRoles()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (roles) => {
+          this.availableRoles = roles;
+        },
+        error: (error) => {
+          console.error('Error loading roles:', error);
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -222,64 +284,108 @@ export class UsersComponent implements OnInit, OnDestroy {
     alert(details);
   }
 
-  toggleBlockUser(user: UserManagement): void {
-    const action = user.block ? 'desbloquear' : 'bloquear';
-    if (!confirm(`¿Estás seguro de ${action} al usuario "${user.username}"?`)) {
+  blockUser(user: UserManagement): void {
+    if (!confirm(`¿Estás seguro de bloquear al usuario "${user.username}"?`)) {
       return;
     }
 
-    const operation = user.block 
-      ? this.userService.unblockUser(user.id)
-      : this.userService.blockUser(user.id);
-
-    operation
+    this.userService.blockUser(user.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.toastService.show({
             title: 'Éxito',
-            message: `Usuario ${action}do correctamente`,
+            message: 'Usuario bloqueado correctamente',
             type: 'success'
           });
           this.loadUsers();
         },
         error: (error) => {
-          console.error(`Error ${action}ing user:`, error);
+          console.error('Error blocking user:', error);
           this.toastService.show({
             title: 'Error',
-            message: `No se pudo ${action} el usuario`,
+            message: 'No se pudo bloquear el usuario',
             type: 'error'
           });
         }
       });
   }
 
-  toggleVerifyUser(user: UserManagement): void {
-    const action = user.verified ? 'desverificar' : 'verificar';
-    if (!confirm(`¿Estás seguro de ${action} al usuario "${user.username}"?`)) {
+  unblockUser(user: UserManagement): void {
+    if (!confirm(`¿Estás seguro de desbloquear al usuario "${user.username}"?`)) {
       return;
     }
 
-    const operation = user.verified 
-      ? this.userService.unverifyUser(user.id)
-      : this.userService.verifyUser(user.id);
-
-    operation
+    this.userService.unblockUser(user.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.toastService.show({
             title: 'Éxito',
-            message: `Usuario ${action}do correctamente`,
+            message: 'Usuario desbloqueado correctamente',
             type: 'success'
           });
           this.loadUsers();
         },
         error: (error) => {
-          console.error(`Error ${action}ing user:`, error);
+          console.error('Error unblocking user:', error);
           this.toastService.show({
             title: 'Error',
-            message: `No se pudo ${action} el usuario`,
+            message: 'No se pudo desbloquear el usuario',
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  verifyUser(user: UserManagement): void {
+    if (!confirm(`¿Estás seguro de verificar al usuario "${user.username}"?`)) {
+      return;
+    }
+
+    this.userService.verifyUser(user.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Usuario verificado correctamente',
+            type: 'success'
+          });
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error verifying user:', error);
+          this.toastService.show({
+            title: 'Error',
+            message: 'No se pudo verificar el usuario',
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  unverifyUser(user: UserManagement): void {
+    if (!confirm(`¿Estás seguro de desverificar al usuario "${user.username}"?`)) {
+      return;
+    }
+
+    this.userService.unverifyUser(user.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Usuario desverificado correctamente',
+            type: 'success'
+          });
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error unverifying user:', error);
+          this.toastService.show({
+            title: 'Error',
+            message: 'No se pudo desverificar el usuario',
             type: 'error'
           });
         }
@@ -428,6 +534,290 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   onBatchActionExecuted(event: { action: BatchAction; rows: any[] }): void {
     // La acción ya se ejecutó
+  }
+
+  openChangeRoleModal(user: UserManagement): void {
+    this.selectedUser = user;
+    this.selectedRoleId = user.rol.id || null;
+    this.showChangeRoleModal = true;
+  }
+
+  closeChangeRoleModal(): void {
+    this.showChangeRoleModal = false;
+    this.selectedUser = null;
+    this.selectedRoleId = null;
+  }
+
+  changeUserRole(): void {
+    if (!this.selectedUser || !this.selectedRoleId) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor selecciona un rol válido',
+        type: 'error'
+      });
+      return;
+    }
+
+    // No permitir cambiar el rol si ya tiene ese rol
+    if (this.selectedUser.rol.id === this.selectedRoleId) {
+      this.toastService.show({
+        title: 'Información',
+        message: 'El usuario ya tiene este rol asignado',
+        type: 'info'
+      });
+      this.closeChangeRoleModal();
+      return;
+    }
+
+    this.changingRole = true;
+
+    console.log('Changing role for user:', this.selectedUser.id, 'to role:', this.selectedRoleId);
+
+    this.userService.changeUserRole(this.selectedUser.id, this.selectedRoleId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Rol cambiado correctamente',
+            type: 'success'
+          });
+          this.closeChangeRoleModal();
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error changing user role:', error);
+          const errorMessage = error.error?.message || error.message || 'No se pudo cambiar el rol del usuario';
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
+        },
+        complete: () => {
+          this.changingRole = false;
+        }
+      });
+  }
+
+  getRoleDisplayName(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'admin': 'Administrador',
+      'donor': 'Donante',
+      'organizacion': 'Organización',
+      'organization': 'Organización'
+    };
+    return roleMap[role?.toLowerCase()] || role || '-';
+  }
+
+  initializeEditForm(): void {
+    this.editUserForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      password: [''], // Opcional, solo se envía si se cambia
+      rolId: ['', Validators.required],
+      profilePhoto: [''],
+      block: [false],
+      verified: [false],
+      isVerifiedEmail: [false],
+      verificationCode: [''], // Opcional
+      people: this.fb.group({
+        name: [''],
+        lastName: [''],
+        birdthDate: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: ['']
+      })
+    });
+  }
+
+  openEditUserModal(user: UserManagement): void {
+    this.selectedUser = user;
+    
+    // Cargar datos del usuario si no están completos
+    if (!user.people && user.id) {
+      this.userService.getUserById(user.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (fullUser) => {
+            this.populateEditForm(fullUser);
+            this.showEditUserModal = true;
+          },
+          error: (error) => {
+            console.error('Error loading user details:', error);
+            this.toastService.show({
+              title: 'Error',
+              message: 'No se pudieron cargar los detalles del usuario',
+              type: 'error'
+            });
+          }
+        });
+    } else {
+      this.populateEditForm(user);
+      this.showEditUserModal = true;
+    }
+  }
+
+  populateEditForm(user: UserManagement): void {
+    const people = user.people;
+    
+    // Parsear municipio si viene como string JSON
+    let municipioValue = '';
+    if (people?.municipio) {
+      if (typeof people.municipio === 'string') {
+        try {
+          const parsed = JSON.parse(people.municipio);
+          municipioValue = JSON.stringify(parsed, null, 2); // Formatear para mostrar en el textarea
+        } catch (e) {
+          municipioValue = people.municipio; // Si no es JSON válido, usar el string tal cual
+        }
+      } else {
+        municipioValue = JSON.stringify(people.municipio, null, 2);
+      }
+    }
+    
+    this.editUserForm.patchValue({
+      username: user.username || '',
+      email: user.email || '',
+      password: '', // No prellenar contraseña
+      rolId: user.rol?.id || '',
+      profilePhoto: user.profilePhoto || '',
+      block: user.block || false,
+      verified: user.verified || false,
+      isVerifiedEmail: user.emailVerified || false,
+      verificationCode: user.code || '', // Código de verificación
+      people: {
+        name: people?.name || '',
+        lastName: people?.lastName || '',
+        birdthDate: people?.birdthDate ? people.birdthDate.split('T')[0] : '', // Solo fecha sin hora
+        dni: people?.dni || '',
+        residencia: people?.residencia || '',
+        telefono: people?.telefono || '',
+        municipio: municipioValue
+      }
+    });
+  }
+
+  closeEditUserModal(): void {
+    this.showEditUserModal = false;
+    this.selectedUser = null;
+    this.editUserForm.reset();
+    this.initializeEditForm();
+  }
+
+  saveUserChanges(): void {
+    if (this.editUserForm.invalid || !this.selectedUser) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
+      return;
+    }
+
+    this.editingUser = true;
+    const formValue = this.editUserForm.value;
+    
+    // Preparar datos para enviar - SOLO los campos permitidos por el endpoint
+    const updateData: UpdateUserDTO = {
+      username: formValue.username,
+      email: formValue.email,
+      rolId: Number(formValue.rolId), // Asegurar que sea número
+      profilePhoto: formValue.profilePhoto || undefined,
+      block: formValue.block,
+      verified: formValue.verified,
+      isVerifiedEmail: formValue.isVerifiedEmail
+    };
+
+    // Solo incluir password si se proporcionó
+    if (formValue.password && formValue.password.trim() !== '') {
+      updateData.password = formValue.password;
+    }
+
+    // Solo incluir verificationCode si se proporcionó
+    if (formValue.verificationCode && formValue.verificationCode.trim() !== '') {
+      updateData.verificationCode = formValue.verificationCode;
+    }
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni)) {
+      // Parsear municipio si viene como string JSON
+      let municipioValue: any = null;
+      if (formValue.people.municipio && formValue.people.municipio.trim() !== '') {
+        try {
+          // Intentar parsear como JSON
+          municipioValue = JSON.parse(formValue.people.municipio);
+        } catch (e) {
+          // Si no es JSON válido, intentar construir el objeto desde el string
+          console.warn('Municipio no es JSON válido, se omitirá:', formValue.people.municipio);
+          municipioValue = null;
+        }
+      }
+
+      updateData.people = {
+        name: formValue.people.name || null,
+        lastName: formValue.people.lastName || null,
+        birdthDate: formValue.people.birdthDate || null,
+        dni: formValue.people.dni || null,
+        residencia: formValue.people.residencia || null,
+        telefono: formValue.people.telefono || null,
+        municipio: municipioValue
+      };
+    }
+
+    console.log('Enviando datos de actualización:', updateData);
+
+    this.userService.updateUser(this.selectedUser.id, updateData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.editingUser = false; // Desactivar loading antes de cerrar
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Usuario actualizado correctamente',
+            type: 'success'
+          });
+          this.closeEditUserModal();
+          this.loadUsers();
+        },
+        error: (error) => {
+          this.editingUser = false; // Desactivar loading en caso de error
+          console.error('Error updating user:', error);
+          console.error('Error completo:', JSON.stringify(error, null, 2));
+          
+          // Extraer mensaje de error más detallado
+          let errorMessage = 'No se pudo actualizar el usuario';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (error.error.error) {
+              errorMessage = error.error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          this.toastService.show({
+            title: 'Error al actualizar usuario',
+            message: errorMessage,
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  get editFormControls() {
+    return this.editUserForm.controls;
+  }
+
+  get peopleFormGroup() {
+    return this.editUserForm.get('people') as FormGroup;
   }
 }
 

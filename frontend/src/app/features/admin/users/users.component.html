@@ -25,5 +25,328 @@
     emptyMessage="No hay usuarios registrados"
     (batchActionExecuted)="onBatchActionExecuted($event)"
   ></app-data-table>
+
+  <!-- Modal de Cambio de Rol -->
+  <app-modal
+    [isOpen]="showChangeRoleModal"
+    [title]="'Cambiar Rol de Usuario'"
+    [size]="'md'"
+    [showCloseButton]="true"
+    [closeOnBackdropClick]="true"
+    (onClose)="closeChangeRoleModal()"
+  >
+    <div *ngIf="selectedUser" class="space-y-4">
+      <div>
+        <p class="text-sm text-gray-600 mb-2">
+          Usuario: <span class="font-semibold text-gray-900">{{ selectedUser.username }}</span>
+        </p>
+        <p class="text-sm text-gray-600 mb-4">
+          Rol actual: <span class="font-semibold text-gray-900">{{ getRoleDisplayName(selectedUser.rol.rol || '') }}</span>
+        </p>
+      </div>
+
+      <div>
+        <label for="roleSelect" class="block text-sm font-medium text-gray-700 mb-2">
+          Seleccionar nuevo rol
+        </label>
+        <select
+          id="roleSelect"
+          [(ngModel)]="selectedRoleId"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          [disabled]="changingRole"
+        >
+          <option [ngValue]="null" disabled>Seleccione un rol</option>
+          <option *ngFor="let role of availableRoles" [ngValue]="role.id">
+            {{ getRoleDisplayName(role.rol) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="closeChangeRoleModal()"
+          [disabled]="changingRole"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          (click)="changeUserRole()"
+          [disabled]="changingRole || !selectedRoleId || selectedUser.rol.id === selectedRoleId"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span *ngIf="!changingRole">Cambiar Rol</span>
+          <span *ngIf="changingRole">Cambiando...</span>
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <!-- Modal de Edición Completa de Usuario -->
+  <app-modal
+    [isOpen]="showEditUserModal"
+    [title]="'Editar Usuario'"
+    [size]="'xl'"
+    [showCloseButton]="true"
+    [closeOnBackdropClick]="false"
+    (onClose)="closeEditUserModal()"
+  >
+    <form [formGroup]="editUserForm" (ngSubmit)="saveUserChanges()" class="space-y-6">
+      <!-- Información Básica -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+              Usuario <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="username"
+              type="text"
+              formControlName="username"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="editFormControls['username'].invalid && editFormControls['username'].touched"
+            />
+            <div *ngIf="editFormControls['username'].invalid && editFormControls['username'].touched" class="text-xs text-red-500 mt-1">
+              <div *ngIf="editFormControls['username'].errors?.['required']">El usuario es requerido</div>
+              <div *ngIf="editFormControls['username'].errors?.['minlength']">El usuario debe tener al menos 3 caracteres</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+              Email <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="editFormControls['email'].invalid && editFormControls['email'].touched"
+            />
+            <div *ngIf="editFormControls['email'].invalid && editFormControls['email'].touched" class="text-xs text-red-500 mt-1">
+              <div *ngIf="editFormControls['email'].errors?.['required']">El email es requerido</div>
+              <div *ngIf="editFormControls['email'].errors?.['email']">El email no es válido</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+              Nueva Contraseña (dejar vacío para no cambiar)
+            </label>
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Solo llenar si desea cambiar la contraseña"
+            />
+          </div>
+
+          <div>
+            <label for="rolId" class="block text-sm font-medium text-gray-700 mb-1">
+              Rol <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="rolId"
+              formControlName="rolId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="editFormControls['rolId'].invalid && editFormControls['rolId'].touched"
+            >
+              <option [value]="''" disabled>Seleccione un rol</option>
+              <option *ngFor="let role of availableRoles" [value]="role.id">
+                {{ getRoleDisplayName(role.rol) }}
+              </option>
+            </select>
+            <div *ngIf="editFormControls['rolId'].invalid && editFormControls['rolId'].touched" class="text-xs text-red-500 mt-1">
+              El rol es requerido
+            </div>
+          </div>
+
+          <div>
+            <label for="profilePhoto" class="block text-sm font-medium text-gray-700 mb-1">
+              Foto de Perfil (URL)
+            </label>
+            <input
+              id="profilePhoto"
+              type="text"
+              formControlName="profilePhoto"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label for="verificationCode" class="block text-sm font-medium text-gray-700 mb-1">
+              Código de Verificación
+            </label>
+            <input
+              id="verificationCode"
+              type="text"
+              formControlName="verificationCode"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Código de verificación (opcional)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado del Usuario -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Estado del Usuario</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="flex items-center">
+            <input
+              id="block"
+              type="checkbox"
+              formControlName="block"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label for="block" class="ml-2 block text-sm text-gray-900">
+              Usuario Bloqueado
+            </label>
+          </div>
+
+          <div class="flex items-center">
+            <input
+              id="verified"
+              type="checkbox"
+              formControlName="verified"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label for="verified" class="ml-2 block text-sm text-gray-900">
+              Usuario Verificado
+            </label>
+          </div>
+
+          <div class="flex items-center">
+            <input
+              id="isVerifiedEmail"
+              type="checkbox"
+              formControlName="isVerifiedEmail"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label for="isVerifiedEmail" class="ml-2 block text-sm text-gray-900">
+              Email Verificado
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información Personal (People) -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+        <div formGroupName="people" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="peopleName" class="block text-sm font-medium text-gray-700 mb-1">
+              Nombre
+            </label>
+            <input
+              id="peopleName"
+              type="text"
+              formControlName="name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="peopleLastName" class="block text-sm font-medium text-gray-700 mb-1">
+              Apellido
+            </label>
+            <input
+              id="peopleLastName"
+              type="text"
+              formControlName="lastName"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="peopleBirdthDate" class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de Nacimiento
+            </label>
+            <input
+              id="peopleBirdthDate"
+              type="date"
+              formControlName="birdthDate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="peopleDni" class="block text-sm font-medium text-gray-700 mb-1">
+              DNI
+            </label>
+            <input
+              id="peopleDni"
+              type="text"
+              formControlName="dni"
+              maxlength="10"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="peopleResidencia" class="block text-sm font-medium text-gray-700 mb-1">
+              Residencia
+            </label>
+            <input
+              id="peopleResidencia"
+              type="text"
+              formControlName="residencia"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="peopleTelefono" class="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono
+            </label>
+            <input
+              id="peopleTelefono"
+              type="text"
+              formControlName="telefono"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="peopleMunicipio" class="block text-sm font-medium text-gray-700 mb-1">
+              Municipio (JSON)
+            </label>
+            <textarea
+              id="peopleMunicipio"
+              formControlName="municipio"
+              rows="4"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">Formato JSON: &#123;"pais":&#123;"iso2":"CO"&#125;,"state":&#123;"iso2":"PUT"&#125;,"city":&#123;"name":"Mocoa"&#125;&#125;</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="closeEditUserModal()"
+          [disabled]="editingUser"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="editUserForm.invalid || editingUser"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span *ngIf="!editingUser">Guardar Cambios</span>
+          <span *ngIf="editingUser">Guardando...</span>
+        </button>
+      </div>
+    </form>
+  </app-modal>
 </div>
 
