@@ -10,9 +10,8 @@ const routes: Routes = [
     component: AdminLayoutComponent,
     children: [
       { path: '', component: AdminDashboardComponent },
-      // Las rutas de categories y roles se agregarán cuando se implementen los componentes
-      // { path: 'categories', loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent) },
-      // { path: 'roles', loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent) },
+      { path: 'categories', loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent) },
+      { path: 'roles', loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent) },
     ]
   }
 ];
