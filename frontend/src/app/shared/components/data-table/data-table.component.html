@@ -28,6 +28,46 @@
     </div>
   </div>
 
+  <!-- Batch Actions Bar -->
+  <div *ngIf="selectable && batchActions && batchActions.length > 0 && hasSelection()" 
+       class="bg-green-50 border-b border-green-200 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <span class="text-sm font-medium text-gray-700">
+        <span class="font-semibold text-green-700">{{ getSelectedCount() }}</span>
+        {{ getSelectedCount() === 1 ? 'elemento seleccionado' : 'elementos seleccionados' }}
+      </span>
+      <button
+        (click)="clearSelection()"
+        class="text-sm text-gray-600 hover:text-gray-900 underline"
+        type="button"
+      >
+        Deseleccionar todo
+      </button>
+      <button
+        *ngIf="!isAllDataSelected()"
+        (click)="selectAllPages()"
+        class="text-sm text-gray-600 hover:text-gray-900 underline"
+        type="button"
+      >
+        Seleccionar todos ({{ filteredData.length }})
+      </button>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        *ngFor="let batchAction of batchActions"
+        (click)="onBatchAction(batchAction)"
+        [disabled]="batchAction.disabled && batchAction.disabled(getSelectedRowsArray())"
+        [class]="getBatchActionButtonClasses(batchAction)"
+        type="button"
+      >
+        <svg *ngIf="batchAction.icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="batchAction.icon"></path>
+        </svg>
+        <span>{{ batchAction.label }}</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Loading State -->
   <div *ngIf="loading" class="p-8 text-center">
     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>

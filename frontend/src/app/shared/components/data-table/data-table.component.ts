@@ -19,6 +19,15 @@ export interface TableAction {
   disabled?: (row: any) => boolean;
 }
 
+export interface BatchAction {
+  label: string;
+  icon?: string;
+  action: (rows: any[]) => void;
+  variant?: 'primary' | 'secondary' | 'danger';
+  confirmMessage?: string; // Mensaje de confirmación antes de ejecutar
+  disabled?: (rows: any[]) => boolean;
+}
+
 export interface SortConfig {
   column: string;
   direction: 'asc' | 'desc';
@@ -39,6 +48,7 @@ export class DataTableComponent implements OnInit, OnChanges {
   @Input() searchPlaceholder: string = 'Buscar...';
   @Input() pageSize: number = 10;
   @Input() actions?: TableAction[];
+  @Input() batchActions?: BatchAction[];
   @Input() selectable: boolean = false;
   @Input() emptyMessage: string = 'No hay datos para mostrar';
   
@@ -46,6 +56,7 @@ export class DataTableComponent implements OnInit, OnChanges {
   @Output() selectionChange = new EventEmitter<any[]>();
   @Output() pageChange = new EventEmitter<number>();
   @Output() sortChange = new EventEmitter<SortConfig>();
+  @Output() batchActionExecuted = new EventEmitter<{ action: BatchAction; rows: any[] }>();
 
   // Estado interno
   searchTerm: string = '';
@@ -210,6 +221,59 @@ export class DataTableComponent implements OnInit, OnChanges {
     this.selectionChange.emit(Array.from(this.selectedRows));
   }
 
+  getSelectedCount(): number {
+    return this.selectedRows.size;
+  }
+
+  hasSelection(): boolean {
+    return this.selectedRows.size > 0;
+  }
+
+  clearSelection(): void {
+    this.selectedRows.clear();
+    this.emitSelectionChange();
+  }
+
+  onBatchAction(batchAction: BatchAction): void {
+    const selectedRowsArray = Array.from(this.selectedRows);
+    
+    if (batchAction.disabled && batchAction.disabled(selectedRowsArray)) {
+      return;
+    }
+
+    // Si hay mensaje de confirmación, mostrarlo
+    if (batchAction.confirmMessage) {
+      const confirmed = confirm(batchAction.confirmMessage);
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Ejecutar la acción
+    batchAction.action(selectedRowsArray);
+    
+    // Emitir evento
+    this.batchActionExecuted.emit({ action: batchAction, rows: selectedRowsArray });
+    
+    // Limpiar selección después de la acción (opcional, depende del caso de uso)
+    // this.clearSelection();
+  }
+
+  selectAllPages(): void {
+    // Seleccionar todas las filas de todas las páginas
+    this.filteredData.forEach(row => this.selectedRows.add(row));
+    this.emitSelectionChange();
+  }
+
+  isAllDataSelected(): boolean {
+    return this.filteredData.length > 0 && 
+           this.filteredData.every(row => this.selectedRows.has(row));
+  }
+
+  getSelectedRowsArray(): any[] {
+    return Array.from(this.selectedRows);
+  }
+
   // Paginación
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
@@ -264,6 +328,17 @@ export class DataTableComponent implements OnInit, OnChanges {
 
   getCurrentPageStart(): number {
     return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  getBatchActionButtonClasses(batchAction: BatchAction): string {
+    const baseClasses = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    const variantClasses = {
+      primary: 'text-white bg-green-600 hover:bg-green-700',
+      secondary: 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50',
+      danger: 'text-white bg-red-600 hover:bg-red-700'
+    };
+    const variant = batchAction.variant || 'secondary';
+    return `${baseClasses} ${variantClasses[variant]}`;
   }
 }
 

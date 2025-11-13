@@ -7,7 +7,8 @@ Componente de tabla genérica reutilizable con capacidades de búsqueda, ordenam
 - ✅ Búsqueda en tiempo real
 - ✅ Ordenamiento por columnas
 - ✅ Paginación
-- ✅ Selección de filas (preparado para acciones en lote)
+- ✅ Selección de filas
+- ✅ **Acciones en lote** (seleccionar múltiples filas y aplicar una acción)
 - ✅ Acciones por fila
 - ✅ Estados de carga y vacío
 - ✅ Responsive
@@ -15,7 +16,7 @@ Componente de tabla genérica reutilizable con capacidades de búsqueda, ordenam
 ## Uso Básico
 
 ```typescript
-import { DataTableComponent, TableColumn, TableAction } from '@shared/components/data-table/data-table.component';
+import { DataTableComponent, TableColumn, TableAction, BatchAction } from '@shared/components/data-table/data-table.component';
 
 @Component({
   imports: [DataTableComponent],
@@ -52,6 +53,21 @@ export class MyComponent {
     }
   ];
 
+  batchActions: BatchAction[] = [
+    {
+      label: 'Eliminar seleccionados',
+      icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
+      action: (rows) => this.deleteBatch(rows),
+      variant: 'danger',
+      confirmMessage: '¿Estás seguro de eliminar los elementos seleccionados?'
+    },
+    {
+      label: 'Activar seleccionados',
+      action: (rows) => this.activateBatch(rows),
+      variant: 'primary'
+    }
+  ];
+
   onRowClick(row: any): void {
     console.log('Row clicked:', row);
   }
@@ -70,8 +86,10 @@ export class MyComponent {
   [searchable]="true"
   [selectable]="true"
   [actions]="actions"
+  [batchActions]="batchActions"
   (rowClick)="onRowClick($event)"
   (selectionChange)="onSelectionChange($event)"
+  (batchActionExecuted)="onBatchActionExecuted($event)"
 ></app-data-table>
 ```
 
@@ -100,6 +118,18 @@ interface TableAction {
 }
 ```
 
+### BatchAction
+```typescript
+interface BatchAction {
+  label: string;                      // Texto del botón
+  icon?: string;                       // SVG path del icono
+  action: (rows: any[]) => void;       // Función a ejecutar con todas las filas seleccionadas
+  variant?: 'primary' | 'secondary' | 'danger';
+  confirmMessage?: string;             // Mensaje de confirmación antes de ejecutar
+  disabled?: (rows: any[]) => boolean;  // Función para deshabilitar el botón
+}
+```
+
 ## Inputs
 
 - `columns: TableColumn[]` - Definición de columnas
@@ -109,6 +139,7 @@ interface TableAction {
 - `searchPlaceholder: string` - Placeholder del buscador
 - `pageSize: number` - Tamaño de página (default: 10)
 - `actions: TableAction[]` - Acciones por fila
+- `batchActions: BatchAction[]` - Acciones en lote (requiere selectable: true)
 - `selectable: boolean` - Habilitar selección de filas
 - `emptyMessage: string` - Mensaje cuando no hay datos
 
@@ -118,4 +149,17 @@ interface TableAction {
 - `selectionChange: EventEmitter<any[]>` - Emitido cuando cambia la selección
 - `pageChange: EventEmitter<number>` - Emitido al cambiar de página
 - `sortChange: EventEmitter<SortConfig>` - Emitido al ordenar
+- `batchActionExecuted: EventEmitter<{ action: BatchAction; rows: any[] }>` - Emitido después de ejecutar una acción en lote
+
+## Acciones en Lote
+
+Las acciones en lote permiten aplicar una acción a múltiples filas seleccionadas. La barra de acciones aparece automáticamente cuando hay filas seleccionadas.
+
+**Características:**
+- Barra de acciones visible solo cuando hay selección
+- Contador de elementos seleccionados
+- Botón para deseleccionar todo
+- Botón para seleccionar todos los elementos (incluso de otras páginas)
+- Confirmación opcional antes de ejecutar acciones
+- Las acciones reciben un array con todas las filas seleccionadas
 
