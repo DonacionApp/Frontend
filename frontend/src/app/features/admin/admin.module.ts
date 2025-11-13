@@ -1,29 +1,30 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
+import { AdminLayoutComponent } from './layout/admin-layout.component';
+import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
 
 const routes: Routes = [
-  // Aquí irán las rutas del administrador
-  // { path: '', component: AdminDashboardComponent },
-  // { path: 'users', component: UsersManagementComponent },
-  // { path: 'organizations', component: OrganizationsManagementComponent },
-  // { path: 'reports', component: ReportsComponent }
+  {
+    path: '',
+    component: AdminLayoutComponent,
+    children: [
+      { path: '', component: AdminDashboardComponent },
+      // Las rutas de categories y roles se agregarán cuando se implementen los componentes
+      // { path: 'categories', loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent) },
+      // { path: 'roles', loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent) },
+    ]
+  }
 ];
 
 @NgModule({
-  declarations: [
-    // Aquí irán los componentes del administrador
-    // AdminDashboardComponent,
-    // UsersManagementComponent,
-    // OrganizationsManagementComponent,
-    // ReportsComponent
-  ],
+  declarations: [],
   imports: [
     CommonModule,
     RouterModule.forChild(routes)
+    // Los componentes standalone (AdminLayoutComponent, AdminDashboardComponent) 
+    // se cargan directamente a través de las rutas, no necesitan estar en imports
   ],
-  providers: [
-    // Aquí irán los servicios específicos del administrador
-  ]
+  providers: []
 })
 export class AdminModule { }
