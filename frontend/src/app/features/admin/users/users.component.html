@@ -1,0 +1,29 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+      <p class="text-sm text-gray-600 mt-1">Administra los usuarios del sistema</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Data Table -->
+  <app-data-table
+    [columns]="columns"
+    [data]="users"
+    [loading]="loading"
+    [searchable]="true"
+    [selectable]="true"
+    [actions]="actions"
+    [batchActions]="batchActions"
+    searchPlaceholder="Buscar usuarios por nombre, email o rol..."
+    emptyMessage="No hay usuarios registrados"
+    (batchActionExecuted)="onBatchActionExecuted($event)"
+  ></app-data-table>
+</div>
+
