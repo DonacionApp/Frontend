@@ -8,7 +8,7 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
 import { ToastService } from '../../../core/services/toast.service';
 
-type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
+type TabType = 'resumen' | 'mis-donaciones' | 'donadas-a-mi' | 'solicitudes';
 
 @Component({
   selector: 'app-organization-dashboard',
@@ -27,6 +27,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   organizationProfile: OrganizationProfile | null = null;
   stats: OrganizationStats | null = null;
+  // Keep a copy of all loaded donations so we can derive tab-specific views
+  allDonations: Donation[] = [];
   donations: Donation[] = [];
   filteredDonations: Donation[] = [];
   recentDonations: Donation[] = [];
@@ -84,6 +86,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {
         this.currentUser = user;
+        // If donations already loaded, re-apply tab filtering that may depend on currentUser
+        this.applyTabFilteringIfNeeded();
       });
 
     // Cargar perfil de la organización
@@ -91,10 +95,17 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     // Leer query param 'section' y actualizar pestaña activa
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       const section = params['section'];
+      // page may be present in query params; default to 1
+      const pageParam = params['page'];
+      const parsedPage = parseInt(pageParam, 10);
+      this.page = !isNaN(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
       let tab: TabType = 'resumen'; // default
       if (section === 'myDonations') tab = 'mis-donaciones';
       else if (section === 'requests') tab = 'solicitudes';
+      else if (section === 'donatedToMe') tab = 'donadas-a-mi';
       else if (section === 'overview') tab = 'resumen';
+
       this.activeTabSubject.next(tab);
     });
 
@@ -107,9 +118,14 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
 
     // Suscribirse a cambios de pestaña
     this.activeTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => {
-      if ((tab === 'mis-donaciones' || tab === 'solicitudes') && this.donations.length === 0) {
+      // When switching to tabs that require the full donations list, ensure we have it
+      if ((tab === 'mis-donaciones' || tab === 'donadas-a-mi' || tab === 'solicitudes') && this.allDonations.length === 0) {
         this.loadAllDonations();
+      } else {
+        // If we already have donations loaded, re-apply any tab-specific filtering
+        this.applyTabFilteringIfNeeded();
       }
+
       if (tab === 'solicitudes') {
         this.computeSolicitudes();
       }
@@ -171,10 +187,11 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (donations) => {
-          this.donations = donations.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          // Construir opciones y aplicar filtros
+          // Keep a full copy and apply tab-specific filtering later
+          this.allDonations = donations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          // Apply tab-specific selection (may depend on currentUser)
+          this.applyTabFilteringIfNeeded();
+          // Construir opciones y aplicar filtros sobre the currently selected this.donations
           this.buildFilterOptions();
           this.applyFilters();
           this.loadingDonations = false;
@@ -186,6 +203,24 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
           this.loadingDonations = false;
         }
       });
+  }
+
+  /**
+   * Apply a tab-specific filter to `this.allDonations` and populate `this.donations`.
+   * This keeps the rest of the filtering/pagination logic unchanged because it
+   * always operates against `this.donations`.
+   */
+  private applyTabFilteringIfNeeded(): void {
+    // Default to showing all donations
+    let list = Array.isArray(this.allDonations) ? [...this.allDonations] : [];
+
+    if (this.activeTab === 'donadas-a-mi' && this.currentUser) {
+      const myId = (this.currentUser.id || '').toString();
+      list = list.filter(d => (d.beneficiary?.id || '').toString() === myId);
+    }
+
+    // For other tabs we keep the full list; assign to this.donations for downstream filters
+    this.donations = list;
   }
 
   /**
@@ -226,10 +261,13 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     // Actualizar query param según la pestaña
     let sectionParam = 'overview';
     if (tab === 'mis-donaciones') sectionParam = 'myDonations';
+    else if (tab === 'donadas-a-mi') sectionParam = 'donatedToMe';
     else if (tab === 'solicitudes') sectionParam = 'requests';
+    // Reset page to 1 when switching tabs for a consistent starting point
+    this.page = 1;
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { section: sectionParam },
+      queryParams: { section: sectionParam, page: this.page },
       queryParamsHandling: 'merge'
     });
   }
@@ -397,19 +435,23 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     if (p < 1 || p > this.totalPages) return;
     this.page = p;
     this.updatePagination();
+    // push page into the url so back/forward preserves it
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page: this.page },
+      queryParamsHandling: 'merge'
+    });
   }
 
   prevPage(): void {
     if (this.page > 1) {
-      this.page--;
-      this.updatePagination();
+      this.goToPage(this.page - 1);
     }
   }
 
   nextPage(): void {
     if (this.page < this.totalPages) {
-      this.page++;
-      this.updatePagination();
+      this.goToPage(this.page + 1);
     }
   }
 

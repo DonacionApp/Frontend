@@ -40,6 +40,16 @@ export interface DonationPost {
   updatedAt?: string;
 }
 
+// Interface para review (valoración / comentario) asociado a una donación
+export interface Review {
+  id: number;
+  review: string;
+  raiting: number;
+  // backend may return a minimal user object (only id) so allow partial
+  user?: Partial<DonationUser>;
+  createdAt?: string;
+}
+
 // Interface para usuario (creador, beneficiario o donador)
 export interface DonationUser {
   id: number;
@@ -139,6 +149,8 @@ export interface Donation {
   donator?: DonationUser; // Donador
   owner?: boolean; // Indica si el usuario actual es el dueño
   articles: DonationArticle[];
+  // Reviews/valoraciones asociadas a la donación (opcional)
+  reviews?: Review[];
 }
 
 export interface OrganizationStats {
