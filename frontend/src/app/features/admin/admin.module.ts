@@ -3,15 +3,25 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout.component';
 import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
+import { AdminGuard } from '../../core/guards/admin.guard';
 
 const routes: Routes = [
   {
     path: '',
     component: AdminLayoutComponent,
+    canActivate: [AdminGuard], // Proteger el layout y todas sus rutas hijas
     children: [
-      { path: '', component: AdminDashboardComponent },
-      { path: 'categories', loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent) },
-      { path: 'roles', loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent) },
+      { path: '', component: AdminDashboardComponent, canActivate: [AdminGuard] },
+      { 
+        path: 'categories', 
+        loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'roles', 
+        loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];
