@@ -628,7 +628,17 @@ export class UsersComponent implements OnInit, OnDestroy {
         dni: [''],
         residencia: [''],
         telefono: [''],
-        municipio: ['']
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
       })
     });
   }
@@ -663,18 +673,37 @@ export class UsersComponent implements OnInit, OnDestroy {
   populateEditForm(user: UserManagement): void {
     const people = user.people;
     
-    // Parsear municipio si viene como string JSON
-    let municipioValue = '';
+    // Parsear municipio si viene como string JSON o como objeto
+    let municipioData: any = {
+      pais: { iso2: '' },
+      state: { iso2: '' },
+      city: { name: '' }
+    };
+    
     if (people?.municipio) {
-      if (typeof people.municipio === 'string') {
-        try {
-          const parsed = JSON.parse(people.municipio);
-          municipioValue = JSON.stringify(parsed, null, 2); // Formatear para mostrar en el textarea
-        } catch (e) {
-          municipioValue = people.municipio; // Si no es JSON válido, usar el string tal cual
+      try {
+        let municipioObj: any;
+        if (typeof people.municipio === 'string') {
+          municipioObj = JSON.parse(people.municipio);
+        } else {
+          municipioObj = people.municipio;
         }
-      } else {
-        municipioValue = JSON.stringify(people.municipio, null, 2);
+        
+        // Extraer valores del objeto parseado
+        municipioData = {
+          pais: {
+            iso2: municipioObj?.pais?.iso2 || ''
+          },
+          state: {
+            iso2: municipioObj?.state?.iso2 || ''
+          },
+          city: {
+            name: municipioObj?.city?.name || ''
+          }
+        };
+      } catch (e) {
+        console.warn('Error parsing municipio:', e);
+        // Mantener valores por defecto vacíos
       }
     }
     
@@ -695,7 +724,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         dni: people?.dni || '',
         residencia: people?.residencia || '',
         telefono: people?.telefono || '',
-        municipio: municipioValue
+        municipio: municipioData
       }
     });
   }
@@ -742,17 +771,24 @@ export class UsersComponent implements OnInit, OnDestroy {
     }
 
     // Incluir datos de people si existen
-    if (formValue.people && (formValue.people.name || formValue.people.dni)) {
-      // Parsear municipio si viene como string JSON
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.people.lastName)) {
+      // Construir objeto municipio en el formato correcto
       let municipioValue: any = null;
-      if (formValue.people.municipio && formValue.people.municipio.trim() !== '') {
-        try {
-          // Intentar parsear como JSON
-          municipioValue = JSON.parse(formValue.people.municipio);
-        } catch (e) {
-          // Si no es JSON válido, intentar construir el objeto desde el string
-          console.warn('Municipio no es JSON válido, se omitirá:', formValue.people.municipio);
-          municipioValue = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        // Solo incluir municipio si tiene al menos un valor
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
         }
       }
 

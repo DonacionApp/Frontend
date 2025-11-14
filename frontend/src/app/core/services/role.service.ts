@@ -22,7 +22,7 @@ export class RoleService {
   constructor(private http: HttpClient) {}
 
   getAllRoles(): Observable<Rol[]> {
-    return this.http.get<Rol[]>(`${this.apiUrl}/all/roles`).pipe(
+    return this.http.get<Rol[]>(this.apiUrl).pipe(
       catchError((error) => {
         console.error('Error fetching roles:', error);
         return throwError(() => error);
@@ -49,7 +49,7 @@ export class RoleService {
   }
 
   updateRole(id: number, role: UpdateRoleDTO): Observable<Rol> {
-    return this.http.put<Rol>(`${this.apiUrl}/${id}`, role).pipe(
+    return this.http.post<Rol>(`${this.apiUrl}/update/${id}`, role).pipe(
       catchError((error) => {
         console.error(`Error updating role ${id}:`, error);
         return throwError(() => error);
@@ -58,7 +58,7 @@ export class RoleService {
   }
 
   deleteRole(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`).pipe(
       catchError((error) => {
         console.error(`Error deleting role ${id}:`, error);
         return throwError(() => error);
