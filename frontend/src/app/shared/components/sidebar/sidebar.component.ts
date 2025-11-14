@@ -5,7 +5,8 @@ import { ButtonComponent } from '../button/button.component';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { AlertService } from '../../services/alert.service';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject } from 'rxjs';
+import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MessageService } from '../../../core/services/message.service';
 
 interface Chat {
@@ -14,6 +15,7 @@ interface Chat {
   lastMessage: string;
   avatar: string;
   unread: number;
+  participants: number;
   time: string;
   online: boolean;
 }
@@ -43,6 +45,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   loadingChats = false;
   hasMoreChats = true;
   chatsSearch = '';
+  private search$ = new Subject<string>();
 
   quickActions: QuickAction[] = [
     { icon: 'document', label: 'Publicaciones', color: 'text-blue-500' },
@@ -78,6 +81,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
           this.hasMoreChats = true;
         }
       });
+
+    // subscribe to live search with debounce
+    this.search$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(q => {
+        this.chatsSearch = q;
+        this.chatCursor = null;
+        this.hasMoreChats = true;
+        this.loadChats(true, false);
+      });
   }
 
   ngOnDestroy(): void {
@@ -87,6 +100,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   onCreatePost(): void {
     this.createPost.emit();
+  }
+
+  onSearchChange(value: string): void {
+    this.search$.next(value ?? '');
+  }
+
+  onOptionsClick(): void {
+    this.alertService.showAlert('Aquí aparecerán opciones del panel de mensajes.', 'info');
   }
 
   onPostsClick(): void {
@@ -159,7 +180,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
         this.onStatisticsClick();
         break;
       default:
-        // Botones sin funcionalidad no hacen nada
         break;
     }
   }
@@ -168,41 +188,102 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.router.navigate(['/chat', chatId]);
   }
 
+  formatRelative(dateString?: string): string {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffH = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffH / 24);
+
+    if (diffSec < 60) return 'hace segundos';
+    if (diffMin < 60) return `hace ${diffMin}m`;
+    if (diffH < 24) return `hace ${diffH}h`;
+    if (diffDays <= 2) return diffDays === 1 ? 'ayer' : `hace ${diffDays} días`;
+
+    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short' };
+    if (d.getFullYear() !== now.getFullYear()) {
+      (options as any).year = 'numeric';
+    }
+    return d.toLocaleDateString('es-ES', options);
+  }
+
   loadChats(initial = true, append = false): void {
     if (!this.user) return;
     if (this.loadingChats) return;
-
     this.loadingChats = true;
-    const params: any = { limit: 20, orderBy: 'lastMessage', order: 'DESC' };
-    if (this.chatsSearch && this.chatsSearch.trim()) params.searchParam = this.chatsSearch.trim();
+    const limit = 20;
+    const params: any = { limit, orderBy: 'lastMessage', order: 'ASC' };
+    if (this.chatsSearch && this.chatsSearch.trim()) {
+      const q = this.chatsSearch.trim();
+      params.searchParam = q;
+      params.search = q;
+      params.q = q;
+    }
     if (!initial && this.chatCursor) params.cursor = this.chatCursor;
+
+    const prevCursor = this.chatCursor;
 
     this.messageService.getUserMyChats(params).subscribe({
       next: (res) => {
         const items = res?.items ?? res?.data?.items ?? res?.data ?? res;
         const arrayItems = Array.isArray(items) ? items : [];
 
-        const mapped = arrayItems.map((it: any) => {
+        const existingIds = new Set(this.chats.map(c => c.id));
+
+        const newRawItems = append ? arrayItems.filter((it: any) => {
           const id = it?.chat?.id ?? it?.id ?? 0;
-          const name = it?.chat?.chatName ?? (it?.chat?.chatName ?? `Chat #${id}`) ?? `Chat #${id}`;
+          return !existingIds.has(id);
+        }) : arrayItems;
+
+        // If no new items when appending, stop further loads
+        if (append && newRawItems.length === 0) {
+          this.hasMoreChats = false;
+          this.loadingChats = false;
+          return;
+        }
+
+        const mapped = newRawItems.map((it: any) => {
+          const id = it?.chat?.id ?? it?.id ?? 0;
+          const name = it?.chat?.chatName ?? `Chat #${id}`;
           const lastMessage = it?.lastMessage?.message ?? it?.lastMessageText ?? '';
           const time = it?.lastMessageAt ?? it?.updatedAt ?? '';
           const avatar = it?.chat?.userChat?.[0]?.user?.profilePhoto ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
-          const unread = it?.unreadCount ?? it?.unread ?? 0;
+          const unread = Number(it?.unreadCount ?? it?.unread ?? 0) || 0;
+          const participants = Number(it?.participantsCount ?? it?.participants ?? 0) || 0;
           const online = false;
-          return { id, name, lastMessage, avatar, unread, time, online } as Chat;
+          return { id, name, lastMessage, avatar, unread, participants, time, online } as Chat;
         });
 
         if (append) this.chats = [...this.chats, ...mapped]; else this.chats = mapped;
 
-        // detect next cursor
-        this.chatCursor = res?.cursor ?? res?.nextCursor ?? res?.data?.cursor ?? null;
+        // detect next cursor from response
+        const resCursor = res?.cursor ?? res?.nextCursor ?? res?.data?.cursor ?? null;
+        this.chatCursor = resCursor;
+
+        // If backend didn't return a cursor, try to build one from last item
         if (!this.chatCursor && arrayItems.length > 0) {
           const last = arrayItems[arrayItems.length - 1];
           if (last?.lastMessageAt && last?.id) this.chatCursor = `${last.lastMessageAt}_${last.id}`;
         }
 
-        this.hasMoreChats = !!this.chatCursor && arrayItems.length > 0;
+        // If backend returned the same cursor we requested, stop to avoid infinite loop
+        if (resCursor && prevCursor && resCursor === prevCursor) {
+          this.hasMoreChats = false;
+        }
+
+        // If fewer than requested items were returned, likely no more pages
+        if (arrayItems.length < limit) {
+          this.hasMoreChats = false;
+        } else if (!this.chatCursor) {
+          // if we couldn't compute a cursor and items == limit, be conservative and allow more loads
+          this.hasMoreChats = true;
+        }
+
         this.loadingChats = false;
       },
       error: (err) => {
