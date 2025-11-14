@@ -135,3 +135,19 @@
     text-overflow: ellipsis; 
     white-space: nowrap; 
 }
+
+/* Make the left chat card a column flex container so its inner list scrolls */
+.chat-list-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    /* Bound the card height similar to messages-view so the list scrolls inside */
+    max-height: calc(100vh - 140px);
+}
+
+.chat-list-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
