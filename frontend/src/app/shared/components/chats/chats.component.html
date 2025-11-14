@@ -8,8 +8,13 @@
       </div>
 
       <div class="flex-1 overflow-auto chat-list-scroll" (scroll)="onChatsScroll($event)">
-        <div *ngIf="loadingChats" class="p-3 text-sm text-gray-600">Cargando chats...</div>
-        <div *ngFor="let chat of chats" class="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3" (click)="selectChat(chat)">
+        <div *ngIf="loadingChats && (!chats || chats.length === 0)" class="p-3 text-sm text-gray-600">Cargando chats...</div>
+           <div *ngFor="let chat of chats"
+             class="chat-item p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3"
+             [class.selected]="selectedChat && (selectedChat.id == chat.id)"
+             (click)="selectChat(chat)"
+             role="button"
+             tabindex="0">
           <img [src]="getChatAvatar(chat)" class="w-10 h-10 rounded-full" />
           <div class="flex-1 min-w-0">
             <div class="flex justify-between items-start">
@@ -30,6 +35,13 @@
         </div>
         <div *ngIf="hasMoreChats && !loadingChats" class="p-3 text-center">
           <button (click)="loadChats(false, true)" class="px-3 py-1 bg-gray-100 rounded">Cargar más</button>
+        </div>
+        <div *ngIf="loadingChats && chats && chats.length > 0" class="p-3 text-center">
+          <svg class="animate-spin h-5 w-5 inline-block text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span class="text-sm text-gray-600 ml-2">Cargando más chats...</span>
         </div>
       </div>
     </div>

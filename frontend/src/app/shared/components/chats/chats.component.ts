@@ -6,6 +6,7 @@ import { Subject, Subscription } from 'rxjs';
 import { MessageService, IMessage, IChat } from '../../../core/services/message.service';
 import { MessagesViewComponent } from './messages-view/messages-view.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { WebsocketService } from '../../../core/services/websocket.service';
 import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -49,6 +50,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
   constructor(
     private messageService: MessageService,
     private authService: AuthService,
+    private websocketService: WebsocketService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
@@ -88,6 +90,70 @@ export class ChatsComponent implements OnInit, OnDestroy {
     });
 
     this.loadChats(true);
+    // Subscribe to incoming messages from websocket and update UI
+    try {
+      this.websocketService.onMessageNew().pipe(takeUntil(this.destroy$)).subscribe(payload => {
+        try {
+          // Debug log to see payload as it arrives to the component
+          // eslint-disable-next-line no-console
+          console.debug('[ChatsComponent] onMessageNew payload ->', payload);
+
+          const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
+          let incoming: any[] = [];
+          if (Array.isArray(payload?.messages)) incoming = payload.messages;
+          else if (payload?.message) incoming = Array.isArray(payload.message) ? payload.message : [payload.message];
+
+          if (!isNaN(chatId)) {
+            // If the message belongs to the currently opened chat, append to messages
+            if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
+              // dedupe by id
+              const existingIds = new Set(this.messages.map(m => m?.id));
+              const toAdd = incoming.filter(m => m && !existingIds.has(m.id));
+              if (toAdd.length > 0) {
+                this.messages = [...this.messages, ...toAdd];
+                // ensure optimistic placeholders replaced if necessary
+                try {
+                  toAdd.forEach(serverMsg => {
+                    // replace any optimistic temp messages that match by some heuristic (content + _optimistic)
+                    this.messages = this.messages.map(m => {
+                      try {
+                        if (m && (m as any)._optimistic && serverMsg && serverMsg.message && String(m.message) === String(serverMsg.message)) {
+                          return serverMsg;
+                        }
+                      } catch (e) {}
+                      return m;
+                    });
+                  });
+                } catch (e) {}
+                // bind media handlers and scroll to bottom
+                setTimeout(() => { try { this.messagesView?.bindMediaLoadHandlers(); this.messagesView?.scrollToBottom(); } catch (e) {} }, 40);
+              }
+            } else {
+              // Not viewing this chat: update unread counter in chat list if present
+              const idx = this.chats.findIndex(c => Number((c as any).id) === chatId);
+              if (idx > -1) {
+                try { (this.chats[idx] as any).unread = ((this.chats[idx] as any).unread || 0) + (Array.isArray(incoming) ? incoming.length : 1); } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
+      });
+    } catch (e) {}
+    // Subscribe to server unread-chats notifications to update UI counters live
+    try {
+      this.websocketService.onUnreadChats().pipe(takeUntil(this.destroy$)).subscribe(payload => {
+        try {
+          const cid = String(payload.chatId);
+          const idx = this.chats.findIndex(c => String((c as any)?.id) === cid);
+          if (idx > -1) {
+            (this.chats[idx] as any).unread = Number(payload.unreadInChat || 0);
+          } else {
+            // If chat not present we could optionally fetch or ignore; leave for now.
+          }
+          // Optionally handle totalUnreadChats globally (e.g., update a badge via another service)
+        } catch (e) {}
+      });
+    } catch (e) {}
     try { window.addEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
   }
 
@@ -170,7 +236,15 @@ export class ChatsComponent implements OnInit, OnDestroy {
             const sid2 = this.desiredChatId;
             this.desiredChatId = null;
             try { this.selectChat(foundNow); } catch (e) { this.desiredChatId = sid2; }
-          } else if (!this.hasMoreChats) {
+          } else if (this.hasMoreChats) {
+            // Desired chat not in this page but there are more pages.
+            // Schedule loading the next page (append) so we keep searching.
+            // Small timeout avoids tight recursion and lets UI/render settle.
+            setTimeout(() => {
+              try { this.loadChats(false, true); } catch (e) {}
+            }, 50);
+          } else {
+            // No more pages and chat not found — clear the desired id.
             this.desiredChatId = null;
           }
         }
@@ -201,6 +275,16 @@ export class ChatsComponent implements OnInit, OnDestroy {
         this.router.navigate([], { relativeTo: this.route, queryParams: { chat: (chat as any).id }, queryParamsHandling: 'merge', replaceUrl: true });
       }
     } catch (e) {}
+    // Ensure message socket is connected and join the chat room
+    try {
+      const token = this.authService.getAccessToken();
+      if (token && !this.websocketService.isMessageConnected()) {
+        try { this.websocketService.connectMessages(token); } catch (e) {}
+      }
+      // join chat room via WS
+      try { this.websocketService.joinChat(Number((chat as any).id)); } catch (e) {}
+    } catch (e) {}
+
     this.loadMessages(chat.id as number, true);
   }
 
@@ -405,10 +489,21 @@ export class ChatsComponent implements OnInit, OnDestroy {
   }
 
   private closeSelectedChat(): void {
+    const chatId = this.selectedChat ? Number((this.selectedChat as any).id) : null;
+    // clear UI state first
     this.selectedChat = null;
     this.messages = [];
     this.messagesCursor = null;
     this.hasMoreMessages = true;
+
+    // emit leaveChat to server to remove socket from room (if connected)
+    try {
+      if (chatId !== null && !isNaN(chatId)) {
+        try { this.websocketService.leaveChat(chatId); } catch (e) {}
+      }
+    } catch (e) {}
+
+    // remove `chat` query param from URL when chat is closed
     try {
       const qp = { ...this.route.snapshot.queryParams };
       if (qp && Object.prototype.hasOwnProperty.call(qp, 'chat')) {

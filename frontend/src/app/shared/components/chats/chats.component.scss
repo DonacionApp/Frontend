@@ -148,3 +148,28 @@
     min-height: 0;
     overflow-y: auto;
 }
+
+/* Selected chat styling */
+.chat-item {
+    transition: background-color 120ms ease, border-left-color 120ms ease, padding-left 120ms ease;
+}
+.chat-item.selected {
+    background-color: #f1fdf6; /* subtle green-tinted background */
+    border-left: 4px solid #22c55e; /* green accent */
+    padding-left: calc(0.75rem - 4px);
+}
+.chat-item.selected .chat-title {
+    font-weight: 700;
+    color: #064e3b;
+}
+.chat-item.selected .chat-participants {
+    color: #065f46;
+}
+.chat-item:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+}
+.chat-item .bg-red-500 {
+    /* keep unread badge visible on selected background */
+    background-color: #dc2626;
+}

@@ -19,8 +19,17 @@ export interface Notification {
 })
 export class WebsocketService {
   private socket: Socket | null = null;
+  private msgSocket: Socket | null = null;
   private notificationSubject = new Subject<Notification>();
   private connectionStatus = new BehaviorSubject<boolean>(false);
+  // messages/events subjects
+  private messageSubject = new Subject<any>();
+  private notificationMessageSubject = new Subject<any>();
+  private unreadChatsSubject = new Subject<{ chatId: number; unreadInChat: number; totalUnreadChats: number }>();
+  private joinedChatSubject = new Subject<{ chatId: number }>();
+  private leftChatSubject = new Subject<{ chatId: number }>();
+  private chatReadSubject = new Subject<{ chatId: number; userId: number }>();
+  private joinedChats = new Set<number>();
 
   // Observable público para que los componentes se suscriban
   public notification$ = this.notificationSubject.asObservable();
@@ -66,6 +75,31 @@ export class WebsocketService {
     });
 
     this.setupListeners();
+  }
+
+  /**
+   * Conectar al gateway de mensajes (root namespace) para chats y notificaciones de mensajes
+   */
+  connectMessages(token: string): void {
+    if (this.msgSocket) {
+      if (this.msgSocket.connected) return;
+      this.removeMessageListeners();
+      this.msgSocket.disconnect();
+      this.msgSocket = null;
+    }
+
+    const cleanToken = token.replace('Bearer ', '').trim();
+    this.msgSocket = io(`${environment.socketUrl}`, {
+      transports: ['websocket', 'polling'],
+      auth: { token: cleanToken },
+      query: { token: cleanToken },
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: Infinity
+    });
+
+    this.setupMessageListeners();
   }
 
   /**
@@ -122,6 +156,77 @@ export class WebsocketService {
     });
   }
 
+  private setupMessageListeners(): void {
+    if (!this.msgSocket) return;
+    this.removeMessageListeners();
+
+    this.msgSocket.on('connect', () => {
+
+      for (const cid of Array.from(this.joinedChats)) {
+        try { this.msgSocket?.emit('joinChat', { chatId: cid }); } catch (e) {}
+      }
+    });
+
+    this.msgSocket.on('connected', (data: any) => {
+
+    });
+
+    this.msgSocket.on('disconnect', (reason: any) => {
+
+    });
+
+    this.msgSocket.on('connect_error', (err: any) => {
+      console.error('Message socket connect_error', err);
+    });
+
+    this.msgSocket.on('message:new', (payload: any) => {
+      try {
+        try {
+          const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
+          const msgs = payload?.messages ?? (payload?.message ? (Array.isArray(payload.message) ? payload.message : [payload.message]) : []);
+          } catch (e) {}
+      } catch (e) {}
+
+      // keep existing behavior for subscribers
+      this.messageSubject.next(payload);
+    });
+
+    // Notification for users not in room
+    this.msgSocket.on('notification:message', (payload: any) => {
+      this.notificationMessageSubject.next(payload);
+    });
+
+    // Server emits unread counters for chat(s)
+    this.msgSocket.on('notification:unreadChats', (payload: any) => {
+      try {
+        const parsed = payload || {};
+        const chatId = Number(parsed.chatId ?? parsed.chatID ?? parsed.chat_id);
+        const unreadInChat = Number(parsed.unreadInChat ?? parsed.unread_in_chat ?? parsed.unread ?? 0) || 0;
+        const totalUnreadChats = Number(parsed.totalUnreadChats ?? parsed.total_unread_chats ?? parsed.totalUnread ?? 0) || 0;
+        if (!isNaN(chatId)) {
+          this.unreadChatsSubject.next({ chatId, unreadInChat, totalUnreadChats });
+        }
+      } catch (e) {
+      }
+    });
+
+    this.msgSocket.on('joinedChat', (payload: any) => {
+      if (payload && payload.chatId) this.joinedChatSubject.next({ chatId: payload.chatId });
+    });
+
+    this.msgSocket.on('leftChat', (payload: any) => {
+      if (payload && payload.chatId) this.leftChatSubject.next({ chatId: payload.chatId });
+    });
+
+    this.msgSocket.on('chat:read', (payload: any) => {
+      if (payload && payload.chatId) this.chatReadSubject.next(payload);
+    });
+
+    this.msgSocket.on('error', (err: any) => {
+      console.error('Message socket error', err);
+    });
+  }
+
   /**
    * Remover todos los listeners del socket para evitar memory leaks
    */
@@ -136,16 +241,38 @@ export class WebsocketService {
     this.socket.off('error');
   }
 
+  private removeMessageListeners(): void {
+    if (!this.msgSocket) return;
+    this.msgSocket.off('connect');
+    this.msgSocket.off('connected');
+    this.msgSocket.off('disconnect');
+    this.msgSocket.off('connect_error');
+    this.msgSocket.off('message:new');
+    this.msgSocket.off('notification:message');
+    this.msgSocket.off('joinedChat');
+    this.msgSocket.off('leftChat');
+    this.msgSocket.off('chat:read');
+    this.msgSocket.off('error');
+    this.msgSocket.off('notification:unreadChats');
+  }
+
   /**
    * Desconectar del servidor WebSocket
    */
   disconnect(): void {
+    // Disconnect notification socket
     if (this.socket) {
       this.removeListeners();
-      this.socket.disconnect();
+      try { this.socket.disconnect(); } catch (e) {}
       this.socket = null;
       this.connectionStatus.next(false);
-      // WebSocket disconnected manually
+    }
+
+    // Disconnect message socket if exists
+    if (this.msgSocket) {
+      this.removeMessageListeners();
+      try { this.msgSocket.disconnect(); } catch (e) {}
+      this.msgSocket = null;
     }
   }
 
@@ -163,6 +290,8 @@ export class WebsocketService {
   // No active socket, attempting to connect with new token
       try {
         this.connect(newToken);
+        // also reconnect message socket if it existed before
+        if (this.msgSocket !== null) this.connectMessages(newToken);
       } catch (e) {
         console.error('Error intentando conectar WebSocket con nuevo token:', e);
       }
@@ -178,6 +307,9 @@ export class WebsocketService {
   // Reconnecting WebSocket with new token
     this.disconnect();
     this.connect(newToken);
+    if (this.msgSocket !== null) {
+      try { this.connectMessages(newToken); } catch (e) { console.error(e); }
+    }
   }
 
   /**
@@ -185,6 +317,11 @@ export class WebsocketService {
    */
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  /** Check if message socket is connected */
+  isMessageConnected(): boolean {
+    return this.msgSocket?.connected || false;
   }
 
   /**
@@ -195,6 +332,15 @@ export class WebsocketService {
       this.socket.emit(event, data);
     } else {
       console.warn('No se puede emitir evento. WebSocket no conectado.');
+    }
+  }
+
+  /** Emit to message socket */
+  emitMessage(event: string, data: any): void {
+    if (this.msgSocket?.connected) {
+      this.msgSocket.emit(event, data);
+    } else {
+      console.warn('Mensaje socket no conectado, emit fallido:', event);
     }
   }
 
@@ -240,6 +386,41 @@ export class WebsocketService {
       });
     });
   }
+
+  /** Join a chat room via WS */
+  joinChat(chatId: number): void {
+    if (!this.msgSocket) {
+      console.warn('Mensaje socket no inicializado, no se puede joinChat');
+      return;
+    }
+    try {
+      this.msgSocket.emit('joinChat', { chatId });
+      this.joinedChats.add(Number(chatId));
+    } catch (e) { console.error(e); }
+  }
+
+  /** Leave a chat room via WS */
+  leaveChat(chatId: number): void {
+    if (!this.msgSocket) return;
+    try {
+      this.msgSocket.emit('leaveChat', { chatId });
+      this.joinedChats.delete(Number(chatId));
+    } catch (e) { console.error(e); }
+  }
+
+  /** Send a text message via WS (server expects sendMessage event) */
+  sendTextMessage(chatId: number, text: string): void {
+    if (!this.msgSocket) return;
+    try { this.msgSocket.emit('sendMessage', { chatId, message: text }); } catch (e) { console.error(e); }
+  }
+
+  // Observables to subscribe from components
+  onMessageNew(): Observable<any> { return this.messageSubject.asObservable(); }
+  onNotificationMessage(): Observable<any> { return this.notificationMessageSubject.asObservable(); }
+  onUnreadChats(): Observable<{ chatId: number; unreadInChat: number; totalUnreadChats: number }> { return this.unreadChatsSubject.asObservable(); }
+  onJoinedChat(): Observable<{ chatId: number }> { return this.joinedChatSubject.asObservable(); }
+  onLeftChat(): Observable<{ chatId: number }> { return this.leftChatSubject.asObservable(); }
+  onChatRead(): Observable<{ chatId: number; userId: number }> { return this.chatReadSubject.asObservable(); }
 
   /**
    * Escuchar un evento específico del servidor

@@ -48,6 +48,11 @@ export class AuthService {
     if (token) {
       // Cargar token en memoria y mantenerlo persistido para compatibilidad con reloads
       this.setAccessToken(token);
+      // Conectar WebSocket (notificaciones) y socket de mensajes si hay token al iniciar
+      try {
+        this.websocketService.connect(token);
+        this.websocketService.connectMessages(token);
+      } catch (e) {}
       const payload = this.decodeToken(token);
       if (payload) {
         const rawRole = payload.role || payload.roles || payload.rol || 'donor';
@@ -190,6 +195,7 @@ export class AuthService {
           this.setAccessToken(token);
           // Conectar WebSocket con el token
           this.websocketService.connect(token);
+          this.websocketService.connectMessages(token);
         }
         if (refresh) {
           localStorage.setItem('refreshToken', refresh);
