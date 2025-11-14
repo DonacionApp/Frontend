@@ -227,6 +227,14 @@ export class PostsService {
   createTag(tag: string): Observable<Tag> {
     return this.http.post<Tag>(`${this.tagsEndpoint}/create`, { tag });
   }
+  
+  updateTag(id: number, tag: string): Observable<Tag> {
+    return this.http.post<Tag>(`${this.tagsEndpoint}/update/${id}`, { tag });
+  }
+
+  deleteTag(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.tagsEndpoint}/delete/${id}`);
+  }
 
   addTagToPost(tagId: number, postId: number): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.postEndpoint}/add/tag/${tagId}/post/${postId}`, {});

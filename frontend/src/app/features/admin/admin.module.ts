@@ -27,6 +27,11 @@ const routes: Routes = [
         loadComponent: () => import('./users/users.component').then(m => m.UsersComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'tags', 
+        loadComponent: () => import('./tags/tags.component').then(m => m.TagsComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];
