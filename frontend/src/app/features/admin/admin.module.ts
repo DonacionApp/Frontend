@@ -47,6 +47,11 @@ const routes: Routes = [
         loadComponent: () => import('./articles/articles.component').then(m => m.ArticlesComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'support-identification', 
+        loadComponent: () => import('./support-identification/support-identification.component').then(m => m.SupportIdentificationComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];

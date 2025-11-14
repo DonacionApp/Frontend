@@ -85,6 +85,14 @@ export class DataTableComponent implements OnInit, OnChanges {
   }
 
   applyFilters(): void {
+    // Asegurar que data sea un array
+    if (!Array.isArray(this.data)) {
+      this.filteredData = [];
+      this.paginatedData = [];
+      this.totalPages = 1;
+      return;
+    }
+    
     // Aplicar búsqueda
     let filtered = [...this.data];
     
