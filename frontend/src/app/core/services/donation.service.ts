@@ -428,4 +428,142 @@ export class DonationService {
       })
     );
   }
+
+  // ========== MÉTODOS DE ADMIN ==========
+
+  /**
+   * Obtener todas las donaciones (admin)
+   * Usa el endpoint de búsqueda con filtros vacíos para traer todas
+   */
+  getAllDonations(filters?: {
+    orderBy?: string;
+    searchParam?: string;
+    typeSearch?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Observable<Donation[]> {
+    const body = filters || {};
+    return this.http.post<any>(`${this.apiUrl}/history/search`, body).pipe(
+      map(raw => this.normalizeGenericArray<Donation>(raw)),
+      catchError(error => {
+        console.error('Error al obtener todas las donaciones:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Actualizar donación (admin)
+   */
+  updateDonationAdmin(id: number, updates: UpdateDonationDTO): Observable<Donation> {
+    return this.http.post<Donation>(`${this.apiUrl}/admin/update/${id}`, updates).pipe(
+      catchError(error => {
+        console.error('Error al actualizar donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Eliminar donación (admin)
+   */
+  deleteDonationAdmin(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/admin/${id}`).pipe(
+      catchError(error => {
+        console.error('Error al eliminar donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Actualizar estado de donación (admin)
+   */
+  updateDonationStatusAdmin(idDonation: number, statusData: UpdateDonationStatusDTO): Observable<Donation> {
+    return this.http.post<Donation>(`${this.apiUrl}/${idDonation}/status/admin`, statusData).pipe(
+      catchError(error => {
+        console.error('Error al actualizar estado de donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Actualizar fecha de entrega (+10 días, solo una vez) (admin)
+   */
+  updateDonationDateAdmin(id: number): Observable<Donation> {
+    return this.http.put<Donation>(`${this.apiUrl}/admin/update-date/${id}`, {}).pipe(
+      catchError(error => {
+        console.error('Error al actualizar fecha de donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Agregar artículo a donación (admin)
+   */
+  addArticleToDonationAdmin(donationId: number, postArticleId: number, quantity: number): Observable<any> {
+    return this.http.post<any>(`${environment.apiBackendUrl}/postdonationarticle/add/admin/article`, {
+      donationId,
+      postArticleId: String(postArticleId),
+      quantity
+    }).pipe(
+      catchError(error => {
+        console.error('Error al agregar artículo a donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Eliminar artículo de donación (admin)
+   */
+  removeArticleFromDonationAdmin(donationArticleId: number): Observable<any> {
+    return this.http.delete<any>(`${environment.apiBackendUrl}/postdonationarticle/remove/admin/article/${donationArticleId}`).pipe(
+      catchError(error => {
+        console.error('Error al eliminar artículo de donación (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Actualizar cantidad de artículo en donación (admin)
+   */
+  updateArticleQuantityAdmin(postDonationArticleId: number, newQuantity: number): Observable<any> {
+    return this.http.post<any>(`${environment.apiBackendUrl}/postdonationarticle/update/quantity/admin/article`, {
+      postDonationArticleId,
+      newQuantity
+    }).pipe(
+      catchError(error => {
+        console.error('Error al actualizar cantidad de artículo (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener todas las reviews de donaciones
+   */
+  getAllDonationReviews(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiBackendUrl}/donationreview/all`).pipe(
+      catchError(error => {
+        console.error('Error al obtener reviews de donaciones:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Eliminar review de donación (admin)
+   */
+  deleteDonationReviewAdmin(reviewId: number): Observable<any> {
+    return this.http.delete<any>(`${environment.apiBackendUrl}/donationreview/admin/delete/${reviewId}`).pipe(
+      catchError(error => {
+        console.error('Error al eliminar review (admin):', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }

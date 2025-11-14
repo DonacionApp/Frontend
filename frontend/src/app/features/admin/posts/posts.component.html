@@ -1,0 +1,219 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Gestión de Posts</h1>
+      <p class="text-sm text-gray-600 mt-1">Administra las publicaciones del sistema</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Data Table -->
+  <app-data-table
+    [columns]="columns"
+    [data]="posts"
+    [loading]="loading"
+    [searchable]="true"
+    [selectable]="true"
+    [actions]="actions"
+    [batchActions]="batchActions"
+    searchPlaceholder="Buscar posts..."
+    emptyMessage="No hay posts registrados"
+    (batchActionExecuted)="onBatchActionExecuted($event)"
+  ></app-data-table>
+</div>
+
+<!-- Modal de Edición de Post -->
+<app-modal
+  [isOpen]="showEditPostModal"
+  [title]="'Editar Post'"
+  [size]="'lg'"
+  (onClose)="closeEditPostModal()"
+>
+  <form [formGroup]="editPostForm" (ngSubmit)="savePost()">
+    <div class="space-y-4">
+      <div>
+        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="title"
+          formControlName="title"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [class.border-red-500]="editPostForm.get('title')?.invalid && editPostForm.get('title')?.touched"
+          placeholder="Título del post"
+        />
+        <p *ngIf="editPostForm.get('title')?.invalid && editPostForm.get('title')?.touched" class="mt-1 text-sm text-red-600">
+          El título es requerido y debe tener al menos 3 caracteres
+        </p>
+      </div>
+
+      <div>
+        <label for="message" class="block text-sm font-medium text-gray-700 mb-1">
+          Mensaje <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          id="message"
+          formControlName="message"
+          rows="5"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [class.border-red-500]="editPostForm.get('message')?.invalid && editPostForm.get('message')?.touched"
+          placeholder="Mensaje del post"
+        ></textarea>
+        <p *ngIf="editPostForm.get('message')?.invalid && editPostForm.get('message')?.touched" class="mt-1 text-sm text-red-600">
+          El mensaje es requerido y debe tener al menos 10 caracteres
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        type="button"
+        (click)="closeEditPostModal()"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        [disabled]="editPostForm.invalid || updatingPost"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ updatingPost ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal de Gestión de Imágenes -->
+<app-modal
+  [isOpen]="showImagesModal"
+  [title]="'Gestionar Imágenes del Post'"
+  [size]="'xl'"
+  (onClose)="closeImagesModal()"
+>
+  <div class="space-y-6">
+    <!-- Agregar nuevas imágenes -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Agregar Imágenes</h4>
+      <input
+        type="file"
+        multiple
+        accept="image/*"
+        (change)="onFileSelected($event)"
+        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+      />
+      
+      <div *ngIf="selectedFiles.length > 0" class="mt-4">
+        <p class="text-sm text-gray-600 mb-2">Archivos seleccionados:</p>
+        <div class="flex flex-wrap gap-2">
+          <div *ngFor="let file of selectedFiles; let i = index" class="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-md">
+            <span class="text-sm text-gray-700">{{ file.name }}</span>
+            <button
+              type="button"
+              (click)="removeSelectedFile(i)"
+              class="text-red-600 hover:text-red-800"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="uploadImages()"
+          [disabled]="uploadingImages"
+          class="mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+        >
+          {{ uploadingImages ? 'Subiendo...' : 'Subir Imágenes' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Imágenes actuales -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Imágenes del Post</h4>
+      <div *ngIf="currentPostImages.length === 0" class="text-sm text-gray-500">
+        No hay imágenes en este post
+      </div>
+      <div *ngIf="currentPostImages.length > 0" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div *ngFor="let image of currentPostImages" class="relative group">
+          <img [src]="image.image" [alt]="'Imagen ' + image.id" class="w-full h-32 object-cover rounded-md">
+          <button
+            type="button"
+            (click)="deleteImage(image.id)"
+            class="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Gestión de Tags -->
+<app-modal
+  [isOpen]="showTagsModal"
+  [title]="'Gestionar Tags del Post'"
+  [size]="'lg'"
+  (onClose)="closeTagsModal()"
+>
+  <div class="space-y-6">
+    <!-- Agregar nuevo tag -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Agregar Tag</h4>
+      <div class="flex gap-2">
+        <select
+          [(ngModel)]="selectedTagId"
+          [ngModelOptions]="{standalone: true}"
+          class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option [ngValue]="null">Seleccionar tag...</option>
+          <option *ngFor="let tag of availableTags" [ngValue]="tag.id">
+            {{ tag.tag }}
+          </option>
+        </select>
+        <button
+          type="button"
+          (click)="addTagToPost()"
+          [disabled]="!selectedTagId || addingTag"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+        >
+          {{ addingTag ? 'Agregando...' : 'Agregar' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Tags actuales -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Tags del Post</h4>
+      <div *ngIf="currentPostTags.length === 0" class="text-sm text-gray-500">
+        No hay tags en este post
+      </div>
+      <div *ngIf="currentPostTags.length > 0" class="flex flex-wrap gap-2">
+        <div *ngFor="let postTag of currentPostTags" class="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+          <span class="text-sm font-medium">{{ postTag.tag?.tag }}</span>
+          <button
+            type="button"
+            (click)="removeTagFromPost(postTag.tag?.id)"
+            class="text-blue-600 hover:text-blue-800"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>
+

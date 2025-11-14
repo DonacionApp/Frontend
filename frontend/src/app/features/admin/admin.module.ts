@@ -32,6 +32,16 @@ const routes: Routes = [
         loadComponent: () => import('./tags/tags.component').then(m => m.TagsComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'posts', 
+        loadComponent: () => import('./posts/posts.component').then(m => m.PostsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'donations', 
+        loadComponent: () => import('./donations/donations.component').then(m => m.DonationsComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];
