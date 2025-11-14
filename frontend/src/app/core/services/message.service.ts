@@ -128,4 +128,14 @@ export class MessageService {
   closeChat(chatId: number): Observable<any> {
     return this.http.put(`${this.base}/chat/${chatId}/close`, {});
   }
+
+  // PUT: /userchat/my-chats/mark-all-as-read  <-- guessed endpoint; adjust if backend differs
+  markAllMyChatsAsRead(): Observable<any> {
+    return this.http.put(`${this.base}/userchat/my-chats/mark-all-as-read`, {});
+  }
+
+  // PUT: /userchat/mark-as-read/chat/:chatId  -- mark a specific chat as read for the current user
+  markChatAsRead(chatId: number): Observable<any> {
+    return this.http.put(`${this.base}/userchat/mark-as-read/chat/${chatId}`, {});
+  }
 }
