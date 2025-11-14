@@ -52,6 +52,26 @@ const routes: Routes = [
         loadComponent: () => import('./support-identification/support-identification.component').then(m => m.SupportIdentificationComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'system', 
+        loadComponent: () => import('./system/system.component').then(m => m.SystemComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'user-system', 
+        loadComponent: () => import('./user-system/user-system.component').then(m => m.UserSystemComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'notifications', 
+        loadComponent: () => import('./admin-notifications/admin-notifications.component').then(m => m.AdminNotificationsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'reports', 
+        loadComponent: () => import('./reports/reports.component').then(m => m.ReportsComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];
