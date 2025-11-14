@@ -9,6 +9,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
 
 @Component({
   selector: 'app-users',
@@ -35,6 +36,19 @@ export class UsersComponent implements OnInit, OnDestroy {
   showEditUserModal = false;
   editUserForm!: FormGroup;
   editingUser = false;
+  
+  // Pestañas del modal
+  activeTab: 'data' | 'articles' = 'data';
+  
+  // Gestión de artículos del usuario
+  userArticles: UserArticle[] = [];
+  loadingUserArticles = false;
+  availableArticles: Article[] = [];
+  selectedArticleId: number | null = null;
+  articleQuantity = 1;
+  articleNeeded = false;
+  addingArticle = false;
+  editingArticleQuantity: { id: number; quantity: number } | null = null;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -219,6 +233,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     private userService: UserManagementService,
     private roleService: RoleService,
     private toastService: ToastService,
+    private articlesService: ArticlesService,
     private fb: FormBuilder
   ) {
     this.initializeEditForm();
@@ -645,6 +660,7 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   openEditUserModal(user: UserManagement): void {
     this.selectedUser = user;
+    this.activeTab = 'data'; // Resetear a la pestaña de datos
     
     // Cargar datos del usuario si no están completos
     if (!user.people && user.id) {
@@ -654,6 +670,7 @@ export class UsersComponent implements OnInit, OnDestroy {
           next: (fullUser) => {
             this.populateEditForm(fullUser);
             this.showEditUserModal = true;
+            this.loadAvailableArticles();
           },
           error: (error) => {
             console.error('Error loading user details:', error);
@@ -667,6 +684,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     } else {
       this.populateEditForm(user);
       this.showEditUserModal = true;
+      this.loadAvailableArticles();
     }
   }
 
@@ -734,6 +752,165 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.selectedUser = null;
     this.editUserForm.reset();
     this.initializeEditForm();
+    this.activeTab = 'data';
+    this.userArticles = [];
+    this.selectedArticleId = null;
+    this.articleQuantity = 1;
+    this.articleNeeded = false;
+    this.editingArticleQuantity = null;
+  }
+  
+  // Métodos para gestión de artículos del usuario
+  switchTab(tab: 'data' | 'articles'): void {
+    this.activeTab = tab;
+    if (tab === 'articles' && this.selectedUser) {
+      this.loadUserArticles();
+    }
+  }
+  
+  loadAvailableArticles(): void {
+    this.articlesService.getAllArticles()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (articles) => {
+          this.availableArticles = articles;
+        },
+        error: (error) => {
+          console.error('Error loading articles:', error);
+        }
+      });
+  }
+  
+  loadUserArticles(): void {
+    if (!this.selectedUser) return;
+    
+    this.loadingUserArticles = true;
+    this.articlesService.getUserArticlesAdmin(this.selectedUser.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (articles) => {
+          this.userArticles = articles;
+          this.loadingUserArticles = false;
+        },
+        error: (error) => {
+          console.error('Error loading user articles:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar los artículos del usuario';
+          alert(`Error: ${errorMessage}`);
+          this.loadingUserArticles = false;
+        }
+      });
+  }
+  
+  addArticleToUser(): void {
+    if (!this.selectedUser || !this.selectedArticleId || this.articleQuantity <= 0) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+    
+    this.addingArticle = true;
+    this.articlesService.addUserArticleAdmin({
+      user: this.selectedUser.id,
+      article: this.selectedArticleId,
+      cant: this.articleQuantity,
+      needed: this.articleNeeded
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Artículo agregado correctamente',
+            type: 'success'
+          });
+          this.selectedArticleId = null;
+          this.articleQuantity = 1;
+          this.articleNeeded = false;
+          this.loadUserArticles();
+          this.addingArticle = false;
+        },
+        error: (error) => {
+          console.error('Error adding article:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo agregar el artículo';
+          alert(`Error: ${errorMessage}`);
+          this.addingArticle = false;
+        }
+      });
+  }
+  
+  updateArticleQuantity(userArticle: UserArticle): void {
+    const newQuantity = prompt(`Ingresa la nueva cantidad para "${userArticle.article.name}":`, userArticle.cant.toString());
+    if (!newQuantity || isNaN(Number(newQuantity)) || Number(newQuantity) <= 0) {
+      return;
+    }
+    
+    this.editingArticleQuantity = { id: userArticle.id, quantity: Number(newQuantity) };
+    
+    this.articlesService.updateUserArticleQuantityAdmin({
+      userArticleId: userArticle.id,
+      cant: Number(newQuantity)
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Cantidad actualizada correctamente',
+            type: 'success'
+          });
+          this.loadUserArticles();
+          this.editingArticleQuantity = null;
+        },
+        error: (error) => {
+          console.error('Error updating quantity:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la cantidad';
+          alert(`Error: ${errorMessage}`);
+          this.editingArticleQuantity = null;
+        }
+      });
+  }
+  
+  toggleArticleNeeded(userArticle: UserArticle): void {
+    this.articlesService.updateUserArticleNeededAdmin(userArticle.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Estado actualizado correctamente',
+            type: 'success'
+          });
+          this.loadUserArticles();
+        },
+        error: (error) => {
+          console.error('Error updating needed status:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar el estado';
+          alert(`Error: ${errorMessage}`);
+        }
+      });
+  }
+  
+  deleteUserArticle(userArticle: UserArticle): void {
+    if (!confirm(`¿Estás seguro de eliminar "${userArticle.article.name}" de la lista del usuario?`)) {
+      return;
+    }
+    
+    this.articlesService.deleteUserArticleAdmin(userArticle.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Artículo eliminado correctamente',
+            type: 'success'
+          });
+          this.loadUserArticles();
+        },
+        error: (error) => {
+          console.error('Error deleting article:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el artículo';
+          alert(`Error: ${errorMessage}`);
+        }
+      });
   }
 
   saveUserChanges(): void {

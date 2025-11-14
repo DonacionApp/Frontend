@@ -130,4 +130,41 @@ export class ArticlesService {
   deleteArticleAdmin(id: number): Observable<{ message: string; status: number }> {
     return this.http.delete<{ message: string; status: number }>(`${this.apiUrl}/delete/${id}`);
   }
+
+  // ========== MÉTODOS DE ADMIN PARA USER ARTICLES ==========
+
+  /**
+   * Obtener artículos de un usuario (admin)
+   */
+  getUserArticlesAdmin(userId: number | string, filters?: UserArticleFilterDTO): Observable<UserArticle[]> {
+    return this.http.post<UserArticle[]>(`${this.userArticleUrl}/user/admin/${userId}`, filters || {});
+  }
+
+  /**
+   * Agregar artículo a un usuario (admin)
+   */
+  addUserArticleAdmin(data: AddUserArticleDTO & { user: number }): Observable<UserArticle> {
+    return this.http.post<UserArticle>(`${this.userArticleUrl}/add/admin`, data);
+  }
+
+  /**
+   * Actualizar cantidad de artículo de usuario (admin)
+   */
+  updateUserArticleQuantityAdmin(data: UpdateQuantityDTO): Observable<Partial<UserArticle>> {
+    return this.http.post<Partial<UserArticle>>(`${this.userArticleUrl}/update/quantity/admin`, data);
+  }
+
+  /**
+   * Cambiar estado "needed" de artículo de usuario (admin)
+   */
+  updateUserArticleNeededAdmin(userArticleId: number): Observable<Partial<UserArticle>> {
+    return this.http.patch<Partial<UserArticle>>(`${this.userArticleUrl}/update/needed/admin/${userArticleId}`, {});
+  }
+
+  /**
+   * Eliminar artículo de usuario (admin)
+   */
+  deleteUserArticleAdmin(userArticleId: number): Observable<{ message: string; status: number }> {
+    return this.http.delete<{ message: string; status: number }>(`${this.userArticleUrl}/delete/admin/${userArticleId}`);
+  }
 }

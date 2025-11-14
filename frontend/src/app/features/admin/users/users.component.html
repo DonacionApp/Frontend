@@ -93,7 +93,41 @@
     [closeOnBackdropClick]="false"
     (onClose)="closeEditUserModal()"
   >
-    <form [formGroup]="editUserForm" (ngSubmit)="saveUserChanges()" class="space-y-6">
+    <!-- Pestañas -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <button
+          type="button"
+          (click)="switchTab('data')"
+          [class.border-blue-500]="activeTab === 'data'"
+          [class.text-blue-600]="activeTab === 'data'"
+          [class.border-transparent]="activeTab !== 'data'"
+          [class.text-gray-500]="activeTab !== 'data'"
+          [class.hover:text-gray-700]="activeTab !== 'data'"
+          [class.hover:border-gray-300]="activeTab !== 'data'"
+          class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+        >
+          Datos del Usuario
+        </button>
+        <button
+          type="button"
+          (click)="switchTab('articles')"
+          [class.border-blue-500]="activeTab === 'articles'"
+          [class.text-blue-600]="activeTab === 'articles'"
+          [class.border-transparent]="activeTab !== 'articles'"
+          [class.text-gray-500]="activeTab !== 'articles'"
+          [class.hover:text-gray-700]="activeTab !== 'articles'"
+          [class.hover:border-gray-300]="activeTab !== 'articles'"
+          class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+        >
+          Artículos del Usuario
+        </button>
+      </nav>
+    </div>
+
+    <!-- Contenido de la pestaña "Datos del Usuario" -->
+    <div *ngIf="activeTab === 'data'">
+      <form [formGroup]="editUserForm" (ngSubmit)="saveUserChanges()" class="space-y-6">
       <!-- Información Básica -->
       <div>
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h3>
@@ -359,26 +393,144 @@
         </div>
       </div>
 
-      <!-- Botones de Acción -->
-      <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          (click)="closeEditUserModal()"
-          [disabled]="editingUser"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          [disabled]="editUserForm.invalid || editingUser"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <span *ngIf="!editingUser">Guardar Cambios</span>
-          <span *ngIf="editingUser">Guardando...</span>
-        </button>
+        <!-- Botones de Acción -->
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            (click)="closeEditUserModal()"
+            [disabled]="editingUser"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="editUserForm.invalid || editingUser"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span *ngIf="!editingUser">Guardar Cambios</span>
+            <span *ngIf="editingUser">Guardando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Contenido de la pestaña "Artículos del Usuario" -->
+    <div *ngIf="activeTab === 'articles'" class="space-y-6">
+      <!-- Agregar nuevo artículo -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Agregar Artículo</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="md:col-span-2">
+            <label for="articleSelect" class="block text-sm font-medium text-gray-700 mb-1">
+              Artículo
+            </label>
+            <select
+              id="articleSelect"
+              [(ngModel)]="selectedArticleId"
+              [ngModelOptions]="{standalone: true}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option [ngValue]="null">Seleccionar artículo...</option>
+              <option *ngFor="let article of availableArticles" [ngValue]="article.id">
+                {{ article.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label for="articleQuantity" class="block text-sm font-medium text-gray-700 mb-1">
+              Cantidad
+            </label>
+            <input
+              id="articleQuantity"
+              type="number"
+              [(ngModel)]="articleQuantity"
+              [ngModelOptions]="{standalone: true}"
+              min="1"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div class="flex items-end">
+            <button
+              type="button"
+              (click)="addArticleToUser()"
+              [disabled]="!selectedArticleId || articleQuantity <= 0 || addingArticle"
+              class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ addingArticle ? 'Agregando...' : 'Agregar' }}
+            </button>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center">
+          <input
+            id="articleNeeded"
+            type="checkbox"
+            [(ngModel)]="articleNeeded"
+            [ngModelOptions]="{standalone: true}"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label for="articleNeeded" class="ml-2 block text-sm text-gray-900">
+            Marcar como necesario
+          </label>
+        </div>
       </div>
-    </form>
+
+      <!-- Lista de artículos del usuario -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Artículos del Usuario</h3>
+        <div *ngIf="loadingUserArticles" class="text-center py-8">
+          <p class="text-gray-500">Cargando artículos...</p>
+        </div>
+        <div *ngIf="!loadingUserArticles && userArticles.length === 0" class="text-center py-8">
+          <p class="text-gray-500">No hay artículos en la lista del usuario</p>
+        </div>
+        <div *ngIf="!loadingUserArticles && userArticles.length > 0" class="space-y-3">
+          <div *ngFor="let userArticle of userArticles" class="bg-gray-50 p-4 rounded-md">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <p class="font-medium text-gray-900">{{ userArticle.article.name }}</p>
+                <p class="text-sm text-gray-600 mt-1">
+                  Cantidad: {{ userArticle.cant }}
+                </p>
+                <p class="text-sm mt-1">
+                  <span [class.text-green-600]="userArticle.needed" [class.text-gray-600]="!userArticle.needed">
+                    {{ userArticle.needed ? '✓ Necesario' : 'No necesario' }}
+                  </span>
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  (click)="updateArticleQuantity(userArticle)"
+                  [disabled]="editingArticleQuantity?.id === userArticle.id"
+                  class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {{ editingArticleQuantity?.id === userArticle.id ? 'Actualizando...' : 'Editar Cantidad' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="toggleArticleNeeded(userArticle)"
+                  [class.bg-yellow-600]="!userArticle.needed"
+                  [class.hover:bg-yellow-700]="!userArticle.needed"
+                  [class.bg-gray-600]="userArticle.needed"
+                  [class.hover:bg-gray-700]="userArticle.needed"
+                  class="px-3 py-1 text-white text-sm rounded-md"
+                >
+                  {{ userArticle.needed ? 'Marcar No Necesario' : 'Marcar Necesario' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="deleteUserArticle(userArticle)"
+                  class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </app-modal>
 </div>
 
