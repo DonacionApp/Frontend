@@ -483,6 +483,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
     this.showStatusModal = false;
     this.editingDonation = null;
     this.selectedStatusId = null;
+    this.changingStatus = false;
   }
 
   changeStatus(): void {
@@ -499,6 +500,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
+          this.changingStatus = false;
           this.toastService.show({
             title: 'Éxito',
             message: 'Estado actualizado correctamente',
