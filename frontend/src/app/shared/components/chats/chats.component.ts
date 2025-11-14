@@ -7,6 +7,7 @@ import { MessageService, IMessage, IChat } from '../../../core/services/message.
 import { MessagesViewComponent } from './messages-view/messages-view.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebsocketService } from '../../../core/services/websocket.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -42,6 +43,12 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   newMessage = '';
 
+  selectedFiles: File[] = [];
+
+  readonly MAX_IMAGE_PDF_BYTES = 1 * 1024 * 1024;
+  readonly MAX_VIDEO_BYTES = 10 * 1024 * 1024;
+  readonly MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+
   currentUserId: string | number | null = null;
   currentUser: any | null = null;
 
@@ -51,6 +58,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     private authService: AuthService,
     private websocketService: WebsocketService,
+    private toastService: ToastService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
@@ -90,12 +98,9 @@ export class ChatsComponent implements OnInit, OnDestroy {
     });
 
     this.loadChats(true);
-    // Subscribe to incoming messages from websocket and update UI
     try {
       this.websocketService.onMessageNew().pipe(takeUntil(this.destroy$)).subscribe(payload => {
         try {
-          // Debug log to see payload as it arrives to the component
-          // eslint-disable-next-line no-console
           console.debug('[ChatsComponent] onMessageNew payload ->', payload);
 
           const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
@@ -104,32 +109,37 @@ export class ChatsComponent implements OnInit, OnDestroy {
           else if (payload?.message) incoming = Array.isArray(payload.message) ? payload.message : [payload.message];
 
           if (!isNaN(chatId)) {
-            // If the message belongs to the currently opened chat, append to messages
             if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
-              // dedupe by id
-              const existingIds = new Set(this.messages.map(m => m?.id));
-              const toAdd = incoming.filter(m => m && !existingIds.has(m.id));
-              if (toAdd.length > 0) {
-                this.messages = [...this.messages, ...toAdd];
-                // ensure optimistic placeholders replaced if necessary
-                try {
-                  toAdd.forEach(serverMsg => {
-                    // replace any optimistic temp messages that match by some heuristic (content + _optimistic)
-                    this.messages = this.messages.map(m => {
-                      try {
-                        if (m && (m as any)._optimistic && serverMsg && serverMsg.message && String(m.message) === String(serverMsg.message)) {
-                          return serverMsg;
-                        }
-                      } catch (e) {}
-                      return m;
-                    });
-                  });
-                } catch (e) {}
-                // bind media handlers and scroll to bottom
+                const existingIds = new Set(this.messages.map(m => m?.id));
+                const toAppend: any[] = [];
+                incoming.forEach(serverMsg => {
+                  try {
+                    if (!serverMsg) return;
+                    const sid = serverMsg.id;
+                    if (sid && existingIds.has(sid)) return;
+
+                    let replaced = false;
+                    try {
+                      const optIdx = this.messages.findIndex(m => m && (m as any)._optimistic && serverMsg && serverMsg.message && String(m.message) === String(serverMsg.message));
+                      if (optIdx !== -1) {
+                        this.messages[optIdx] = serverMsg;
+                        replaced = true;
+                        if (sid) existingIds.add(sid);
+                      }
+                    } catch (e) {}
+
+                    if (!replaced) {
+                      toAppend.push(serverMsg);
+                      if (sid) existingIds.add(sid);
+                    }
+                  } catch (e) {}
+                });
+
+                if (toAppend.length > 0) {
+                  this.messages = [...this.messages, ...toAppend];
+                }
                 setTimeout(() => { try { this.messagesView?.bindMediaLoadHandlers(); this.messagesView?.scrollToBottom(); } catch (e) {} }, 40);
-              }
             } else {
-              // Not viewing this chat: update unread counter in chat list if present
               const idx = this.chats.findIndex(c => Number((c as any).id) === chatId);
               if (idx > -1) {
                 try { (this.chats[idx] as any).unread = ((this.chats[idx] as any).unread || 0) + (Array.isArray(incoming) ? incoming.length : 1); } catch (e) {}
@@ -139,7 +149,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
         } catch (e) {}
       });
     } catch (e) {}
-    // Subscribe to server unread-chats notifications to update UI counters live
     try {
       this.websocketService.onUnreadChats().pipe(takeUntil(this.destroy$)).subscribe(payload => {
         try {
@@ -148,9 +157,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           if (idx > -1) {
             (this.chats[idx] as any).unread = Number(payload.unreadInChat || 0);
           } else {
-            // If chat not present we could optionally fetch or ignore; leave for now.
           }
-          // Optionally handle totalUnreadChats globally (e.g., update a badge via another service)
         } catch (e) {}
       });
     } catch (e) {}
@@ -223,7 +230,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
         } else if (arrayItems.length < limit) {
           this.hasMoreChats = false;
         } else if (append && toAdd.length === 0) {
-          // server returned items but none were new -> stop to avoid loop
           this.hasMoreChats = false;
         } else if (resCursor && prevCursor && resCursor === prevCursor) {
           this.hasMoreChats = false;
@@ -237,14 +243,10 @@ export class ChatsComponent implements OnInit, OnDestroy {
             this.desiredChatId = null;
             try { this.selectChat(foundNow); } catch (e) { this.desiredChatId = sid2; }
           } else if (this.hasMoreChats) {
-            // Desired chat not in this page but there are more pages.
-            // Schedule loading the next page (append) so we keep searching.
-            // Small timeout avoids tight recursion and lets UI/render settle.
             setTimeout(() => {
               try { this.loadChats(false, true); } catch (e) {}
             }, 50);
           } else {
-            // No more pages and chat not found — clear the desired id.
             this.desiredChatId = null;
           }
         }
@@ -253,8 +255,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
       },
       error: () => { this.loadingChats = false; }
     });
-    
-    
   }
 
   onChatsScroll(e: any): void {
@@ -275,13 +275,11 @@ export class ChatsComponent implements OnInit, OnDestroy {
         this.router.navigate([], { relativeTo: this.route, queryParams: { chat: (chat as any).id }, queryParamsHandling: 'merge', replaceUrl: true });
       }
     } catch (e) {}
-    // Ensure message socket is connected and join the chat room
     try {
       const token = this.authService.getAccessToken();
       if (token && !this.websocketService.isMessageConnected()) {
         try { this.websocketService.connectMessages(token); } catch (e) {}
       }
-      // join chat room via WS
       try { this.websocketService.joinChat(Number((chat as any).id)); } catch (e) {}
     } catch (e) {}
 
@@ -383,44 +381,94 @@ export class ChatsComponent implements OnInit, OnDestroy {
   }
 
   onMessagesScroll(e: any): void { return; }
+  onFilesSelected(ev: Event): void {
+    try {
+      const input = ev.target as HTMLInputElement;
+      if (!input || !input.files) return;
+      const files = Array.from(input.files);
+      for (const f of files) {
+        const err = this.validateFile(f);
+        if (err) {
+          try { this.toastService.error('Archivo inválido', err); } catch (e) {}
+          continue;
+        }
+        try { (f as any).__previewUrl = URL.createObjectURL(f); } catch (e) {}
+        this.selectedFiles.push(f);
+      }
+      try { input.value = ''; } catch (e) {}
+    } catch (e) {}
+  }
+
+  removeSelectedFile(index: number): void {
+    try {
+      const f = this.selectedFiles[index];
+      this.selectedFiles.splice(index, 1);
+      try { if (f && (f as any).__previewUrl) { URL.revokeObjectURL((f as any).__previewUrl); } } catch (e) {}
+    } catch (e) {}
+  }
+
+  validateFile(file: File): string | null {
+    if (!file || !file.type) return 'Tipo de archivo desconocido';
+    const t = file.type.toLowerCase();
+    if (t.startsWith('image/')) {
+      if (file.size > this.MAX_IMAGE_PDF_BYTES) return 'Imágenes deben ser máximo 1 MB';
+      return null;
+    }
+    if (t.startsWith('video/')) {
+      if (file.size > this.MAX_VIDEO_BYTES) return 'Videos deben ser máximo 10 MB';
+      return null;
+    }
+    if (t.startsWith('audio/')) {
+      if (file.size > this.MAX_AUDIO_BYTES) return 'Audios deben ser máximo 5 MB';
+      return null;
+    }
+    if (t === 'application/pdf') {
+      if (file.size > this.MAX_IMAGE_PDF_BYTES) return 'PDF debe ser máximo 1 MB';
+      return null;
+    }
+    return 'Tipo de archivo no soportado';
+  }
 
   sendTextMessage(): void {
-    if (!this.selectedChat || !this.newMessage || !this.newMessage.trim()) return;
+    if (!this.selectedChat) return;
+    const hasText = !!(this.newMessage && this.newMessage.trim());
+    const hasFiles = this.selectedFiles && this.selectedFiles.length > 0;
+    if (!hasText && !hasFiles) return;
+
     const fd = new FormData();
     fd.append('chatId', String(this.selectedChat.id));
-    fd.append('messageText', this.newMessage.trim());
-    fd.append('typeMessageId', '1');
+    if (hasText) fd.append('messageText', this.newMessage.trim());
+
+    this.selectedFiles.forEach(f => fd.append('files', f, f.name));
 
     const tempId = -Date.now();
     const placeholder: any = {
       id: tempId,
-      message: this.newMessage.trim(),
+      message: hasText ? this.newMessage.trim() : '',
+      files: this.selectedFiles.map(f => ({ name: f.name, size: f.size, type: f.type, __previewUrl: URL.createObjectURL(f) })),
       createdAt: new Date().toISOString(),
       user: this.currentUser ? { id: this.currentUser.id, username: this.currentUser.username, profilePhoto: this.currentUser.profilePhoto } : null,
-      type: { id: 1, type: 'texto' },
+      type: { id: hasFiles ? 2 : 1, type: hasFiles ? 'attachment' : 'texto' },
       read: true,
       _optimistic: true
     };
 
     this.messages = [...this.messages, placeholder];
     this.newMessage = '';
+    const prevFiles = [...this.selectedFiles];
+    this.selectedFiles = [];
+
     setTimeout(() => { try { this.messagesView?.bindMediaLoadHandlers(); this.messagesView?.scrollToBottom(); } catch (e) {} }, 50);
 
     this.messageService.sendMessage(fd).subscribe({
       next: (res) => {
-        const serverMsg = (res && Array.isArray(res.messages) && res.messages.length) ? res.messages[0] : (res?.message ?? res?.data ?? res);
-        if (serverMsg) {
-          if (!serverMsg.user && this.currentUser) {
-            serverMsg.user = { id: this.currentUser.id, username: this.currentUser.username, profilePhoto: this.currentUser.profilePhoto };
-          }
-          this.messages = this.messages.map(m => (m && (m as any).id === tempId) ? serverMsg : m);
-        } else {
-          this.messages = this.messages.map(m => { if (m && (m as any).id === tempId) { delete (m as any)._optimistic; } return m; });
-        }
+        try { prevFiles.forEach(f => { try { URL.revokeObjectURL((f as any).__previewUrl); } catch (e) {} }); } catch (e) {}
         setTimeout(() => { try { this.messagesView?.bindMediaLoadHandlers(); this.messagesView?.scrollToBottom(); } catch (e) {} }, 50);
       },
       error: () => {
+        this.selectedFiles = prevFiles;
         this.messages = this.messages.filter(m => !(m && (m as any).id === tempId));
+        try { this.toastService.error('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.'); } catch (e) {}
       }
     });
   }
@@ -481,6 +529,14 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   isVideoType(m: any): boolean { return (m?.type?.type || '').toLowerCase() === 'video'; }
 
+  getPreviewUrlForFile(f: File | any): string | null {
+    try {
+      return (f && (f as any).__previewUrl) ? String((f as any).__previewUrl) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   ngOnDestroy(): void {
     try { window.removeEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
     this._cleanupSubscriptions();
@@ -490,20 +546,17 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   private closeSelectedChat(): void {
     const chatId = this.selectedChat ? Number((this.selectedChat as any).id) : null;
-    // clear UI state first
     this.selectedChat = null;
     this.messages = [];
     this.messagesCursor = null;
     this.hasMoreMessages = true;
 
-    // emit leaveChat to server to remove socket from room (if connected)
     try {
       if (chatId !== null && !isNaN(chatId)) {
         try { this.websocketService.leaveChat(chatId); } catch (e) {}
       }
     } catch (e) {}
 
-    // remove `chat` query param from URL when chat is closed
     try {
       const qp = { ...this.route.snapshot.queryParams };
       if (qp && Object.prototype.hasOwnProperty.call(qp, 'chat')) {

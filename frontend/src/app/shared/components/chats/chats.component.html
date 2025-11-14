@@ -57,25 +57,44 @@
         </div>
       </div>
 
-      <div *ngIf="selectedChat" class="flex-1 flex flex-col">
-        <div class="p-3 border-b">
-          <div class="font-semibold">{{ selectedChat.chatName }}</div>
-        </div>
+      <div class="flex-1 flex flex-col chat-panel">
+    <div class="card chat-card flex-1 flex flex-col">
+        <div *ngIf="selectedChat" class="flex-1 flex flex-col">
+            <app-messages-view
+                #messagesView
+                [messages]="messages"
+                [currentUserId]="currentUserId"
+                [loadingMessages]="loadingMessages"
+                [hasMoreMessages]="hasMoreMessages"
+                [attachments]="selectedFiles"
+                (removeAttachment)="removeSelectedFile($event)"
+                (loadOlder)="loadMessages(selectedChat.id, false, true)">
+            </app-messages-view>
 
-        <app-messages-view
-          #messagesView
-          [messages]="messages"
-          [currentUserId]="currentUserId"
-          [loadingMessages]="loadingMessages"
-          [hasMoreMessages]="hasMoreMessages"
-          (loadOlder)="loadMessages(selectedChat.id, false, true)">
-        </app-messages-view>
+            <div *ngIf="selectedFiles && selectedFiles.length" class="flex gap-2 items-center overflow-auto py-1 flex-shrink-0">
+                <div *ngFor="let f of selectedFiles; let i = index" class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
+                    <ng-container *ngIf="getPreviewUrlForFile(f) && f.type.startsWith('image/')">
+                        <img [src]="getPreviewUrlForFile(f)" class="w-10 h-10 object-cover rounded" />
+                    </ng-container>
+                    <div class="text-xs">
+                        <div class="font-medium truncate" style="max-width:160px">{{ f.name }}</div>
+                        <div class="text-gray-500">{{ (f.size / 1024) | number:'1.0-0' }} KB</div>
+                    </div>
+                    <button type="button" (click)="removeSelectedFile(i)" class="text-red-500 ml-2">✕</button>
+                </div>
+            </div>
 
-        <div class="p-3 border-t flex gap-2 items-center chat-input">
-          <input [(ngModel)]="newMessage" (keydown.enter)="$event.preventDefault(); sendTextMessage()" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded" />
-          <button (click)="sendTextMessage()" class="px-3 py-2 bg-green-600 text-white rounded">Enviar</button>
+            <div class="p-3 border-t flex flex-col gap-2 chat-input">
+                <div class="flex items-center gap-2">
+                    <input #fileInput type="file" (change)="onFilesSelected($event)" accept="image/*,video/*,audio/*,application/pdf" multiple hidden />
+                    <button type="button" class="px-3 py-2 bg-gray-100 rounded" (click)="fileInput.click()">Adjuntar</button>
+                    <input [(ngModel)]="newMessage" (keydown.enter)="$event.preventDefault(); sendTextMessage()" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded min-w-0" />
+                    <button (click)="sendTextMessage()" class="px-3 py-2 bg-green-600 text-white rounded">Enviar</button>
+                </div>
+            </div>
         </div>
-      </div>
+        </div>
+</div>
     </div>
   </div>
 </div>

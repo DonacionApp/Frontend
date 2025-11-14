@@ -16,6 +16,9 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   @Input() hasMoreMessages = true;
   @Input() maxHeight: number | null = 560;
 
+  @Input() attachments: any[] = [];
+  @Output() removeAttachment = new EventEmitter<number>();
+
   @Output() loadOlder = new EventEmitter<void>();
 
   @ViewChild('messagesScrollRef') private messagesScrollRef?: ElementRef<HTMLElement>;
@@ -30,7 +33,8 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
 
   private _mediaListeners: Array<{ el: Element; type: string; handler: EventListenerOrEventListenerObject }> = [];
 
-  private _pendingPrepend: { scrollTop: number; scrollHeight: number } | null = null;
+  private _pendingPrepend: { scrollTop: number; scrollHeight: number; anchorId?: string | number | null; anchorOffset?: number | null } | null = null;
+  private _prependAnchorId: string | number | null = null;
 
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -41,19 +45,45 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['messages']) {
+      const prev = changes['messages'].previousValue as IMessage[] | undefined;
+      const curr = changes['messages'].currentValue as IMessage[] | undefined;
+      try {
+      } catch(e) {}
       setTimeout(() => {
         try { this.bindMediaLoadHandlers(); } catch (e) {}
         const el = this.messagesScrollRef?.nativeElement;
         if (this._pendingPrepend && el) {
           const pending = this._pendingPrepend;
-          const newScrollHeight = el.scrollHeight;
-          const delta = newScrollHeight - pending.scrollHeight;
-          try { el.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta)); } catch(e) {}
-          // if there are no media elements that can change layout further, clear pending now
-          const mediaCount = el.querySelectorAll('img,video').length;
-          if (mediaCount === 0) {
-            this._pendingPrepend = null;
-          }
+
+            let anchored = false;
+            try {
+              if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                const anchorEl = el.querySelector(selector) as HTMLElement | null;
+                if (anchorEl) {
+                  // anchorEl.offsetTop is relative to the scroll container content top
+                  const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                  try { el.scrollTop = desired; } catch (e) { el.scrollTop = pending.scrollTop; }
+                  anchored = true;
+                }
+              }
+            } catch (e) { anchored = false; }
+
+            if (!anchored) {
+              try {
+                const newScrollHeight = el.scrollHeight;
+                const delta = newScrollHeight - pending.scrollHeight;
+                el.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta));
+              } catch (e) {
+                try { el.scrollTop = pending.scrollTop; } catch (er) {}
+              }
+            }
+
+            const mediaCount = el.querySelectorAll('img,video').length;
+            if (mediaCount === 0) {
+              this._pendingPrepend = null;
+              this._prependAnchorId = null;
+            }
         } else {
           try { this.scrollToBottom(); } catch (e) {}
         }
@@ -78,7 +108,25 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     if (!el) return;
     if (el.scrollTop < 120) {
       if (this.hasMoreMessages) {
-        this._pendingPrepend = { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight };
+        try {
+          const containerTop = el.getBoundingClientRect().top;
+          const rows = Array.from(el.querySelectorAll('.msg-row')) as HTMLElement[];
+          let firstVisible: HTMLElement | null = null;
+          for (const r of rows) {
+            const rect = r.getBoundingClientRect();
+            if (rect.top >= containerTop) { firstVisible = r; break; }
+          }
+          if (!firstVisible && rows.length) firstVisible = rows[0];
+          if (firstVisible) {
+            const aid = firstVisible.getAttribute('data-msg-id');
+            const offset = Math.round(firstVisible.getBoundingClientRect().top - containerTop);
+            this._prependAnchorId = aid ?? null;
+            this._pendingPrepend = { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, anchorId: aid ?? null, anchorOffset: offset };
+          } else {
+            this._prependAnchorId = null;
+            this._pendingPrepend = { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight };
+          }
+        } catch (e) { this._prependAnchorId = null; this._pendingPrepend = { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight }; }
         this.loadOlder.emit();
       }
     }
@@ -87,6 +135,7 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   public scrollToBottom(): void {
     const el = this.messagesScrollRef?.nativeElement;
     if (!el) return;
+    
     try {
       const last = el.querySelector('.msg-row:last-child') as HTMLElement | null;
       const doScroll = () => {
@@ -159,12 +208,30 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
               const el2 = this.messagesScrollRef?.nativeElement;
               if (this._pendingPrepend && el2) {
                 const pending = this._pendingPrepend;
-                const delta2 = el2.scrollHeight - pending.scrollHeight;
-                try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                
+                if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                  const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                  const anchorEl = el2.querySelector(selector) as HTMLElement | null;
+                  if (anchorEl) {
+                    const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                    try { el2.scrollTop = desired; } catch (e) { el2.scrollTop = pending.scrollTop; }
+                  }
+                } else {
+                  const delta2 = el2.scrollHeight - pending.scrollHeight;
+                  try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                }
 
                 this._pendingPrepend = null;
               } else {
-                this.scrollToBottom();
+                try {
+                  const nearBottom = el2 && (el2.scrollHeight - el2.scrollTop - (el2.clientHeight || 0) < 200);
+                  if (nearBottom) {
+                    
+                    this.scrollToBottom();
+                  } else {
+                    
+                  }
+                } catch(e) {}
               }
             } catch (e) {}
           }, 40);
@@ -174,16 +241,31 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
         const eh = () => {
           setTimeout(() => {
             try {
-              if (this._pendingPrepend) {
-                const el2 = this.messagesScrollRef?.nativeElement;
-                if (el2 && this._pendingPrepend) {
-                  const pending = this._pendingPrepend;
+              const el2 = this.messagesScrollRef?.nativeElement;
+              if (this._pendingPrepend && el2) {
+                const pending = this._pendingPrepend;
+                if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                  const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                  const anchorEl = el2.querySelector(selector) as HTMLElement | null;
+                  if (anchorEl) {
+                    const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                    try { el2.scrollTop = desired; } catch (e) { el2.scrollTop = pending.scrollTop; }
+                  }
+                } else {
                   const delta2 = el2.scrollHeight - pending.scrollHeight;
                   try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
                 }
                 this._pendingPrepend = null;
               } else {
-                this.scrollToBottom();
+                try {
+                  const nearBottom = el2 && (el2.scrollHeight - el2.scrollTop - (el2.clientHeight || 0) < 200);
+                  if (nearBottom) {
+                    
+                    this.scrollToBottom();
+                  } else {
+                    
+                  }
+                } catch(e) {}
               }
             } catch(e) {}
           }, 40);
@@ -198,11 +280,29 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
               const el2 = this.messagesScrollRef?.nativeElement;
               if (this._pendingPrepend && el2) {
                 const pending = this._pendingPrepend;
-                const delta2 = el2.scrollHeight - pending.scrollHeight;
-                try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                
+                if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                  const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                  const anchorEl = el2.querySelector(selector) as HTMLElement | null;
+                  if (anchorEl) {
+                    const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                    try { el2.scrollTop = desired; } catch (e) { el2.scrollTop = pending.scrollTop; }
+                  }
+                } else {
+                  const delta2 = el2.scrollHeight - pending.scrollHeight;
+                  try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                }
                 this._pendingPrepend = null;
               } else {
-                this.scrollToBottom();
+                try {
+                  const nearBottom = el2 && (el2.scrollHeight - el2.scrollTop - (el2.clientHeight || 0) < 200);
+                  if (nearBottom) {
+                    
+                    this.scrollToBottom();
+                  } else {
+                    
+                  }
+                } catch(e) {}
               }
             } catch (e) {}
           }, 80);
@@ -215,11 +315,28 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
               const el2 = this.messagesScrollRef?.nativeElement;
               if (this._pendingPrepend && el2) {
                 const pending = this._pendingPrepend;
-                const delta2 = el2.scrollHeight - pending.scrollHeight;
-                try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                  const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                  const anchorEl = el2.querySelector(selector) as HTMLElement | null;
+                  if (anchorEl) {
+                    const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                    try { el2.scrollTop = desired; } catch (e) { el2.scrollTop = pending.scrollTop; }
+                  }
+                } else {
+                  const delta2 = el2.scrollHeight - pending.scrollHeight;
+                  try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
+                }
                 this._pendingPrepend = null;
               } else {
-                this.scrollToBottom();
+                try {
+                  const nearBottom = el2 && (el2.scrollHeight - el2.scrollTop - (el2.clientHeight || 0) < 200);
+                  if (nearBottom) {
+                    
+                    this.scrollToBottom();
+                  } else {
+                    
+                  }
+                } catch(e) {}
               }
             } catch (e) {}
           }, 80);
@@ -229,16 +346,31 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
         const eh = () => {
           setTimeout(() => {
             try {
-              if (this._pendingPrepend) {
-                const el2 = this.messagesScrollRef?.nativeElement;
-                if (el2 && this._pendingPrepend) {
-                  const pending = this._pendingPrepend;
+              const el2 = this.messagesScrollRef?.nativeElement;
+              if (this._pendingPrepend && el2) {
+                const pending = this._pendingPrepend;
+                if (pending.anchorId !== null && pending.anchorId !== undefined && pending.anchorOffset != null) {
+                  const selector = `[data-msg-id="${String(pending.anchorId)}"]`;
+                  const anchorEl = el2.querySelector(selector) as HTMLElement | null;
+                  if (anchorEl) {
+                    const desired = Math.max(0, Math.round(anchorEl.offsetTop - (pending.anchorOffset ?? 0)));
+                    try { el2.scrollTop = desired; } catch (e) { el2.scrollTop = pending.scrollTop; }
+                  }
+                } else {
                   const delta2 = el2.scrollHeight - pending.scrollHeight;
                   try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
                 }
                 this._pendingPrepend = null;
               } else {
-                this.scrollToBottom();
+                try {
+                  const nearBottom = el2 && (el2.scrollHeight - el2.scrollTop - (el2.clientHeight || 0) < 200);
+                  if (nearBottom) {
+                    
+                    this.scrollToBottom();
+                  } else {
+                    
+                  }
+                } catch(e) {}
               }
             } catch(e) {}
           }, 80);
@@ -283,5 +415,9 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     }
     const dayMonthYear = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(d).replace('.', '');
     return `${dayMonthYear} a las ${timeStr}`;
+  }
+
+  getAttachmentPreview(a: any): string | null {
+    try { return a && (a as any).__previewUrl ? String((a as any).__previewUrl) : null; } catch (e) { return null; }
   }
 }

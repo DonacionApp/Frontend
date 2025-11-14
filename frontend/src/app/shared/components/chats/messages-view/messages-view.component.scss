@@ -3,6 +3,8 @@
 :host { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
 .messages-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+.messages-scroll { max-height: calc(100vh - 220px); }
 .avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; }
 .msg-row { display:flex; align-items:flex-end; gap:8px; }
 .msg-row.own { flex-direction: row-reverse; }
