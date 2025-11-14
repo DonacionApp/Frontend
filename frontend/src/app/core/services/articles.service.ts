@@ -114,4 +114,20 @@ export class ArticlesService {
   deleteArticleFromList(userArticleId: number): Observable<{ message: string; status: number }> {
     return this.http.delete<{ message: string; status: number }>(`${this.userArticleUrl}/delete/${userArticleId}`);
   }
+
+  // ========== MÉTODOS DE ADMIN ==========
+
+  /**
+   * Actualizar artículo (admin)
+   */
+  updateArticleAdmin(id: number, data: CreateArticleDTO): Observable<Article> {
+    return this.http.post<Article>(`${this.apiUrl}/update/admin/${id}`, data);
+  }
+
+  /**
+   * Eliminar artículo (admin)
+   */
+  deleteArticleAdmin(id: number): Observable<{ message: string; status: number }> {
+    return this.http.delete<{ message: string; status: number }>(`${this.apiUrl}/delete/${id}`);
+  }
 }

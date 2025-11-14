@@ -12,7 +12,7 @@ import {
   UpdateDonationStatusDTO,
   StatusDonation 
 } from '../../../core/services/donation.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { PostsService, Post } from '../../../core/services/posts.service';
 import { UserManagementService, UserManagement } from '../../../core/services/user-management.service';
@@ -159,7 +159,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
     private postsService: PostsService,
     private userService: UserManagementService,
     private fb: FormBuilder,
-    private toastService: ToastService
+    private notificationService: NotificationService
   ) {
     this.initForms();
   }
@@ -196,11 +196,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
           console.error('Error loading users:', error);
           this.errorMessage = 'Error al cargar los usuarios';
           this.loadingUsers = false;
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudieron cargar los usuarios',
-            type: 'error'
-          });
+          this.notificationService.error('Error', 'No se pudieron cargar los usuarios');
         }
       });
   }
@@ -232,11 +228,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
           console.error('Error loading donations:', error);
           this.errorMessage = 'Error al cargar las donaciones del usuario';
           this.loading = false;
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudieron cargar las donaciones del usuario',
-            type: 'error'
-          });
+          this.notificationService.error('Error', 'No se pudieron cargar las donaciones del usuario');
         }
       });
   }
@@ -288,11 +280,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Donación actualizada correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Donación actualizada correctamente');
           this.closeEditDonationModal();
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
@@ -300,12 +288,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error updating donation:', error);
-          const errorMessage = error?.error?.message || 'No se pudo actualizar la donación';
-          this.toastService.show({
-            title: 'Error',
-            message: errorMessage,
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la donación';
+          alert(`Error: ${errorMessage}`);
           this.updatingDonation = false;
         }
       });
@@ -362,11 +346,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Artículo agregado correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Artículo agregado correctamente');
           this.selectedPostArticleId = null;
           this.articleQuantity = 1;
           // Recargar donaciones del usuario
@@ -386,12 +366,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error adding article:', error);
-          const errorMessage = error?.error?.message || 'No se pudo agregar el artículo';
-          this.toastService.show({
-            title: 'Error',
-            message: errorMessage,
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo agregar el artículo';
+          alert(`Error: ${errorMessage}`);
           this.addingArticle = false;
         }
       });
@@ -406,11 +382,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Artículo eliminado correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Artículo eliminado correctamente');
           // Recargar donaciones del usuario
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
@@ -422,11 +394,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error removing article:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudo eliminar el artículo',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el artículo';
+          alert(`Error: ${errorMessage}`);
         }
       });
   }
@@ -442,11 +411,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Cantidad actualizada correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Cantidad actualizada correctamente');
           // Recargar donaciones del usuario
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
@@ -463,11 +428,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error updating quantity:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudo actualizar la cantidad',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la cantidad';
+          alert(`Error: ${errorMessage}`);
         }
       });
   }
@@ -501,11 +463,7 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.changingStatus = false;
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Estado actualizado correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Estado actualizado correctamente');
           this.closeStatusModal();
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
@@ -513,11 +471,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error changing status:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudo actualizar el estado',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar el estado';
+          alert(`Error: ${errorMessage}`);
           this.changingStatus = false;
         }
       });
@@ -533,23 +488,15 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Fecha de entrega extendida correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Fecha de entrega extendida correctamente');
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
           }
         },
         error: (error) => {
           console.error('Error extending date:', error);
-          const errorMessage = error?.error?.message || 'No se pudo extender la fecha';
-          this.toastService.show({
-            title: 'Error',
-            message: errorMessage,
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo extender la fecha';
+          alert(`Error: ${errorMessage}`);
         }
       });
   }
@@ -577,6 +524,8 @@ export class DonationsComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error loading reviews:', error);
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar las reviews';
+          alert(`Error: ${errorMessage}`);
           this.donationReviews = [];
         }
       });
@@ -591,20 +540,13 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Review eliminada correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Review eliminada correctamente');
           this.loadDonationReviews();
         },
         error: (error) => {
           console.error('Error deleting review:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudo eliminar la review',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar la review';
+          alert(`Error: ${errorMessage}`);
         }
       });
   }
@@ -619,22 +561,15 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: 'Donación eliminada correctamente',
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', 'Donación eliminada correctamente');
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
           }
         },
         error: (error) => {
           console.error('Error deleting donation:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudo eliminar la donación',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar la donación';
+          alert(`Error: ${errorMessage}`);
         }
       });
   }
@@ -653,22 +588,15 @@ export class DonationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
-            title: 'Éxito',
-            message: `${rows.length} donación(es) eliminada(s) correctamente`,
-            type: 'success'
-          });
+          this.notificationService.success('Éxito', `${rows.length} donación(es) eliminada(s) correctamente`);
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
           }
         },
         error: (error) => {
           console.error('Error deleting donations:', error);
-          this.toastService.show({
-            title: 'Error',
-            message: 'No se pudieron eliminar algunas donaciones',
-            type: 'error'
-          });
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron eliminar algunas donaciones';
+          alert(`Error: ${errorMessage}`);
           if (this.selectedUser) {
             this.loadDonationsByUser(this.selectedUser.id);
           }
