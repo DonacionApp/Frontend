@@ -3,6 +3,7 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -62,6 +63,16 @@ export class AuthInterceptor implements HttpInterceptor {
     const newRefreshToken: string | null = getHeader('X-New-Refresh-Token') || getHeader('X-New-Refresh');
 
     if (!newToken && !newRefreshToken) return;
+
+    const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+    if (debugFlag) {
+      try {
+        console.debug('[AuthInterceptor] captureNewToken - headers checked, newTokenPresent:', !!newToken, 'newRefreshPresent:', !!newRefreshToken);
+        if (newToken) {
+          try { console.debug('[AuthInterceptor] captureNewToken - decoded newToken payload:', this.decodeToken(newToken)); } catch (e) {}
+        }
+      } catch (e) {}
+    }
 
   const authServiceInstance = this.injector.get(AuthService);
   const currentToken = authServiceInstance.getAccessToken();
@@ -163,6 +174,11 @@ export class AuthInterceptor implements HttpInterceptor {
     const authService = this.injector.get(AuthService);
 
     const capturedToken = authService.getAccessToken();
+    const debugFlagLocal = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+    if (debugFlagLocal) {
+      try { console.debug('[AuthInterceptor] handle401Error - capturedToken present:', !!capturedToken); } catch (e) {}
+      try { console.debug('[AuthInterceptor] handle401Error - stored refreshToken present:', !!localStorage.getItem('refreshToken')); } catch (e) {}
+    }
     if (capturedToken) {
       this.refreshTokenSubject.next(capturedToken);
       return next.handle(this.addTokenHeader(request, capturedToken));

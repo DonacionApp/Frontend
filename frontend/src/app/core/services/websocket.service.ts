@@ -54,6 +54,16 @@ export class WebsocketService {
 
     // Limpiar el token si viene con "Bearer "
     const cleanToken = token.replace('Bearer ', '').trim();
+    const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+    if (debugFlag) {
+      try {
+        console.debug('[WebsocketService] connect - token present:', !!cleanToken);
+        try {
+          const p = cleanToken ? JSON.parse(atob(cleanToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))) : null;
+          console.debug('[WebsocketService] connect - token payload sub:', p?.sub);
+        } catch (e) {}
+      } catch (e) {}
+    }
     
   // Connecting WebSocket to /notifications namespace
     // El backend usa el namespace /notifications según notify.gateway.ts
@@ -89,6 +99,16 @@ export class WebsocketService {
     }
 
     const cleanToken = token.replace('Bearer ', '').trim();
+    const debugFlagMsg = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+    if (debugFlagMsg) {
+      try {
+        console.debug('[WebsocketService] connectMessages - token present:', !!cleanToken);
+        try {
+          const p = cleanToken ? JSON.parse(atob(cleanToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))) : null;
+          console.debug('[WebsocketService] connectMessages - token payload sub:', p?.sub);
+        } catch (e) {}
+      } catch (e) {}
+    }
     this.msgSocket = io(`${environment.socketUrl}`, {
       transports: ['websocket', 'polling'],
       auth: { token: cleanToken },
@@ -280,6 +300,17 @@ export class WebsocketService {
    * Reconectar WebSocket con nuevo token (usado cuando el token se renueva)
    */
   reconnectWithNewToken(newToken: string): void {
+    const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+    if (debugFlag) {
+      try {
+        console.debug('[WebsocketService] reconnectWithNewToken - called, newToken present:', !!newToken);
+        try {
+          const p = newToken ? JSON.parse(atob(newToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))) : null;
+          console.debug('[WebsocketService] reconnectWithNewToken - decoded sub:', p?.sub);
+        } catch (e) {}
+      } catch (e) {}
+    }
+
     if (!newToken) {
       console.warn('reconnectWithNewToken llamado sin token');
       return;
