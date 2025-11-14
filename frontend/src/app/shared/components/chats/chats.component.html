@@ -1,0 +1,60 @@
+<div class="flex h-full chats-root">
+  <!-- Left: chats list (card) -->
+  <div class="w-80 pr-4">
+    <div class="card chat-list-card flex flex-col h-full">
+      <div class="p-3 border-b">
+        <div class="mb-2 font-semibold">Mensajes</div>
+        <input [(ngModel)]="search" (ngModelChange)="search$.next($event)" placeholder="Buscar conversaciones..." class="w-full px-2 py-1 border rounded" />
+      </div>
+
+      <div class="flex-1 overflow-auto chat-list-scroll" (scroll)="onChatsScroll($event)">
+        <div *ngIf="loadingChats" class="p-3 text-sm text-gray-600">Cargando chats...</div>
+        <div *ngFor="let chat of chats" class="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3" (click)="selectChat(chat)">
+          <img [src]="getChatAvatar(chat)" class="w-10 h-10 rounded-full" />
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-center">
+              <div class="truncate font-semibold">{{ getChatName(chat) }}</div>
+              <div class="text-xs text-gray-500">{{ getChatTime(chat) }}</div>
+            </div>
+            <div class="text-sm text-gray-500 truncate">{{ getChatLastMessage(chat) }}</div>
+          </div>
+        </div>
+        <div *ngIf="hasMoreChats && !loadingChats" class="p-3 text-center">
+          <button (click)="loadChats(false, true)" class="px-3 py-1 bg-gray-100 rounded">Cargar más</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: selected chat messages (card) -->
+  <div class="flex-1 flex flex-col chat-panel">
+    <div class="card chat-card flex-1 flex flex-col">
+      <div *ngIf="!selectedChat" class="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
+        <div>
+          <div class="text-2xl mb-2">Selecciona una conversación</div>
+          <div class="text-sm text-gray-500">Elige una conversación para empezar a chatear</div>
+        </div>
+      </div>
+
+      <div *ngIf="selectedChat" class="flex-1 flex flex-col">
+        <div class="p-3 border-b">
+          <div class="font-semibold">{{ selectedChat.chatName }}</div>
+        </div>
+
+        <app-messages-view
+          #messagesView
+          [messages]="messages"
+          [currentUserId]="currentUserId"
+          [loadingMessages]="loadingMessages"
+          [hasMoreMessages]="hasMoreMessages"
+          (loadOlder)="loadMessages(selectedChat.id, false, true)">
+        </app-messages-view>
+
+        <div class="p-3 border-t flex gap-2 items-center chat-input">
+          <input [(ngModel)]="newMessage" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded" />
+          <button (click)="sendTextMessage()" class="px-3 py-2 bg-green-600 text-white rounded">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

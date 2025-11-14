@@ -1,0 +1,145 @@
+/* messages-view.component.scss */
+
+/* * CONFIGURACIÓN CRÍTICA DEL HOST Y SCROLL: 
+ * Esto asegura que el componente (host) llena el espacio flexible de su padre 
+ * y que el div interno (.messages-scroll) maneja el desbordamiento (overflow).
+ */
+:host { 
+    display: flex; 
+    flex-direction: column; 
+    flex: 1 1 auto; /* Ocupa todo el espacio disponible */
+    min-height: 0;  /* Permite que el contenido se encoja y habilite el scroll */
+}
+
+.messages-scroll { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px;
+    
+    /* Configuración de scroll interna */
+    flex: 1 1 auto; /* Ocupa todo el espacio de su host */
+    min-height: 0; 
+    overflow-y: auto; /* Habilita el scroll vertical */
+    
+    /* Estilos de espaciado, asumiendo p-4 de Tailwind se traduce a 1rem o 16px */
+    padding: 1rem; 
+}
+
+/* ---------------------------------------------------------------------- */
+/* ESTILOS DE MENSAJES Y BURBUJAS */
+/* ---------------------------------------------------------------------- */
+
+/* Avatars */
+.avatar { 
+    width: 36px; 
+    height: 36px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+}
+
+/* Fila del Mensaje */
+.msg-row { 
+    display: flex; 
+    align-items: flex-end; 
+    gap: 8px; 
+    /* mb-3 de Tailwind, ajustando el margen inferior */
+    margin-bottom: 0.75rem; 
+}
+
+.msg-row.own { 
+    flex-direction: row-reverse; 
+}
+
+.message-col { 
+    display: flex; 
+    flex-direction: column; 
+    max-width: 70%; 
+}
+
+/* Burbuja del Mensaje */
+.msg-bubble { 
+    padding: 10px 12px; 
+    border-radius: 18px; 
+    display: inline-block; 
+    word-wrap: break-word; 
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04); 
+    overflow-wrap: anywhere; /* Safety for very long words */
+    word-break: break-word;
+}
+
+.msg-bubble.msg-other { 
+    background: #fff; 
+    color: #0f172a; 
+    border: 1px solid rgba(0,0,0,0.06); 
+    border-radius: 18px 18px 18px 4px; 
+}
+
+.msg-bubble.msg-own { 
+    background: #25d366; 
+    color: #fff; 
+    border-radius: 18px 18px 4px 18px; 
+}
+
+.msg-content { 
+    white-space: pre-wrap; 
+}
+
+/* ---------------------------------------------------------------------- */
+/* ESTILOS DE MEDIA (IMÁGENES/VIDEO) */
+/* ---------------------------------------------------------------------- */
+
+.media-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+    gap: 8px; 
+}
+
+.media-item img, .media-item video { 
+    width: 100%; 
+    height: 120px; 
+    object-fit: cover; 
+    border-radius: 10px; 
+    display: block; 
+}
+
+.single-media img, .single-media video { 
+    width: 100%; 
+    max-height: 360px; 
+    object-fit: contain; 
+    border-radius: 10px; 
+    display: block; 
+}
+
+/* ---------------------------------------------------------------------- */
+/* ESTILOS DE META DATOS (Remitente y Hora) */
+/* ---------------------------------------------------------------------- */
+
+.msg-meta { 
+    display: flex; 
+    justify-content: flex-end; 
+    gap: 8px; 
+    margin-top: 6px; 
+    align-items: center; 
+}
+
+.msg-sender { 
+    font-size: 12px; 
+    color: #374151; 
+    margin-right: auto; 
+}
+
+.msg-time { 
+    font-size: 11px; 
+    color: rgba(55,65,81,0.7); 
+}
+
+/* ---------------------------------------------------------------------- */
+/* RESPONSIVIDAD */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 768px) { 
+    /* Permite que la columna del mensaje sea más ancha en pantallas pequeñas */
+    .message-col { 
+        max-width: 85%; 
+    } 
+}

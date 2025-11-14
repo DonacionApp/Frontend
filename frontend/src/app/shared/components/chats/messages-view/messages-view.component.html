@@ -1,0 +1,87 @@
+<div #messagesScrollRef 
+  class="flex-1 overflow-auto p-4 messages-scroll" 
+  (scroll)="onScroll($event)"
+  [style.maxHeight.px]="maxHeight"
+  [style.overflowY]="'auto'">
+     
+  <div *ngIf="loadingMessages" class="text-sm text-gray-500 mb-2">Cargando mensajes...</div>
+
+  <div *ngFor="let m of messages" 
+       class="mb-3 msg-row" 
+       [ngClass]="{ 'own': isOwnMessage(m) }">
+       
+    <img *ngIf="!isOwnMessage(m)" 
+         [src]="m?.user?.profilePhoto || ('https://i.pravatar.cc/40?u=' + (m?.user?.id || 'guest'))" 
+         class="avatar" />
+
+    <div class="message-col">
+      <div class="msg-bubble" 
+           [ngClass]="{ 'msg-own': isOwnMessage(m), 'msg-other': !isOwnMessage(m) }">
+           
+        <div [ngSwitch]="m.type?.type">
+          <div *ngSwitchCase="'texto'" class="msg-content">{{ m?.message }}</div>
+
+          <div *ngSwitchCase="'imagen'">
+            <ng-container *ngIf="isMediaMultiple(m); else singleImage">
+              <div class="media-grid">
+                <div class="media-item" *ngFor="let url of getMediaList(m)">
+                  <img [src]="url" alt="imagen" (click)="openMediaViewer(url, 'image')" />
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #singleImage>
+              <div class="single-media" (click)="openMediaViewer(getMediaList(m)[0], 'image')">
+                <img [src]="getMediaList(m)[0] || ''" alt="imagen" />
+              </div>
+            </ng-template>
+          </div>
+
+          <div *ngSwitchCase="'video'">
+            <ng-container *ngIf="isMediaMultiple(m); else singleVideo">
+              <div class="media-grid">
+                <div class="media-item" *ngFor="let url of getMediaList(m)">
+                  <div class="video-wrapper" (click)="openMediaViewer(url, 'video')">
+                    <video [src]="url" controls (click)="$event.stopPropagation()"></video>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #singleVideo>
+              <div class="single-media" (click)="openMediaViewer(getMediaList(m)[0], 'video')">
+                <video [src]="getMediaList(m)[0] || ''" controls (click)="$event.stopPropagation()"></video>
+              </div>
+            </ng-template>
+          </div>
+
+          <div *ngSwitchCase="'audio'" class="msg-content">
+            <audio [src]="m.message" controls></audio>
+          </div>
+          
+          <div *ngSwitchCase="'documento'" class="msg-content">
+            <a [href]="m.message" target="_blank" class="text-blue-600">Abrir documento</a>
+          </div>
+          
+          <div *ngSwitchDefault class="msg-content">{{ m?.message }}</div>
+        </div>
+      </div>
+
+      <div class="msg-meta">
+        <span class="msg-sender" *ngIf="!isOwnMessage(m)">{{ m?.user?.username || m?.user?.email || 'Usuario' }}</span>
+        <span class="msg-time">{{ formatMessageTime(m?.createdAt) }}</span>
+      </div>
+    </div>
+
+    <img *ngIf="isOwnMessage(m)" 
+         [src]="m?.user?.profilePhoto || ('https://i.pravatar.cc/40?u=' + (m?.user?.id || 'me'))" 
+         class="avatar" />
+  </div>
+
+  <!-- Fullscreen media viewer -->
+  <div class="media-viewer-overlay" *ngIf="mediaViewerOpen" (click)="closeMediaViewer()">
+    <div class="media-viewer-content" (click)="$event.stopPropagation()">
+      <button class="media-viewer-close" (click)="closeMediaViewer()">✕</button>
+      <img *ngIf="mediaViewerType === 'image'" [src]="mediaViewerUrl" alt="preview" />
+      <video *ngIf="mediaViewerType === 'video'" [src]="mediaViewerUrl" controls autoplay></video>
+    </div>
+  </div>
+</div>

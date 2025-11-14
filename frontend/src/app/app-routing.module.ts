@@ -9,6 +9,7 @@ import { OrganizationGuard } from './core/guards/organization.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { VerifiedGuard } from './core/guards/verified.guard';
 import { NotificationsCenterComponent } from './features/notifications/notifications-center.component';
+import { ChatsComponent } from './shared/components/chats/chats.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -16,6 +17,11 @@ const routes: Routes = [
   {
     path: 'post', 
     loadChildren:()=>import('./features/post/post.module').then(m=>m.PostModule)
+  },
+  {
+    path:'chat',
+    component:ChatsComponent,
+    canActivate:[AuthGuard]
   },
   {
     path: 'profile/:id',

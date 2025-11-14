@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { SpinnerComponent } from './components/spinner/spinner.component';
 import { HasRoleDirective } from './directives/has-role.directive';
 import { AccessDeniedComponent } from './components/access-denied/access-denied.component';
+import { ChatsComponent } from './components/chats/chats.component';
 
 /**
  * SharedModule contiene componentes, directivas y pipes reutilizables
@@ -17,13 +18,15 @@ import { AccessDeniedComponent } from './components/access-denied/access-denied.
     CommonModule,
     SpinnerComponent,
     HasRoleDirective,
-    AccessDeniedComponent
+    AccessDeniedComponent,
+    ChatsComponent
     // Aquí se pueden importar otros módulos compartidos como Material
   ],
   exports: [
     SpinnerComponent,
     HasRoleDirective,
-    AccessDeniedComponent
+    AccessDeniedComponent,
+    ChatsComponent
     // Exportar todo lo que necesiten usar otros módulos
   ]
 })
