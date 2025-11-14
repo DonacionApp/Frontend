@@ -1,14 +1,9 @@
-/* messages-view.component.scss */
 
-/* * CONFIGURACIÓN CRÍTICA DEL HOST Y SCROLL: 
- * Esto asegura que el componente (host) llena el espacio flexible de su padre 
- * y que el div interno (.messages-scroll) maneja el desbordamiento (overflow).
- */
 :host { 
     display: flex; 
     flex-direction: column; 
-    flex: 1 1 auto; /* Ocupa todo el espacio disponible */
-    min-height: 0;  /* Permite que el contenido se encoja y habilite el scroll */
+    flex: 1 1 auto;
+    min-height: 0; 
 }
 
 .messages-scroll { 
@@ -16,20 +11,14 @@
     flex-direction: column; 
     gap: 8px;
     
-    /* Configuración de scroll interna */
-    flex: 1 1 auto; /* Ocupa todo el espacio de su host */
+   
+    flex: 1 1 auto; 
     min-height: 0; 
-    overflow-y: auto; /* Habilita el scroll vertical */
+    overflow-y: auto; 
     
-    /* Estilos de espaciado, asumiendo p-4 de Tailwind se traduce a 1rem o 16px */
-    padding: 1rem; 
+    
 }
 
-/* ---------------------------------------------------------------------- */
-/* ESTILOS DE MENSAJES Y BURBUJAS */
-/* ---------------------------------------------------------------------- */
-
-/* Avatars */
 .avatar { 
     width: 36px; 
     height: 36px; 
@@ -37,12 +26,10 @@
     object-fit: cover; 
 }
 
-/* Fila del Mensaje */
 .msg-row { 
     display: flex; 
     align-items: flex-end; 
     gap: 8px; 
-    /* mb-3 de Tailwind, ajustando el margen inferior */
     margin-bottom: 0.75rem; 
 }
 
@@ -56,14 +43,14 @@
     max-width: 70%; 
 }
 
-/* Burbuja del Mensaje */
+
 .msg-bubble { 
     padding: 10px 12px; 
     border-radius: 18px; 
     display: inline-block; 
     word-wrap: break-word; 
     box-shadow: 0 1px 0 rgba(0,0,0,0.04); 
-    overflow-wrap: anywhere; /* Safety for very long words */
+    overflow-wrap: anywhere; 
     word-break: break-word;
 }
 
@@ -84,9 +71,6 @@
     white-space: pre-wrap; 
 }
 
-/* ---------------------------------------------------------------------- */
-/* ESTILOS DE MEDIA (IMÁGENES/VIDEO) */
-/* ---------------------------------------------------------------------- */
 
 .media-grid { 
     display: grid; 
@@ -110,10 +94,6 @@
     display: block; 
 }
 
-/* ---------------------------------------------------------------------- */
-/* ESTILOS DE META DATOS (Remitente y Hora) */
-/* ---------------------------------------------------------------------- */
-
 .msg-meta { 
     display: flex; 
     justify-content: flex-end; 
@@ -133,13 +113,25 @@
     color: rgba(55,65,81,0.7); 
 }
 
-/* ---------------------------------------------------------------------- */
-/* RESPONSIVIDAD */
-/* ---------------------------------------------------------------------- */
-
 @media (max-width: 768px) { 
-    /* Permite que la columna del mensaje sea más ancha en pantallas pequeñas */
     .message-col { 
         max-width: 85%; 
     } 
+}
+
+/* Small tweak: participants under the chat name */
+.chat-participants {
+    display: block;
+    margin-top: 2px;
+    color: #9CA3AF;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-title { 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap; 
 }

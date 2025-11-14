@@ -1,6 +1,6 @@
 <div class="flex h-full chats-root">
   <!-- Left: chats list (card) -->
-  <div class="w-80 pr-4">
+  <div class="w-96 pr-4">
     <div class="card chat-list-card flex flex-col h-full">
       <div class="p-3 border-b">
         <div class="mb-2 font-semibold">Mensajes</div>
@@ -12,9 +12,18 @@
         <div *ngFor="let chat of chats" class="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3" (click)="selectChat(chat)">
           <img [src]="getChatAvatar(chat)" class="w-10 h-10 rounded-full" />
           <div class="flex-1 min-w-0">
-            <div class="flex justify-between items-center">
-              <div class="truncate font-semibold">{{ getChatName(chat) }}</div>
-              <div class="text-xs text-gray-500">{{ getChatTime(chat) }}</div>
+            <div class="flex justify-between items-start">
+              <div class="flex-1 min-w-0 pr-2">
+                <div class="truncate font-semibold chat-title">
+                  <span class="truncate">{{ getChatName(chat) }}</span>
+                </div>
+                <div *ngIf="chat.participants || chat.participants === 0" class="chat-participants text-xs text-gray-400">{{ chat.participants }} {{ chat.participants === 1 ? 'participante' : 'participantes' }}</div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="text-xs text-gray-500">{{ getChatTime(chat) }}</div>
+                <div *ngIf="chat.unread && chat.unread > 0" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ chat.unread }}</div>
+              </div>
             </div>
             <div class="text-sm text-gray-500 truncate">{{ getChatLastMessage(chat) }}</div>
           </div>
@@ -51,7 +60,7 @@
         </app-messages-view>
 
         <div class="p-3 border-t flex gap-2 items-center chat-input">
-          <input [(ngModel)]="newMessage" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded" />
+          <input [(ngModel)]="newMessage" (keydown.enter)="$event.preventDefault(); sendTextMessage()" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded" />
           <button (click)="sendTextMessage()" class="px-3 py-2 bg-green-600 text-white rounded">Enviar</button>
         </div>
       </div>

@@ -45,6 +45,12 @@ export interface IChat {
   userChat?: IChatUser[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  // UI helper fields (optional): may be provided by client mapping
+  lastMessage?: string | null;
+  avatar?: string | null;
+  unread?: number | null;
+  participants?: number | null;
+  time?: string | null;
 }
 
 export interface IChatStatus {

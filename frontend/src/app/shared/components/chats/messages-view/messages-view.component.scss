@@ -1,10 +1,7 @@
 .messages-scroll { display:flex; flex-direction:column; gap:8px; box-sizing: border-box; }
 
-/* Make the component host fill available space and allow internal scrolling to work
-	inside flex containers (min-height:0 is required to make overflow work in flex). */
 :host { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
-/* Ensure the inner scroll area takes remaining space and actually scrolls */
 .messages-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; }
 .msg-row { display:flex; align-items:flex-end; gap:8px; }
@@ -23,7 +20,6 @@
 
 @media (max-width:768px){ .message-col { max-width:85%; } }
 
-/* Fullscreen media viewer */
 .media-viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index: 1200; }
 .media-viewer-content { position: relative; max-width: 95vw; max-height: 95vh; display:flex; align-items:center; justify-content:center; }
 .media-viewer-content img, .media-viewer-content video { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: 0 6px 30px rgba(0,0,0,0.6); }

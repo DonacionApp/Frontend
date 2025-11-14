@@ -45,6 +45,14 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   constructor(private messageService: MessageService, private authService: AuthService) {}
 
+  private _boundGlobalKeydown = (ev: KeyboardEvent) => {
+    try {
+      if ((ev.key === 'Escape' || ev.key === 'Esc') && this.selectedChat) {
+        this.closeSelectedChat();
+      }
+    } catch (e) {}
+  };
+
   ngOnInit(): void {
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(u => {
       this.currentUserId = u?.id ?? null;
@@ -61,6 +69,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       });
 
     this.loadChats(true);
+    try { window.addEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
   }
 
   isOwnMessage(m: IMessage): boolean {
@@ -84,6 +93,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       next: (res) => {
         const items = res?.items ?? res?.data?.items ?? res?.data ?? res;
         const arrayItems = Array.isArray(items) ? items : [];
+        console.log('Loaded chats:', arrayItems);
 
         const mapped = arrayItems.map((it: any) => {
           const id = it?.chat?.id ?? it?.id ?? 0;
@@ -321,7 +331,19 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   isVideoType(m: any): boolean { return (m?.type?.type || '').toLowerCase() === 'video'; }
 
-  ngOnDestroy(): void { this._cleanupSubscriptions(); this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy(): void {
+    try { window.removeEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
+    this._cleanupSubscriptions();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private closeSelectedChat(): void {
+    this.selectedChat = null;
+    this.messages = [];
+    this.messagesCursor = null;
+    this.hasMoreMessages = true;
+  }
 
   private _cleanupSubscriptions(): void {
     try { this._currentMessagesSub?.unsubscribe(); } catch (e) {}
