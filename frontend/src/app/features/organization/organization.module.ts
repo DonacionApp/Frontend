@@ -26,12 +26,11 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [
-    // Los componentes standalone no se declaran aquí
   ],
   imports: [
     CommonModule,
     RouterModule.forChild(routes),
-    OrganizationRegisterComponent, // Importar el componente standalone
+    OrganizationRegisterComponent, 
     OrganizationDashboardComponent,
     OrganizationProfileComponent,
     CreateDonationComponent,
@@ -42,7 +41,6 @@ const routes: Routes = [
     OrganizationListComponent
   ],
   providers: [
-    // Aquí irán los servicios específicos de la organización
   ]
 })
 export class OrganizationModule { }

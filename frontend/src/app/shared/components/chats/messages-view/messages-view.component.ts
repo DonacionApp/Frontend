@@ -20,7 +20,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
 
   @ViewChild('messagesScrollRef') private messagesScrollRef?: ElementRef<HTMLElement>;
 
-  // fullscreen media viewer state
   public mediaViewerOpen = false;
   public mediaViewerUrl: string | null = null;
   public mediaViewerType: 'image' | 'video' | 'audio' | null = null;
@@ -30,11 +29,10 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   };
 
   private _mediaListeners: Array<{ el: Element; type: string; handler: EventListenerOrEventListenerObject }> = [];
-  // used to preserve scroll position when loading older messages (prepend)
+
   private _pendingPrepend: { scrollTop: number; scrollHeight: number } | null = null;
 
   ngAfterViewInit(): void {
-    // attempt an initial binding if messages already present
     setTimeout(() => {
       try { this.bindMediaLoadHandlers(); } catch (e) {}
       try { this.scrollToBottom(); } catch (e) {}
@@ -43,14 +41,10 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['messages']) {
-      // when messages change, bind handlers and adjust scroll.
-      // If we previously requested older messages (prepend), restore the user's scroll
-      // position so content doesn't jump. Otherwise scroll to bottom for new messages.
       setTimeout(() => {
         try { this.bindMediaLoadHandlers(); } catch (e) {}
         const el = this.messagesScrollRef?.nativeElement;
         if (this._pendingPrepend && el) {
-          // compute delta and restore scrollTop so the viewport remains on the same messages
           const pending = this._pendingPrepend;
           const newScrollHeight = el.scrollHeight;
           const delta = newScrollHeight - pending.scrollHeight;
@@ -82,10 +76,8 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   onScroll(e: any): void {
     const el = e.target as HTMLElement;
     if (!el) return;
-    // scroll event handler
     if (el.scrollTop < 120) {
       if (this.hasMoreMessages) {
-        // remember current scroll metrics so we can restore after prepend
         this._pendingPrepend = { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight };
         this.loadOlder.emit();
       }
@@ -96,7 +88,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     const el = this.messagesScrollRef?.nativeElement;
     if (!el) return;
     try {
-      // perform scroll towards the last message
       const last = el.querySelector('.msg-row:last-child') as HTMLElement | null;
       const doScroll = () => {
         try {
@@ -107,18 +98,14 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
           }
         } catch (e) {}
       };
-      // try via RAF then a short timeout as a fallback for media/layout changes
       requestAnimationFrame(() => {
         doScroll();
         setTimeout(() => doScroll(), 60);
       });
-      // done
     } catch (e) {
-      // ignore
     }
   }
 
-  // open the fullscreen viewer for media
   public openMediaViewer(url: string | null | undefined, type: 'image' | 'video' | 'audio' | null = 'image'){
     if (!url) return;
     this.mediaViewerUrl = String(url);
@@ -134,7 +121,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     try { window.removeEventListener('keydown', this._boundEscHandler); } catch (e) {}
   }
 
-  // Helpers to normalize media lists similar to the parent component
   getMediaList(m: any): string[] {
     if (!m) return [];
     if (Array.isArray(m.files) && m.files.length) {
@@ -154,7 +140,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     return list.length > 1;
   }
 
-  // media handlers
   bindMediaLoadHandlers(): void {
     const container = this.messagesScrollRef?.nativeElement;
     if (!container) return;
@@ -170,14 +155,13 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
         if (img.complete && img.naturalHeight !== 0) return;
         const h = () => {
           setTimeout(() => {
-            // if we requested a prepend, restore relative position instead of scrolling to bottom
             try {
               const el2 = this.messagesScrollRef?.nativeElement;
               if (this._pendingPrepend && el2) {
                 const pending = this._pendingPrepend;
                 const delta2 = el2.scrollHeight - pending.scrollHeight;
                 try { el2.scrollTop = Math.max(0, Math.round(pending.scrollTop + delta2)); } catch(e) {}
-                // once media adjusted, clear pending so we don't repeatedly restore
+
                 this._pendingPrepend = null;
               } else {
                 this.scrollToBottom();
@@ -263,7 +247,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
         add(video, 'error', eh);
       });
     } catch (err) {
-      // ignore binding errors
     }
   }
 
@@ -277,11 +260,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     }
   }
 
-  // Format message createdAt into WhatsApp-like Spanish labels:
-  // - "Hoy a las HH:mm"
-  // - "Ayer a las HH:mm"
-  // - "14 nov a las HH:mm" (same year)
-  // - "14 nov 2024 a las HH:mm" (different year)
   formatMessageTime(dateInput: string | Date | undefined | null): string {
     if (!dateInput) return '';
     const d = new Date(dateInput as any);
@@ -298,7 +276,6 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     if (isSameDay) return `Hoy a las ${timeStr}`;
     if (isYesterday) return `Ayer a las ${timeStr}`;
 
-    // For other dates, show day + short month, and include year if different from current
     const sameYear = d.getFullYear() === now.getFullYear();
     const dayMonth = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(d).replace('.', '');
     if (sameYear) {

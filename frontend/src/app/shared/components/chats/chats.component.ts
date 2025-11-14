@@ -6,6 +6,7 @@ import { Subject, Subscription } from 'rxjs';
 import { MessageService, IMessage, IChat } from '../../../core/services/message.service';
 import { MessagesViewComponent } from './messages-view/messages-view.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-chats',
@@ -43,7 +44,14 @@ export class ChatsComponent implements OnInit, OnDestroy {
   currentUserId: string | number | null = null;
   currentUser: any | null = null;
 
-  constructor(private messageService: MessageService, private authService: AuthService) {}
+  private desiredChatId: string | null = null;
+
+  constructor(
+    private messageService: MessageService,
+    private authService: AuthService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   private _boundGlobalKeydown = (ev: KeyboardEvent) => {
     try {
@@ -67,6 +75,17 @@ export class ChatsComponent implements OnInit, OnDestroy {
         this.hasMoreChats = true;
         this.loadChats(true);
       });
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(map => {
+      const q = map.get('chat');
+      if (q) {
+        if (!this.selectedChat || String(this.selectedChat.id) !== String(q)) {
+          this.desiredChatId = String(q);
+          this.chatCursor = null;
+          this.hasMoreChats = true;
+          this.loadChats(true);
+        }
+      }
+    });
 
     this.loadChats(true);
     try { window.addEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
@@ -81,6 +100,8 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   loadChats(initial = true, append = false): void {
     if (this.loadingChats) return;
+    if (!initial && !this.hasMoreChats) return;
+
     this.loadingChats = true;
     const limit = 20;
     const params: any = { limit, orderBy: 'chatName', order: 'ASC' };
@@ -93,40 +114,79 @@ export class ChatsComponent implements OnInit, OnDestroy {
       next: (res) => {
         const items = res?.items ?? res?.data?.items ?? res?.data ?? res;
         const arrayItems = Array.isArray(items) ? items : [];
-        console.log('Loaded chats:', arrayItems);
 
         const mapped = arrayItems.map((it: any) => {
           const id = it?.chat?.id ?? it?.id ?? 0;
           const name = it?.chat?.chatName ?? `Chat #${id}`;
           const lastMessage = it?.lastMessage?.message ?? it?.lastMessageText ?? '';
-          const time = it?.lastMessageAt ?? it?.updatedAt ?? '';
+          const time = it?.lastMessageAt ?? it?.updatedAt ?? it?.createdAt ?? '';
           const avatar = it?.chat?.userChat?.[0]?.user?.profilePhoto ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
           const unread = Number(it?.unreadCount ?? it?.unread ?? 0) || 0;
           const participants = Number(it?.participantsCount ?? it?.participants ?? 0) || 0;
           return { id, chatName: name, lastMessage, avatar, unread, participants, time } as IChat;
         });
 
-        if (append) this.chats = [...this.chats, ...mapped]; else this.chats = mapped;
+        const existingIds = new Set(this.chats.map(c => String((c as any)?.id)));
+        const toAdd = mapped.filter(m => m && !existingIds.has(String((m as any).id)));
 
-        const resCursor = res?.cursor ?? res?.nextCursor ?? res?.data?.cursor ?? null;
-        this.chatCursor = resCursor;
-        if (!this.chatCursor && arrayItems.length > 0) {
-          const last = arrayItems[arrayItems.length - 1];
-          if (last?.lastMessageAt && last?.id) this.chatCursor = `${last.lastMessageAt}_${last.id}`;
+        if (append) {
+          if (toAdd.length > 0) this.chats = [...this.chats, ...toAdd];
+        } else {
+          this.chats = mapped;
         }
 
-        if (arrayItems.length < limit) this.hasMoreChats = false; else this.hasMoreChats = !!this.chatCursor || true;
-        if (resCursor && prevCursor && resCursor === prevCursor) this.hasMoreChats = false;
+        if (this.desiredChatId) {
+          const found = this.chats.find(c => String((c as any)?.id) === String(this.desiredChatId));
+          if (found) {
+            const sid = this.desiredChatId;
+            this.desiredChatId = null;
+            try { this.selectChat(found); } catch (e) { this.desiredChatId = sid; }
+          }
+        }
+
+        let resCursor = res?.cursor ?? res?.nextCursor ?? res?.data?.cursor ?? res?.data?.nextCursor ?? null;
+        if (!resCursor && mapped.length > 0) {
+          const last = mapped[mapped.length - 1] as any;
+          if (last?.time && last?.id) resCursor = `${last.time}_${last.id}`;
+        }
+
+        this.chatCursor = resCursor;
+
+        if (arrayItems.length === 0) {
+          this.hasMoreChats = false;
+        } else if (arrayItems.length < limit) {
+          this.hasMoreChats = false;
+        } else if (append && toAdd.length === 0) {
+          // server returned items but none were new -> stop to avoid loop
+          this.hasMoreChats = false;
+        } else if (resCursor && prevCursor && resCursor === prevCursor) {
+          this.hasMoreChats = false;
+        } else {
+          this.hasMoreChats = true;
+        }
+        if (this.desiredChatId) {
+          const foundNow = this.chats.find(c => String((c as any)?.id) === String(this.desiredChatId));
+          if (foundNow) {
+            const sid2 = this.desiredChatId;
+            this.desiredChatId = null;
+            try { this.selectChat(foundNow); } catch (e) { this.desiredChatId = sid2; }
+          } else if (!this.hasMoreChats) {
+            this.desiredChatId = null;
+          }
+        }
 
         this.loadingChats = false;
       },
       error: () => { this.loadingChats = false; }
     });
+    
+    
   }
 
   onChatsScroll(e: any): void {
     const el = e.target as HTMLElement;
     if (!el) return;
+    if (!this.hasMoreChats || this.loadingChats) return;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) this.loadChats(false, true);
   }
 
@@ -135,6 +195,12 @@ export class ChatsComponent implements OnInit, OnDestroy {
     this.messages = [];
     this.messagesCursor = null;
     this.hasMoreMessages = true;
+    try {
+      const current = this.route.snapshot.queryParamMap.get('chat');
+      if (String(current) !== String((chat as any).id)) {
+        this.router.navigate([], { relativeTo: this.route, queryParams: { chat: (chat as any).id }, queryParamsHandling: 'merge', replaceUrl: true });
+      }
+    } catch (e) {}
     this.loadMessages(chat.id as number, true);
   }
 
@@ -343,6 +409,13 @@ export class ChatsComponent implements OnInit, OnDestroy {
     this.messages = [];
     this.messagesCursor = null;
     this.hasMoreMessages = true;
+    try {
+      const qp = { ...this.route.snapshot.queryParams };
+      if (qp && Object.prototype.hasOwnProperty.call(qp, 'chat')) {
+        delete qp['chat'];
+        this.router.navigate([], { relativeTo: this.route, queryParams: qp, replaceUrl: true });
+      }
+    } catch (e) {}
   }
 
   private _cleanupSubscriptions(): void {
