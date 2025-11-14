@@ -2,9 +2,11 @@ import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonComponent } from '../button/button.component';
+import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil } from 'rxjs';
+import { MessageService } from '../../../core/services/message.service';
 
 interface Chat {
   id: number;
@@ -25,9 +27,9 @@ interface QuickAction {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule, ButtonComponent],
+  imports: [CommonModule, RouterModule, ButtonComponent, FormsModule],
   templateUrl: './sidebar.component.html',
-  styleUrl: './sidebar.component.scss'
+  styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   @Output() createPost = new EventEmitter<void>();
@@ -35,54 +37,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
   
   isAuthenticated = false;
   user: User | null = null;
-
-  chats: Chat[] = [
-    {
-      id: 1,
-      name: 'María González',
-      lastMessage: '¿Todavía tienes la ropa disponible?',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      unread: 2,
-      time: '10:30',
-      online: true
-    },
-    {
-      id: 2,
-      name: 'Juan Pérez',
-      lastMessage: 'Gracias por la donación!',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-      unread: 0,
-      time: 'Ayer',
-      online: false
-    },
-    {
-      id: 3,
-      name: 'Fundación Esperanza',
-      lastMessage: 'Necesitamos ayuda urgente',
-      avatar: 'https://i.pravatar.cc/150?img=3',
-      unread: 5,
-      time: '2d',
-      online: true
-    },
-    {
-      id: 4,
-      name: 'Carlos Ruiz',
-      lastMessage: '¿Cuándo puedo recoger los artículos?',
-      avatar: 'https://i.pravatar.cc/150?img=4',
-      unread: 0,
-      time: '3d',
-      online: false
-    },
-    {
-      id: 5,
-      name: 'Ana Torres',
-      lastMessage: 'Perfecto, nos vemos mañana',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      unread: 1,
-      time: '1sem',
-      online: true
-    }
-  ];
+  // chat list populated from backend
+  chats: Chat[] = [];
+  chatCursor: string | null = null;
+  loadingChats = false;
+  hasMoreChats = true;
+  chatsSearch = '';
 
   quickActions: QuickAction[] = [
     { icon: 'document', label: 'Publicaciones', color: 'text-blue-500' },
@@ -98,6 +58,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private alertService: AlertService
+    ,
+    private messageService: MessageService
   ) {}
 
   ngOnInit(): void {
@@ -107,6 +69,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.user = user;
         this.isAuthenticated = !!user;
+        if (this.isAuthenticated) {
+          this.loadChats(true);
+        } else {
+          // clear chats when logged out
+          this.chats = [];
+          this.chatCursor = null;
+          this.hasMoreChats = true;
+        }
       });
   }
 
@@ -195,8 +165,71 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   openChat(chatId: number): void {
-    // Funcionalidad no implementada aún
-    // Chat functionality pending
+    this.router.navigate(['/chat', chatId]);
+  }
+
+  loadChats(initial = true, append = false): void {
+    if (!this.user) return;
+    if (this.loadingChats) return;
+
+    this.loadingChats = true;
+    const params: any = { limit: 20, orderBy: 'lastMessage', order: 'DESC' };
+    if (this.chatsSearch && this.chatsSearch.trim()) params.searchParam = this.chatsSearch.trim();
+    if (!initial && this.chatCursor) params.cursor = this.chatCursor;
+
+    this.messageService.getUserMyChats(params).subscribe({
+      next: (res) => {
+        const items = res?.items ?? res?.data?.items ?? res?.data ?? res;
+        const arrayItems = Array.isArray(items) ? items : [];
+
+        const mapped = arrayItems.map((it: any) => {
+          const id = it?.chat?.id ?? it?.id ?? 0;
+          const name = it?.chat?.chatName ?? (it?.chat?.chatName ?? `Chat #${id}`) ?? `Chat #${id}`;
+          const lastMessage = it?.lastMessage?.message ?? it?.lastMessageText ?? '';
+          const time = it?.lastMessageAt ?? it?.updatedAt ?? '';
+          const avatar = it?.chat?.userChat?.[0]?.user?.profilePhoto ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
+          const unread = it?.unreadCount ?? it?.unread ?? 0;
+          const online = false;
+          return { id, name, lastMessage, avatar, unread, time, online } as Chat;
+        });
+
+        if (append) this.chats = [...this.chats, ...mapped]; else this.chats = mapped;
+
+        // detect next cursor
+        this.chatCursor = res?.cursor ?? res?.nextCursor ?? res?.data?.cursor ?? null;
+        if (!this.chatCursor && arrayItems.length > 0) {
+          const last = arrayItems[arrayItems.length - 1];
+          if (last?.lastMessageAt && last?.id) this.chatCursor = `${last.lastMessageAt}_${last.id}`;
+        }
+
+        this.hasMoreChats = !!this.chatCursor && arrayItems.length > 0;
+        this.loadingChats = false;
+      },
+      error: (err) => {
+        console.error('Error cargando chats:', err);
+        this.loadingChats = false;
+      }
+    });
+  }
+
+  loadMoreChats(): void {
+    if (!this.hasMoreChats || this.loadingChats) return;
+    this.loadChats(false, true);
+  }
+
+  onSearchChats(): void {
+    this.chatCursor = null;
+    this.hasMoreChats = true;
+    this.loadChats(true, false);
+  }
+
+  onChatsScroll(evt: any): void {
+    const el = evt.target as HTMLElement;
+    if (!el) return;
+    const threshold = 120; // px from bottom
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < threshold) {
+      this.loadMoreChats();
+    }
   }
 
   getIconPath(icon: string): string {

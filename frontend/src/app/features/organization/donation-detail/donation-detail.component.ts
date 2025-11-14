@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DonationService, Donation, Comment, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
@@ -24,6 +25,8 @@ export class DonationDetailComponent implements OnInit {
   canEditStatus = false;
   isBeneficiary = false;
   isDonator = false;
+  // Note: chat list is shown in the global Sidebar component; donation-detail
+  // only keeps the Create/Open chat actions.
 
   newReviewText = '';
   submittingReview = false;
@@ -41,6 +44,8 @@ export class DonationDetailComponent implements OnInit {
     private location: Location,
     private http: HttpClient,
     private alertService: AlertService
+    ,
+    private messageService: MessageService
   ) { }
 
   ngOnInit(): void {
@@ -171,6 +176,7 @@ export class DonationDetailComponent implements OnInit {
       }
     });
   }
+
 
   private checkPermissions(): void {
     if (!this.donation) return;
@@ -321,6 +327,59 @@ export class DonationDetailComponent implements OnInit {
   onBack(): void {
     this.location.back();
   }
+
+  // Crear un chat desde la donación (usa endpoint POST /donation/chat/create-from-donation/:donationId)
+  onCreateChat(): void {
+    if (!this.donation) return;
+    if (!this.authService.currentUserValue) {
+      this.alertService.showAlert('Debes iniciar sesión', 'info');
+      return;
+    }
+    // Only participants (donator or beneficiary) can create a chat
+    if (!this.isBeneficiary && !this.isDonator) {
+      this.alertService.error('No permitido', 'Solo los participantes de esta donación pueden crear o abrir el chat.');
+      return;
+    }
+
+    this.loading = true;
+    this.messageService.createChatFromDonation(this.donation.id).subscribe({
+      next: async (res) => {
+        // Intentamos refrescar la donación para obtener el campo `chat`
+        try {
+          const fresh = await new Promise<Donation>((resolve, reject) => {
+            this.donationService.getDonationById(this.donation!.id).subscribe({ next: d => resolve(d), error: e => reject(e) });
+          });
+          this.donation = fresh;
+          this.checkPermissions();
+          this.alertService.success('Chat creado', 'El chat se creó correctamente.');
+        } catch (err) {
+          console.warn('No se pudo refrescar la donación después de crear chat:', err);
+          this.alertService.success('Chat creado', 'El chat se creó correctamente.');
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('Error al crear chat desde donación:', err);
+        const msg = err?.error?.message || 'No se pudo crear el chat. Intenta nuevamente.';
+        this.alertService.error('Error', msg);
+      }
+    });
+  }
+
+  // Navegar al chat si existe
+  onOpenChat(): void {
+    if (!this.donation || !this.donation.chat || !this.donation.chat.id) return;
+    // Only participants can open the chat
+    if (!this.authService.currentUserValue || (!this.isBeneficiary && !this.isDonator)) {
+      this.alertService.error('No permitido', 'No tienes permiso para ver este chat.');
+      return;
+    }
+    // Navegar a una ruta de chat estándar. Ajusta si tu app usa otra ruta.
+    this.router.navigate(['/chat', this.donation.chat.id]);
+  }
+
+  // (removed) chat-list related open handler — sidebar component handles chat list interactions now
 
   // Formatear fecha
   formatDate(dateString: string): string {

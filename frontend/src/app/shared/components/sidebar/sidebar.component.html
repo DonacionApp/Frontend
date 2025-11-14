@@ -44,19 +44,25 @@
   </div>
 
   <!-- Chats Section -->
-  <div class="overflow-y-auto" style="max-height: calc(100vh - 470px); min-height: 200px;">
+  <div class="overflow-y-auto" style="max-height: calc(100vh - 470px); min-height: 200px;" (scroll)="onChatsScroll($event)">
     <div class="p-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold text-gray-500 uppercase">Mensajes</h3>
-        <button class="p-1 hover:bg-gray-100 rounded">
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <input [(ngModel)]="chatsSearch" (keyup.enter)="onSearchChats()" placeholder="Buscar..." class="px-2 py-1 border rounded-md text-sm" />
+          <button class="p-1 hover:bg-gray-100 rounded">
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Chat List -->
       <div class="space-y-1">
+        <div *ngIf="loadingChats" class="text-sm text-gray-600 mb-2">Cargando chats...</div>
+        <div *ngIf="!loadingChats && chats.length === 0" class="text-sm text-gray-600 mb-2">No hay chats</div>
+
         <button 
           *ngFor="let chat of chats"
           (click)="openChat(chat.id)"
@@ -92,6 +98,10 @@
             </div>
           </div>
         </button>
+
+        <div *ngIf="hasMoreChats && !loadingChats" class="text-center mt-2">
+          <button (click)="loadMoreChats()" class="px-3 py-1 bg-gray-100 rounded-md text-sm">Cargar más</button>
+        </div>
       </div>
     </div>
   </div>
