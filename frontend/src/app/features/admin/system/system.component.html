@@ -1,0 +1,216 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Configuración del Sistema</h1>
+      <p class="text-sm text-gray-600 mt-1">Gestiona las políticas, términos y condiciones, e información "Acerca de Nosotros"</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="border-b border-gray-200">
+    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+      <button
+        (click)="switchTab('policies')"
+        [class.border-blue-500]="activeTab === 'policies'"
+        [class.text-blue-600]="activeTab === 'policies'"
+        [class.border-transparent]="activeTab !== 'policies'"
+        [class.text-gray-500]="activeTab !== 'policies'"
+        [class.hover:text-gray-700]="activeTab !== 'policies'"
+        [class.hover:border-gray-300]="activeTab !== 'policies'"
+        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+      >
+        Políticas
+      </button>
+      <button
+        (click)="switchTab('terms')"
+        [class.border-blue-500]="activeTab === 'terms'"
+        [class.text-blue-600]="activeTab === 'terms'"
+        [class.border-transparent]="activeTab !== 'terms'"
+        [class.text-gray-500]="activeTab !== 'terms'"
+        [class.hover:text-gray-700]="activeTab !== 'terms'"
+        [class.hover:border-gray-300]="activeTab !== 'terms'"
+        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+      >
+        Términos y Condiciones
+      </button>
+      <button
+        (click)="switchTab('about-us')"
+        [class.border-blue-500]="activeTab === 'about-us'"
+        [class.text-blue-600]="activeTab === 'about-us'"
+        [class.border-transparent]="activeTab !== 'about-us'"
+        [class.text-gray-500]="activeTab !== 'about-us'"
+        [class.hover:text-gray-700]="activeTab !== 'about-us'"
+        [class.hover:border-gray-300]="activeTab !== 'about-us'"
+        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+      >
+        Acerca de Nosotros
+      </button>
+    </nav>
+  </div>
+
+  <!-- Tab Content: Políticas -->
+  <div *ngIf="activeTab === 'policies'" class="bg-white rounded-lg shadow-md p-6">
+    <div class="mb-4">
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Políticas del Sistema</h2>
+      <p class="text-sm text-gray-600">Edita el contenido de las políticas del sistema</p>
+    </div>
+
+    <form [formGroup]="policiesForm" (ngSubmit)="savePolicies()">
+      <div class="space-y-4">
+        <div>
+          <label for="policies-content" class="block text-sm font-medium text-gray-700 mb-2">
+            Contenido <span class="text-red-500">*</span>
+          </label>
+          <div *ngIf="loadingPolicies" class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Cargando políticas...</span>
+          </div>
+          <textarea
+            *ngIf="!loadingPolicies"
+            id="policies-content"
+            formControlName="content"
+            rows="15"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            [class.border-red-500]="policiesForm.get('content')?.invalid && policiesForm.get('content')?.touched"
+            placeholder="Ingresa el contenido de las políticas..."
+          ></textarea>
+          <p *ngIf="policiesForm.get('content')?.invalid && policiesForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
+            El contenido es requerido
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="loadPolicies()"
+            [disabled]="loadingPolicies"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Recargar
+          </button>
+          <button
+            type="submit"
+            [disabled]="policiesForm.invalid || savingPolicies"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span *ngIf="!savingPolicies">Guardar Cambios</span>
+            <span *ngIf="savingPolicies">Guardando...</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tab Content: Términos y Condiciones -->
+  <div *ngIf="activeTab === 'terms'" class="bg-white rounded-lg shadow-md p-6">
+    <div class="mb-4">
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Términos y Condiciones</h2>
+      <p class="text-sm text-gray-600">Edita el contenido de los términos y condiciones</p>
+    </div>
+
+    <form [formGroup]="termsForm" (ngSubmit)="saveTerms()">
+      <div class="space-y-4">
+        <div>
+          <label for="terms-content" class="block text-sm font-medium text-gray-700 mb-2">
+            Contenido <span class="text-red-500">*</span>
+          </label>
+          <div *ngIf="loadingTerms" class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Cargando términos...</span>
+          </div>
+          <textarea
+            *ngIf="!loadingTerms"
+            id="terms-content"
+            formControlName="content"
+            rows="15"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            [class.border-red-500]="termsForm.get('content')?.invalid && termsForm.get('content')?.touched"
+            placeholder="Ingresa el contenido de los términos y condiciones..."
+          ></textarea>
+          <p *ngIf="termsForm.get('content')?.invalid && termsForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
+            El contenido es requerido
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="loadTerms()"
+            [disabled]="loadingTerms"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Recargar
+          </button>
+          <button
+            type="submit"
+            [disabled]="termsForm.invalid || savingTerms"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span *ngIf="!savingTerms">Guardar Cambios</span>
+            <span *ngIf="savingTerms">Guardando...</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tab Content: Acerca de Nosotros -->
+  <div *ngIf="activeTab === 'about-us'" class="bg-white rounded-lg shadow-md p-6">
+    <div class="mb-4">
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Acerca de Nosotros</h2>
+      <p class="text-sm text-gray-600">Edita el contenido de la sección "Acerca de Nosotros"</p>
+    </div>
+
+    <form [formGroup]="aboutUsForm" (ngSubmit)="saveAboutUs()">
+      <div class="space-y-4">
+        <div>
+          <label for="about-us-content" class="block text-sm font-medium text-gray-700 mb-2">
+            Contenido <span class="text-red-500">*</span>
+          </label>
+          <div *ngIf="loadingAboutUs" class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Cargando información...</span>
+          </div>
+          <textarea
+            *ngIf="!loadingAboutUs"
+            id="about-us-content"
+            formControlName="content"
+            rows="15"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            [class.border-red-500]="aboutUsForm.get('content')?.invalid && aboutUsForm.get('content')?.touched"
+            placeholder="Ingresa el contenido de la sección 'Acerca de Nosotros'..."
+          ></textarea>
+          <p *ngIf="aboutUsForm.get('content')?.invalid && aboutUsForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
+            El contenido es requerido
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="loadAboutUs()"
+            [disabled]="loadingAboutUs"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Recargar
+          </button>
+          <button
+            type="submit"
+            [disabled]="aboutUsForm.invalid || savingAboutUs"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span *ngIf="!savingAboutUs">Guardar Cambios</span>
+            <span *ngIf="savingAboutUs">Guardando...</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
