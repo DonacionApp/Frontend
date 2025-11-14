@@ -72,6 +72,11 @@ const routes: Routes = [
         loadComponent: () => import('./reports/reports.component').then(m => m.ReportsComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'chats', 
+        loadComponent: () => import('./chats/chats.component').then(m => m.ChatsComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];

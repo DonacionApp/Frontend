@@ -1,0 +1,462 @@
+<div class="space-y-6">
+  <!-- Vista de Lista de Chats -->
+  <div *ngIf="currentView === 'list'">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Gestión de Chats</h1>
+        <p class="text-sm text-gray-600 mt-1">Administra los chats del sistema</p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          (click)="toggleFilters()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+          </svg>
+          {{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros
+        </button>
+        <button
+          (click)="openCreateChatModal()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Nuevo Chat
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div *ngIf="showFilters" class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Filtros de Búsqueda</h2>
+      <form [formGroup]="filterForm" (ngSubmit)="applyFilters()" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="limit" class="block text-sm font-medium text-gray-700 mb-1">
+              Límite de Resultados
+            </label>
+            <input
+              type="number"
+              id="limit"
+              formControlName="limit"
+              min="1"
+              max="100"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+              Buscar
+            </label>
+            <input
+              type="text"
+              id="search"
+              formControlName="search"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Nombre del chat..."
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="clearFilters()"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Limpiar
+          </button>
+          <button
+            type="submit"
+            [disabled]="loadingChats"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            Aplicar Filtros
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading Initial -->
+    <div *ngIf="loadingChats && chats.length === 0" class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <span class="ml-3 text-gray-600">Cargando chats...</span>
+    </div>
+
+    <!-- Lista de Chats -->
+    <div *ngIf="!loadingChats || chats.length > 0" class="space-y-4">
+      <div *ngFor="let chat of chats" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" (click)="selectChat(chat)">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ chat.chatName }}</h3>
+            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
+              <span>ID: {{ chat.id }}</span>
+              <span>Participantes: {{ chat.userChat?.length || 0 }}</span>
+              <span>Creado: {{ formatDate(chat.createdAt) }}</span>
+            </div>
+            
+            <!-- Lista de usuarios participantes -->
+            <div *ngIf="chat.userChat && chat.userChat.length > 0" class="flex flex-wrap gap-2 mt-3">
+              <div *ngFor="let userChat of chat.userChat.slice(0, 5)" class="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full">
+                <img
+                  *ngIf="userChat.user.profilePhoto"
+                  [src]="userChat.user.profilePhoto"
+                  [alt]="userChat.user.username"
+                  class="w-6 h-6 rounded-full object-cover"
+                />
+                <span *ngIf="!userChat.user.profilePhoto" class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                  {{ userChat.user.username.charAt(0).toUpperCase() }}
+                </span>
+                <span class="text-sm text-gray-700">{{ userChat.user.username }}</span>
+                <span *ngIf="userChat.admin" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Admin</span>
+                <span *ngIf="userChat.donator" class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Donante</span>
+              </div>
+              <span *ngIf="chat.userChat.length > 5" class="text-sm text-gray-500">+{{ chat.userChat.length - 5 }} más</span>
+            </div>
+          </div>
+          <button
+            (click)="selectChat(chat); $event.stopPropagation()"
+            class="ml-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+          >
+            Ver Detalles
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading More Indicator -->
+      <div *ngIf="loadingMore" class="flex justify-center py-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-2 text-gray-600">Cargando más chats...</span>
+      </div>
+
+      <!-- Botón Cargar Más -->
+      <div *ngIf="hasMore && !loadingMore" class="flex justify-center py-4">
+        <button
+          (click)="loadMore()"
+          class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+        >
+          Cargar Más
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loadingChats && chats.length === 0" class="text-center py-12 bg-white rounded-lg shadow-md">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No hay chats</h3>
+      <p class="mt-1 text-sm text-gray-500">No se encontraron chats con los filtros aplicados.</p>
+    </div>
+  </div>
+
+  <!-- Vista de Detalles del Chat -->
+  <div *ngIf="currentView === 'details' && selectedChat">
+    <!-- Header con botón de volver -->
+    <div class="flex items-center justify-between">
+      <div>
+        <button
+          (click)="goBackToList()"
+          class="mb-2 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Volver a chats
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">{{ selectedChat.chatName }}</h1>
+        <p class="text-sm text-gray-600 mt-1">ID: {{ selectedChat.id }} | Creado: {{ formatDate(selectedChat.createdAt) }}</p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          (click)="openAddUserModal()"
+          class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+        >
+          Agregar Usuario
+        </button>
+        <button
+          (click)="closeChat()"
+          [disabled]="closingChat"
+          class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
+        >
+          {{ closingChat ? 'Cerrando...' : 'Cerrar Chat' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Columna izquierda: Participantes -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Participantes ({{ selectedChat.userChat?.length || 0 }})</h2>
+          <div *ngIf="selectedChat.userChat && selectedChat.userChat.length > 0" class="space-y-3">
+            <div *ngFor="let userChat of selectedChat.userChat" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div class="flex items-center gap-3">
+                <img
+                  *ngIf="userChat.user.profilePhoto"
+                  [src]="userChat.user.profilePhoto"
+                  [alt]="userChat.user.username"
+                  class="w-10 h-10 rounded-full object-cover"
+                />
+                <div *ngIf="!userChat.user.profilePhoto" class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                  <span class="text-gray-600 font-medium">{{ userChat.user.username.charAt(0).toUpperCase() }}</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-900">{{ userChat.user.username }}</p>
+                  <p class="text-xs text-gray-500">{{ userChat.user.email }}</p>
+                  <div class="flex gap-1 mt-1">
+                    <span *ngIf="userChat.admin" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Admin</span>
+                    <span *ngIf="userChat.donator" class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Donante</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                (click)="removeUserFromChat(userChat.user.id)"
+                class="text-red-600 hover:text-red-800 text-sm"
+                title="Remover usuario"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div *ngIf="!selectedChat.userChat || selectedChat.userChat.length === 0" class="text-center py-4 text-gray-500 text-sm">
+            No hay participantes
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Mensajes -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Área de Mensajes -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Mensajes</h2>
+          
+          <!-- Loading Messages -->
+          <div *ngIf="loadingMessages" class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Cargando mensajes...</span>
+          </div>
+
+          <!-- Lista de Mensajes -->
+          <div *ngIf="!loadingMessages" class="space-y-4 max-h-96 overflow-y-auto">
+            <div *ngFor="let message of messages" class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <img
+                *ngIf="message.user.profilePhoto"
+                [src]="message.user.profilePhoto"
+                [alt]="message.user.username"
+                class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+              <div *ngIf="!message.user.profilePhoto" class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                <span class="text-xs text-gray-600">{{ message.user.username.charAt(0).toUpperCase() }}</span>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-medium text-gray-900 text-sm">{{ message.user.username }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">{{ formatDate(message.createdAt) }}</span>
+                    <button
+                      (click)="deleteMessage(message.id)"
+                      class="text-red-600 hover:text-red-800 text-xs"
+                      title="Eliminar mensaje"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-700 text-sm">{{ message.message }}</p>
+                <span class="text-xs text-gray-500">{{ message.type.type }}</span>
+              </div>
+            </div>
+            <div *ngIf="messages.length === 0" class="text-center py-8 text-gray-500 text-sm">
+              No hay mensajes en este chat
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario de Enviar Mensaje -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Enviar Mensaje</h2>
+          <form [formGroup]="sendMessageForm" (ngSubmit)="sendMessage()" class="space-y-4">
+            <div>
+              <label for="messageText" class="block text-sm font-medium text-gray-700 mb-1">
+                Mensaje
+              </label>
+              <textarea
+                id="messageText"
+                formControlName="messageText"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Escribe un mensaje..."
+              ></textarea>
+            </div>
+            <div>
+              <label for="files" class="block text-sm font-medium text-gray-700 mb-1">
+                Archivos (Opcional)
+              </label>
+              <input
+                type="file"
+                id="files"
+                multiple
+                (change)="onFileSelected($event)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div *ngIf="selectedFiles.length > 0" class="mt-2 space-y-1">
+                <div *ngFor="let file of selectedFiles; let i = index" class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span class="text-sm text-gray-700">{{ file.name }}</span>
+                  <button
+                    type="button"
+                    (click)="removeFile(i)"
+                    class="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              type="submit"
+              [disabled]="sendingMessage || (!sendMessageForm.value.messageText && selectedFiles.length === 0)"
+              class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ sendingMessage ? 'Enviando...' : 'Enviar Mensaje' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Crear Chat -->
+<div *ngIf="showCreateChatModal" class="fixed inset-0 z-50 overflow-y-auto">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeCreateChatModal()"></div>
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <form [formGroup]="createChatForm" (ngSubmit)="createChat()">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Crear Nuevo Chat</h3>
+          <div class="space-y-4">
+            <div>
+              <label for="chatName" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del Chat <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="chatName"
+                formControlName="chatName"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                [class.border-red-500]="createChatForm.get('chatName')?.invalid && createChatForm.get('chatName')?.touched"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Participantes <span class="text-red-500">*</span>
+              </label>
+              <div *ngIf="loadingUsers" class="text-sm text-gray-500">Cargando usuarios...</div>
+              <div *ngIf="!loadingUsers" class="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-2">
+                <label *ngFor="let user of availableUsers" class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                  <input
+                    type="checkbox"
+                    [value]="user.id"
+                    (change)="toggleParticipant(user.id)"
+                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">{{ user.username }} ({{ user.email }})</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button
+            type="submit"
+            [disabled]="createChatForm.invalid || creatingChat"
+            class="w-full sm:w-auto sm:ml-3 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            {{ creatingChat ? 'Creando...' : 'Crear Chat' }}
+          </button>
+          <button
+            type="button"
+            (click)="closeCreateChatModal()"
+            class="mt-3 sm:mt-0 w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Agregar Usuario -->
+<div *ngIf="showAddUserModal" class="fixed inset-0 z-50 overflow-y-auto">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeAddUserModal()"></div>
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <form [formGroup]="addUserForm" (ngSubmit)="addUserToChat()">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Agregar Usuario al Chat</h3>
+          <div class="space-y-4">
+            <div>
+              <label for="userId" class="block text-sm font-medium text-gray-700 mb-1">
+                Usuario <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="userId"
+                formControlName="userId"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                [class.border-red-500]="addUserForm.get('userId')?.invalid && addUserForm.get('userId')?.touched"
+              >
+                <option value="">Selecciona un usuario</option>
+                <option *ngFor="let user of availableUsers" [value]="user.id">
+                  {{ user.username }} ({{ user.email }})
+                </option>
+              </select>
+            </div>
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  formControlName="admin"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-gray-700">Administrador</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  formControlName="donator"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-gray-700">Donante</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button
+            type="submit"
+            [disabled]="addUserForm.invalid || addingUser"
+            class="w-full sm:w-auto sm:ml-3 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            {{ addingUser ? 'Agregando...' : 'Agregar Usuario' }}
+          </button>
+          <button
+            type="button"
+            (click)="closeAddUserModal()"
+            class="mt-3 sm:mt-0 w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
