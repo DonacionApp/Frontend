@@ -10,3 +10,4 @@ export * from './notification.service';
 export * from './post-donation-article.service';
 export * from './websocket.service';
 export * from './toast.service';
+export * from './message.service';
