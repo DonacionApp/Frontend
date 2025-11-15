@@ -28,6 +28,20 @@ export interface OrganizationProfile {
   bankAccount?: string;
   isVerified?: boolean;
   verificationDate?: string;
+  supportId?: string | number | null;
+  commentSupportId?: Array<{
+    id: number;
+    comment: string;
+    status: {
+      id: number;
+      name: string;
+    };
+    processedBy?: any;
+    processedAt?: string | null;
+    rejectReason?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
   socialMedia?: {
     facebook?: string;
     twitter?: string;
@@ -230,6 +244,19 @@ export class OrganizationProfileService {
       createdAt: response.createdAt || '',
       lastLogin: response.lastLogin || '',
       lastName: description, // Para organizaciones, lastName contiene la descripción
+      supportId: response.people?.supportId ?? null,
+      commentSupportId: Array.isArray(response.commentSupportId)
+        ? response.commentSupportId.map((c: any) => ({
+            id: c.id,
+            comment: c.comment,
+            status: c.status,
+            processedBy: c.processedBy,
+            processedAt: c.processedAt,
+            rejectReason: c.rejectReason,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt
+          }))
+        : [],
       socialMedia: {
         facebook: response.socialMedia?.facebook || '',
         twitter: response.socialMedia?.twitter || '',

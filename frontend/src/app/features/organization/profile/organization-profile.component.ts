@@ -1,3 +1,4 @@
+// ...existing code...
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -22,6 +23,20 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   
   activeTab: 'general' | 'security' | 'activity' | 'location' = 'general';
   profile: OrganizationProfile | null = null;
+
+  /**
+   * Devuelve el último comentario de rechazo si existe, o null
+   */
+  get lastRejectionComment(): string | null {
+    const comments = this.profile?.commentSupportId;
+    if (comments && comments.length > 0) {
+      const last = comments[comments.length - 1];
+      if (last?.status?.name?.toLowerCase() === 'rechazado') {
+        return last.comment || null;
+      }
+    }
+    return null;
+  }
   activityLog: OrganizationActivityLog[] = [];
   currentUser: User | null = null;
   organizationId: string = '';
@@ -582,16 +597,24 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
    */
   checkVerificationStatus(): void {
     const user = this.authService.currentUserValue;
-    // Revisar primero en el usuario del AuthService
     const userVerified = user?.isDocumentVerified || false;
-    // También revisar en el perfil de la organización
     const profileVerified = this.profile?.isVerified || false;
-    // Si cualquiera de los dos está verificado, marcar como verificado
+    const supportId = this.profile?.supportId;
+    const commentSupportId = this.profile?.commentSupportId || [];
+
     if (userVerified || profileVerified) {
       this.verificationState = 'verified';
+    } else if (supportId && commentSupportId.length > 0) {
+      // Si hay comentarios de rechazo
+      const lastComment = commentSupportId[commentSupportId.length - 1];
+      if (lastComment.status?.name?.toLowerCase() === 'rechazado' || lastComment.status?.name?.toLowerCase() === 'rejected') {
+        this.verificationState = 'error';
+      } else {
+        this.verificationState = 'pending';
+      }
+    } else if (supportId && commentSupportId.length === 0) {
+      this.verificationState = 'pending';
     } else {
-      // Si el backend indica que hay un documento subido pero aún no verificado, puedes mapearlo aquí.
-      // Por defecto dejamos 'none' (no enviado)
       this.verificationState = 'none';
     }
   }
