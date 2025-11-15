@@ -1,13 +1,23 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnChanges, SimpleChanges, Pipe, PipeTransform } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { IMessage } from '../../../../core/services/message.service';
 import { AlertService } from '../../../services/alert.service';
 import { FormsModule } from '@angular/forms';
 
+@Pipe({ name: 'safeUrl' })
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
+
 @Component({
   selector: 'app-messages-view',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SafeUrlPipe],
   templateUrl: './messages-view.component.html',
   styleUrls: ['./messages-view.component.scss']
 })
@@ -54,7 +64,13 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     }, 20);
   }
 
-  constructor(private alertService: AlertService) {}
+  constructor(private alertService: AlertService, private sanitizer: DomSanitizer) {}
+  // Detecta si una url es PDF
+  isPdfFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.pdf') || u.includes('.pdf?') || u.startsWith('data:application/pdf');
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['messages']) {
