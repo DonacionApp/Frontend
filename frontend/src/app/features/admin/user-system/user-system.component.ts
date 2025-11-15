@@ -203,25 +203,27 @@ export class UserSystemComponent implements OnInit, OnDestroy {
    * Ver detalles del usuario
    */
   viewUserDetails(user: UserSystem): void {
-    const fullName = user.people 
-      ? `${user.people.name} ${user.people.lastName || ''}`.trim()
-      : 'N/A';
+    const roleName = user.role?.name || 'N/A';
+    const isOrganization = roleName.toLowerCase() === 'organizacion' || roleName.toLowerCase() === 'organization';
     
     // Parsear la descripción del lastName si es una organización
-    let description = '-';
-    if (user.people?.lastName) {
+    let description: string | null = null;
+    if (isOrganization && user.people?.lastName) {
       try {
         const lastNameData = JSON.parse(user.people.lastName);
         if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
           description = lastNameData.description;
         }
       } catch (e) {
-        // Si no es JSON, no es una descripción
+        // Si no es JSON válido, intentar usar el valor directamente si parece ser texto
+        if (typeof user.people.lastName === 'string' && user.people.lastName.trim() !== '') {
+          // Si no empieza con {, probablemente no es JSON
+          if (!user.people.lastName.trim().startsWith('{')) {
+            description = user.people.lastName;
+          }
+        }
       }
     }
-
-    const roleName = user.role?.name || 'N/A';
-    const isOrganization = roleName.toLowerCase() === 'organizacion' || roleName.toLowerCase() === 'organization';
 
     this.userDetails = [
       { label: 'ID', value: user.user?.id || 'N/A' },
@@ -229,10 +231,9 @@ export class UserSystemComponent implements OnInit, OnDestroy {
       { label: 'Email', value: user.user?.email || 'N/A' },
       { label: 'Rol', value: this.getRoleDisplayName(roleName) },
       { label: 'Nombre', value: user.people?.name || 'N/A' },
-      ...(isOrganization && description !== '-' ? [
+      ...(isOrganization && description ? [
         { label: 'Descripción', value: description }
-      ] : []),
-      { label: 'DNI', value: user.people?.dni || 'N/A' }
+      ] : [])
     ];
     this.showDetailsModal = true;
   }
