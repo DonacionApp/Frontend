@@ -20,8 +20,11 @@
               </span>
             </div>
             <div class="flex gap-2">
-              <button type="button" (click)="createChatFromForm()" [disabled]="createChatLoading" class="px-3 py-1 bg-blue-600 text-white rounded">Crear</button>
-              <button type="button" (click)="cancelCreateChat()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+              <button type="button" (click)="createChatFromForm()" [disabled]="createChatLoading" class="px-3 py-1 bg-blue-600 text-white rounded flex items-center gap-2">
+                <span *ngIf="!createChatLoading">Crear</span>
+                <span *ngIf="createChatLoading" class="flex items-center"><svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Creando...</span>
+              </button>
+              <button type="button" (click)="cancelCreateChat()" [disabled]="createChatLoading" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
             </div>
           </div>
           <!-- Modal flotante de selección de usuarios -->
