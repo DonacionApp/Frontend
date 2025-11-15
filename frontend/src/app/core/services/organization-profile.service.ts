@@ -13,8 +13,11 @@ export interface OrganizationProfile {
   phone?: string;
   address?: string;
   city?: string;
+  cityId?: number | string;
   state?: string;
+  stateIso2?: string;
   country?: string;
+  countryIso2?: string;
   postalCode?: string;
   taxId?: string;
   website?: string;
@@ -226,8 +229,11 @@ export class OrganizationProfileService {
       phone: response.people?.telefono || '',
       address: response.people?.residencia || '',
       city: response.people?.municipio?.city?.name || '',
+      cityId: response.people?.municipio?.city?.id || '',
       state: response.people?.municipio?.state?.name || '',
+      stateIso2: response.people?.municipio?.state?.iso2 || '',
       country: response.people?.municipio?.country?.name || '',
+      countryIso2: response.people?.municipio?.country?.iso2 || '',
       postalCode: '',
       taxId: response.people?.dni || '',
       website: response.website || (networks.length > 0 ? networks[0] : ''),
@@ -262,8 +268,7 @@ export class OrganizationProfileService {
         twitter: response.socialMedia?.twitter || '',
         instagram: response.socialMedia?.instagram || '',
         linkedin: response.socialMedia?.linkedin || ''
-      }
-    ,
+      },
       // Mapear location si viene desde el backend (ej. { lat, lng })
       location: response.location ? { lat: Number(response.location.lat), lng: Number(response.location.lng) } : null
     };
@@ -313,6 +318,36 @@ export class OrganizationProfileService {
       if (updates.socialMedia?.instagram) networks.push(updates.socialMedia.instagram);
       if (updates.socialMedia?.linkedin) networks.push(updates.socialMedia.linkedin);
       requestBody.people.lastName = JSON.stringify({ description: updates.description, networks });
+    }
+
+    // Agregar municipio (ciudad, estado, país) si alguno está presente
+    // IMPORTANTE: Si se modifica algo dentro de municipio, se debe enviar TODO el campo completo
+    if (updates.city || updates.state || updates.country) {
+      requestBody.people.municipio = {};
+      
+      // Siempre enviar país (usar el del update o el del perfil actual)
+      const countryIso2 = updates.country || currentProfile?.countryIso2 || '';
+      if (countryIso2) {
+        requestBody.people.municipio.pais = {
+          iso2: countryIso2
+        };
+      }
+      
+      // Siempre enviar estado (usar el del update o el del perfil actual)
+      const stateIso2 = updates.state || currentProfile?.stateIso2 || '';
+      if (stateIso2) {
+        requestBody.people.municipio.state = {
+          iso2: stateIso2
+        };
+      }
+      
+      // Siempre enviar ciudad (usar el del update o el del perfil actual)
+      const cityName = updates.city || currentProfile?.city || '';
+      if (cityName) {
+        requestBody.people.municipio.city = {
+          name: cityName
+        };
+      }
     }
 
     // Agregar otros campos si existen

@@ -405,28 +405,29 @@
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
               </div>
 
-              <div *ngIf="profileHas('city')">
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">
-                  Ciudad
-                </label>
-                <input type="text" id="city" formControlName="city"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <div>
+                <label for="country" class="block text-sm font-medium text-gray-700 mb-2">País</label>
+                <select id="country" formControlName="country" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="" disabled selected>Selecciona un país</option>
+                  <option *ngFor="let c of countries" [value]="c.iso2">{{ c.name }}</option>
+                </select>
+                <div *ngIf="loadingCountries" class="text-xs text-gray-500 mt-1">Cargando países...</div>
               </div>
-
-              <div *ngIf="profileHas('state')">
-                <label for="state" class="block text-sm font-medium text-gray-700 mb-2">
-                  Estado/Provincia
-                </label>
-                <input type="text" id="state" formControlName="state"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <div>
+                <label for="state" class="block text-sm font-medium text-gray-700 mb-2">Estado/Provincia</label>
+                <select id="state" formControlName="state" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="" disabled selected>Selecciona un estado</option>
+                  <option *ngFor="let s of states" [value]="s.iso2">{{ s.name }}</option>
+                </select>
+                <div *ngIf="loadingStates" class="text-xs text-gray-500 mt-1">Cargando estados...</div>
               </div>
-
-              <div *ngIf="profileHas('country')">
-                <label for="country" class="block text-sm font-medium text-gray-700 mb-2">
-                  País
-                </label>
-                <input type="text" id="country" formControlName="country"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <div>
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">Ciudad</label>
+                <select id="city" formControlName="city" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="" disabled selected>Selecciona una ciudad</option>
+                  <option *ngFor="let c of cities" [value]="c.id">{{ c.name }}</option>
+                </select>
+                <div *ngIf="loadingCities" class="text-xs text-gray-500 mt-1">Cargando ciudades...</div>
               </div>
 
               <div *ngIf="profileHas('postalCode')">

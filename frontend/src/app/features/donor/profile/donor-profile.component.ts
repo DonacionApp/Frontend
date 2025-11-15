@@ -6,6 +6,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { UserProfileService, UserProfile, ActivityLog } from '../../../core/services/user-profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { VerificationService } from '../../../core/services/verification.service';
+import { CountriesService } from '../../../core/services/countries.service';
+import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 
 @Component({
   selector: 'app-donor-profile',
@@ -45,11 +47,20 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   showNewPassword = false;
   showConfirmPassword = false;
 
+  // Select options para países, estados y ciudades
+  countries: Countris[] = [];
+  states: StatesbyCountrySelect[] = [];
+  cities: CitiesByStateSelect[] = [];
+  loadingCountries = false;
+  loadingStates = false;
+  loadingCities = false;
+
   constructor(
     private fb: FormBuilder,
     private profileService: UserProfileService,
     private authService: AuthService,
-    private verificationService: VerificationService
+    private verificationService: VerificationService,
+    private countriesService: CountriesService
   ) {
     this.initializeForms();
   }
@@ -58,6 +69,7 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     this.loadProfile();
     this.subscribeToProfileChanges();
     this.checkVerificationStatus();
+    this.loadCountriesAndSetupSelects();
   }
 
   ngOnDestroy(): void {
@@ -149,13 +161,41 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
       email: profile.email,
       telefono: profile.phone || '',
       residencia: profile.address || '',
-      city: profile.city || '',
-      state: profile.state || '',
-      country: profile.country || '',
       dni: profile.dni || '',
       typeDni: profile.typeDni || '',
       birdthDate: profile.dateOfBirth || ''
     });
+
+    // Cargar y seleccionar país, estado y ciudad usando iso2
+    // Obtener los valores del perfil (pueden venir como nombres o iso2)
+    const countryIso2 = (profile as any).countryIso2 || this.getCountryIso2FromName(profile.country || '');
+    const stateIso2 = (profile as any).stateIso2 || this.getStateIso2FromName(profile.state || '');
+    const cityId = (profile as any).cityId || this.getCityIdFromName(profile.city || '');
+    
+    if (countryIso2) {
+      // Establecer el país usando iso2
+      this.profileForm.get('country')?.setValue(countryIso2, { emitEvent: false });
+      
+      // Cargar estados para el país
+      this.onCountryChange(countryIso2, false).then(() => {
+        // Una vez cargados los estados, seleccionar el estado si existe
+        if (stateIso2) {
+          this.profileForm.get('state')?.setValue(stateIso2, { emitEvent: false });
+          
+          // Cargar ciudades para el estado
+          this.onStateChange(countryIso2, stateIso2, false).then(() => {
+            // Una vez cargadas las ciudades, seleccionar la ciudad si existe
+            if (cityId) {
+              this.profileForm.get('city')?.setValue(cityId, { emitEvent: false });
+            }
+          }).catch(() => {
+            // Ignorar errores al cargar ciudades
+          });
+        }
+      }).catch(() => {
+        // Ignorar errores al cargar estados
+      });
+    }
 
     if (profile.profileImage) {
       this.imagePreview = profile.profileImage;
@@ -296,20 +336,39 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     }
 
     // Manejar municipio (ciudad, estado, país) si alguno ha cambiado
-    if (formValues.city !== this.profile?.city || 
-        formValues.state !== this.profile?.state || 
-        formValues.country !== this.profile?.country) {
+    // IMPORTANTE: Si se modifica algo dentro de municipio, se debe enviar TODO el campo completo
+    const currentCountryIso2 = (this.profile as any)?.countryIso2 || this.getCountryIso2FromName(this.profile?.country || '');
+    const currentStateIso2 = (this.profile as any)?.stateIso2 || this.getStateIso2FromName(this.profile?.state || '');
+    const currentCityName = this.profile?.city || '';
+    
+    const newCountryIso2 = formValues.country || currentCountryIso2;
+    const newStateIso2 = formValues.state || currentStateIso2;
+    
+    // Obtener el nombre de la ciudad desde el array de ciudades usando el ID
+    let newCityName = currentCityName;
+    if (formValues.city) {
+      const cityId = typeof formValues.city === 'number' ? formValues.city : parseInt(formValues.city, 10);
+      const selectedCity = this.cities.find(c => c.id === cityId);
+      if (selectedCity && selectedCity.name) {
+        newCityName = selectedCity.name;
+      }
+    }
+    
+    // Verificar si alguno cambió
+    if (newCountryIso2 !== currentCountryIso2 || 
+        newStateIso2 !== currentStateIso2 || 
+        newCityName !== currentCityName) {
       
-      // Construir el objeto municipio según formato del backend
+      // Construir el objeto municipio completo según formato del backend
       updates.people.municipio = {
         pais: {
-          iso2: formValues.country || this.profile?.country || ''
+          iso2: newCountryIso2 || ''
         },
         state: {
-          iso2: formValues.state || this.profile?.state || ''
+          iso2: newStateIso2 || ''
         },
         city: {
-          name: formValues.city || this.profile?.city || ''
+          name: newCityName || ''
         }
       };
     }
@@ -565,5 +624,101 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
         this.errorMessage = this.verificationService.getErrorMessage(status, message);
       }
     });
+  }
+
+  // ============ MÉTODOS PARA CARGAR PAÍSES, ESTADOS Y CIUDADES ============
+
+  private loadCountriesAndSetupSelects(): void {
+    this.loadingCountries = true;
+    this.countriesService.countriesList().subscribe({
+      next: (countries) => {
+        this.countries = countries;
+        this.loadingCountries = false;
+      },
+      error: () => { this.loadingCountries = false; }
+    });
+
+    // Reactividad: cuando cambia país
+    this.profileForm.get('country')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(iso2 => {
+      if (iso2) this.onCountryChange(iso2, true);
+    });
+    // Cuando cambia estado
+    this.profileForm.get('state')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(iso2 => {
+      const countryIso2 = this.profileForm.get('country')?.value;
+      if (countryIso2 && iso2) this.onStateChange(countryIso2, iso2, true);
+    });
+  }
+
+  private onCountryChange(countryIso2: string, clearStateCity = true): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!countryIso2) {
+        resolve();
+        return;
+      }
+      
+      this.loadingStates = true;
+      this.countriesService.statesByCountry(countryIso2).subscribe({
+        next: (states) => {
+          this.states = states;
+          this.loadingStates = false;
+          if (clearStateCity) {
+            this.profileForm.get('state')?.setValue('', { emitEvent: false });
+            this.cities = [];
+            this.profileForm.get('city')?.setValue('', { emitEvent: false });
+          }
+          resolve();
+        },
+        error: (err) => { 
+          this.loadingStates = false;
+          console.error('Error loading states:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  private onStateChange(countryIso2: string, stateIso2: string, clearCity = true): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!countryIso2 || !stateIso2) {
+        resolve();
+        return;
+      }
+      
+      this.loadingCities = true;
+      this.countriesService.citiesByState(countryIso2, stateIso2).subscribe({
+        next: (cities) => {
+          this.cities = cities;
+          this.loadingCities = false;
+          if (clearCity) {
+            this.profileForm.get('city')?.setValue('', { emitEvent: false });
+          }
+          resolve();
+        },
+        error: (err) => { 
+          this.loadingCities = false;
+          console.error('Error loading cities:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  // Helper methods para obtener iso2/ID desde nombres (fallback si no vienen en el perfil)
+  private getCountryIso2FromName(countryName: string): string {
+    if (!countryName) return '';
+    const country = this.countries.find(c => c.name === countryName);
+    return country?.iso2 || '';
+  }
+
+  private getStateIso2FromName(stateName: string): string {
+    if (!stateName) return '';
+    const state = this.states.find(s => s.name === stateName);
+    return state?.iso2 || '';
+  }
+
+  private getCityIdFromName(cityName: string): number | null {
+    if (!cityName) return null;
+    const city = this.cities.find(c => c.name === cityName);
+    return city?.id || null;
   }
 }
