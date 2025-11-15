@@ -140,14 +140,12 @@ export class MessageService {
     return this.http.get<any>(`${this.base}/user`, { params: p });
   }
 
-  // POST: /userchat  -> add a participant to a chat. Body depends on backend: we'll send { chatId, userId, admin }
-  addUserToChat(body: { chatId: number; userId: number; admin?: boolean }): Observable<any> {
-    return this.http.post(`${this.base}/userchat`, body);
+  addUserToChat(body: {  userId: number; admin?: boolean }, chatId: number): Observable<any> {
+    return this.http.post(`${this.base}/userchat/admin/add-user-to-chat/${chatId}`, body);
   }
 
-  // DELETE: /userchat/:id  -> remove a userchat entry by id
-  removeUserFromChat(userChatId: number): Observable<any> {
-    return this.http.delete(`${this.base}/userchat/${userChatId}`);
+  removeUserFromChat(chatId: number, userId: number): Observable<any> {
+    return this.http.delete(`${this.base}/userchat/admin/remove-user-from-chat/${chatId}/user/${userId}`);
   }
 
   // POST: /donation/chat/create-from-donation/:donationId

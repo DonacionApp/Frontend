@@ -1,4 +1,5 @@
 
+
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -21,9 +22,14 @@ import { Router, ActivatedRoute } from '@angular/router';
 })
 export class ChatsComponent implements OnInit, OnDestroy {
   userPickerSearch: string = '';
+
   getUserPickerDisplay(uid: number): string {
     const u = this.userPickerList.find((user: any) => user.id === uid);
     return (u && (u.username || u.email || (u.people && u.people.name))) || String(uid);
+  }
+
+  getChatById(id: string | null): IChat | undefined {
+    return this.chats.find(c => String(c.id) === String(id));
   }
 
   private destroy$ = new Subject<void>();
@@ -98,6 +104,14 @@ export class ChatsComponent implements OnInit, OnDestroy {
   // Estado para mostrar usuarios listados por chat
   usersListState: Record<string, { open: boolean; loading: boolean; users: any[] }> = {};
 
+  // Estado para agregar usuarios a un chat
+  showAddUsersModal: string | null = null; // chatId
+  addUsersModalLoading = false;
+  addUsersModalList: any[] = [];
+  addUsersModalSelected: Set<number> = new Set();
+  addUsersModalSearch: string = '';
+  addUsersModalSubmitting = false;
+
   getAdminMenuItems(chat: any): FloatingMenuItem[] {
     return [
       { label: 'Listar usuarios', action: 'list', data: { chatId: chat?.id } },
@@ -161,7 +175,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       if (!this.isAdmin()) { try { window.alert('Solo administradores pueden crear chats.'); } catch (e) {} return; }
       const name = String(this.createChatName || '').trim();
       if (!name) { try { this.alertService.error('Error', 'El nombre del chat es requerido.'); } catch (e) {} return; }
-      // Participantes seleccionados
+     
       const ids = Array.from(this.userPickerSelected);
       if (!ids.length) { try { this.alertService.error('Error', 'Selecciona al menos un usuario.'); } catch (e) {} return; }
       const participantIds: Array<{ userId: number; isAdmin?: boolean; isDonator?: boolean }> = [];
@@ -207,10 +221,90 @@ export class ChatsComponent implements OnInit, OnDestroy {
         return;
       }
 
-      if (act === 'add' || act === 'remove') {
+      if (act === 'add') {
+        this.openAddUsersModal(chat);
+      } else if (act === 'remove') {
         this.adminActionState[cid] = { action: act, input: '', loading: false };
       }
     } catch (e) {}
+  }
+
+  async openAddUsersModal(chat: any) {
+    const cid = String(chat?.id ?? '');
+    this.showAddUsersModal = cid;
+    this.addUsersModalLoading = true;
+    this.addUsersModalList = [];
+    this.addUsersModalSelected = new Set();
+    this.addUsersModalSearch = '';
+    try {
+      // Cargar todos los usuarios
+      let allUsers: any[] = [];
+      if (this.messageService.searchUsers) {
+        allUsers = await firstValueFrom(this.messageService.searchUsers({}));
+      } else {
+        const res = await fetch('http://localhost:5000/user');
+        allUsers = await res.json();
+      }
+      // Cargar usuarios del chat
+      const chatUsers = await firstValueFrom(this.messageService.getUsersByChat(Number(chat.id)));
+      const chatUserIds = new Set((Array.isArray(chatUsers) ? chatUsers : []).map((u: any) => u.user?.id ?? u.id));
+      // Filtrar solo los que NO están en el chat
+      this.addUsersModalList = (Array.isArray(allUsers) ? allUsers : []).filter((u: any) => !chatUserIds.has(u.id));
+    } catch (e) {
+      this.addUsersModalList = [];
+    }
+    this.addUsersModalLoading = false;
+  }
+
+  get filteredAddUsersModalList(): any[] {
+    const term = (this.addUsersModalSearch || '').toLowerCase().trim();
+    if (!term) return this.addUsersModalList;
+    return this.addUsersModalList.filter((u: any) =>
+      (u.username && u.username.toLowerCase().includes(term)) ||
+      (u.email && u.email.toLowerCase().includes(term)) ||
+      (u.people && u.people.name && u.people.name.toLowerCase().includes(term))
+    );
+  }
+
+  toggleAddUsersModalSelect(uid: number): void {
+    if (this.addUsersModalSelected.has(uid)) this.addUsersModalSelected.delete(uid);
+    else this.addUsersModalSelected.add(uid);
+  }
+
+  closeAddUsersModal(): void {
+    this.showAddUsersModal = null;
+    this.addUsersModalList = [];
+    this.addUsersModalSelected = new Set();
+    this.addUsersModalSearch = '';
+    this.addUsersModalLoading = false;
+    this.addUsersModalSubmitting = false;
+  }
+
+  async submitAddUsersToChat(chat: any) {
+    if (!this.showAddUsersModal || this.addUsersModalSubmitting) return;
+    const cid = String(chat?.id ?? '');
+    const ids = Array.from(this.addUsersModalSelected);
+    if (!ids.length) {
+      try { this.alertService.error('Error', 'Selecciona al menos un usuario.'); } catch (e) {}
+      return;
+    }
+    this.addUsersModalSubmitting = true;
+    try {
+      for (const uid of ids) {
+        await firstValueFrom(this.messageService.addUserToChat({ userId: uid, admin: false }, Number(chat.id)));
+      }
+      try { this.alertService.success('OK', 'Usuarios agregados correctamente.'); } catch (e) {}
+      this.closeAddUsersModal();
+      // Recargar usuarios del chat si está abierto el menú
+      if (this.usersListState && this.usersListState[cid]?.open) {
+        this.usersListState[cid].loading = true;
+        const users = await firstValueFrom(this.messageService.getUsersByChat(Number(chat.id)));
+        this.usersListState[cid] = { open: true, loading: false, users: Array.isArray(users) ? users : [] };
+      }
+    } catch (e) {
+      try { this.alertService.error('Error', 'No se pudieron agregar los usuarios.'); } catch (e2) {}
+    }
+    this.addUsersModalSubmitting = false;
   }
 
   closeUsersList(chat: any): void {
@@ -220,18 +314,27 @@ export class ChatsComponent implements OnInit, OnDestroy {
     } catch (e) {}
   }
 
-  async removeUserFromChat(chat: any, userChatId: number): Promise<void> {
+  async removeUserFromChat(chat: any, userId: number): Promise<void> {
     const cid = String(chat?.id ?? '');
-    if (!userChatId) return;
+    if (!userId) return;
     if (!this.usersListState[cid]) return;
+    // Marcar visualmente como "eliminando"
+    this.usersListState[cid].users = this.usersListState[cid].users.map(u =>
+      (u.id === userId || u.user?.id === userId) ? { ...u, _removing: true } : u
+    );
     this.usersListState[cid].loading = true;
     try {
-      await firstValueFrom(this.messageService.removeUserFromChat(userChatId));
-      // Actualizar la lista localmente
-      this.usersListState[cid].users = this.usersListState[cid].users.filter(u => u.id !== userChatId);
+      await firstValueFrom(this.messageService.removeUserFromChat(Number(chat.id), userId));
+      // Quitar de la lista tras éxito
+      this.usersListState[cid].users = this.usersListState[cid].users.filter(u => u.id !== userId && u.user?.id !== userId);
       this.usersListState[cid].loading = false;
       try { this.alertService.success('OK', 'Usuario eliminado del chat.'); } catch (e) {}
     } catch (err) {
+      // Si falla, quitar el estado de "eliminando"
+      this.usersListState[cid].users = this.usersListState[cid].users.map(u => {
+        if (u._removing) { const { _removing, ...rest } = u; return rest; }
+        return u;
+      });
       this.usersListState[cid].loading = false;
       try { this.alertService.error('Error', 'No se pudo eliminar el usuario.'); } catch (e) {}
     }
@@ -247,7 +350,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
         if (!uid || isNaN(uid)) { try { this.alertService.error('Error', 'Id de usuario inválido.'); } catch (e) {} return; }
         state.loading = true;
         try {
-          await firstValueFrom(this.messageService.addUserToChat({ chatId: Number(chat.id), userId: uid, admin: false }));
+          await firstValueFrom(this.messageService.addUserToChat({  userId: uid, admin: false }, Number(chat.id)));
           try { this.alertService.success('OK', 'Usuario agregado.'); } catch (e) {}
         } catch (err) { console.error(err); try { this.alertService.error('Error', 'No se pudo agregar el usuario.'); } catch (e) {} }
         state.loading = false;
@@ -257,7 +360,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
         if (!rid || isNaN(rid)) { try { this.alertService.error('Error', 'Id inválido.'); } catch (e) {} return; }
         state.loading = true;
         try {
-          await firstValueFrom(this.messageService.removeUserFromChat(rid));
+          await firstValueFrom(this.messageService.removeUserFromChat(Number(chat.id), rid));
           try { this.alertService.success('OK', 'Usuario removido del chat.'); } catch (e) {}
         } catch (err) { console.error(err); try { this.alertService.error('Error', 'No se pudo remover al usuario.'); } catch (e) {} }
         state.loading = false;
@@ -329,7 +432,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           if (!uid || isNaN(uid)) return;
           // call addUserToChat
           try {
-            await firstValueFrom(this.messageService.addUserToChat({ chatId: Number(chat.id), userId: uid, admin: false }));
+            await firstValueFrom(this.messageService.addUserToChat({  userId: uid, admin: false }, Number(chat.id)));
             try { window.alert('Usuario agregado.'); } catch (e) {}
           } catch (err) { console.error(err); window.alert('No se pudo agregar el usuario.'); }
         } catch (err) {
@@ -348,7 +451,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           const uid = uidStr ? Number(uidStr) : NaN;
           if (!uid || isNaN(uid)) return;
           try {
-            await firstValueFrom(this.messageService.removeUserFromChat(uid));
+            await firstValueFrom(this.messageService.removeUserFromChat(Number(chat.id), uid));
             try { window.alert('Usuario removido del chat.'); } catch (e) {}
           } catch (err) { console.error(err); window.alert('No se pudo remover al usuario.'); }
         } catch (err) {

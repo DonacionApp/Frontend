@@ -56,6 +56,36 @@
         </div>
       </div>
 
+      <!-- Modal flotante para agregar usuarios a un chat -->
+      <div *ngIf="showAddUsersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" (click)="closeAddUsersModal()">
+        <div class="bg-white rounded shadow-lg w-full max-w-md p-4 relative" (click)="$event.stopPropagation()">
+          <div class="flex justify-between items-center mb-2">
+            <div class="font-semibold text-base">Agregar usuarios al chat</div>
+            <button type="button" (click)="closeAddUsersModal(); $event.stopPropagation()" class="text-gray-500 hover:text-red-500">✕</button>
+          </div>
+          <div *ngIf="addUsersModalLoading" class="text-xs text-gray-500 py-2">Cargando usuarios...</div>
+          <div *ngIf="!addUsersModalLoading">
+            <input type="text" [(ngModel)]="addUsersModalSearch" placeholder="Buscar usuario..." class="w-full px-2 py-1 border rounded mb-2" />
+            <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
+              <label *ngFor="let u of filteredAddUsersModalList" class="flex items-center gap-2 py-2 cursor-pointer">
+                <input type="checkbox" [checked]="addUsersModalSelected.has(u.id)" (change)="toggleAddUsersModalSelect(u.id)" />
+                <img *ngIf="u.profilePhoto" [src]="u.profilePhoto" class="w-7 h-7 rounded-full" />
+                <span class="text-sm">{{ u.username || u.email || u.people?.name || u.id }}</span>
+                <span class="text-xs text-gray-400 ml-1">{{ u.email }}</span>
+              </label>
+              <div *ngIf="!filteredAddUsersModalList.length" class="text-xs text-gray-400 px-2 py-1">Sin usuarios</div>
+            </div>
+            <div class="flex justify-end mt-3 gap-2">
+              <button type="button" (click)="closeAddUsersModal(); $event.stopPropagation()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+              <button type="button" (click)="submitAddUsersToChat(getChatById(showAddUsersModal)); $event.stopPropagation()" [disabled]="addUsersModalSubmitting" class="px-3 py-1 bg-blue-600 text-white rounded flex items-center gap-2">
+                <span *ngIf="!addUsersModalSubmitting">Agregar</span>
+                <span *ngIf="addUsersModalSubmitting" class="flex items-center"><svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Agregando...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="flex-1 overflow-auto chat-list-scroll" (scroll)="onChatsScroll($event)">
         <div *ngIf="loadingChats && (!chats || chats.length === 0)" class="p-3 text-sm text-gray-600">Cargando chats...</div>
            <div *ngFor="let chat of chats"
@@ -86,7 +116,8 @@
             <!-- Menú flotante de usuarios del chat -->
             <div *ngIf="usersListState && usersListState[chat.id]?.open" class="relative z-50"
                  (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()" (mouseup)="$event.stopPropagation()">
-              <div class="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg p-2">
+              <div class="fixed inset-0 z-40" (click)="closeUsersList(chat); $event.stopPropagation()"></div>
+              <div class="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg p-2 z-50" (click)="$event.stopPropagation()">
                 <div class="flex justify-between items-center mb-2">
                   <div class="font-semibold text-sm">Usuarios en el chat</div>
                   <button type="button" (click)="closeUsersList(chat); $event.stopPropagation()" class="text-gray-500 hover:text-red-500">✕</button>
@@ -97,7 +128,8 @@
                     <img *ngIf="u.user?.profilePhoto" [src]="u.user.profilePhoto" class="w-6 h-6 rounded-full" />
                     <span class="text-xs">{{ u.user?.username || u.user?.email || u.user?.name || u.username || u.email || u.name || 'Usuario' }}</span>
                     <span *ngIf="u.isAdmin" class="ml-1 text-green-600 text-xs font-bold">(admin)</span>
-                    <button *ngIf="isAdmin()" (click)="removeUserFromChat(chat, u.id); $event.stopPropagation()" class="ml-auto px-2 py-0.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50">Eliminar</button>
+                    <span *ngIf="u._removing" class="ml-auto text-xs text-gray-400 animate-pulse">Eliminando...</span>
+                    <button *ngIf="isAdmin() && !u._removing" (click)="removeUserFromChat(chat, u.user?.id || u.id); $event.stopPropagation()" class="ml-auto px-2 py-0.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50">Eliminar</button>
                   </li>
                   <li *ngIf="!usersListState[chat.id].users.length" class="text-xs text-gray-400 px-2 py-1">Sin usuarios</li>
                 </ul>
