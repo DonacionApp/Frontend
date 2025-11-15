@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IMessage } from '../../../../core/services/message.service';
+import { AlertService } from '../../../services/alert.service';
 
 @Component({
   selector: 'app-messages-view',
@@ -46,6 +47,8 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
       try { this.scrollToBottom(); } catch (e) {}
     }, 20);
   }
+
+  constructor(private alertService: AlertService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['messages']) {
@@ -188,11 +191,20 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   }
 
   // Trigger delete flow: confirm then emit to parent
-  public onDeleteMessage(m: IMessage | null | undefined){
+  public async onDeleteMessage(m: IMessage | null | undefined){
     try{
       if (!m || !m.id) return;
-      const ok = confirm('¿Eliminar mensaje? Esta acción no se puede deshacer.');
-      if (!ok) return;
+      try {
+        const confirmed = await this.alertService.confirm({
+          title: 'Confirmar eliminación',
+          message: '¿Eliminar mensaje? Esta acción no se puede deshacer.',
+          type: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar'
+        } as any);
+        if (!confirmed) return;
+      } catch (e) { return; }
       this.deleteMessage.emit(m.id);
     } catch (e) {}
   }

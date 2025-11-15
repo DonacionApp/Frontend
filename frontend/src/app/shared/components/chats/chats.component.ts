@@ -7,7 +7,7 @@ import { MessageService, IMessage, IChat } from '../../../core/services/message.
 import { MessagesViewComponent } from './messages-view/messages-view.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebsocketService } from '../../../core/services/websocket.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { AlertService } from '../../services/alert.service';
 import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -58,7 +58,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     private authService: AuthService,
     private websocketService: WebsocketService,
-    private toastService: ToastService,
+    private alertService: AlertService,
     private router: Router,
     private route: ActivatedRoute
     , private cd: ChangeDetectorRef
@@ -71,7 +71,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       const id = Number(payload.id);
       const newMessage = String(payload.newMessage || '').trim();
       if (!newMessage) {
-        try { this.toastService.error('Error', 'El mensaje no puede estar vacío.'); } catch (e) {}
+        try { this.alertService.error('Error', 'El mensaje no puede estar vacío.'); } catch (e) {}
         return;
       }
       // Actualización optimista en la UI
@@ -84,7 +84,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
       // Emitir la petición al backend via WS (el gateway manejará la actualización y volverá a emitir)
       try { this.websocketService.emitEditMessage(id, this.selectedChat ? Number((this.selectedChat as any).id) : undefined, newMessage); } catch (e) {}
-      try { this.toastService.success('Solicitud enviada', 'Se solicitó la edición del mensaje.'); } catch (e) {}
+      try { this.alertService.success('Solicitud enviada', 'Se solicitó la edición del mensaje.'); } catch (e) {}
     } catch (e) {}
   }
 
@@ -97,7 +97,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       try { this.messages = this.messages.filter(m => Number((m as any)?.id) !== id); } catch (e) {}
       // Emitir la petición al backend via WS
       try { this.websocketService.emitDeleteMessage(id, this.selectedChat ? Number((this.selectedChat as any).id) : undefined); } catch (e) {}
-      try { this.toastService.success('Solicitud enviada', 'Se solicitó la eliminación del mensaje.'); } catch (e) {}
+      try { this.alertService.success('Solicitud enviada', 'Se solicitó la eliminación del mensaje.'); } catch (e) {}
     } catch (e) {}
   }
 
@@ -557,7 +557,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       for (const f of files) {
         const err = this.validateFile(f);
         if (err) {
-          try { this.toastService.error('Archivo inválido', err); } catch (e) {}
+          try { this.alertService.error('Archivo inválido', err); } catch (e) {}
           continue;
         }
         try { (f as any).__previewUrl = URL.createObjectURL(f); } catch (e) {}
@@ -636,7 +636,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
       error: () => {
         this.selectedFiles = prevFiles;
         this.messages = this.messages.filter(m => !(m && (m as any).id === tempId));
-        try { this.toastService.error('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.'); } catch (e) {}
+        try { this.alertService.error('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.'); } catch (e) {}
       }
     });
     
