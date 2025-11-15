@@ -4,12 +4,15 @@ import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { OrganizationRegistrationService } from '../../../core/services';
 import { RegistrationStateService } from '../../../core/services/registration-state.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
+import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
 
 
 @Component({
   selector: 'app-organization-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, MatDialogModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
@@ -35,7 +38,8 @@ export class OrganizationRegisterComponent implements OnInit {
     private fb: FormBuilder,
     private regService: OrganizationRegistrationService,
     private router: Router,
-    private state: RegistrationStateService
+    private state: RegistrationStateService,
+    private dialog: MatDialog
   ) {
     // Inicializar formulario en el constructor para evitar usar this.fb antes de la inicialización
     this.orgForm = this.fb.group({
@@ -49,10 +53,13 @@ export class OrganizationRegisterComponent implements OnInit {
       cityName: [''],
       address: ['', Validators.required],
       phone: ['', Validators.required],
-  // Campos requeridos por el backend (dni ahora opcional)
-  birdthDate: ['', Validators.required],
-  tipodDni: [1, Validators.required],
-  dni: ['']
+      // Campos requeridos por el backend (dni ahora opcional)
+      birdthDate: ['', Validators.required],
+      tipodDni: [1, Validators.required],
+      dni: [''],
+      // Términos y Privacidad
+      acceptTerms: [false, [Validators.requiredTrue]],
+      acceptPrivacy: [false, [Validators.requiredTrue]]
     });
   }
 
@@ -209,6 +216,28 @@ export class OrganizationRegisterComponent implements OnInit {
 
   toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
+  openTermsModal(event: Event): void {
+    event.preventDefault();
+    this.dialog.open(TermsModalComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      panelClass: 'terms-modal-container'
+    });
+  }
+
+  openPrivacyModal(event: Event): void {
+    event.preventDefault();
+    this.dialog.open(PrivacyPolicyModalComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      panelClass: 'privacy-modal-container'
+    });
   }
 
 }

@@ -1,0 +1,93 @@
+// Privacy Policy Modal Styles
+::ng-deep .privacy-modal-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden;
+  }
+  
+  .mat-mdc-dialog-surface {
+    border-radius: 16px !important;
+  }
+}
+
+.close-button {
+  position: relative;
+  z-index: 10;
+}
+
+:host {
+  .modal-content {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    
+    section {
+      scroll-margin-top: 20px;
+      transition: background-color 0.2s ease;
+      padding: 16px;
+      border-radius: 8px;
+      
+      &:hover {
+        background-color: rgba(16, 185, 129, 0.03);
+      }
+    }
+    
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 28px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+    }
+    
+    ul {
+      padding-left: 1.5rem;
+      
+      li {
+        margin-bottom: 0.75rem;
+        padding-left: 0.5rem;
+        line-height: 1.7;
+        
+        &::marker {
+          color: #10b981;
+          font-size: 1.2em;
+        }
+      }
+    }
+    
+    p {
+      line-height: 1.8;
+    }
+    
+    strong {
+      color: #047857;
+      font-weight: 600;
+    }
+  }
+  
+  // Scrollbar personalizado
+  .modal-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .modal-scroll::-webkit-scrollbar-track {
+    background: #f0fdf4;
+    border-radius: 4px;
+  }
+  
+  .modal-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 4px;
+    
+    &:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+  }
+}

@@ -1,0 +1,229 @@
+<div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh]">
+    <!-- Header con gradiente -->
+    <div class="relative bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-8 py-4 sm:py-6">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+          <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Términos y Condiciones</h2>
+            <p class="text-blue-100 text-sm mt-1">de Uso de la Plataforma DonaApp</p>
+          </div>
+        </div>
+        <button 
+          type="button"
+          (click)="close()" 
+          class="close-button text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all duration-200 z-50 relative">
+          <svg class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Decoración -->
+      <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+      <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+    </div>
+  
+  <!-- Content -->
+  <div class="p-4 sm:p-8 max-h-[40vh] sm:max-h-[65vh] overflow-y-auto modal-scroll bg-gradient-to-b from-gray-50 to-white">
+      <div class="space-y-4 sm:space-y-6 text-gray-700 modal-content">
+        
+        <!-- Nota introductoria -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-5 rounded-r-lg mb-4 sm:mb-6">
+          <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-blue-900 mb-1">Información Importante</p>
+              <p class="text-sm text-blue-800 leading-relaxed">
+                Por favor, lea cuidadosamente estos términos y condiciones antes de utilizar nuestros servicios. 
+                Al crear una cuenta, usted acepta estar legalmente vinculado por estos términos.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">1. Aceptación de los Términos</h3>
+          <p class="text-justify leading-relaxed">
+            Al registrarse y utilizar DonaApp, usted acepta quedar vinculado a estos Términos y Condiciones de Uso. 
+            Si no está de acuerdo con estos términos, por favor no utilice nuestros servicios. El uso continuo de 
+            la plataforma constituye su aceptación de estos términos y de cualquier modificación que se realice.
+          </p>
+        </section>
+  
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">2. Descripción del Servicio</h3>
+          <p class="text-justify leading-relaxed mb-3">
+            DonaApp es una plataforma digital que facilita la conexión entre donantes y organizaciones benéficas 
+            para coordinar donaciones de artículos y bienes. Nuestros servicios incluyen:
+          </p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Registro y gestión de perfiles de usuarios y organizaciones</li>
+            <li>Publicación de artículos disponibles para donación</li>
+            <li>Solicitud y coordinación de donaciones</li>
+            <li>Sistema de mensajería entre usuarios</li>
+            <li>Seguimiento de donaciones realizadas</li>
+          </ul>
+        </section>
+  
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">3. Registro y Cuenta de Usuario</h3>
+          <p class="text-justify leading-relaxed mb-3">Para utilizar nuestros servicios, usted debe:</p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Ser mayor de 18 años o contar con autorización de su representante legal</li>
+            <li>Proporcionar información veraz, precisa y actualizada durante el registro</li>
+            <li>Mantener la seguridad y confidencialidad de su contraseña</li>
+            <li>Notificar inmediatamente cualquier uso no autorizado de su cuenta</li>
+            <li>Actualizar su información de perfil cuando sea necesario</li>
+          </ul>
+          <p class="text-justify leading-relaxed mt-3">
+            Usted es responsable de todas las actividades que ocurran bajo su cuenta.
+          </p>
+        </section>
+  
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">4. Responsabilidades del Usuario</h3>
+          <p class="text-justify leading-relaxed mb-3">Los usuarios se comprometen a:</p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Utilizar la plataforma únicamente para fines legítimos y legales</li>
+            <li>No publicar contenido falso, engañoso o fraudulento</li>
+            <li>No utilizar el servicio para actividades comerciales no autorizadas</li>
+            <li>Respetar los derechos de propiedad intelectual de terceros</li>
+            <li>No realizar acciones que puedan dañar o sobrecargar la plataforma</li>
+            <li>Tratar a otros usuarios con respeto y cortesía</li>
+            <li>Cumplir con todas las leyes y regulaciones aplicables</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">5. Donaciones y Transacciones</h3>
+          <p class="text-justify leading-relaxed mb-3">
+            DonaApp actúa únicamente como intermediario entre donantes y organizaciones. La plataforma:
+          </p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>No se hace responsable de la calidad, estado o legalidad de los artículos donados</li>
+            <li>No participa en las transacciones físicas entre usuarios</li>
+            <li>No garantiza que las donaciones se completen exitosamente</li>
+            <li>No verifica la legitimidad de las organizaciones registradas (responsabilidad del usuario)</li>
+          </ul>
+          <p class="text-justify leading-relaxed mt-3">
+            Los usuarios son responsables de verificar la autenticidad de las organizaciones y el estado 
+            de los artículos antes de proceder con las donaciones.
+          </p>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">6. Contenido del Usuario</h3>
+          <p class="text-justify leading-relaxed mb-3">
+            Al publicar contenido en DonaApp, usted:
+          </p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Garantiza que tiene derecho a publicar dicho contenido</li>
+            <li>Otorga a DonaApp una licencia no exclusiva para usar, mostrar y distribuir el contenido en la plataforma</li>
+            <li>Es responsable de todo el contenido que publique</li>
+            <li>Acepta que DonaApp puede remover contenido que viole estos términos</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">7. Protección de Datos Personales</h3>
+          <p class="text-justify leading-relaxed">
+            El tratamiento de sus datos personales está regulado por nuestra 
+            <strong>Política de Privacidad y Protección de Datos</strong>, la cual cumple con la Ley 1581 de 2012 
+            de Colombia. Al aceptar estos términos, usted reconoce haber leído y aceptado también nuestra Política de Privacidad.
+          </p>
+        </section>
+  
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">8. Propiedad Intelectual</h3>
+          <p class="text-justify leading-relaxed">
+            Todos los derechos de propiedad intelectual sobre la plataforma DonaApp, incluyendo pero no limitado a 
+            diseño, código, logotipos y contenido, pertenecen a DonaApp o sus licenciantes. Queda prohibida la 
+            reproducción, distribución o uso no autorizado de estos elementos.
+          </p>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">9. Limitación de Responsabilidad</h3>
+          <p class="text-justify leading-relaxed mb-3">
+            DonaApp no se hace responsable por:
+          </p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Daños directos, indirectos o consecuentes derivados del uso de la plataforma</li>
+            <li>Pérdida de datos, beneficios o interrupciones del servicio</li>
+            <li>Conducta de otros usuarios o terceros</li>
+            <li>Inexactitud de la información proporcionada por los usuarios</li>
+            <li>Fallas técnicas o interrupciones del servicio</li>
+          </ul>
+          <p class="text-justify leading-relaxed mt-3">
+            El servicio se proporciona "tal cual" sin garantías de ningún tipo.
+          </p>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">10. Suspensión y Terminación</h3>
+          <p class="text-justify leading-relaxed">
+            DonaApp se reserva el derecho de suspender o terminar su cuenta en cualquier momento si:
+          </p>
+          <ul class="list-disc list-inside space-y-2 ml-4">
+            <li>Viola estos Términos y Condiciones</li>
+            <li>Proporciona información falsa o engañosa</li>
+            <li>Realiza actividades fraudulentas o ilegales</li>
+            <li>Su conducta perjudica a otros usuarios o a la plataforma</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">11. Modificaciones a los Términos</h3>
+          <p class="text-justify leading-relaxed">
+            Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento. 
+            Las modificaciones entrarán en vigor inmediatamente después de su publicación en la plataforma. 
+            El uso continuado del servicio después de las modificaciones constituye su aceptación de los nuevos términos.
+          </p>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">12. Ley Aplicable y Jurisdicción</h3>
+          <p class="text-justify leading-relaxed">
+            Estos Términos y Condiciones se rigen por las leyes de la República de Colombia. Cualquier controversia 
+            derivada de estos términos será sometida a la jurisdicción de los tribunales competentes de Colombia.
+          </p>
+        </section>
+
+        <section>
+          <h3 class="text-xl font-semibold text-blue-600 mb-3">13. Contacto</h3>
+          <p class="text-justify leading-relaxed">
+            Para cualquier consulta sobre estos Términos y Condiciones, puede contactarnos en:<br>
+            Email: <strong>soporte&#64;donaapp.com</strong>
+          </p>
+        </section>
+
+        <section class="text-sm text-gray-600 mt-6">
+          <p><strong>Última actualización:</strong> Noviembre 2025</p>
+        </section>
+  
+      </div>
+    </div>
+  
+    <!-- Footer -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+      <p class="text-xs text-gray-500 flex items-center gap-2 order-2 sm:order-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+        <span class="hidden sm:inline">Documento legalmente vinculante</span>
+        <span class="sm:hidden">Documento legal</span>
+      </p>
+      <button 
+        type="button"
+        (click)="close()"
+        class="w-full sm:w-auto order-1 sm:order-2 px-6 sm:px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+        Entendido
+      </button>
+    </div>
+  </div>
