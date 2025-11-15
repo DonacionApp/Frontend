@@ -19,6 +19,10 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   @Input() attachments: any[] = [];
   @Output() removeAttachment = new EventEmitter<number>();
 
+  // Emitir eventos para acciones de mensaje (padre realiza llamadas al API)
+  @Output() editMessage = new EventEmitter<{ id: number; newMessage: string }>();
+  @Output() deleteMessage = new EventEmitter<number>();
+
   @Output() loadOlder = new EventEmitter<void>();
 
   @ViewChild('messagesScrollRef') private messagesScrollRef?: ElementRef<HTMLElement>;
@@ -168,6 +172,29 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     this.mediaViewerUrl = null;
     this.mediaViewerType = null;
     try { window.removeEventListener('keydown', this._boundEscHandler); } catch (e) {}
+  }
+
+  // Trigger editing flow: uses browser prompt for quick editing UI, emits event to parent
+  public onEditMessage(m: IMessage | null | undefined){
+    try{
+      if (!m || !m.id) return;
+      const current = m.message ?? '';
+      const newMsg = prompt('Editar mensaje (solo texto):', current);
+      if (newMsg === null) return; // cancelled
+      const trimmed = String(newMsg).trim();
+      if (trimmed === current || trimmed.length === 0) return;
+      this.editMessage.emit({ id: m.id, newMessage: trimmed });
+    } catch (e) {}
+  }
+
+  // Trigger delete flow: confirm then emit to parent
+  public onDeleteMessage(m: IMessage | null | undefined){
+    try{
+      if (!m || !m.id) return;
+      const ok = confirm('¿Eliminar mensaje? Esta acción no se puede deshacer.');
+      if (!ok) return;
+      this.deleteMessage.emit(m.id);
+    } catch (e) {}
   }
 
   getMediaList(m: any): string[] {

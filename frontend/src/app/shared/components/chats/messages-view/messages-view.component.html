@@ -90,6 +90,11 @@
       <div class="msg-meta">
         <span class="msg-sender" *ngIf="!isOwnMessage(m)">{{ m?.user?.username || m?.user?.email || 'Usuario' }}</span>
         <span class="msg-time">{{ formatMessageTime(m?.createdAt) }}</span>
+        <span class="msg-actions" *ngIf="isOwnMessage(m)">
+          <!-- Edit only for text messages -->
+          <button type="button" class="text-xs text-blue-600 ml-2" *ngIf="m?.type?.type === 'texto'" (click)="$event.stopPropagation(); onEditMessage(m)">Editar</button>
+          <button type="button" class="text-xs text-red-600 ml-2" (click)="$event.stopPropagation(); onDeleteMessage(m)">Eliminar</button>
+        </span>
       </div>
     </div>
 

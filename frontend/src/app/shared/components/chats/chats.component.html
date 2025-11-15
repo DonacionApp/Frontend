@@ -68,7 +68,9 @@
                 [hasMoreMessages]="hasMoreMessages"
                 [attachments]="selectedFiles"
                 (removeAttachment)="removeSelectedFile($event)"
-                (loadOlder)="loadMessages(selectedChat.id, false, true)">
+              (loadOlder)="loadMessages(selectedChat.id, false, true)"
+              (editMessage)="onEditMessage($event)"
+              (deleteMessage)="onDeleteMessage($event)">
             </app-messages-view>
 
             <div *ngIf="selectedFiles && selectedFiles.length" class="flex gap-2 items-center overflow-auto py-1 flex-shrink-0">

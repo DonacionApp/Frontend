@@ -63,6 +63,43 @@ export class ChatsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute
   ) {}
 
+  // Handler para editar mensaje (emitido desde MessagesViewComponent)
+  onEditMessage(payload: { id: number; newMessage: string } | any): void {
+    try {
+      if (!payload || !payload.id) return;
+      const id = Number(payload.id);
+      const newMessage = String(payload.newMessage || '').trim();
+      if (!newMessage) {
+        try { this.toastService.error('Error', 'El mensaje no puede estar vacío.'); } catch (e) {}
+        return;
+      }
+      // Actualización optimista en la UI
+      try {
+        const idx = this.messages.findIndex(m => Number((m as any)?.id) === id);
+        if (idx > -1) {
+          try { (this.messages[idx] as any).message = newMessage; } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Emitir la petición al backend via WS (el gateway manejará la actualización y volverá a emitir)
+      try { this.websocketService.emitEditMessage(id, this.selectedChat ? Number((this.selectedChat as any).id) : undefined, newMessage); } catch (e) {}
+      try { this.toastService.success('Solicitud enviada', 'Se solicitó la edición del mensaje.'); } catch (e) {}
+    } catch (e) {}
+  }
+
+  // Handler para eliminar mensaje (emitido desde MessagesViewComponent)
+  onDeleteMessage(messageId: number | any): void {
+    try {
+      const id = Number(messageId);
+      if (!id) return;
+      // Eliminación optimista en la UI
+      try { this.messages = this.messages.filter(m => Number((m as any)?.id) !== id); } catch (e) {}
+      // Emitir la petición al backend via WS
+      try { this.websocketService.emitDeleteMessage(id, this.selectedChat ? Number((this.selectedChat as any).id) : undefined); } catch (e) {}
+      try { this.toastService.success('Solicitud enviada', 'Se solicitó la eliminación del mensaje.'); } catch (e) {}
+    } catch (e) {}
+  }
+
   private _boundGlobalKeydown = (ev: KeyboardEvent) => {
     try {
       if ((ev.key === 'Escape' || ev.key === 'Esc') && this.selectedChat) {
@@ -76,6 +113,42 @@ export class ChatsComponent implements OnInit, OnDestroy {
       this.currentUserId = u?.id ?? null;
       this.currentUser = u ?? null;
     });
+
+    // Subscribe early to edited/deleted message events so we don't miss edits
+    try {
+      this.websocketService.onMessageEdited().pipe(takeUntil(this.destroy$)).subscribe(payload => {
+        try {
+          const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id);
+          const msg = payload?.message ?? payload?.msg ?? null;
+          if (!chatId || !msg) return;
+
+          if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
+            try {
+              this.messages = this.messages.map(m => {
+                try {
+                  if (Number((m as any)?.id) === Number(msg.id)) {
+                    return { ...(m as any), message: (msg?.message ?? msg?.msg ?? (m as any).message) } as any;
+                  }
+                } catch (e) {}
+                return m;
+              });
+              try { this.messagesView?.bindMediaLoadHandlers(); } catch (e) {}
+            } catch (e) {}
+          } else {
+            try {
+              this.chats = this.chats.map(c => {
+                try {
+                  if (Number((c as any)?.id) === chatId) {
+                    return { ...(c as any), lastMessage: String(msg?.message ?? (c as any).lastMessage ?? '') } as any;
+                  }
+                } catch (e) {}
+                return c;
+              });
+            } catch (e) {}
+          }
+        } catch (e) {}
+      });
+    } catch (e) {}
 
     this.search$
       .pipe(takeUntil(this.destroy$))
@@ -105,6 +178,30 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
           const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
           let incoming: any[] = [];
+    // Escuchar eliminaciones de mensajes desde el servidor
+    try {
+      this.websocketService.onMessageDeleted().pipe(takeUntil(this.destroy$)).subscribe(payload => {
+        try {
+          const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id);
+          const messageId = Number(payload?.messageId ?? payload?.messageID ?? payload?.message_id ?? payload?.id);
+          if (!chatId || !messageId) return;
+          if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
+            try { this.messages = this.messages.filter(m => Number((m as any)?.id) !== messageId); } catch (e) {}
+          } else {
+            // If chat not opened, adjust chat preview if needed
+            const cidx = this.chats.findIndex(c => Number((c as any)?.id) === chatId);
+            if (cidx > -1) {
+              try {
+                const lm = (this.chats[cidx] as any).lastMessage;
+                if (lm && typeof lm === 'string' && lm.includes(String(messageId))) {
+                  (this.chats[cidx] as any).lastMessage = '';
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (e) {}
+      });
+    } catch (e) {}
           if (Array.isArray(payload?.messages)) incoming = payload.messages;
           else if (payload?.message) incoming = Array.isArray(payload.message) ? payload.message : [payload.message];
 
@@ -269,6 +366,14 @@ export class ChatsComponent implements OnInit, OnDestroy {
     this.messages = [];
     this.messagesCursor = null;
     this.hasMoreMessages = true;
+    
+    try {
+      const idx = this.chats.findIndex(c => String((c as any)?.id) === String((chat as any)?.id));
+      if (idx > -1) {
+        try { (this.chats[idx] as any).unread = 0; } catch (e) {}
+      }
+      try { (this.selectedChat as any).unread = 0; } catch (e) {}
+    } catch (e) {}
     try {
       const current = this.route.snapshot.queryParamMap.get('chat');
       if (String(current) !== String((chat as any).id)) {
@@ -341,6 +446,19 @@ export class ChatsComponent implements OnInit, OnDestroy {
             const first = this.messages[0];
             if (first?.createdAt && first?.id) this.messagesCursor = `${first.createdAt}_${first.id}`;
           }
+              // Reconcile with any last-edited message that arrived before we subscribed
+              try {
+                const last = (this.websocketService as any).getLastMessageEdited ? (this.websocketService as any).getLastMessageEdited() : null;
+                if (last && Number(last.chatId) === Number(chatId)) {
+                  const msg = last.message ?? last.msg ?? null;
+                  if (msg && msg.id) {
+                    this.messages = this.messages.map(m => {
+                      try { if (Number((m as any)?.id) === Number(msg.id)) return { ...(m as any), message: (msg?.message ?? msg?.msg ?? (m as any).message) } as any; } catch (e) {}
+                      return m;
+                    });
+                  }
+                }
+              } catch (e) {}
           setTimeout(() => {
             try { this.messagesView?.bindMediaLoadHandlers(); } catch (e) {}
             try { this.messagesView?.scrollToBottom(); } catch (e) {}
@@ -471,6 +589,8 @@ export class ChatsComponent implements OnInit, OnDestroy {
         try { this.toastService.error('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.'); } catch (e) {}
       }
     });
+    
+    
   }
 
   renderMessageText(m: IMessage): string { return m?.message ?? ''; }

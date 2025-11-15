@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { Observable, Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface Notification {
@@ -24,6 +25,13 @@ export class WebsocketService {
   private connectionStatus = new BehaviorSubject<boolean>(false);
   // messages/events subjects
   private messageSubject = new Subject<any>();
+  // Use ReplaySubject(1) so a late subscriber (opened after an edit was emitted)
+  // can still receive the most recent edit. This helps when components
+  // subscribe after the server emitted the 'message:edited' event.
+  private messageEditedSubject = new ReplaySubject<any>(1);
+  // store last edited payload so late consumers can query it synchronously
+  private _lastMessageEdited: any = null;
+  private messageDeletedSubject = new Subject<any>();
   private notificationMessageSubject = new Subject<any>();
   private unreadChatsSubject = new Subject<{ chatId: number; unreadInChat: number; totalUnreadChats: number }>();
   private joinedChatSubject = new Subject<{ chatId: number }>();
@@ -221,6 +229,22 @@ export class WebsocketService {
       this.messageSubject.next(payload);
     });
 
+    // Server notifies when a message is edited
+    this.msgSocket.on('message:edited', (payload: any) => {
+      try {
+        this.messageEditedSubject.next(payload);
+        // keep a copy for synchronous retrieval if needed
+        try { this._lastMessageEdited = payload; } catch (e) {}
+      } catch (e) {}
+    });
+
+    // Server notifies when a message is deleted
+    this.msgSocket.on('message:deleted', (payload: any) => {
+      try {
+        this.messageDeletedSubject.next(payload);
+      } catch (e) {}
+    });
+
     // Notification for users not in room
     this.msgSocket.on('notification:message', (payload: any) => {
       this.notificationMessageSubject.next(payload);
@@ -278,6 +302,8 @@ export class WebsocketService {
     this.msgSocket.off('disconnect');
     this.msgSocket.off('connect_error');
     this.msgSocket.off('message:new');
+    this.msgSocket.off('message:edited');
+    this.msgSocket.off('message:deleted');
     this.msgSocket.off('notification:message');
     this.msgSocket.off('joinedChat');
     this.msgSocket.off('leftChat');
@@ -455,8 +481,31 @@ export class WebsocketService {
     try { this.msgSocket.emit('sendMessage', { chatId, message: text }); } catch (e) { console.error(e); }
   }
 
+  /** Emit an edit message request via WS */
+  emitEditMessage(messageId: number, chatId?: number, newText?: string): void {
+    if (!this.msgSocket) { console.warn('Mensaje socket no inicializado, no se puede enviar editMessage'); return; }
+    try { this.msgSocket.emit('editMessage', { messageId, chatId, newText }); } catch (e) { console.error(e); }
+  }
+
+  /** Emit a delete message request via WS */
+  emitDeleteMessage(messageId: number, chatId?: number): void {
+    if (!this.msgSocket) { console.warn('Mensaje socket no inicializado, no se puede enviar deleteMessage'); return; }
+    try { this.msgSocket.emit('deleteMessage', { messageId, chatId }); } catch (e) { console.error(e); }
+  }
+
   // Observables to subscribe from components
   onMessageNew(): Observable<any> { return this.messageSubject.asObservable(); }
+  onMessageEdited(): Observable<any> {
+    // Wrap the subject into an observable that logs when components subscribe/unsubscribe
+    // Return the subject's observable directly (no extra debug wrapper)
+    return this.messageEditedSubject.asObservable();
+  }
+  /** Return the last message:edited payload (if any). Useful for components that
+   *  loaded after the edit arrived and need to reconcile state. */
+  getLastMessageEdited(): any {
+    return this._lastMessageEdited;
+  }
+  onMessageDeleted(): Observable<any> { return this.messageDeletedSubject.asObservable(); }
   onNotificationMessage(): Observable<any> { return this.notificationMessageSubject.asObservable(); }
   onUnreadChats(): Observable<{ chatId: number; unreadInChat: number; totalUnreadChats: number }> { return this.unreadChatsSubject.asObservable(); }
   onJoinedChat(): Observable<{ chatId: number }> { return this.joinedChatSubject.asObservable(); }

@@ -215,6 +215,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.subscribeToNotifications();
       }
 
+      // (temporary debug subscription removed)
+
   /**
    * Inicializar WebSocket cuando hay un token guardado y válido
    */
@@ -237,6 +239,8 @@ export class AppComponent implements OnInit, OnDestroy {
   link: notification.link
       });
     });
+
+    // (global debug listener removed)
   }
 
   /**
@@ -440,6 +444,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     // Desconectar WebSocket al destruir el componente
     this.websocketService.disconnect();
+    // (global debug listener was removed earlier)
   }
 
 }
