@@ -8,6 +8,7 @@ import { AlertService } from '../../services/alert.service';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MessageService } from '../../../core/services/message.service';
+import { WebsocketService } from '../../../core/services/websocket.service';
 
 interface Chat {
   id: number;
@@ -78,6 +79,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     private alertService: AlertService,
     private messageService: MessageService
     ,
+    private websocketService: WebsocketService,
     private renderer: Renderer2
   ) {}
 
@@ -90,6 +92,40 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isAuthenticated = !!user;
         if (this.isAuthenticated) {
           this.loadChats(true);
+          try {
+            const token = this.authService.getAccessToken();
+            if (token && !this.websocketService.isMessageConnected()) {
+              try { this.websocketService.connectMessages(token); } catch (e) {}
+            }
+          } catch (e) {}
+          // Subscribe to new chat events to update list in real time
+          try {
+            this.websocketService.onChatNew().pipe(takeUntil(this.destroy$)).subscribe((payload: any) => {
+              try {
+                const chat = payload?.chat ?? payload;
+                if (!chat || !chat.id) return;
+                const cid = Number(chat.id);
+                const existingIdx = this.chats.findIndex(c => Number((c as any)?.id) === cid);
+                const mapped = {
+                  id: cid,
+                  name: chat?.chatName ?? chat?.name ?? `Chat ${cid}`,
+                  lastMessage: (chat?.lastMessage?.message ?? chat?.lastMessageText ?? '') as string,
+                  avatar: chat?.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(chat?.chatName ?? (chat?.name || `Chat ${cid}`))}`,
+                  unread: Number(chat?.unread ?? 0) || 0,
+                  participants: Number(chat?.participants ?? 0) || 0,
+                  time: chat?.lastMessageAt ?? chat?.updatedAt ?? chat?.createdAt ?? ''
+                } as Chat;
+
+                if (existingIdx > -1) {
+                  // Update existing chat and move to top
+                  try { this.chats[existingIdx] = { ...(this.chats[existingIdx] as any), ...mapped }; } catch (e) {}
+                } else {
+                  // Prepend new chat to the list
+                  try { this.chats = [mapped, ...this.chats]; } catch (e) {}
+                }
+              } catch (e) {}
+            });
+          } catch (e) {}
         } else {
           
           this.chats = [];

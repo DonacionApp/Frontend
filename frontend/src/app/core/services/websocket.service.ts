@@ -39,6 +39,7 @@ export class WebsocketService {
   private leftChatSubject = new Subject<{ chatId: number }>();
   private chatReadSubject = new Subject<{ chatId: number; userId: number }>();
   private joinedChats = new Set<number>();
+  private chatNewSubject = new Subject<any>();
 
   // Observable público para que los componentes se suscriban
   public notification$ = this.notificationSubject.asObservable();
@@ -229,6 +230,15 @@ export class WebsocketService {
       this.messageSubject.next(payload);
     });
 
+    this.msgSocket.on('chat:new', (payload: any) => {
+      try {
+        let safe: any = payload;
+        console.log('chat:new payload received:', payload);
+        try { safe = (typeof structuredClone === 'function') ? structuredClone(payload) : JSON.parse(JSON.stringify(payload)); } catch (e) { safe = payload; }
+        this.chatNewSubject.next(safe);
+      } catch (e) {}
+    });
+
     this.msgSocket.on('message:edited', (payload: any) => {
       try {
         let safePayload: any = payload;
@@ -307,6 +317,7 @@ export class WebsocketService {
     this.msgSocket.off('message:new');
     this.msgSocket.off('message:edited');
     this.msgSocket.off('message:deleted');
+    this.msgSocket.off('chat:new');
     this.msgSocket.off('notification:message');
     this.msgSocket.off('joinedChat');
     this.msgSocket.off('leftChat');
@@ -485,6 +496,7 @@ export class WebsocketService {
   }
   onMessageDeleted(): Observable<any> { return this.messageDeletedSubject.asObservable(); }
   getLastMessageDeleted(): any { return this._lastMessageDeleted; }
+  onChatNew(): Observable<any> { return this.chatNewSubject.asObservable(); }
   onNotificationMessage(): Observable<any> { return this.notificationMessageSubject.asObservable(); }
   onUnreadChats(): Observable<{ chatId: number; unreadInChat: number; totalUnreadChats: number }> { return this.unreadChatsSubject.asObservable(); }
   onJoinedChat(): Observable<{ chatId: number }> { return this.joinedChatSubject.asObservable(); }

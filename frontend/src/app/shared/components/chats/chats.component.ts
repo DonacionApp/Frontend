@@ -113,6 +113,40 @@ export class ChatsComponent implements OnInit, OnDestroy {
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(u => {
       this.currentUserId = u?.id ?? null;
       this.currentUser = u ?? null;
+      // Ensure messages socket connected when user is present
+      try {
+        const token = this.authService.getAccessToken();
+        if (token && !this.websocketService.isMessageConnected()) {
+          try { this.websocketService.connectMessages(token); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Subscribe to new chat events to update the chats list in real time
+      try {
+        this.websocketService.onChatNew().pipe(takeUntil(this.destroy$)).subscribe((payload: any) => {
+          try {
+            const chat = payload?.chat ?? payload;
+            if (!chat || !chat.id) return;
+            const cid = Number(chat.id);
+            const existingIdx = this.chats.findIndex(c => Number((c as any)?.id) === cid);
+            const mapped: IChat = {
+              id: cid,
+              chatName: chat?.chatName ?? chat?.name ?? `Chat ${cid}`,
+              lastMessage: chat?.lastMessage?.message ?? chat?.lastMessageText ?? '',
+              avatar: chat?.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(chat?.chatName ?? (chat?.name || `Chat ${cid}`))}`,
+              unread: Number(chat?.unread ?? 0) || 0,
+              participants: Number(chat?.participants ?? 0) || 0,
+              time: chat?.lastMessageAt ?? chat?.updatedAt ?? chat?.createdAt ?? ''
+            } as any;
+
+            if (existingIdx > -1) {
+              try { this.chats[existingIdx] = { ...(this.chats[existingIdx] as any), ...mapped }; } catch (e) {}
+            } else {
+              try { this.chats = [mapped, ...this.chats]; } catch (e) {}
+            }
+          } catch (e) {}
+        });
+      } catch (e) {}
     });
 
     // Subscribe early to edited/deleted message events so we don't miss edits
