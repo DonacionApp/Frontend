@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntil } from 'rxjs/operators';
@@ -61,6 +61,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
     private toastService: ToastService,
     private router: Router,
     private route: ActivatedRoute
+    , private cd: ChangeDetectorRef
   ) {}
 
   // Handler para editar mensaje (emitido desde MessagesViewComponent)
@@ -148,7 +149,35 @@ export class ChatsComponent implements OnInit, OnDestroy {
           }
         } catch (e) {}
       });
-    } catch (e) {}
+      } catch (e) {}
+
+      // Subscribe to deletions once (not nested) so we don't miss them
+      try {
+        this.websocketService.onMessageDeleted().pipe(takeUntil(this.destroy$)).subscribe(payload => {
+          try {
+            const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id);
+            const messageId = Number(payload?.messageId ?? payload?.messageID ?? payload?.message_id ?? payload?.id);
+            if (!chatId || !messageId) return;
+            if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
+              try {
+                this.messages = this.messages.filter(m => Number((m as any)?.id) !== messageId);
+              } catch (e) {}
+              try { this.messagesView?.bindMediaLoadHandlers(); } catch (e) {}
+              try { this.cd.detectChanges(); } catch (e) {}
+            } else {
+              const cidx = this.chats.findIndex(c => Number((c as any)?.id) === chatId);
+              if (cidx > -1) {
+                try {
+                  const lm = (this.chats[cidx] as any).lastMessage;
+                  if (lm && typeof lm === 'string' && lm.includes(String(messageId))) {
+                    (this.chats[cidx] as any).lastMessage = '';
+                  }
+                } catch (e) {}
+              }
+            }
+          } catch (e) {}
+        });
+      } catch (e) {}
 
     this.search$
       .pipe(takeUntil(this.destroy$))
@@ -174,34 +203,10 @@ export class ChatsComponent implements OnInit, OnDestroy {
     try {
       this.websocketService.onMessageNew().pipe(takeUntil(this.destroy$)).subscribe(payload => {
         try {
-          console.debug('[ChatsComponent] onMessageNew payload ->', payload);
 
           const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
           let incoming: any[] = [];
-    // Escuchar eliminaciones de mensajes desde el servidor
-    try {
-      this.websocketService.onMessageDeleted().pipe(takeUntil(this.destroy$)).subscribe(payload => {
-        try {
-          const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id);
-          const messageId = Number(payload?.messageId ?? payload?.messageID ?? payload?.message_id ?? payload?.id);
-          if (!chatId || !messageId) return;
-          if (this.selectedChat && Number(this.selectedChat.id) === chatId) {
-            try { this.messages = this.messages.filter(m => Number((m as any)?.id) !== messageId); } catch (e) {}
-          } else {
-            // If chat not opened, adjust chat preview if needed
-            const cidx = this.chats.findIndex(c => Number((c as any)?.id) === chatId);
-            if (cidx > -1) {
-              try {
-                const lm = (this.chats[cidx] as any).lastMessage;
-                if (lm && typeof lm === 'string' && lm.includes(String(messageId))) {
-                  (this.chats[cidx] as any).lastMessage = '';
-                }
-              } catch (e) {}
-            }
-          }
-        } catch (e) {}
-      });
-    } catch (e) {}
+    
           if (Array.isArray(payload?.messages)) incoming = payload.messages;
           else if (payload?.message) incoming = Array.isArray(payload.message) ? payload.message : [payload.message];
 
@@ -456,6 +461,17 @@ export class ChatsComponent implements OnInit, OnDestroy {
                       try { if (Number((m as any)?.id) === Number(msg.id)) return { ...(m as any), message: (msg?.message ?? msg?.msg ?? (m as any).message) } as any; } catch (e) {}
                       return m;
                     });
+                  }
+                }
+              } catch (e) {}
+              // Reconcile with any last-deleted message that arrived before we subscribed
+              try {
+                const lastDel = (this.websocketService as any).getLastMessageDeleted ? (this.websocketService as any).getLastMessageDeleted() : null;
+                if (lastDel && Number(lastDel.chatId) === Number(chatId)) {
+                  const mid = Number(lastDel.messageId ?? lastDel.messageID ?? lastDel.message_id ?? lastDel.id ?? lastDel.message?.id ?? 0) || 0;
+                  if (mid) {
+                    this.messages = this.messages.filter(m => Number((m as any)?.id) !== mid);
+                    try { this.cd.detectChanges(); } catch (e) {}
                   }
                 }
               } catch (e) {}

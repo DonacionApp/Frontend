@@ -31,7 +31,8 @@ export class WebsocketService {
   private messageEditedSubject = new ReplaySubject<any>(1);
   // store last edited payload so late consumers can query it synchronously
   private _lastMessageEdited: any = null;
-  private messageDeletedSubject = new Subject<any>();
+  private messageDeletedSubject = new ReplaySubject<any>(1);
+  private _lastMessageDeleted: any = null;
   private notificationMessageSubject = new Subject<any>();
   private unreadChatsSubject = new Subject<{ chatId: number; unreadInChat: number; totalUnreadChats: number }>();
   private joinedChatSubject = new Subject<{ chatId: number }>();
@@ -225,27 +226,31 @@ export class WebsocketService {
           } catch (e) {}
       } catch (e) {}
 
-      // keep existing behavior for subscribers
       this.messageSubject.next(payload);
     });
 
-    // Server notifies when a message is edited
     this.msgSocket.on('message:edited', (payload: any) => {
       try {
-        this.messageEditedSubject.next(payload);
-        // keep a copy for synchronous retrieval if needed
-        try { this._lastMessageEdited = payload; } catch (e) {}
+        let safePayload: any = payload;
+        try {
+          safePayload = (typeof structuredClone === 'function') ? structuredClone(payload) : JSON.parse(JSON.stringify(payload));
+        } catch (e) { safePayload = payload; }
+        this.messageEditedSubject.next(safePayload);
+        try { this._lastMessageEdited = safePayload; } catch (e) {}
       } catch (e) {}
     });
 
-    // Server notifies when a message is deleted
     this.msgSocket.on('message:deleted', (payload: any) => {
       try {
-        this.messageDeletedSubject.next(payload);
+        let safePayloadDel: any = payload;
+        try {
+          safePayloadDel = (typeof structuredClone === 'function') ? structuredClone(payload) : JSON.parse(JSON.stringify(payload));
+        } catch (e) { safePayloadDel = payload; }
+        this.messageDeletedSubject.next(safePayloadDel);
+        try { this._lastMessageDeleted = safePayloadDel; } catch (e) {}
       } catch (e) {}
     });
 
-    // Notification for users not in room
     this.msgSocket.on('notification:message', (payload: any) => {
       this.notificationMessageSubject.next(payload);
     });
@@ -281,9 +286,7 @@ export class WebsocketService {
     });
   }
 
-  /**
-   * Remover todos los listeners del socket para evitar memory leaks
-   */
+  
   private removeListeners(): void {
     if (!this.socket) return;
     
@@ -312,11 +315,8 @@ export class WebsocketService {
     this.msgSocket.off('notification:unreadChats');
   }
 
-  /**
-   * Desconectar del servidor WebSocket
-   */
   disconnect(): void {
-    // Disconnect notification socket
+   
     if (this.socket) {
       this.removeListeners();
       try { this.socket.disconnect(); } catch (e) {}
@@ -324,7 +324,7 @@ export class WebsocketService {
       this.connectionStatus.next(false);
     }
 
-    // Disconnect message socket if exists
+   
     if (this.msgSocket) {
       this.removeMessageListeners();
       try { this.msgSocket.disconnect(); } catch (e) {}
@@ -332,9 +332,7 @@ export class WebsocketService {
     }
   }
 
-  /**
-   * Reconectar WebSocket con nuevo token (usado cuando el token se renueva)
-   */
+ 
   reconnectWithNewToken(newToken: string): void {
     const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
     if (debugFlag) {
@@ -353,11 +351,10 @@ export class WebsocketService {
     }
 
     if (!this.socket) {
-      // No hay socket inicializado: intentar conectar directamente con el nuevo token
-  // No active socket, attempting to connect with new token
+      
       try {
         this.connect(newToken);
-        // also reconnect message socket if it existed before
+        
         if (this.msgSocket !== null) this.connectMessages(newToken);
       } catch (e) {
         console.error('Error intentando conectar WebSocket con nuevo token:', e);
@@ -365,13 +362,12 @@ export class WebsocketService {
       return;
     }
     
-    // Si el socket está conectado, no hacer nada (evitar desconexiones innecesarias)
+   
     if (this.socket.connected) {
       return;
     }
     
-    // Si no está conectado, reconectar con el nuevo token
-  // Reconnecting WebSocket with new token
+    
     this.disconnect();
     this.connect(newToken);
     if (this.msgSocket !== null) {
@@ -379,21 +375,16 @@ export class WebsocketService {
     }
   }
 
-  /**
-   * Verificar si está conectado
-   */
+ 
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
 
-  /** Check if message socket is connected */
+ 
   isMessageConnected(): boolean {
     return this.msgSocket?.connected || false;
   }
 
-  /**
-   * Emitir un evento al servidor
-   */
   emit(event: string, data: any): void {
     if (this.socket?.connected) {
       this.socket.emit(event, data);
@@ -402,7 +393,7 @@ export class WebsocketService {
     }
   }
 
-  /** Emit to message socket */
+  
   emitMessage(event: string, data: any): void {
     if (this.msgSocket?.connected) {
       this.msgSocket.emit(event, data);
@@ -411,9 +402,7 @@ export class WebsocketService {
     }
   }
 
-  /**
-   * Marcar una notificación como leída (usa el evento markAsRead del backend)
-   */
+  
   markNotificationAsRead(notificationId: number): Promise<{ success: boolean; notificationId?: number; message?: string; error?: string }> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
@@ -421,10 +410,10 @@ export class WebsocketService {
         return;
       }
 
-      // El backend espera el evento 'markAsRead' con { notificationId: number }
+     
       this.socket.emit('markAsRead', { notificationId }, (response: any) => {
         if (response?.success) {
-          // Notification marked as read
+          
           resolve(response);
         } else {
           console.error('❌ Error al marcar notificación como leída:', response?.error);
@@ -434,9 +423,7 @@ export class WebsocketService {
     });
   }
 
-  /**
-   * Obtener notificaciones del servidor (usa el evento getNotifications del backend)
-   */
+  
   getNotifications(): Promise<{ success: boolean; message?: string; error?: string }> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
@@ -454,7 +441,6 @@ export class WebsocketService {
     });
   }
 
-  /** Join a chat room via WS */
   joinChat(chatId: number): void {
     if (!this.msgSocket) {
       console.warn('Mensaje socket no inicializado, no se puede joinChat');
@@ -466,7 +452,6 @@ export class WebsocketService {
     } catch (e) { console.error(e); }
   }
 
-  /** Leave a chat room via WS */
   leaveChat(chatId: number): void {
     if (!this.msgSocket) return;
     try {
@@ -475,46 +460,37 @@ export class WebsocketService {
     } catch (e) { console.error(e); }
   }
 
-  /** Send a text message via WS (server expects sendMessage event) */
+  
   sendTextMessage(chatId: number, text: string): void {
     if (!this.msgSocket) return;
     try { this.msgSocket.emit('sendMessage', { chatId, message: text }); } catch (e) { console.error(e); }
   }
 
-  /** Emit an edit message request via WS */
   emitEditMessage(messageId: number, chatId?: number, newText?: string): void {
     if (!this.msgSocket) { console.warn('Mensaje socket no inicializado, no se puede enviar editMessage'); return; }
     try { this.msgSocket.emit('editMessage', { messageId, chatId, newText }); } catch (e) { console.error(e); }
   }
 
-  /** Emit a delete message request via WS */
   emitDeleteMessage(messageId: number, chatId?: number): void {
     if (!this.msgSocket) { console.warn('Mensaje socket no inicializado, no se puede enviar deleteMessage'); return; }
     try { this.msgSocket.emit('deleteMessage', { messageId, chatId }); } catch (e) { console.error(e); }
   }
 
-  // Observables to subscribe from components
   onMessageNew(): Observable<any> { return this.messageSubject.asObservable(); }
   onMessageEdited(): Observable<any> {
-    // Wrap the subject into an observable that logs when components subscribe/unsubscribe
-    // Return the subject's observable directly (no extra debug wrapper)
     return this.messageEditedSubject.asObservable();
   }
-  /** Return the last message:edited payload (if any). Useful for components that
-   *  loaded after the edit arrived and need to reconcile state. */
   getLastMessageEdited(): any {
     return this._lastMessageEdited;
   }
   onMessageDeleted(): Observable<any> { return this.messageDeletedSubject.asObservable(); }
+  getLastMessageDeleted(): any { return this._lastMessageDeleted; }
   onNotificationMessage(): Observable<any> { return this.notificationMessageSubject.asObservable(); }
   onUnreadChats(): Observable<{ chatId: number; unreadInChat: number; totalUnreadChats: number }> { return this.unreadChatsSubject.asObservable(); }
   onJoinedChat(): Observable<{ chatId: number }> { return this.joinedChatSubject.asObservable(); }
   onLeftChat(): Observable<{ chatId: number }> { return this.leftChatSubject.asObservable(); }
   onChatRead(): Observable<{ chatId: number; userId: number }> { return this.chatReadSubject.asObservable(); }
 
-  /**
-   * Escuchar un evento específico del servidor
-   */
   on(event: string): Observable<any> {
     return new Observable(observer => {
       if (!this.socket) {
@@ -528,7 +504,6 @@ export class WebsocketService {
 
       this.socket.on(event, handler);
 
-      // Cleanup cuando se desuscriba
       return () => {
         if (this.socket) {
           this.socket.off(event, handler);
