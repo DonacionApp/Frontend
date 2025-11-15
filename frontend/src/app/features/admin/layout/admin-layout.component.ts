@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 interface MenuItem {
@@ -14,7 +15,7 @@ interface MenuItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DatePipe],
   templateUrl: './admin-layout.component.html',
   styleUrls: ['./admin-layout.component.scss']
 })
@@ -24,6 +25,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   user: User | null = null;
   isSidebarOpen = true;
   currentRoute = '';
+  unreadNotificationsCount = 0;
+  showNotificationsDropdown = false;
+  notifications: any[] = [];
   
   menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/admin' },
@@ -45,7 +49,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -53,6 +58,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {
         this.user = user;
+        if (user) {
+          this.loadNotifications();
+        }
       });
 
     // Detectar ruta actual
@@ -66,6 +74,75 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
       });
     
     this.currentRoute = this.router.url;
+
+    // Suscribirse al contador de notificaciones no leídas
+    this.notificationService.unreadCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        this.unreadNotificationsCount = count;
+      });
+
+    // Suscribirse a las notificaciones
+    this.notificationService.notifications$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(notifications => {
+        this.notifications = Array.isArray(notifications) ? notifications : [];
+      });
+  }
+
+  /**
+   * Cargar notificaciones del admin
+   */
+  loadNotifications(): void {
+    this.notificationService.getMyNotifications()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          // Las notificaciones se actualizan automáticamente via BehaviorSubject
+        },
+        error: (error) => {
+          if (error?.status !== 404) {
+            console.error('Error loading notifications:', error);
+          }
+        }
+      });
+  }
+
+  /**
+   * Toggle dropdown de notificaciones
+   */
+  toggleNotificationsDropdown(): void {
+    this.showNotificationsDropdown = !this.showNotificationsDropdown;
+  }
+
+  /**
+   * Ir al centro de notificaciones
+   */
+  goToNotificationsCenter(): void {
+    this.router.navigate(['/notifications']);
+    this.showNotificationsDropdown = false;
+  }
+
+  /**
+   * Ir al perfil del admin
+   * Mantiene al admin dentro del panel de administración
+   */
+  goToProfile(): void {
+    if (this.user?.id) {
+      // Navegar a la ruta de perfil dentro del admin panel
+      this.router.navigate(['/admin/profile']);
+    }
+  }
+
+  /**
+   * Cerrar dropdown al hacer clic fuera
+   */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.notification-dropdown-container')) {
+      this.showNotificationsDropdown = false;
+    }
   }
 
   ngOnDestroy(): void {

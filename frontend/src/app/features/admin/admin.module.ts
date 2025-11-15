@@ -48,7 +48,12 @@ const routes: Routes = [
         canActivate: [AdminGuard]
       },
       { 
-        path: 'support-identification', 
+        path: 'organizations', 
+        loadComponent: () => import('./organizations/organizations.component').then(m => m.OrganizationsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'support-identification',
         loadComponent: () => import('./support-identification/support-identification.component').then(m => m.SupportIdentificationComponent),
         canActivate: [AdminGuard]
       },
@@ -75,6 +80,11 @@ const routes: Routes = [
       { 
         path: 'chats', 
         loadComponent: () => import('./chats/chats.component').then(m => m.ChatsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'profile', 
+        loadComponent: () => import('./profile/admin-profile.component').then(m => m.AdminProfileComponent),
         canActivate: [AdminGuard]
       },
     ]

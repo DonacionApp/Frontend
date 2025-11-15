@@ -270,7 +270,11 @@ export class UsersComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (users) => {
-          this.users = users;
+          // Filtrar solo usuarios normales (no organizaciones, no admins)
+          this.users = users.filter(user => {
+            const role = user.rol?.rol?.toLowerCase();
+            return role === 'user' || role === 'donor' || role === 'donante';
+          });
           this.loading = false;
         },
         error: (error) => {
