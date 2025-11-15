@@ -1,16 +1,16 @@
 import { Injectable, Injector } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
   private lastTokenUpdate = 0;
   private TOKEN_UPDATE_COOLDOWN = 30000;
+  private isRefreshing = false;
+  private refreshTokenSubject: Observable<any> | null = null;
 
   constructor(private injector: Injector) {}
 
@@ -32,13 +32,10 @@ export class AuthInterceptor implements HttpInterceptor {
           }
         }),
         catchError((error: HttpErrorResponse) => {
-          // Intentar capturar token incluso desde respuestas de error
-          this.captureNewToken(error);
-
+          // Si es un error 401 (Unauthorized), intentar refrescar el token
           if (error.status === 401 && !this.isAuthRequest(req.url)) {
-            return this.handle401Error(req, next);
+            return this.handle401Error(req, next, authService);
           }
-
           return throwError(() => error);
         })
       );
@@ -47,8 +44,79 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(req);
   }
 
+  private handle401Error(
+    request: HttpRequest<any>,
+    next: HttpHandler,
+    authService: AuthService
+  ): Observable<HttpEvent<any>> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    const currentUser = authService.getCurrentUser();
+
+    // Si no hay refreshToken o usuario, no intentar refrescar
+    if (!refreshToken || !currentUser) {
+      // No cerrar sesión automáticamente - dejar que el backend maneje
+      return throwError(() => new HttpErrorResponse({
+        error: 'No hay refresh token disponible',
+        status: 401,
+        statusText: 'Unauthorized'
+      }));
+    }
+
+    // Si ya hay un refresh en progreso, esperar a que termine
+    if (this.isRefreshing && this.refreshTokenSubject) {
+      return this.refreshTokenSubject.pipe(
+        switchMap(() => {
+          const newToken = authService.getAccessToken();
+          const newRequest = newToken ? this.addTokenHeader(request, newToken) : request;
+          return next.handle(newRequest);
+        })
+      );
+    }
+
+    // Iniciar el refresh
+    this.isRefreshing = true;
+    this.refreshTokenSubject = authService.refreshToken().pipe(
+      switchMap((response) => {
+        this.isRefreshing = false;
+        this.refreshTokenSubject = null;
+        
+        const newToken = authService.getAccessToken();
+        
+        if (!newToken) {
+          return throwError(() => new Error('No se pudo obtener el nuevo token después del refresh'));
+        }
+
+        // Reintentar la petición original con el nuevo token
+        const newRequest = this.addTokenHeader(request, newToken);
+        return next.handle(newRequest);
+      }),
+      catchError((err) => {
+        this.isRefreshing = false;
+        this.refreshTokenSubject = null;
+        
+        // No cerrar sesión automáticamente - dejar que el componente maneje el error
+        // El backend puede retornar un refresh token en la próxima petición exitosa
+        return throwError(() => err);
+      })
+    );
+
+    return this.refreshTokenSubject;
+  }
+
   private captureNewToken(response: any): void {
     if (!response) return;
+
+    const authServiceInstance = this.injector.get(AuthService);
+    
+    // SOLO capturar tokens si ya hay un usuario autenticado
+    // Esto previene que se guarden tokens automáticamente sin que el usuario haya iniciado sesión
+    const currentToken = authServiceInstance.getAccessToken();
+    const currentUser = authServiceInstance.getCurrentUser();
+    
+    // Si no hay token ni usuario actual, NO capturar tokens automáticamente
+    if (!currentToken || !currentUser) {
+      return;
+    }
 
     const getHeader = (name: string) => {
       try {
@@ -59,10 +127,12 @@ export class AuthInterceptor implements HttpInterceptor {
     };
 
     const newToken: string | null = getHeader('X-New-Token');
-
     const newRefreshToken: string | null = getHeader('X-New-Refresh-Token') || getHeader('X-New-Refresh');
 
     if (!newToken && !newRefreshToken) return;
+
+    // Verificar que el nuevo token sea diferente al actual
+    if (newToken && currentToken === newToken) return;
 
     const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
     if (debugFlag) {
@@ -74,43 +144,30 @@ export class AuthInterceptor implements HttpInterceptor {
       } catch (e) {}
     }
 
-  const authServiceInstance = this.injector.get(AuthService);
-  const currentToken = authServiceInstance.getAccessToken();
-  if (newToken && currentToken === newToken) return;
-
     const now = Date.now();
     const isInCooldown = now - this.lastTokenUpdate < this.TOKEN_UPDATE_COOLDOWN;
-  const isSignificant = currentToken ? (newToken ? this.isSignificantTokenChange(currentToken, newToken) : true) : true;
+    const isSignificant = newToken ? this.isSignificantTokenChange(currentToken, newToken) : true;
 
     if ((isInCooldown && !isSignificant) || !isSignificant) {
       return;
     }
 
     try {
-      authServiceInstance.setAccessToken(newToken);
-      this.lastTokenUpdate = now;
+      if (newToken) {
+        authServiceInstance.setAccessToken(newToken);
+        this.lastTokenUpdate = now;
+        authServiceInstance.updateTokenSilently(newToken);
+      }
     } catch (e) {
-      console.error('No se pudo actualizar accessToken en memoria:', e);
+      console.error('No se pudo actualizar accessToken:', e);
     }
 
     if (newRefreshToken) {
       try {
         authServiceInstance.updateRefreshTokenSilently(newRefreshToken);
       } catch (e) {
-        try {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        } catch (inner) {
-          console.error('No se pudo guardar refreshToken:', inner);
-        }
+        console.error('No se pudo guardar refreshToken:', e);
       }
-    }
-
-    try {
-      if (newToken) {
-        authServiceInstance.updateTokenSilently(newToken);
-      }
-    } catch (error) {
-      console.error('Error notificando cambio de token:', error);
     }
   }
   
@@ -170,83 +227,5 @@ export class AuthInterceptor implements HttpInterceptor {
     });
   }
 
-  private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const authService = this.injector.get(AuthService);
 
-    const capturedToken = authService.getAccessToken();
-    const debugFlagLocal = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
-    if (debugFlagLocal) {
-      try { console.debug('[AuthInterceptor] handle401Error - capturedToken present:', !!capturedToken); } catch (e) {}
-      try { console.debug('[AuthInterceptor] handle401Error - stored refreshToken present:', !!localStorage.getItem('refreshToken')); } catch (e) {}
-    }
-    if (capturedToken) {
-      this.refreshTokenSubject.next(capturedToken);
-      return next.handle(this.addTokenHeader(request, capturedToken));
-    }
-    const storedRefresh = localStorage.getItem('refreshToken');
-    if (!storedRefresh) {
-      console.warn('No hay refreshToken almacenado y no se capturó token: no se intentará refresh automático');
-      return throwError(() => new Error('No refresh token available'));
-    }
-
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      return authService.refreshToken().pipe(
-        switchMap((res: any) => {
-          this.isRefreshing = false;
-
-          const newToken = res?.access_token || res?.accessToken || res?.token || 
-                          authService.getAccessToken();
-
-          if (newToken) {
-            this.refreshTokenSubject.next(newToken);
-            return next.handle(this.addTokenHeader(request, newToken));
-          }
-
-          console.error('No se recibió un nuevo token después del refresh');
-          authService.logoutAndRedirect();
-          return throwError(() => new Error('No se pudo refrescar el token'));
-        }),
-        catchError((err) => {
-          this.isRefreshing = false;
-          this.refreshTokenSubject.next(null);
-
-          const isTokenError = err?.status === 401 || 
-                               err?.status === 403 || 
-                               err?.status === 400 ||
-                               err?.message?.includes('token') ||
-                               err?.message?.includes('expired') ||
-                               err?.message?.includes('invalid');
-
-          if (isTokenError) {
-            console.error('Error de autenticación al refrescar token:', err);
-            authService.logoutAndRedirect();
-          } else {
-            authService.logout();
-          }
-
-          return throwError(() => err);
-        })
-      );
-    } else {
-      return this.refreshTokenSubject.pipe(
-        filter(token => token !== null),
-        take(1),
-        switchMap((token) => {
-          if (token) {
-            return next.handle(this.addTokenHeader(request, token));
-          } else {
-            authService.logoutAndRedirect();
-            return throwError(() => new Error('Token refresh failed'));
-          }
-        }),
-        catchError((err) => {
-          authService.logoutAndRedirect();
-          return throwError(() => err);
-        })
-      );
-    }
-  }
 }

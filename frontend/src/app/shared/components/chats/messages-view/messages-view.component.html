@@ -1,8 +1,6 @@
 <div #messagesScrollRef 
-  class="flex-1 overflow-auto p-4 messages-scroll" 
-  (scroll)="onScroll($event)"
-  [style.maxHeight.px]="maxHeight"
-  [style.overflowY]="'auto'">
+  class="messages-scroll" 
+  (scroll)="onScroll($event)">
      
   <div *ngIf="loadingMessages && (!messages || messages.length === 0)" class="text-sm text-gray-500 mb-2">Cargando mensajes...</div>
   <div *ngIf="loadingMessages && messages && messages.length > 0" class="text-sm text-gray-500 mb-2">

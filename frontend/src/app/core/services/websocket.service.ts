@@ -122,49 +122,56 @@ export class WebsocketService {
     this.setupMessageListeners();
   }
 
-  /**
-   * Configurar listeners de eventos del socket
-   */
   private setupListeners(): void {
     if (!this.socket) return;
 
-    // Limpiar listeners anteriores si existen (evitar duplicados)
     this.removeListeners();
 
-    // Timeout para advertencia de no recepción de notificaciones
-    let notificationTimeout: any = setTimeout(() => {
-      console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
-    }, 30000);
+    let notificationTimeout: any = null;
 
-    // Evento: Conexión establecida (evento nativo de socket.io)
     this.socket.on('connect', () => {
       this.connectionStatus.next(true);
-      clearTimeout(notificationTimeout);
+      notificationTimeout = setTimeout(() => {
+        console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
+      }, 30000);
     });
 
-    // Evento: Conectado exitosamente (emitido por el backend después de validar el token)
-    // El backend emite este evento en handleConnection después de validar el token
     this.socket.on('connected', (data: { message: string; userId: number; userName: string; timestamp: Date }) => {
       this.connectionStatus.next(true);
-      clearTimeout(notificationTimeout);
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+      }
+      // Reiniciar timeout después de conexión confirmada
+      notificationTimeout = setTimeout(() => {
+        console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
+      }, 30000);
     });
 
     // Evento: Desconexión
     this.socket.on('disconnect', (reason) => {
       this.connectionStatus.next(false);
-      clearTimeout(notificationTimeout);
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+      }
     });
 
     // Evento: Error de conexión
     this.socket.on('connect_error', (error) => {
       console.error('❌ Error de conexión WebSocket:', error);
       this.connectionStatus.next(false);
-      clearTimeout(notificationTimeout);
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+      }
     });
 
     // Evento: Nueva notificación (emitido por el backend)
     this.socket.on('notification', (notification: Notification) => {
-      clearTimeout(notificationTimeout);
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+      }
       this.notificationSubject.next(notification);
     });
 
@@ -172,7 +179,10 @@ export class WebsocketService {
     this.socket.on('error', (error: any) => {
       console.error('❌ Error en WebSocket:', error);
       this.connectionStatus.next(false);
-      clearTimeout(notificationTimeout);
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+      }
     });
   }
 

@@ -101,7 +101,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
     try {
       this.websocketService.onMessageNew().pipe(takeUntil(this.destroy$)).subscribe(payload => {
         try {
-          // Incoming message payload processed below
+          console.debug('[ChatsComponent] onMessageNew payload ->', payload);
 
           const chatId = Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? (payload?.message?.chatId));
           let incoming: any[] = [];

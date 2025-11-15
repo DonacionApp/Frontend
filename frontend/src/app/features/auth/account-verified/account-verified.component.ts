@@ -110,8 +110,12 @@ export class AccountVerifiedComponent implements OnInit {
       loginTime: new Date().toISOString()
     };
     
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    localStorage.setItem('isLoggedIn', 'true');
+    try {
+      this.authService.setCurrentUser(userData as any);
+      try { localStorage.setItem('isLoggedIn', 'true'); } catch (e) {}
+    } catch (e) {
+      try { localStorage.setItem('currentUser', JSON.stringify(userData)); localStorage.setItem('isLoggedIn', 'true'); } catch (inner) {}
+    }
     
     // Usuario logueado exitosamente - mantener en la página actual
   // Usuario logueado exitosamente (simulado)

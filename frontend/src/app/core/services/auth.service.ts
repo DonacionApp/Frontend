@@ -2,8 +2,8 @@ import { Injectable, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError, switchMap } from 'rxjs/operators';
+import { Observable, throwError, Subject } from 'rxjs';
+import { tap, catchError, switchMap, map, startWith } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
 import { NotificationService } from './notification.service';
 
@@ -22,10 +22,13 @@ export interface User {
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
-  private accessTokenSubject = new BehaviorSubject<string | null>(null);
-  public accessToken$ = this.accessTokenSubject.asObservable();
+  // Usar localStorage como única fuente de verdad
+  // El Subject solo se usa como señal de cambio, NO almacena el valor (siempre se lee de localStorage)
+  private userChangeSignal = new Subject<void>();
+  public currentUser$ = this.userChangeSignal.pipe(
+    startWith(void 0),
+    map(() => this.getCurrentUser()) // Siempre lee de localStorage, nunca del Subject
+  );
   private readonly TOKEN_STORAGE_KEY = 'token';
   private baseUrl = environment.apiBaseUrl;
   private api=environment.apiBackendUrl;
@@ -37,17 +40,12 @@ export class AuthService {
     private notificationService: NotificationService,
     private injector: Injector
   ) {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      this.currentUserSubject.next(JSON.parse(savedUser));
-    }
     const token = localStorage.getItem(this.TOKEN_STORAGE_KEY);
-    if (token) {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (token && this.isTokenValid(token)) {
+      // Token válido - cargar usuario normalmente
       this.setAccessToken(token);
-      try {
-        this.websocketService.connect(token);
-        this.websocketService.connectMessages(token);
-      } catch (e) {}
       const payload = this.decodeToken(token);
       if (payload) {
         const rawRole = payload.role || payload.roles || payload.rol || 'donor';
@@ -60,13 +58,61 @@ export class AuthService {
           name: payload.name || '',
           verified: payload.verified || false
         };
-        this.currentUserSubject.next(user);
+        this.setCurrentUser(user);
       }
+    } else if (token && refreshToken) {
+      // Token expirado pero hay refreshToken - mantener sesión y cargar usuario
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        const payload = this.decodeToken(token);
+        if (payload) {
+          const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+          const normalizedRole = this.normalizeRole(rawRole);
+          
+          const user: User = {
+            id: payload.sub || payload.id || '',
+            email: payload.email || '',
+            role: normalizedRole,
+            name: payload.name || '',
+            verified: payload.verified || false
+          };
+          this.setCurrentUser(user);
+        }
+      }
+      // NO limpiar la sesión - el token se refrescará automáticamente en la próxima petición
+    } else if (token && !refreshToken) {
+      // Solo limpiar si hay token pero NO hay refreshToken Y NO hay usuario guardado
+      // Si hay usuario guardado, mantener la sesión ya que el backend puede retornar refresh token
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        this.clearAuthData();
+      }
+      // Si hay usuario guardado, mantener la sesión - el backend puede retornar refresh token
+    }
+  }
+  public getCurrentUser(): User | null {
+    try {
+      const s = localStorage.getItem('currentUser');
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  public setCurrentUser(user: User | null): void {
+    try {
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('currentUser');
+      }
+      this.userChangeSignal.next();
+    } catch (e) {
+      console.warn('No se pudo persistir currentUser en localStorage:', e);
     }
   }
 
   setAccessToken(token: string | null): void {
-    this.accessTokenSubject.next(token);
     try {
       if (token) {
         localStorage.setItem(this.TOKEN_STORAGE_KEY, token);
@@ -79,12 +125,14 @@ export class AuthService {
   }
 
   getAccessToken(): string | null {
-    const storage = localStorage.getItem(this.TOKEN_STORAGE_KEY);
-    return storage;
+    try {
+      return localStorage.getItem(this.TOKEN_STORAGE_KEY);
+    } catch (e) {
+      return null;
+    }
   }
 
   clearAccessToken(): void {
-    this.accessTokenSubject.next(null);
     try { localStorage.removeItem(this.TOKEN_STORAGE_KEY); } catch(e) {}
   }
 
@@ -195,8 +243,7 @@ export class AuthService {
             isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
             verified: payload?.verified || res.verified || false
           };
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          this.currentUserSubject.next(user);
+          this.setCurrentUser(user);
         }
       }),
       catchError(err => {
@@ -217,7 +264,7 @@ export class AuthService {
         try { console.debug('[AuthService] updateTokenSilently - newToken payload:', payload); } catch (e) {}
       }
       if (payload) {
-        const currentUser = this.currentUserSubject.value;
+        const currentUser = this.getCurrentUser();
         if (currentUser && currentUser.id === (payload.sub || payload.id)) {
           if (this.websocketService) {
             if ((environment as any)['debugWs'] || (environment as any)['debug']) {
@@ -267,7 +314,7 @@ export class AuthService {
     localStorage.removeItem('currentUser');
     this.clearAccessToken();
     localStorage.removeItem('refreshToken');
-    
+
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -276,10 +323,25 @@ export class AuthService {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    
-    this.currentUserSubject.next(null);
-    
-  this.websocketService.disconnect();
+
+    // Forzar que la app "olvide" al usuario en memoria sin recargar
+    try {
+      this.setCurrentUser(null);
+    } catch (e) {
+      console.warn('No se pudo limpiar currentUser en memoria:', e);
+    }
+
+    try {
+      this.websocketService.disconnect();
+    } catch (e) {}
+  }
+
+  /**
+   * Forzar olvido del usuario: limpia `localStorage.currentUser` y el BehaviorSubject
+   * Útil para cuando quieres que la app deje de tener usuario en memoria sin recargar.
+   */
+  public forgetCurrentUser(): void {
+    try { this.setCurrentUser(null); } catch (e) { console.warn('forgetCurrentUser error', e); }
   }
 
   logoutAndRedirect(): void {
@@ -298,7 +360,7 @@ export class AuthService {
   }
 
   get currentUserValue(): User | null {
-    return this.currentUserSubject.value;
+    return this.getCurrentUser();
   }
 
   isAuthenticated(): boolean {
@@ -339,7 +401,8 @@ export class AuthService {
     
     if (!refreshToken) {
       console.warn('⚠️ No hay refresh token disponible');
-      this.logoutAndRedirect();
+      // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+      // en la próxima petición exitosa
       return throwError(() => new Error('No hay refresh token disponible'));
     }
     const url = `${this.baseUrl}/refresh`;
@@ -405,8 +468,7 @@ export class AuthService {
               verified: payload.verified || false
             };
             
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            this.currentUserSubject.next(user);
+            this.setCurrentUser(user);
           }
           
           
@@ -455,8 +517,7 @@ export class AuthService {
                     verified: payload.verified || false
                   };
                   
-                  localStorage.setItem('currentUser', JSON.stringify(user));
-                  this.currentUserSubject.next(user);
+                  this.setCurrentUser(user);
                 }
                 
                 this.websocketService.connect(newToken);
@@ -471,14 +532,16 @@ export class AuthService {
             }),
             catchError(finalErr => {
               console.error('Error al refrescar token (intento con headers):', finalErr);
-              this.logoutAndRedirect();
+              // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+              // en la próxima petición exitosa
               return throwError(() => finalErr);
             })
           );
         }
         
         console.error('Error al refrescar token:', err);
-        this.logoutAndRedirect();
+        // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+        // en la próxima petición exitosa
         return throwError(() => err);
       })
     );
@@ -504,6 +567,44 @@ export class AuthService {
       return JSON.parse(json);
     } catch (e) {
       return null;
+    }
+  }
+
+  /**
+   * Verifica si un token JWT es válido (no expirado)
+   */
+  public isTokenValid(token: string): boolean {
+    if (!token) return false;
+    
+    try {
+      const payload = this.decodeToken(token);
+      if (!payload) return false;
+      
+      // Verificar expiración
+      const exp = payload.exp;
+      if (!exp) return false;
+      
+      // exp está en segundos, Date.now() está en milisegundos
+      const currentTime = Math.floor(Date.now() / 1000);
+      return exp > currentTime;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Conecta WebSocket si hay un token válido
+   * Debe llamarse después de login o cuando se valide el token
+   */
+  public connectWebSocketIfAuthenticated(): void {
+    const token = this.getAccessToken();
+    if (token && this.isTokenValid(token)) {
+      try {
+        this.websocketService.connect(token);
+        this.websocketService.connectMessages(token);
+      } catch (e) {
+        console.warn('Error conectando WebSocket:', e);
+      }
     }
   }
 }

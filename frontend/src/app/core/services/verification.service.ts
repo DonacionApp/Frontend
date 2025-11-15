@@ -95,13 +95,13 @@ export class VerificationService {
         isDocumentVerified: isVerified
       };
       
-      // Actualizar en localStorage
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      
-      // Actualizar en el BehaviorSubject del AuthService
-      // Como el BehaviorSubject es privado, necesitamos actualizar el usuario
-      // Esta es una forma de hacerlo sin exponer el subject
-  // Updating verification state in AuthService
+      // Actualizar en AuthService de forma centralizada
+      try {
+        this.authService.setCurrentUser(updatedUser as any);
+      } catch (e) {
+        // Fallback: persistir en localStorage si falla
+        try { localStorage.setItem('currentUser', JSON.stringify(updatedUser)); } catch (inner) {}
+      }
     }
   }
 
