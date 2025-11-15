@@ -42,6 +42,13 @@
            
         <div [ngSwitch]="m.type?.type">
           <div *ngSwitchCase="'texto'" class="msg-content">{{ m?.message }}</div>
+          <div *ngIf="editingMessageId === m?.id" class="inline-edit mt-2">
+            <textarea #inlineEditInput [(ngModel)]="editingText" class="inline-edit-input text-black" rows="2" (keydown)="onInlineEditKeydown($event)"></textarea>
+            <div class="inline-edit-actions mt-2 flex gap-2">
+              <button type="button" class="px-3 py-1 bg-green-600 text-black rounded text-sm" (click)="$event.stopPropagation(); saveEdit();">Guardar</button>
+              <button type="button" class="px-3 py-1 bg-gray-300 text-gray-800 rounded text-sm" (click)="$event.stopPropagation(); cancelEdit();">Cancelar</button>
+            </div>
+          </div>
 
           <div *ngSwitchCase="'imagen'">
             <ng-container *ngIf="isMediaMultiple(m); else singleImage">

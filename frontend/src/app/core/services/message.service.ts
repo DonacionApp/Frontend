@@ -125,6 +125,31 @@ export class MessageService {
     return this.http.get<IUser[]>(`${this.base}/userchat/users-by-chat/${chatId}`);
   }
 
+  // POST: /chat  -> create a new chat
+  createChat(body: { chatName: string; chatStatusId?: number; participantIds?: Array<{ userId: number; isAdmin?: boolean }> }): Observable<any> {
+    return this.http.post(`${this.base}/chat`, body);
+  }
+
+  createChatAdmin(body: { chatName: string; chatStatusId?: number; participantIds?: Array<{ userId: number; isAdmin?: boolean }> }): Observable<any> {
+    return this.http.post(`${this.base}/chat/admin/admin/create`, body);
+  }
+
+  // GET: /user  -> search or list users. Accepts optional query params (search)
+  searchUsers(params?: { search?: string; limit?: number; page?: number }): Observable<any> {
+    const p = this.buildParams(params as any);
+    return this.http.get<any>(`${this.base}/user`, { params: p });
+  }
+
+  // POST: /userchat  -> add a participant to a chat. Body depends on backend: we'll send { chatId, userId, admin }
+  addUserToChat(body: { chatId: number; userId: number; admin?: boolean }): Observable<any> {
+    return this.http.post(`${this.base}/userchat`, body);
+  }
+
+  // DELETE: /userchat/:id  -> remove a userchat entry by id
+  removeUserFromChat(userChatId: number): Observable<any> {
+    return this.http.delete(`${this.base}/userchat/${userChatId}`);
+  }
+
   // POST: /donation/chat/create-from-donation/:donationId
   createChatFromDonation(donationId: number): Observable<any> {
     return this.http.post(`${this.base}/donation/chat/create-from-donation/${donationId}`, {});

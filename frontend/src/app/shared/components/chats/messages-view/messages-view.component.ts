@@ -2,11 +2,12 @@ import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterVie
 import { CommonModule } from '@angular/common';
 import { IMessage } from '../../../../core/services/message.service';
 import { AlertService } from '../../../services/alert.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-messages-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './messages-view.component.html',
   styleUrls: ['./messages-view.component.scss']
 })
@@ -31,6 +32,11 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
   public mediaViewerOpen = false;
   public mediaViewerUrl: string | null = null;
   public mediaViewerType: 'image' | 'video' | 'audio' | null = null;
+
+  // Inline edit state
+  public editingMessageId: number | null = null;
+  public editingText: string = '';
+  @ViewChild('inlineEditInput') private inlineEditInput?: ElementRef<HTMLTextAreaElement>;
 
   private _boundEscHandler = (ev: KeyboardEvent) => {
     if (ev.key === 'Escape' || ev.key === 'Esc') this.closeMediaViewer();
@@ -177,16 +183,42 @@ export class MessagesViewComponent implements AfterViewInit, OnDestroy, OnChange
     try { window.removeEventListener('keydown', this._boundEscHandler); } catch (e) {}
   }
 
-  // Trigger editing flow: uses browser prompt for quick editing UI, emits event to parent
   public onEditMessage(m: IMessage | null | undefined){
-    try{
+    try {
       if (!m || !m.id) return;
-      const current = m.message ?? '';
-      const newMsg = prompt('Editar mensaje (solo texto):', current);
-      if (newMsg === null) return; // cancelled
-      const trimmed = String(newMsg).trim();
-      if (trimmed === current || trimmed.length === 0) return;
-      this.editMessage.emit({ id: m.id, newMessage: trimmed });
+      this.editingMessageId = Number(m.id);
+      this.editingText = String(m.message ?? '');
+      setTimeout(() => {
+        try { this.inlineEditInput?.nativeElement?.focus(); } catch (e) {}
+      }, 40);
+    } catch (e) {}
+  }
+
+  public saveEdit(){
+    try {
+      if (this.editingMessageId === null) return;
+      const trimmed = String(this.editingText ?? '').trim();
+      if (!trimmed) { this.cancelEdit(); return; }
+      const id = Number(this.editingMessageId);
+      this.editingMessageId = null;
+      this.editingText = '';
+      this.editMessage.emit({ id, newMessage: trimmed });
+    } catch (e) {}
+  }
+
+  public onInlineEditKeydown(ev: KeyboardEvent){
+    try {
+      if (ev.key === 'Enter' && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey) {
+        ev.preventDefault();
+        this.saveEdit();
+      }
+    } catch (e) {}
+  }
+
+  public cancelEdit(){
+    try {
+      this.editingMessageId = null;
+      this.editingText = '';
     } catch (e) {}
   }
 
