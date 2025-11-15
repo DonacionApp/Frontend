@@ -445,18 +445,39 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
    */
   checkVerificationStatus(): void {
     const user = this.authService.currentUserValue;
-    // Revisar en el usuario del AuthService
     const userVerified = user?.isDocumentVerified || false;
-    // También revisar si el perfil tiene algún campo de verificación
-    // (El profile de donor puede no tener un campo isVerified explícito,
-    // pero lo dejamos por si el backend lo agrega en el futuro)
-    const profileVerified = false; // Donor profile no tiene este campo por ahora
-    
-    // Si cualquiera está verificado, marcar como verificado
+    const profileVerified = this.profile?.isVerified || false;
+
+    // Si está verificado, mostrar como verificado
     if (userVerified || profileVerified) {
       this.verificationState = 'verified';
+      return;
+    }
+
+    // Si tiene supportId (documento subido, puede ser string o number)
+    let supportId = (this.profile as any)?.supportId;
+    if (!supportId && (this.profile as any)?.people) {
+      supportId = (this.profile as any).people.supportId;
+    }
+    // Considerar supportId válido si es string no vacío o number distinto de null
+    const hasSupportId = (typeof supportId === 'string' && supportId.trim() !== '') || (typeof supportId === 'number' && supportId !== null);
+    const comments = this.profile?.commentSupportId || [];
+    const rejectedComment = comments.find(c => c.status?.name?.toLowerCase() === 'rechazado');
+
+    if (hasSupportId) {
+      if (rejectedComment) {
+        // Documento rechazado, mostrar comentario y permitir subir de nuevo
+        this.verificationState = 'error';
+        this.errorMessage = rejectedComment.comment || 'Documento rechazado. Por favor, revisa el motivo y vuelve a subirlo.';
+      } else if (comments.length === 0) {
+        // Documento subido pero sin comentarios, está pendiente
+        this.verificationState = 'pending';
+      } else {
+        // Si hay comentarios pero ninguno rechazado, considerar pendiente
+        this.verificationState = 'pending';
+      }
     } else {
-      // Por defecto 'none' (no enviado)
+      // No ha subido documento
       this.verificationState = 'none';
     }
   }

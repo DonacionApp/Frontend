@@ -128,7 +128,6 @@ export class DonationDetailComponent implements OnInit {
             this.checkPermissions();
           },
           error: (err) => {
-            // Non-fatal: log but keep optimistic UI
             console.warn('No se pudo refrescar la donación tras crear review:', err);
           }
         });
@@ -212,7 +211,6 @@ export class DonationDetailComponent implements OnInit {
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
 
-  // Navegar a editar
   onEdit(): void {
     if (!this.donation) return;
 
@@ -230,7 +228,6 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
   }
 
-  // Navegar a gestionar artículos
   onManageArticles(): void {
     if (!this.donation) return;
 
@@ -248,7 +245,6 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/organization/donations', this.donation.id, 'manage-articles']);
   }
 
-  // Eliminar donación
   onDelete(): void {
     if (!this.donation) return;
 
@@ -285,8 +281,6 @@ export class DonationDetailComponent implements OnInit {
       });
     }
   }
-
-  // Extender fecha de entrega en 10 días (usa alerta personalizada)
   async onExtendDate(): Promise<void> {
     if (!this.donation) return;
 
@@ -323,19 +317,16 @@ export class DonationDetailComponent implements OnInit {
     }
   }
 
-  // Volver a la lista
   onBack(): void {
     this.location.back();
   }
 
-  // Crear un chat desde la donación (usa endpoint POST /donation/chat/create-from-donation/:donationId)
   onCreateChat(): void {
     if (!this.donation) return;
     if (!this.authService.currentUserValue) {
       this.alertService.showAlert('Debes iniciar sesión', 'info');
       return;
     }
-    // Only participants (donator or beneficiary) can create a chat
     if (!this.isBeneficiary && !this.isDonator) {
       this.alertService.error('No permitido', 'Solo los participantes de esta donación pueden crear o abrir el chat.');
       return;
@@ -344,7 +335,6 @@ export class DonationDetailComponent implements OnInit {
     this.loading = true;
     this.messageService.createChatFromDonation(this.donation.id).subscribe({
       next: async (res) => {
-        // Intentamos refrescar la donación para obtener el campo `chat`
         try {
           const fresh = await new Promise<Donation>((resolve, reject) => {
             this.donationService.getDonationById(this.donation!.id).subscribe({ next: d => resolve(d), error: e => reject(e) });
@@ -367,10 +357,9 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
-  // Navegar al chat si existe
   onOpenChat(): void {
     if (!this.donation || !this.donation.chat || !this.donation.chat.id) return;
-    // Only participants can open the chat
+ 
     if (!this.authService.currentUserValue || (!this.isBeneficiary && !this.isDonator)) {
       this.alertService.error('No permitido', 'No tienes permiso para ver este chat.');
       return;
@@ -380,9 +369,6 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/chat'], { queryParams: { chat: this.donation.chat.id } });
   }
 
-  // (removed) chat-list related open handler — sidebar component handles chat list interactions now
-
-  // Formatear fecha
   formatDate(dateString: string): string {
     if (!dateString) return 'No especificado';
 

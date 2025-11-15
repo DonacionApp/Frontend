@@ -646,7 +646,8 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openChat(chatId: number): void {
-    this.router.navigate(['/chat', chatId]);
+    console.log('Navigating to chat', chatId);
+    this.router.navigate(['/chat'],{ queryParams: { chat: chatId }}  );
   }
 
   formatRelative(dateString?: string): string {
