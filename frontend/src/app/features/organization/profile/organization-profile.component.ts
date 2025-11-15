@@ -1,4 +1,7 @@
+// ...existing code...
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CountriesService } from '../../../core/services/countries.service';
+import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -22,6 +25,20 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   
   activeTab: 'general' | 'security' | 'activity' | 'location' = 'general';
   profile: OrganizationProfile | null = null;
+
+  /**
+   * Devuelve el último comentario de rechazo si existe, o null
+   */
+  get lastRejectionComment(): string | null {
+    const comments = this.profile?.commentSupportId;
+    if (comments && comments.length > 0) {
+      const last = comments[comments.length - 1];
+      if (last?.status?.name?.toLowerCase() === 'rechazado') {
+        return last.comment || null;
+      }
+    }
+    return null;
+  }
   activityLog: OrganizationActivityLog[] = [];
   currentUser: User | null = null;
   organizationId: string = '';
@@ -52,13 +69,22 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   showNewPassword = false;
   showConfirmPassword = false;
 
+  // Select options
+  countries: Countris[] = [];
+  states: StatesbyCountrySelect[] = [];
+  cities: CitiesByStateSelect[] = [];
+  loadingCountries = false;
+  loadingStates = false;
+  loadingCities = false;
+
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private profileService: OrganizationProfileService,
     private authService: AuthService,
-    private verificationService: VerificationService
+    private verificationService: VerificationService,
+    private countriesService: CountriesService
   ) {
     this.initializeForms();
   }
@@ -72,7 +98,6 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
         this.loadProfile();
       }
     });
-    
     this.subscribeToProfileChanges();
     this.checkVerificationStatus();
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(q => {
@@ -82,6 +107,84 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       } else {
         this.activeTab = 'general';
       }
+    });
+    // Cargar países y setear selects reactivos
+    this.loadCountriesAndSetupSelects();
+  }
+
+  private loadCountriesAndSetupSelects(): void {
+    this.loadingCountries = true;
+    this.countriesService.countriesList().subscribe({
+      next: (countries) => {
+        this.countries = countries;
+        this.loadingCountries = false;
+        // No seleccionar país aquí, se hará en populateForm cuando el perfil esté cargado
+      },
+      error: () => { this.loadingCountries = false; }
+    });
+
+    // Reactividad: cuando cambia país
+    this.profileForm.get('country')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(iso2 => {
+      if (iso2) this.onCountryChange(iso2, true);
+    });
+    // Cuando cambia estado
+    this.profileForm.get('state')?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(iso2 => {
+      const countryIso2 = this.profileForm.get('country')?.value;
+      if (countryIso2 && iso2) this.onStateChange(countryIso2, iso2, true);
+    });
+  }
+
+  private onCountryChange(countryIso2: string, clearStateCity = true): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!countryIso2) {
+        resolve();
+        return;
+      }
+      
+      this.loadingStates = true;
+      this.countriesService.statesByCountry(countryIso2).subscribe({
+        next: (states) => {
+          this.states = states;
+          this.loadingStates = false;
+          if (clearStateCity) {
+            this.profileForm.get('state')?.setValue('', { emitEvent: false });
+            this.cities = [];
+            this.profileForm.get('city')?.setValue('', { emitEvent: false });
+          }
+          resolve();
+        },
+        error: (err) => { 
+          this.loadingStates = false;
+          console.error('Error loading states:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  private onStateChange(countryIso2: string, stateIso2: string, clearCity = true): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!countryIso2 || !stateIso2) {
+        resolve();
+        return;
+      }
+      
+      this.loadingCities = true;
+      this.countriesService.citiesByState(countryIso2, stateIso2).subscribe({
+        next: (cities) => {
+          this.cities = cities;
+          this.loadingCities = false;
+          if (clearCity) {
+            this.profileForm.get('city')?.setValue('', { emitEvent: false });
+          }
+          resolve();
+        },
+        error: (err) => { 
+          this.loadingCities = false;
+          console.error('Error loading cities:', err);
+          reject(err);
+        }
+      });
     });
   }
 
@@ -163,18 +266,45 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
       email: profile.email,
       phone: profile.phone || '',
       address: profile.address || '',
-      city: profile.city || '',
-      state: profile.state || '',
-      country: profile.country || '',
       postalCode: profile.postalCode || '',
       website: profile.website || '',
-  missionStatement: profile.missionStatement || '',
+      missionStatement: profile.missionStatement || '',
       legalRepresentative: profile.legalRepresentative || '',
       facebookUrl: profile.socialMedia?.facebook || '',
       twitterUrl: profile.socialMedia?.twitter || '',
       instagramUrl: profile.socialMedia?.instagram || '',
       linkedinUrl: profile.socialMedia?.linkedin || ''
     });
+
+    // Cargar y seleccionar país, estado y ciudad usando iso2
+    const countryIso2 = profile.countryIso2;
+    const stateIso2 = profile.stateIso2;
+    const cityId = profile.cityId;
+    
+    if (countryIso2) {
+      // Establecer el país usando iso2
+      this.profileForm.get('country')?.setValue(countryIso2, { emitEvent: false });
+      
+      // Cargar estados para el país
+      this.onCountryChange(countryIso2, false).then(() => {
+        // Una vez cargados los estados, seleccionar el estado si existe
+        if (stateIso2) {
+          this.profileForm.get('state')?.setValue(stateIso2, { emitEvent: false });
+          
+          // Cargar ciudades para el estado
+          this.onStateChange(countryIso2, stateIso2, false).then(() => {
+            // Una vez cargadas las ciudades, seleccionar la ciudad si existe
+            if (cityId) {
+              this.profileForm.get('city')?.setValue(cityId, { emitEvent: false });
+            }
+          }).catch(() => {
+            // Ignorar errores al cargar ciudades
+          });
+        }
+      }).catch(() => {
+        // Ignorar errores al cargar estados
+      });
+    }
 
     if (profile.logo) {
       this.logoPreview = profile.logo;
@@ -360,11 +490,21 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     
     const lastNameJson = JSON.stringify({ description, networks });
     
+    // Obtener el nombre de la ciudad desde el array de ciudades usando el ID
+    let cityName = '';
+    if (formValue.city) {
+      const cityId = typeof formValue.city === 'number' ? formValue.city : parseInt(formValue.city, 10);
+      const selectedCity = this.cities.find(c => c.id === cityId);
+      if (selectedCity && selectedCity.name) {
+        cityName = selectedCity.name;
+      }
+    }
+    
     const updates = {
       name: formValue.name,
       phone: formValue.phone,
       address: formValue.address,
-      city: formValue.city,
+      city: cityName, // Enviar nombre de la ciudad, no el ID
       state: formValue.state,
       country: formValue.country,
       postalCode: formValue.postalCode,
@@ -582,16 +722,24 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
    */
   checkVerificationStatus(): void {
     const user = this.authService.currentUserValue;
-    // Revisar primero en el usuario del AuthService
     const userVerified = user?.isDocumentVerified || false;
-    // También revisar en el perfil de la organización
     const profileVerified = this.profile?.isVerified || false;
-    // Si cualquiera de los dos está verificado, marcar como verificado
+    const supportId = this.profile?.supportId;
+    const commentSupportId = this.profile?.commentSupportId || [];
+
     if (userVerified || profileVerified) {
       this.verificationState = 'verified';
+    } else if (supportId && commentSupportId.length > 0) {
+      // Si hay comentarios de rechazo
+      const lastComment = commentSupportId[commentSupportId.length - 1];
+      if (lastComment.status?.name?.toLowerCase() === 'rechazado' || lastComment.status?.name?.toLowerCase() === 'rejected') {
+        this.verificationState = 'error';
+      } else {
+        this.verificationState = 'pending';
+      }
+    } else if (supportId && commentSupportId.length === 0) {
+      this.verificationState = 'pending';
     } else {
-      // Si el backend indica que hay un documento subido pero aún no verificado, puedes mapearlo aquí.
-      // Por defecto dejamos 'none' (no enviado)
       this.verificationState = 'none';
     }
   }

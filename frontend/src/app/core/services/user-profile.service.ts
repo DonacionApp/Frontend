@@ -99,6 +99,7 @@ export interface BackendUserProfile {
       state: {
         id: number;
         name: string;
+        iso2?: string;
       };
       country: {
         id: number;
@@ -129,6 +130,9 @@ export interface UserProfile {
   city?: string;
   state?: string;
   country?: string;
+  countryIso2?: string;
+  stateIso2?: string;
+  cityId?: number | null;
   postalCode?: string;
   dateOfBirth?: string;
   profileImage?: string;
@@ -263,6 +267,10 @@ export class UserProfileService {
       city: cleanValue(backendProfile.people?.municipio?.city?.name),
       state: cleanValue(backendProfile.people?.municipio?.state?.name),
       country: cleanValue(backendProfile.people?.municipio?.country?.name),
+      // Agregar iso2 e IDs para selects
+      countryIso2: backendProfile.people?.municipio?.country?.iso2 || '',
+      stateIso2: backendProfile.people?.municipio?.state?.iso2 || '',
+      cityId: backendProfile.people?.municipio?.city?.id || null,
       dateOfBirth: cleanValue(backendProfile.people?.birdthDate),
       profileImage: cleanValue(backendProfile.profilePhoto),
       role: this.normalizeRole(backendProfile.rol?.rol || 'donor'),
