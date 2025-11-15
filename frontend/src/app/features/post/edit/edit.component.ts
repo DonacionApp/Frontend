@@ -1,28 +1,96 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, switchMap, of, firstValueFrom } from 'rxjs';
+import { Subject, of, firstValueFrom } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import { PostsService, Tag } from '../../../core/services/posts.service';
-import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
+import { ButtonComponent } from '../../../shared/components/button/button.component';
 
 interface ExistingImage {
   id: number;
   url: string;
 }
 
+@Pipe({ name: 'safeUrl' })
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
+
 @Component({
   selector: 'app-edit',
-  imports: [CommonModule, FormsModule, ButtonComponent, SpinnerComponent],
+  standalone: true,
+  imports: [CommonModule, FormsModule, SpinnerComponent, ButtonComponent, SafeUrlPipe],
   templateUrl: './edit.component.html',
-  styleUrl: './edit.component.scss'
+  styleUrls: ['./edit.component.scss']
 })
 export class EditComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
-  postId: number | null = null;
+  postId?: number;
   isLoading = false;
+  // Helpers para tipo de archivo (igual que en list.component.ts)
+  isImageFile(url: string): boolean {
+    if (!url) return false;
+    return /\.(jpeg|jpg|png|gif|bmp|webp)$/i.test(url);
+  }
+  isVideoFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.ogg');
+  }
+  isAudioFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp3') || u.endsWith('.wav') || u.endsWith('.ogg');
+  }
+  isPdfFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.pdf') || u.includes('.pdf?') || u.startsWith('data:application/pdf');
+  }
+
+  // Modal navegable para archivos
+  showFileModal = false;
+  currentFiles: { url: string, type: 'image' | 'video' | 'audio' | 'pdf' | 'doc' }[] = [];
+  currentFileIndex = 0;
+
+  openFileModal(files: ExistingImage[], index: number): void {
+    this.currentFiles = files.map(f => {
+      const url = f.url;
+      if (this.isImageFile(url)) return { url, type: 'image' as const };
+      if (this.isVideoFile(url)) return { url, type: 'video' as const };
+      if (this.isAudioFile(url)) return { url, type: 'audio' as const };
+      if (this.isPdfFile(url)) return { url, type: 'pdf' as const };
+      return { url, type: 'doc' as const };
+    });
+    this.currentFileIndex = index;
+    this.showFileModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeFileModal(): void {
+    this.showFileModal = false;
+    document.body.style.overflow = 'auto';
+  }
+
+  nextFile(): void {
+    if (this.currentFiles && this.currentFileIndex < this.currentFiles.length - 1) {
+      this.currentFileIndex++;
+    }
+  }
+
+  previousFile(): void {
+    if (this.currentFiles && this.currentFileIndex > 0) {
+      this.currentFileIndex--;
+    }
+  }
+
   errorMessage = '';
   successMessage = '';
 
@@ -337,12 +405,10 @@ export class EditComponent implements OnInit, OnDestroy {
       this.errorMessage = 'El título es obligatorio';
       return false;
     }
-    
     if (!this.message.trim()) {
       this.errorMessage = 'El mensaje es obligatorio';
       return false;
     }
-    
     return true;
   }
 

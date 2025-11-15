@@ -2,7 +2,7 @@
 
 
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, Pipe, PipeTransform } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntil } from 'rxjs/operators';
 import { Subject, Subscription, firstValueFrom } from 'rxjs';
@@ -13,20 +13,11 @@ import { AuthService } from '../../../core/services/auth.service';
 import { WebsocketService } from '../../../core/services/websocket.service';
 import { AlertService } from '../../services/alert.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-
-@Pipe({ name: 'safeUrl' })
-export class SafeUrlPipe implements PipeTransform {
-  constructor(private sanitizer: DomSanitizer) {}
-  transform(url: string): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  }
-}
 
 @Component({
   selector: 'app-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule, MessagesViewComponent, FloatingMenuComponent, SafeUrlPipe],
+  imports: [CommonModule, FormsModule, MessagesViewComponent, FloatingMenuComponent],
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.scss']
 })

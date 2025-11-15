@@ -87,12 +87,12 @@
           </div>
           
           <div *ngSwitchCase="'documento'" class="msg-content">
-            <ng-container *ngIf="isPdfFile(m.message); else otherDoc">
-              <iframe [src]="m.message | safeUrl" width="100%" height="400px" style="border:none;"></iframe>
-              <div class="text-xs text-gray-500 mt-1"><a [href]="m.message" target="_blank">Abrir PDF en nueva pestaña</a></div>
+            <ng-container *ngIf="isPdfFile(m.message || ''); else otherDoc">
+              <iframe [src]="(m.message || '') | safeUrl" width="100%" height="400px" style="border:none;"></iframe>
+              <div class="text-xs text-gray-500 mt-1"><a [href]="m.message || ''" target="_blank">Abrir PDF en nueva pestaña</a></div>
             </ng-container>
             <ng-template #otherDoc>
-              <a [href]="m.message" target="_blank" class="text-blue-600">Abrir documento</a>
+              <a [href]="m.message || ''" target="_blank" class="text-blue-600">Abrir documento</a>
             </ng-template>
           </div>
           

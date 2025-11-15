@@ -375,8 +375,9 @@ export class DonationDetailComponent implements OnInit {
       this.alertService.error('No permitido', 'No tienes permiso para ver este chat.');
       return;
     }
-    // Navegar a una ruta de chat estándar. Ajusta si tu app usa otra ruta.
-    this.router.navigate(['/chat', this.donation.chat.id]);
+    console.log('Navegando al chat ID:', this.donation.chat.id);
+    
+    this.router.navigate(['/chat'], { queryParams: { chat: this.donation.chat.id } });
   }
 
   // (removed) chat-list related open handler — sidebar component handles chat list interactions now

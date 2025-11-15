@@ -37,7 +37,8 @@ const routes: Routes = [
     RouterModule.forChild(routes),
     ListComponent,
     CreateEditComponent,
-    DetailsComponent
+    DetailsComponent,
+    EditComponent
   ]
 })
 export class PostModule { }
