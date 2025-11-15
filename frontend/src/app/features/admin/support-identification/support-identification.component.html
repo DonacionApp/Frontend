@@ -117,6 +117,12 @@
               {{ getUserFullName(selectedUser) }}
             </p>
           </div>
+          <div *ngIf="selectedUser?.people && isOrganization(selectedUser)">
+            <p class="text-sm text-gray-600">Descripción</p>
+            <p class="font-medium text-gray-900">
+              {{ getUserDescription(selectedUser) }}
+            </p>
+          </div>
           <div>
             <p class="text-sm text-gray-600">Rol</p>
             <p class="font-medium text-gray-900">{{ selectedUser?.role?.name || '-' }}</p>

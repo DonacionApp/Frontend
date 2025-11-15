@@ -115,5 +115,15 @@
       </div>
     </form>
   </div>
+
+  <!-- Modal de Mensaje -->
+  <app-message-modal
+    *ngIf="messageModalConfig"
+    [isOpen]="showMessageModal"
+    [title]="messageModalConfig.title"
+    [message]="messageModalConfig.message"
+    [type]="messageModalConfig.type"
+    (onClose)="closeMessageModal()"
+  ></app-message-modal>
 </div>
 

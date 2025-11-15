@@ -34,9 +34,8 @@
     emptyMessage="No hay artículos registrados"
     (batchActionExecuted)="onBatchActionExecuted($event)"
   ></app-data-table>
-</div>
 
-<!-- Modal de Crear/Editar Artículo -->
+  <!-- Modal de Crear/Editar Artículo -->
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Editar Artículo' : 'Crear Artículo'"
@@ -94,4 +93,28 @@
     </div>
   </form>
 </app-modal>
+
+  <!-- Modal de Confirmación -->
+  <app-confirm-modal
+    *ngIf="confirmModalConfig"
+    [isOpen]="showConfirmModal"
+    [title]="confirmModalConfig.title"
+    [message]="confirmModalConfig.message"
+    [type]="confirmModalConfig.type"
+    [confirmText]="'Confirmar'"
+    [cancelText]="'Cancelar'"
+    (onConfirm)="handleConfirm()"
+    (onCancel)="closeConfirmModal()"
+  ></app-confirm-modal>
+
+  <!-- Modal de Mensaje -->
+  <app-message-modal
+    *ngIf="messageModalConfig"
+    [isOpen]="showMessageModal"
+    [title]="messageModalConfig.title"
+    [message]="messageModalConfig.message"
+    [type]="messageModalConfig.type"
+    (onClose)="closeMessageModal()"
+  ></app-message-modal>
+</div>
 

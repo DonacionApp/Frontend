@@ -120,5 +120,23 @@
     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     <span class="ml-2 text-gray-600">Cargando más usuarios...</span>
   </div>
+
+  <!-- Modal de Detalles -->
+  <app-details-modal
+    [isOpen]="showDetailsModal"
+    [title]="'Detalles del Usuario'"
+    [details]="userDetails"
+    (onClose)="closeDetailsModal()"
+  ></app-details-modal>
+
+  <!-- Modal de Mensaje -->
+  <app-message-modal
+    *ngIf="messageModalConfig"
+    [isOpen]="showMessageModal"
+    [title]="messageModalConfig.title"
+    [message]="messageModalConfig.message"
+    [type]="messageModalConfig.type"
+    (onClose)="closeMessageModal()"
+  ></app-message-modal>
 </div>
 

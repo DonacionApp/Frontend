@@ -78,7 +78,7 @@ export class SupportIdentificationComponent implements OnInit, OnDestroy {
       sortable: false,
       render: (value, row) => {
         if (row.people) {
-          return `${row.people.name || ''} ${row.people.lastName || ''}`.trim() || '-';
+          return row.people.name || '-';
         }
         return '-';
       }
@@ -462,9 +462,32 @@ export class SupportIdentificationComponent implements OnInit, OnDestroy {
 
   getUserFullName(user: UserWithSupport | null): string {
     if (!user || !user.people) return '-';
-    const name = user.people.name || '';
-    const lastName = user.people.lastName || '';
-    return `${name} ${lastName}`.trim() || '-';
+    return user.people.name || '-';
+  }
+
+  getUserDescription(user: UserWithSupport | null): string {
+    if (!user || !user.people || !user.people.lastName) return '-';
+    
+    try {
+      // Intentar parsear el JSON si viene como string
+      const lastNameData = typeof user.people.lastName === 'string' 
+        ? JSON.parse(user.people.lastName) 
+        : user.people.lastName;
+      
+      if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
+        return lastNameData.description || '-';
+      }
+      return user.people.lastName;
+    } catch (e) {
+      // Si no es JSON válido, devolver el valor tal cual
+      return user.people.lastName;
+    }
+  }
+
+  isOrganization(user: UserWithSupport | null): boolean {
+    if (!user || !user.role) return false;
+    const roleName = user.role.name?.toLowerCase() || '';
+    return roleName === 'organizacion' || roleName === 'organization';
   }
 }
 

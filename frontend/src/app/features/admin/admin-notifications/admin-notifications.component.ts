@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { NotificationService } from '../../../core/services/notification.service';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
 @Component({
   selector: 'app-admin-notifications',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MessageModalComponent],
   templateUrl: './admin-notifications.component.html',
   styleUrls: ['./admin-notifications.component.scss']
 })
@@ -19,6 +20,14 @@ export class AdminNotificationsComponent implements OnInit, OnDestroy {
   loadingTypes = false;
   creating = false;
   errorMessage = '';
+
+  // Modal de mensaje
+  showMessageModal = false;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
 
   constructor(
     private notificationService: NotificationService,
@@ -60,7 +69,12 @@ export class AdminNotificationsComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error loading notification types:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar los tipos de notificación';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.loadingTypes = false;
         }
       });
@@ -90,17 +104,32 @@ export class AdminNotificationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          alert(`Notificación creada exitosamente!\n\nID: ${response.id}\nTítulo: ${response.title}\nEnviada a ${response.userNotify.length} administrador(es)`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: `Notificación creada exitosamente!\n\nID: ${response.id}\nTítulo: ${response.title}\nEnviada a ${response.userNotify.length} administrador(es)`,
+            type: 'success'
+          };
           this.notificationForm.reset();
           this.creating = false;
         },
         error: (error) => {
           console.error('Error creating notification:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo crear la notificación';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.creating = false;
         }
       });
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
   }
 }
 

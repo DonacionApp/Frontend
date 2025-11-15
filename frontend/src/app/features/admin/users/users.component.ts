@@ -9,12 +9,15 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
+import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent, DetailsModalComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -49,6 +52,24 @@ export class UsersComponent implements OnInit, OnDestroy {
   articleNeeded = false;
   addingArticle = false;
   editingArticleQuantity: { id: number; quantity: number } | null = null;
+
+  // Modales
+  showDetailsModal = false;
+  showConfirmModal = false;
+  showMessageModal = false;
+  confirmModalConfig: {
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  } | null = null;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
+  userDetails: DetailItem[] = [];
+  selectedUserForAction: UserManagement | null = null;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -291,168 +312,266 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   viewUserDetails(user: UserManagement): void {
-    // Por ahora solo mostramos un mensaje, luego se puede implementar un modal
-    const details = `
-      Usuario: ${user.username}
-      Email: ${user.email}
-      Rol: ${user.rol?.rol}
-      Verificado: ${user.verified ? 'Sí' : 'No'}
-      Bloqueado: ${user.block ? 'Sí' : 'No'}
-      Último acceso: ${user.lastLogin ? new Date(user.lastLogin).toLocaleString('es-ES') : 'Nunca'}
-    `;
-    alert(details);
+    this.selectedUserForAction = user;
+    this.userDetails = [
+      { label: 'Usuario', value: user.username },
+      { label: 'Email', value: user.email },
+      { label: 'Rol', value: this.getRoleDisplayName(user.rol?.rol || '') },
+      { label: 'Verificado', value: user.verified ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Bloqueado', value: user.block ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Email Verificado', value: user.emailVerified ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Último Acceso', value: user.lastLogin || 'Nunca', type: 'date' },
+      { label: 'Fecha de Creación', value: user.createdAt, type: 'date' },
+      ...(user.people ? [
+        { label: 'Nombre', value: user.people.name },
+        { label: 'Apellido', value: user.people.lastName || '-' },
+        { label: 'DNI', value: user.people.dni || '-' },
+        { label: 'Teléfono', value: user.people.telefono || '-' }
+      ] : [])
+    ];
+    this.showDetailsModal = true;
+  }
+
+  closeDetailsModal(): void {
+    this.showDetailsModal = false;
+    this.selectedUserForAction = null;
+    this.userDetails = [];
   }
 
   blockUser(user: UserManagement): void {
-    if (!confirm(`¿Estás seguro de bloquear al usuario "${user.username}"?`)) {
-      return;
-    }
+    this.selectedUserForAction = user;
+    this.confirmModalConfig = {
+      title: 'Bloquear Usuario',
+      message: `¿Estás seguro de bloquear al usuario "${user.username}"?`,
+      type: 'warning',
+      onConfirm: () => this.executeBlockUser(user.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.blockUser(user.id)
+  executeBlockUser(userId: number): void {
+    this.showConfirmModal = false;
+    this.userService.blockUser(userId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Usuario bloqueado correctamente',
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error blocking user:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo bloquear el usuario';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo bloquear el usuario',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
   unblockUser(user: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desbloquear al usuario "${user.username}"?`)) {
-      return;
-    }
+    this.selectedUserForAction = user;
+    this.confirmModalConfig = {
+      title: 'Desbloquear Usuario',
+      message: `¿Estás seguro de desbloquear al usuario "${user.username}"?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnblockUser(user.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unblockUser(user.id)
+  executeUnblockUser(userId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unblockUser(userId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Usuario desbloqueado correctamente',
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error unblocking user:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo desbloquear el usuario';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo desbloquear el usuario',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
   verifyUser(user: UserManagement): void {
-    if (!confirm(`¿Estás seguro de verificar al usuario "${user.username}"?`)) {
-      return;
-    }
+    this.selectedUserForAction = user;
+    this.confirmModalConfig = {
+      title: 'Verificar Usuario',
+      message: `¿Estás seguro de verificar al usuario "${user.username}"?`,
+      type: 'info',
+      onConfirm: () => this.executeVerifyUser(user.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.verifyUser(user.id)
+  executeVerifyUser(userId: number): void {
+    this.showConfirmModal = false;
+    this.userService.verifyUser(userId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Usuario verificado correctamente',
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error verifying user:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo verificar el usuario';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo verificar el usuario',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
   unverifyUser(user: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desverificar al usuario "${user.username}"?`)) {
-      return;
-    }
+    this.selectedUserForAction = user;
+    this.confirmModalConfig = {
+      title: 'Desverificar Usuario',
+      message: `¿Estás seguro de desverificar al usuario "${user.username}"?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnverifyUser(user.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unverifyUser(user.id)
+  executeUnverifyUser(userId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unverifyUser(userId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Usuario desverificado correctamente',
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error unverifying user:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo desverificar el usuario';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo desverificar el usuario',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
   deleteUser(user: UserManagement): void {
     if (user.rol?.rol === 'admin') {
-      this.toastService.show({
+      this.showMessageModal = true;
+      this.messageModalConfig = {
         title: 'Error',
         message: 'No se pueden eliminar usuarios administradores',
         type: 'error'
-      });
+      };
       return;
     }
 
-    if (!confirm(`¿Estás seguro de eliminar al usuario "${user.username}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    this.selectedUserForAction = user;
+    this.confirmModalConfig = {
+      title: 'Eliminar Usuario',
+      message: `¿Estás seguro de eliminar al usuario "${user.username}"?\n\nEsta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: () => this.executeDeleteUser(user.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.deleteUser(user.id)
+  executeDeleteUser(userId: number): void {
+    this.showConfirmModal = false;
+    this.userService.deleteUser(userId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Usuario eliminado correctamente',
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error deleting user:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el usuario';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo eliminar el usuario',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmModalConfig = null;
+    this.selectedUserForAction = null;
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
+  }
+
+  handleConfirm(): void {
+    if (this.confirmModalConfig?.onConfirm) {
+      this.confirmModalConfig.onConfirm();
+    }
+  }
+
   blockBatch(rows: UserManagement[]): void {
+    this.confirmModalConfig = {
+      title: 'Bloquear Usuarios',
+      message: `¿Estás seguro de bloquear ${rows.length} usuario(s)?`,
+      type: 'warning',
+      onConfirm: () => this.executeBlockBatch(rows)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeBlockBatch(rows: UserManagement[]): void {
+    this.showConfirmModal = false;
     const operations = rows.map(user => 
       this.userService.blockUser(user.id).pipe(
         catchError(error => {
           console.error(`Error blocking user ${user.id}:`, error);
-          return of(null); // Continuar con otros usuarios aunque uno falle
+          return of(null);
         })
       )
     );
@@ -461,30 +580,44 @@ export class UsersComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: `${rows.length} usuario(s) bloqueado(s) correctamente`,
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error blocking users:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron bloquear algunos usuarios';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudieron bloquear algunos usuarios',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
 
   unblockBatch(rows: UserManagement[]): void {
+    this.confirmModalConfig = {
+      title: 'Desbloquear Usuarios',
+      message: `¿Estás seguro de desbloquear ${rows.length} usuario(s)?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnblockBatch(rows)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeUnblockBatch(rows: UserManagement[]): void {
+    this.showConfirmModal = false;
     const operations = rows.map(user => 
       this.userService.unblockUser(user.id).pipe(
         catchError(error => {
           console.error(`Error unblocking user ${user.id}:`, error);
-          return of(null); // Continuar con otros usuarios aunque uno falle
+          return of(null);
         })
       )
     );
@@ -493,20 +626,23 @@ export class UsersComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: `${rows.length} usuario(s) desbloqueado(s) correctamente`,
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error unblocking users:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron desbloquear algunos usuarios';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudieron desbloquear algunos usuarios',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }
@@ -515,38 +651,56 @@ export class UsersComponent implements OnInit, OnDestroy {
     // Filtrar admins
     const nonAdminUsers = rows.filter(user => user.rol?.rol !== 'admin');
     
-    if (nonAdminUsers.length !== rows.length) {
-      this.toastService.show({
-        title: 'Advertencia',
-        message: 'No se pueden eliminar usuarios administradores. Se eliminarán solo los usuarios no administradores seleccionados.',
-        type: 'warning'
-      });
-    }
-
     if (nonAdminUsers.length === 0) {
+      this.showMessageModal = true;
+      this.messageModalConfig = {
+        title: 'Advertencia',
+        message: 'No se pueden eliminar usuarios administradores.',
+        type: 'warning'
+      };
       return;
     }
 
+    let message = `¿Estás seguro de eliminar ${nonAdminUsers.length} usuario(s)?`;
+    if (nonAdminUsers.length !== rows.length) {
+      message += '\n\nNota: No se pueden eliminar usuarios administradores. Se eliminarán solo los usuarios no administradores seleccionados.';
+    }
+    message += '\n\nEsta acción no se puede deshacer.';
+
+    this.confirmModalConfig = {
+      title: 'Eliminar Usuarios',
+      message: message,
+      type: 'danger',
+      onConfirm: () => this.executeDeleteBatch(nonAdminUsers)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeDeleteBatch(nonAdminUsers: UserManagement[]): void {
+    this.showConfirmModal = false;
     const ids = nonAdminUsers.map(user => user.id);
     
     this.userService.deleteUsers(ids)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: `${nonAdminUsers.length} usuario(s) eliminado(s) correctamente`,
             type: 'success'
-          });
+          };
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error deleting users:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudieron eliminar los usuarios';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudieron eliminar los usuarios',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
   }

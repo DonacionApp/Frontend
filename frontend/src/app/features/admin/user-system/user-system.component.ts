@@ -4,11 +4,13 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angul
 import { Subject, takeUntil } from 'rxjs';
 import { DataTableComponent, TableColumn, TableAction } from '../../../shared/components/data-table/data-table.component';
 import { UserSystemService, UserSystem, UserSystemFilters } from '../../../core/services/user-system.service';
+import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
 @Component({
   selector: 'app-user-system',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, DetailsModalComponent, MessageModalComponent],
   templateUrl: './user-system.component.html',
   styleUrls: ['./user-system.component.scss']
 })
@@ -24,6 +26,16 @@ export class UserSystemComponent implements OnInit, OnDestroy {
   showFilters = false;
   currentCursor: string | undefined;
   hasMore = false;
+
+  // Modales
+  showDetailsModal = false;
+  showMessageModal = false;
+  userDetails: DetailItem[] = [];
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -145,7 +157,12 @@ export class UserSystemComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error loading users:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudieron cargar los usuarios';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.loading = false;
           this.users = [];
         }
@@ -186,12 +203,60 @@ export class UserSystemComponent implements OnInit, OnDestroy {
    * Ver detalles del usuario
    */
   viewUserDetails(user: UserSystem): void {
-    // Por ahora solo mostramos un alert, pero puedes expandir esto
     const fullName = user.people 
       ? `${user.people.name} ${user.people.lastName || ''}`.trim()
       : 'N/A';
     
-    alert(`ID: ${user.user?.id || 'N/A'}\nUsuario: ${user.user?.username || 'N/A'}\nEmail: ${user.user?.email || 'N/A'}\nNombre: ${fullName}\nDNI: ${user.people?.dni || 'N/A'}\nRol: ${user.role?.name || 'N/A'}`);
+    // Parsear la descripción del lastName si es una organización
+    let description = '-';
+    if (user.people?.lastName) {
+      try {
+        const lastNameData = JSON.parse(user.people.lastName);
+        if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
+          description = lastNameData.description;
+        }
+      } catch (e) {
+        // Si no es JSON, no es una descripción
+      }
+    }
+
+    const roleName = user.role?.name || 'N/A';
+    const isOrganization = roleName.toLowerCase() === 'organizacion' || roleName.toLowerCase() === 'organization';
+
+    this.userDetails = [
+      { label: 'ID', value: user.user?.id || 'N/A' },
+      { label: 'Usuario', value: user.user?.username || 'N/A' },
+      { label: 'Email', value: user.user?.email || 'N/A' },
+      { label: 'Rol', value: this.getRoleDisplayName(roleName) },
+      { label: 'Nombre', value: user.people?.name || 'N/A' },
+      ...(isOrganization && description !== '-' ? [
+        { label: 'Descripción', value: description }
+      ] : []),
+      { label: 'DNI', value: user.people?.dni || 'N/A' }
+    ];
+    this.showDetailsModal = true;
+  }
+
+  getRoleDisplayName(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'admin': 'Administrador',
+      'donor': 'Donante',
+      'donante': 'Donante',
+      'user': 'Usuario',
+      'organizacion': 'Organización',
+      'organization': 'Organización'
+    };
+    return roleMap[role?.toLowerCase()] || role || '-';
+  }
+
+  closeDetailsModal(): void {
+    this.showDetailsModal = false;
+    this.userDetails = [];
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
   }
 
   /**

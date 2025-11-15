@@ -7,11 +7,13 @@ import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../..
 import { ArticlesService, Article, CreateArticleDTO } from '../../../core/services/articles.service';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
 @Component({
   selector: 'app-articles',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent],
   templateUrl: './articles.component.html',
   styleUrls: ['./articles.component.scss']
 })
@@ -21,6 +23,22 @@ export class ArticlesComponent implements OnInit, OnDestroy {
   articles: Article[] = [];
   loading = false;
   errorMessage = '';
+
+  // Modales
+  showConfirmModal = false;
+  showMessageModal = false;
+  confirmModalConfig: {
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  } | null = null;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
+  selectedArticleForAction: Article | null = null;
 
   // Modal state
   showModal = false;
@@ -198,26 +216,55 @@ export class ArticlesComponent implements OnInit, OnDestroy {
   }
 
   deleteArticle(article: Article): void {
-    if (!confirm(`¿Estás seguro de eliminar el artículo "${article.name}"?`)) {
-      return;
-    }
+    this.selectedArticleForAction = article;
+    this.confirmModalConfig = {
+      title: 'Eliminar Artículo',
+      message: `¿Estás seguro de eliminar el artículo "${article.name}"?`,
+      type: 'warning',
+      onConfirm: () => this.executeDeleteArticle(article.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.articlesService.deleteArticleAdmin(article.id)
+  executeDeleteArticle(articleId: number): void {
+    this.showConfirmModal = false;
+    this.articlesService.deleteArticleAdmin(articleId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.notificationService.success('Éxito', 'Artículo eliminado correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Artículo eliminado correctamente',
+            type: 'success'
+          };
           this.loadArticles();
         },
         error: (error) => {
           console.error('Error deleting article:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el artículo';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   deleteBatch(rows: Article[]): void {
+    this.confirmModalConfig = {
+      title: 'Eliminar Artículos',
+      message: `¿Estás seguro de eliminar ${rows.length} artículo(s)?`,
+      type: 'warning',
+      onConfirm: () => this.executeDeleteBatch(rows)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeDeleteBatch(rows: Article[]): void {
+    this.showConfirmModal = false;
     const deleteObservables = rows.map(article => 
       this.articlesService.deleteArticleAdmin(article.id).pipe(
         catchError(error => {
@@ -231,16 +278,43 @@ export class ArticlesComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.notificationService.success('Éxito', `${rows.length} artículo(s) eliminado(s) correctamente`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: `${rows.length} artículo(s) eliminado(s) correctamente`,
+            type: 'success'
+          };
           this.loadArticles();
         },
         error: (error) => {
           console.error('Error deleting articles:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudieron eliminar algunos artículos';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.loadArticles();
         }
       });
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmModalConfig = null;
+    this.selectedArticleForAction = null;
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
+  }
+
+  handleConfirm(): void {
+    if (this.confirmModalConfig?.onConfirm) {
+      this.confirmModalConfig.onConfirm();
+    }
   }
 
   onBatchActionExecuted(event: { action: BatchAction; rows: any[] }): void {

@@ -9,12 +9,15 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
+import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
 
 @Component({
   selector: 'app-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent, DetailsModalComponent],
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.scss']
 })
@@ -49,6 +52,24 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
   articleNeeded = false;
   addingArticle = false;
   editingArticleQuantity: { id: number; quantity: number } | null = null;
+
+  // Modales
+  showConfirmModal = false;
+  showMessageModal = false;
+  confirmModalConfig: {
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  } | null = null;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
+  showDetailsModal = false;
+  organizationDetails: DetailItem[] = [];
+  selectedOrganizationForAction: UserManagement | null = null;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -323,13 +344,48 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
   }
 
   viewOrganizationDetails(organization: UserManagement): void {
-    const details = `
-      Organización: ${organization.username}
-      Email: ${organization.email}
-      Verificado: ${organization.verified ? 'Sí' : 'No'}
-      Bloqueado: ${organization.block ? 'Sí' : 'No'}
-    `;
-    alert(details);
+    this.selectedOrganizationForAction = organization;
+    
+    // Parsear la descripción del lastName si existe
+    let description = '-';
+    if (organization.people?.lastName) {
+      try {
+        const lastNameData = JSON.parse(organization.people.lastName);
+        if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
+          description = lastNameData.description;
+        } else if (typeof organization.people.lastName === 'string' && organization.people.lastName.trim() !== '') {
+          // Si no es JSON válido, usar el valor directamente
+          description = organization.people.lastName;
+        }
+      } catch (e) {
+        // Si no es JSON, usar el valor directamente
+        description = organization.people.lastName;
+      }
+    }
+
+    this.organizationDetails = [
+      { label: 'Organización', value: organization.username },
+      { label: 'Email', value: organization.email },
+      { label: 'Rol', value: this.getRoleDisplayName(organization.rol?.rol || '') },
+      { label: 'Verificado', value: organization.verified ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Bloqueado', value: organization.block ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Email Verificado', value: organization.emailVerified ? 'Sí' : 'No', type: 'badge' },
+      { label: 'Último Acceso', value: organization.lastLogin || 'Nunca', type: 'date' },
+      { label: 'Fecha de Creación', value: organization.createdAt, type: 'date' },
+      ...(organization.people ? [
+        { label: 'Nombre', value: organization.people.name },
+        { label: 'Descripción', value: description },
+        { label: 'DNI', value: organization.people.dni || '-' },
+        { label: 'Teléfono', value: organization.people.telefono || '-' }
+      ] : [])
+    ];
+    this.showDetailsModal = true;
+  }
+
+  closeDetailsModal(): void {
+    this.showDetailsModal = false;
+    this.selectedOrganizationForAction = null;
+    this.organizationDetails = [];
   }
 
   openEditOrganizationModal(organization: UserManagement): void {
@@ -530,40 +586,78 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Rol cambiado correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Rol cambiado correctamente',
+            type: 'success'
+          };
           this.closeChangeRoleModal();
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error changing role:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo cambiar el rol';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.changingRole = false;
         }
       });
   }
 
   deleteOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de eliminar a ${organization.username}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Eliminar Organización',
+      message: `¿Estás seguro de eliminar a ${organization.username}?\n\nEsta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: () => this.executeDeleteOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.deleteUser(organization.id)
+  executeDeleteOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.deleteUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización eliminada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización eliminada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error deleting organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   blockBatch(organizations: UserManagement[]): void {
+    this.confirmModalConfig = {
+      title: 'Bloquear Organizaciones',
+      message: `¿Estás seguro de bloquear ${organizations.length} organización(es)?`,
+      type: 'warning',
+      onConfirm: () => this.executeBlockBatch(organizations)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeBlockBatch(organizations: UserManagement[]): void {
+    this.showConfirmModal = false;
     const requests = organizations.map(org => 
       this.userService.blockUser(org.id).pipe(
         catchError(error => {
@@ -577,13 +671,29 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert(`${organizations.length} organizaciones bloqueadas`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: `${organizations.length} organización(es) bloqueada(s)`,
+            type: 'success'
+          };
           this.loadOrganizations();
         }
       });
   }
 
   unblockBatch(organizations: UserManagement[]): void {
+    this.confirmModalConfig = {
+      title: 'Desbloquear Organizaciones',
+      message: `¿Estás seguro de desbloquear ${organizations.length} organización(es)?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnblockBatch(organizations)
+    };
+    this.showConfirmModal = true;
+  }
+
+  executeUnblockBatch(organizations: UserManagement[]): void {
+    this.showConfirmModal = false;
     const requests = organizations.map(org => 
       this.userService.unblockUser(org.id).pipe(
         catchError(error => {
@@ -597,29 +707,51 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert(`${organizations.length} organizaciones desbloqueadas`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: `${organizations.length} organización(es) desbloqueada(s)`,
+            type: 'success'
+          };
           this.loadOrganizations();
         }
       });
   }
 
   deleteBatch(organizations: UserManagement[]): void {
-    if (!confirm(`¿Estás seguro de eliminar ${organizations.length} organizaciones? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Eliminar Organizaciones',
+      message: `¿Estás seguro de eliminar ${organizations.length} organización(es)?\n\nEsta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: () => this.executeDeleteBatch(organizations)
+    };
+    this.showConfirmModal = true;
+  }
 
+  executeDeleteBatch(organizations: UserManagement[]): void {
+    this.showConfirmModal = false;
     const ids = organizations.map(org => org.id);
     this.userService.deleteUsers(ids)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert(`${organizations.length} organizaciones eliminadas`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: `${organizations.length} organización(es) eliminada(s)`,
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error deleting organizations:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudieron eliminar las organizaciones';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
@@ -644,7 +776,12 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Artículo agregado correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Artículo agregado correctamente',
+            type: 'success'
+          };
           this.loadOrganizationArticles();
           this.selectedArticleId = null;
           this.articleQuantity = 1;
@@ -654,7 +791,12 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error adding article:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo agregar el artículo';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.addingArticle = false;
         }
       });
@@ -674,14 +816,24 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Cantidad actualizada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Cantidad actualizada correctamente',
+            type: 'success'
+          };
           this.loadOrganizationArticles();
           this.editingArticleQuantity = null;
         },
         error: (error) => {
           console.error('Error updating quantity:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la cantidad';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
           this.editingArticleQuantity = null;
         }
       });
@@ -692,35 +844,78 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Estado actualizado correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Estado actualizado correctamente',
+            type: 'success'
+          };
           this.loadOrganizationArticles();
         },
         error: (error) => {
           console.error('Error toggling needed:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar el estado';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   deleteOrganizationArticle(userArticle: UserArticle): void {
-    if (!confirm('¿Estás seguro de eliminar este artículo?')) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Eliminar Artículo',
+      message: '¿Estás seguro de eliminar este artículo?',
+      type: 'warning',
+      onConfirm: () => this.executeDeleteOrganizationArticle(userArticle.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.articlesService.deleteUserArticleAdmin(userArticle.id)
+  executeDeleteOrganizationArticle(userArticleId: number): void {
+    this.showConfirmModal = false;
+    this.articlesService.deleteUserArticleAdmin(userArticleId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Artículo eliminado correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Artículo eliminado correctamente',
+            type: 'success'
+          };
           this.loadOrganizationArticles();
         },
         error: (error) => {
           console.error('Error deleting article:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el artículo';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmModalConfig = null;
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
+  }
+
+  handleConfirm(): void {
+    if (this.confirmModalConfig?.onConfirm) {
+      this.confirmModalConfig.onConfirm();
+    }
   }
 
   getRoleDisplayName(role: string): string {

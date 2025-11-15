@@ -13,11 +13,13 @@ import {
   SendMessageDTO
 } from '../../../core/services/chat.service';
 import { UserManagementService, UserManagement } from '../../../core/services/user-management.service';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
 @Component({
   selector: 'app-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmModalComponent, MessageModalComponent],
   templateUrl: './chats.component.html',
   styleUrls: ['./chats.component.scss']
 })
@@ -67,6 +69,21 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   // Archivos para mensaje
   selectedFiles: File[] = [];
+
+  // Modales de confirmación y mensaje
+  showConfirmModal = false;
+  showMessageModal = false;
+  confirmModalConfig: {
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  } | null = null;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
 
   constructor(
     private chatService: ChatService,
@@ -493,23 +510,56 @@ export class ChatsComponent implements OnInit, OnDestroy {
    * Eliminar mensaje
    */
   deleteMessage(messageId: number): void {
-    if (!confirm('¿Estás seguro de eliminar este mensaje?')) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Eliminar Mensaje',
+      message: '¿Estás seguro de eliminar este mensaje?',
+      type: 'warning',
+      onConfirm: () => this.executeDeleteMessage(messageId)
+    };
+    this.showConfirmModal = true;
+  }
 
+  executeDeleteMessage(messageId: number): void {
+    this.showConfirmModal = false;
     this.chatService.deleteMessage(messageId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Mensaje eliminado exitosamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Mensaje eliminado exitosamente',
+            type: 'success'
+          };
           this.loadChatMessages();
         },
         error: (error) => {
           console.error('Error deleting message:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el mensaje';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmModalConfig = null;
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
+  }
+
+  handleConfirm(): void {
+    if (this.confirmModalConfig?.onConfirm) {
+      this.confirmModalConfig.onConfirm();
+    }
   }
 
   /**

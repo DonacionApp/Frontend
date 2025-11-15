@@ -7,11 +7,13 @@ import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../..
 import { PostsService, Post, Tag, ImagePost, UpdatePostDTO } from '../../../core/services/posts.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
 @Component({
   selector: 'app-posts',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent],
   templateUrl: './posts.component.html',
   styleUrls: ['./posts.component.scss']
 })
@@ -41,6 +43,22 @@ export class PostsComponent implements OnInit, OnDestroy {
   availableTags: Tag[] = [];
   selectedTagId: number | null = null;
   addingTag = false;
+
+  // Modales
+  showConfirmModal = false;
+  showMessageModal = false;
+  confirmModalConfig: {
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'info';
+    onConfirm: () => void;
+  } | null = null;
+  messageModalConfig: {
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  } | null = null;
+  selectedPostForAction: Post | null = null;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -439,30 +457,58 @@ export class PostsComponent implements OnInit, OnDestroy {
 
   // Eliminar post
   deletePost(post: Post): void {
-    if (!confirm(`¿Estás seguro de eliminar el post "${post.title}"?`)) {
-      return;
-    }
+    this.selectedPostForAction = post;
+    this.confirmModalConfig = {
+      title: 'Eliminar Post',
+      message: `¿Estás seguro de eliminar el post "${post.title}"?`,
+      type: 'warning',
+      onConfirm: () => this.executeDeletePost(post.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.postsService.deletePostAdmin(post.id)
+  executeDeletePost(postId: number): void {
+    this.showConfirmModal = false;
+    this.postsService.deletePostAdmin(postId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.toastService.show({
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Éxito',
             message: 'Post eliminado correctamente',
             type: 'success'
-          });
+          };
           this.loadPosts();
         },
         error: (error) => {
           console.error('Error deleting post:', error);
-          this.toastService.show({
+          const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el post';
+          this.showMessageModal = true;
+          this.messageModalConfig = {
             title: 'Error',
-            message: 'No se pudo eliminar el post',
+            message: errorMessage,
             type: 'error'
-          });
+          };
         }
       });
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmModalConfig = null;
+    this.selectedPostForAction = null;
+  }
+
+  closeMessageModal(): void {
+    this.showMessageModal = false;
+    this.messageModalConfig = null;
+  }
+
+  handleConfirm(): void {
+    if (this.confirmModalConfig?.onConfirm) {
+      this.confirmModalConfig.onConfirm();
+    }
   }
 
   deleteBatch(rows: Post[]): void {
