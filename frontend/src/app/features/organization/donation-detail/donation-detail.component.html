@@ -1,22 +1,19 @@
 <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-4xl mx-auto">
-    
-    <!-- Encabezado -->
-    <div class="flex items-center justify-between mb-6">
-      <button
-        (click)="onBack()"
-        class="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-        Volver
-      </button>
-      
-      <h1 class="text-2xl font-bold text-gray-900">
-        Detalle de Donación #{{ donation?.id }}
-      </h1>
-      
-      <div class="w-20"></div> <!-- Espaciador -->
+  <div class="w-full mx-auto px-6 lg:px-12">
+
+    <!-- Encabezado compacto -->
+    <div class="flex items-start justify-between mb-6 gap-4 header-row">
+      <div class="flex items-center space-x-3">
+        <button
+          (click)="onBack()"
+          class="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Volver
+        </button>
+        <h1 class="text-lg sm:text-2xl font-bold text-gray-900 truncate">Detalle de Donación #{{ donation?.id }}</h1>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -76,7 +73,6 @@
         <!-- Información del donador y beneficiario -->
         <div class="px-6 py-4 bg-gray-50 border-b">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
             <!-- Donador -->
             <div class="flex items-center bg-white rounded-lg p-3 border border-gray-200">
               <img 
@@ -132,261 +128,176 @@
           </div>
         </div>
 
-        <!-- Detalles de la donación -->
+        <!-- Detalles de la donación (fecha remains in main column) -->
         <div class="px-6 py-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- Lugar de Recogida -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Lugar de Recogida
-              </label>
-              <p class="text-gray-900 bg-gray-50 p-3 rounded-lg">{{ donation.lugarRecogida }}</p>
-            </div>
-
-            <!-- Lugar de Donación -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                Lugar de Donación
-              </label>
-              <p class="text-gray-900 bg-gray-50 p-3 rounded-lg">{{ donation.lugarDonacion }}</p>
-            </div>
-
-            <!-- Fecha Máxima de Entrega -->
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                Fecha Máxima de Entrega
-              </label>
-              <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                <p class="text-gray-900 font-semibold">{{ formatDate(donation.fechaMaximaEntrega) }}</p>
-                <button
-                  *ngIf="isDonator"
-                  (click)="onExtendDate()"
-                  [disabled]="loading"
-                  class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
-                  + 10 días
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Estado de la Donación -->
-        <div class="px-6 py-6 border-t bg-blue-50">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Estado de la Donación
-          </h3>
-          <div class="flex items-center space-x-4">
-            <label class="text-sm font-medium text-gray-700">
-              Estado actual:
-            </label>
-            <ng-container *ngIf="canEditStatus; else readonlyStatus">
-              <select
-                id="status-select"
-                [(ngModel)]="selectedStatusId"
-                (change)="onStatusChange()"
-                [disabled]="updatingStatus || loading"
-                class="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-200 disabled:cursor-not-allowed">
-                <option *ngFor="let status of allStatuses" [value]="status.id">
-                  {{ status.status }}
-                </option>
-              </select>
-              <span *ngIf="updatingStatus" class="text-sm text-gray-600">
-                <div class="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
-                Actualizando...
-              </span>
-            </ng-container>
-            <ng-template #readonlyStatus>
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
-                {{ donation.statusDonation.status }}
-              </span>
-            </ng-template>
-          </div>
-        </div>
-
-        <!-- Artículos -->
-        <div class="px-6 py-6 border-t">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-            Artículos a Donar
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div 
-              *ngFor="let article of donation.articles; let i = index"
-              class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
-              <div>
-                <p class="font-semibold text-gray-900">{{ article.article.name || 'Artículo sin nombre' }}</p>
-                <p class="text-sm text-gray-600" *ngIf="article.article?.descripcion">{{ article.article.descripcion }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-2xl font-bold text-green-600">{{ article.quantity }}</p>
-                <p class="text-xs text-gray-500">unidades</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Comentarios -->
-        <div class="px-6 py-6 border-t bg-gray-50">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-            </svg>
-            Comentarios e Instrucciones
-          </h3>
-          <div class="space-y-3">
-            <div 
-              *ngFor="let comment of getCommentsArray(); let i = index"
-              class="bg-white border border-gray-200 rounded-lg p-4">
-              <div class="flex items-start">
-                <div class="flex-shrink-0 bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center text-blue-600 font-semibold text-sm">
-                  {{ i + 1 }}
-                </div>
-                <p class="ml-3 text-gray-700">{{ comment.message }}</p>
-              </div>
-            </div>
-            <p *ngIf="getCommentsArray().length === 0" class="text-gray-500 italic text-center py-4">
-              No hay comentarios
-            </p>
-          </div>
-        </div>
-
-        <!-- Valoraciones / Reviews -->
-        <div class="px-6 py-6 border-t bg-white">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.54-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z"/>
-            </svg>
-            Valoraciones
-          </h3>
-
-          <!-- Existing reviews list -->
-          <div class="space-y-3">
-            <div *ngIf="(donation?.reviews?.length || 0) > 0; else noReviews">
-              <div *ngFor="let r of donation?.reviews" class="border rounded-lg p-4 bg-gray-50">
-                <div class="flex items-start justify-between">
-                  <div>
-                      <div class="flex items-center space-x-3">
-                      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-semibold">
-                        {{ r.user?.username?.charAt(0)?.toUpperCase() || (r.user?.id ? ('' + r.user?.id).charAt(0) : 'U') }}
-                      </div>
-                      <div>
-                        <p class="font-semibold text-gray-900">{{ r.user?.username || (r.user?.id ? ('Usuario ' + r.user?.id) : 'Usuario') }}</p>
-                        <p class="text-xs text-gray-500">{{ r.createdAt ? (r.createdAt | date:'mediumDate') : '' }}</p>
-                      </div>
-                    </div>
-                    <p class="mt-3 text-gray-700">{{ r.review }}</p>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-yellow-500 font-bold text-xl">{{ r.raiting || 0 }}★</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <ng-template #noReviews>
-              <p class="text-gray-500 italic text-center py-4">No hay valoraciones aún</p>
-            </ng-template>
-          </div>
-
-          <!-- Add review form: only beneficiary and only if user hasn't already posted -->
-          <div class="mt-6">
-            <div *ngIf="canAddReview(); else cannotAdd">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tu valoración (solo beneficiario)</label>
-              <textarea [(ngModel)]="newReviewText" rows="3" class="w-full p-3 border rounded-md" placeholder="Escribe tu valoración aquí..."></textarea>
-
-              <div class="flex items-center justify-between mt-3">
-                  <div class="flex items-center space-x-2">
-                    <button (click)="addReview()" [disabled]="submittingReview" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60">
-                      <span *ngIf="!submittingReview">Enviar valoración</span>
-                      <span *ngIf="submittingReview">Enviando...</span>
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="lg:col-span-2">
+              <div class="bg-white rounded-lg p-4">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Fecha Máxima de Entrega
+                  </label>
+                  <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <p class="text-gray-900 font-semibold">{{ formatDate(donation.fechaMaximaEntrega) }}</p>
+                    <button
+                      *ngIf="isDonator"
+                      (click)="onExtendDate()"
+                      [disabled]="loading"
+                      class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
+                      + 10 días
                     </button>
                   </div>
-              </div>
+                </div>
 
-              <p *ngIf="reviewError" class="text-sm text-red-600 mt-2">{{ reviewError }}</p>
+                <!-- Estado de la Donación -->
+                <div class="border-t pt-6">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Estado de la Donación
+                  </h3>
+                  <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-gray-700">Estado actual:</label>
+                    <ng-container *ngIf="canEditStatus; else readonlyStatus">
+                      <select
+                        id="status-select"
+                        [(ngModel)]="selectedStatusId"
+                        (change)="onStatusChange()"
+                        [disabled]="updatingStatus || loading"
+                        class="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-200 disabled:cursor-not-allowed">
+                        <option *ngFor="let status of allStatuses" [value]="status.id">{{ status.status }}</option>
+                      </select>
+                      <span *ngIf="updatingStatus" class="text-sm text-gray-600">
+                        <div class="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                        Actualizando...
+                      </span>
+                    </ng-container>
+                    <ng-template #readonlyStatus>
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">{{ donation.statusDonation.status }}</span>
+                    </ng-template>
+                  </div>
+                </div>
+
+                <!-- Comentarios -->
+                <div class="mt-6">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Comentarios e Instrucciones</h3>
+                  <div class="space-y-3">
+                    <div *ngFor="let comment of getCommentsArray(); let i = index" class="bg-white border border-gray-200 rounded-lg p-4">
+                      <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center text-blue-600 font-semibold text-sm">{{ i + 1 }}</div>
+                        <p class="ml-3 text-gray-700">{{ comment.message }}</p>
+                      </div>
+                    </div>
+                    <p *ngIf="getCommentsArray().length === 0" class="text-gray-500 italic text-center py-4">No hay comentarios</p>
+                  </div>
+                </div>
+
+                <!-- Valoraciones / Reviews -->
+                <div class="mt-6">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Valoraciones</h3>
+                  <div class="space-y-3">
+                    <div *ngIf="(donation?.reviews?.length || 0) > 0; else noReviews">
+                      <div *ngFor="let r of donation?.reviews" class="border rounded-lg p-4 bg-gray-50">
+                        <div class="flex items-start justify-between">
+                          <div>
+                            <div class="flex items-center space-x-3">
+                              <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-semibold">{{ r.user?.username?.charAt(0)?.toUpperCase() || (r.user?.id ? ('' + r.user?.id).charAt(0) : 'U') }}</div>
+                              <div>
+                                <p class="font-semibold text-gray-900">{{ r.user?.username || (r.user?.id ? ('Usuario ' + r.user?.id) : 'Usuario') }}</p>
+                                <p class="text-xs text-gray-500">{{ r.createdAt ? (r.createdAt | date:'mediumDate') : '' }}</p>
+                              </div>
+                            </div>
+                            <p class="mt-3 text-gray-700">{{ r.review }}</p>
+                          </div>
+                          <div class="text-right"><div class="text-yellow-500 font-bold text-xl">{{ r.raiting || 0 }}★</div></div>
+                        </div>
+                      </div>
+                    </div>
+                    <ng-template #noReviews>
+                      <p class="text-gray-500 italic text-center py-4">No hay valoraciones aún</p>
+                    </ng-template>
+                  </div>
+
+                  <!-- Add review form -->
+                  <div class="mt-6">
+                    <div *ngIf="canAddReview(); else cannotAdd">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Tu valoración (solo beneficiario)</label>
+                      <textarea [(ngModel)]="newReviewText" rows="3" class="w-full p-3 border rounded-md" placeholder="Escribe tu valoración aquí..."></textarea>
+                      <div class="flex items-center justify-between mt-3">
+                        <div class="flex items-center space-x-2">
+                          <button (click)="addReview()" [disabled]="submittingReview" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60">
+                            <span *ngIf="!submittingReview">Enviar valoración</span>
+                            <span *ngIf="submittingReview">Enviando...</span>
+                          </button>
+                        </div>
+                      </div>
+                      <p *ngIf="reviewError" class="text-sm text-red-600 mt-2">{{ reviewError }}</p>
+                    </div>
+                    <ng-template #cannotAdd>
+                      <div class="mt-2 text-sm text-gray-600 italic">
+                        <p *ngIf="!isBeneficiary">Solo el beneficiario puede agregar una valoración.</p>
+                        <p *ngIf="isBeneficiary && !authService.currentUserValue">Debes iniciar sesión para poder valorar.</p>
+                        <p *ngIf="isBeneficiary && authService.currentUserValue && !canAddReview()">Ya has agregado una valoración para esta donación.</p>
+                      </div>
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <ng-template #cannotAdd>
-              <div class="mt-2 text-sm text-gray-600 italic">
-                <p *ngIf="!isBeneficiary">Solo el beneficiario puede agregar una valoración.</p>
-                <p *ngIf="isBeneficiary && !authService.currentUserValue">Debes iniciar sesión para poder valorar.</p>
-                <p *ngIf="isBeneficiary && authService.currentUserValue && !canAddReview()">Ya has agregado una valoración para esta donación.</p>
+            <!-- Right column (sidebar) -->
+            <aside class="lg:col-span-1">
+              <div class="bg-white border rounded-lg p-4 mb-4">
+                <h4 class="font-semibold mb-3">Lugares</h4>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lugar de Recogida</label>
+                <p class="text-gray-900 bg-gray-50 p-3 rounded-lg mb-3">{{ donation.lugarRecogida }}</p>
+
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lugar de Donación</label>
+                <p class="text-gray-900 bg-gray-50 p-3 rounded-lg">{{ donation.lugarDonacion }}</p>
               </div>
-            </ng-template>
-          </div>
 
-        </div>
+              <!-- Chats are shown in the global Sidebar component; donation-detail only has Create/Open chat actions -->
 
-        <!-- Acciones -->
-        <div class="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
-          <button
-            (click)="onBack()"
-            class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
-            Volver
-          </button>
-          
-          <!-- Botones de acción solo para el propietario -->
-          <div class="flex space-x-3">
-            <button
-              *ngIf="canEditDonation"
-              (click)="onEdit()"
-              [disabled]="loading"
-              class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
-              Editar
-            </button>
-            <button
-              *ngIf="canEditDonation"
-              (click)="onManageArticles()"
-              [disabled]="loading"
-              class="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-400 transition-colors">
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-              </svg>
-              Gestionar Artículos
-            </button>
-            <button
-              *ngIf="canDeleteDonation"
-              (click)="onDelete()"
-              [disabled]="loading"
-              class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:bg-gray-400 transition-colors">
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-              Eliminar
-            </button>
-            
-            <!-- Mensaje si no tiene permisos -->
-            <div *ngIf="!canEditDonation && !canDeleteDonation" class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
-              <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-              </svg>
-              <span *ngIf="donation.statusDonation?.status?.toLowerCase() !== 'pendiente'">
-                Solo se puede editar en estado "pendiente"
-              </span>
-              <span *ngIf="donation.statusDonation?.status?.toLowerCase() === 'pendiente'">
-                Solo el donador puede editar
-              </span>
-            </div>
+              <!-- Communication block (chat) -->
+              <div *ngIf="authService.currentUserValue && (isBeneficiary || isDonator)" class="bg-white border rounded-lg p-4">
+                <h4 class="font-semibold mb-2">Comunicación</h4>
+                <p class="text-sm text-gray-600 mb-3">Inicia o abre el chat relacionado a esta donación.</p>
+                <div class="space-y-2">
+                  <button *ngIf="donation?.chat?.id" (click)="onOpenChat()" [disabled]="loading" class="w-full px-3 py-2 bg-green-600 text-white rounded-md">Abrir chat</button>
+                  <button *ngIf="!donation?.chat?.id" (click)="onCreateChat()" [disabled]="loading" class="w-full px-3 py-2 border border-green-200 text-green-700 rounded-md">Crear chat</button>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
+
+        <!-- Duplicate content removed: kept single instance in the main card and sidebar -->
+
+        <!-- Floating/sticky chat action (mobile floating button + desktop sidebar) -->
+        <ng-container *ngIf="authService.currentUserValue && (isBeneficiary || isDonator)">
+          <!-- Floating button for small screens -->
+          <div class="floating-chat lg:hidden">
+            <button *ngIf="donation?.chat?.id" (click)="onOpenChat()" [disabled]="loading" class="bg-green-600 text-white px-4 py-2 rounded-full" title="Abrir chat">
+              <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+              Abrir
+            </button>
+
+            <button *ngIf="!donation?.chat?.id" (click)="onCreateChat()" [disabled]="loading" class="bg-white text-green-700 border border-green-200 px-4 py-2 rounded-full" title="Crear chat">
+              <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+              Crear
+            </button>
+          </div>
+
+          <!-- Old sidebar removed: using improved right-column sidebar inside the card for large screens -->
+        </ng-container>
 
       </div>
 

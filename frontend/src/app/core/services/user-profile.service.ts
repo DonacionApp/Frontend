@@ -86,6 +86,7 @@ export interface BackendUserProfile {
     dni: string;
     residencia: string;
     telefono: string;
+    supportId?: string | number | null;
     typeDni: {
       id: number;
       type: string;
@@ -137,6 +138,21 @@ export interface UserProfile {
   isEmailVerified?: boolean;
   dni?: string;
   typeDni?: string;
+  isVerified?: boolean;
+  supportId?: string | number | null;
+  commentSupportId?: Array<{
+    id: number;
+    comment: string;
+    status: {
+      id: number;
+      name: string;
+    };
+    processedBy?: any;
+    processedAt?: string | null;
+    rejectReason?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 }
 
 export interface UpdateUserProfileDTO {
@@ -254,7 +270,21 @@ export class UserProfileService {
       lastLogin: backendProfile.lastLogin || '',
       isEmailVerified: backendProfile.emailVerified || false,
       dni: cleanValue(backendProfile.people?.dni),
-      typeDni: cleanValue(backendProfile.people?.typeDni?.type)
+      typeDni: cleanValue(backendProfile.people?.typeDni?.type),
+      isVerified: backendProfile.verified || false,
+      supportId: backendProfile.people?.supportId ?? null,
+      commentSupportId: Array.isArray((backendProfile as any).commentSupportId)
+        ? (backendProfile as any).commentSupportId.map((c: any) => ({
+            id: c.id,
+            comment: c.comment,
+            status: c.status,
+            processedBy: c.processedBy,
+            processedAt: c.processedAt,
+            rejectReason: c.rejectReason,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt
+          }))
+        : []
     };
   }
 

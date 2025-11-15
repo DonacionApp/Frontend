@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PostsService, Post, PostLiked } from '../../../core/services/posts.service';
@@ -8,10 +9,18 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { AlertService } from '../../../shared/services/alert.service';
 
+@Pipe({ name: 'safeUrl' })
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
+
 @Component({
   selector: 'app-details',
   standalone: true,
-  imports: [CommonModule, RouterModule, SidebarComponent, ButtonComponent],
+  imports: [CommonModule, RouterModule, SidebarComponent, ButtonComponent, SafeUrlPipe],
   templateUrl: './details.component.html',
   styleUrl: './details.component.scss'
 })
@@ -27,6 +36,9 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   // Image gallery modal
   showImageModal = false;
+  currentGalleryFiles: { url: string, type: 'image' | 'video' | 'audio' | 'pdf' | 'doc' }[] = [];
+  currentGalleryIndex = 0;
+  // Mantener compatibilidad con código existente
   currentImages: string[] = [];
   currentImageIndex = 0;
 
@@ -255,12 +267,51 @@ export class DetailsComponent implements OnInit, OnDestroy {
     this.location.back();
   }
 
+  // Helpers para tipo de archivo (igual que en list.component.ts)
+  isPdfFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.pdf') || u.includes('.pdf?') || u.startsWith('data:application/pdf');
+  }
+
+  isVideoFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.ogg');
+  }
+
+  isAudioFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp3') || u.endsWith('.wav') || u.endsWith('.ogg');
+  }
+
+  isImageFile(url: string): boolean {
+    if (!url) return false;
+    return /\.(jpeg|jpg|png|gif|bmp|webp)$/.test(url.toLowerCase());
+  }
+
   // Image Gallery Methods
-  openImageGallery(images: any[], index: number): void {
-    this.currentImages = images.map(img => img.image);
+  openGallery(files: any[], index: number): void {
+    // files: post.imagePost
+    this.currentGalleryFiles = files.map(f => {
+      const url = f.image;
+      if (this.isImageFile(url)) return { url, type: 'image' as const };
+      if (this.isVideoFile(url)) return { url, type: 'video' as const };
+      if (this.isAudioFile(url)) return { url, type: 'audio' as const };
+      if (this.isPdfFile(url)) return { url, type: 'pdf' as const };
+      return { url, type: 'doc' as const };
+    });
+    this.currentGalleryIndex = index;
+    // Mantener compatibilidad
+    this.currentImages = files.map(f => f.image);
     this.currentImageIndex = index;
     this.showImageModal = true;
     document.body.style.overflow = 'hidden';
+  }
+
+  openImageGallery(images: any[], index: number): void {
+    this.openGallery(images, index);
   }
 
   closeImageGallery(): void {
@@ -268,16 +319,26 @@ export class DetailsComponent implements OnInit, OnDestroy {
     document.body.style.overflow = 'auto';
   }
 
-  nextImage(): void {
-    if (this.currentImageIndex < this.currentImages.length - 1) {
-      this.currentImageIndex++;
+  nextGalleryFile(): void {
+    if (this.currentGalleryIndex < this.currentGalleryFiles.length - 1) {
+      this.currentGalleryIndex++;
+      this.currentImageIndex = this.currentGalleryIndex;
     }
   }
 
-  previousImage(): void {
-    if (this.currentImageIndex > 0) {
-      this.currentImageIndex--;
+  previousGalleryFile(): void {
+    if (this.currentGalleryIndex > 0) {
+      this.currentGalleryIndex--;
+      this.currentImageIndex = this.currentGalleryIndex;
     }
+  }
+
+  nextImage(): void {
+    this.nextGalleryFile();
+  }
+
+  previousImage(): void {
+    this.previousGalleryFile();
   }
 
   @HostListener('document:click', ['$event'])

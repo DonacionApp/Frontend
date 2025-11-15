@@ -90,17 +90,20 @@
               Para acceder a todas las funcionalidades de la plataforma, necesitas verificar tu identidad. 
               Por favor, sube una copia de tu documento de identidad (DNI, pasaporte, etc.).
             </p>
-            
+            <div *ngIf="isVerificationPending()" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded flex items-center">
+              <svg class="h-5 w-5 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
+              </svg>
+              <span class="text-blue-800 font-medium">Documento recibido — Pendiente de revisión</span>
+            </div>
             <div class="bg-white p-4 rounded-md border border-yellow-200">
               <label class="block text-sm font-medium text-gray-700 mb-2">
                 Documento de Identidad
               </label>
-              
               <!-- Preview del documento -->
               <div *ngIf="documentPreview && documentPreview !== 'pdf'" class="mb-3">
                 <img [src]="documentPreview" alt="Preview" class="max-w-xs h-40 object-contain border border-gray-300 rounded-md">
               </div>
-              
               <div *ngIf="documentPreview === 'pdf'" class="mb-3 p-4 bg-gray-50 border border-gray-300 rounded-md flex items-center">
                 <svg class="h-12 w-12 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
@@ -110,14 +113,12 @@
                   <p class="text-sm text-gray-500">Documento PDF seleccionado</p>
                 </div>
               </div>
-              
               <div class="flex items-center space-x-3">
                 <input type="file" 
                        accept=".jpg,.jpeg,.png,.pdf" 
                        (change)="onDocumentSelected($event)" 
                        #documentInput
                        class="hidden">
-                
                 <button type="button" 
                         (click)="documentInput.click()"
                         [disabled]="isUploadingDocument"
@@ -127,7 +128,6 @@
                   </svg>
                   Seleccionar Archivo
                 </button>
-                
                 <button type="button" 
                         *ngIf="selectedDocument"
                         (click)="uploadDocument()"
@@ -140,11 +140,9 @@
                   {{ isVerificationUploading() ? 'Subiendo...' : 'Verificar Cuenta' }}
                 </button>
               </div>
-              
               <p class="mt-2 text-xs text-gray-600">
                 <strong>Formatos aceptados:</strong> JPG, PNG, PDF • <strong>Tamaño máximo:</strong> 5 MB
               </p>
-              
               <p *ngIf="selectedDocument" class="mt-2 text-sm text-gray-700">
                 📎 {{ selectedDocument.name }} ({{ (selectedDocument.size / 1024).toFixed(0) }} KB)
               </p>

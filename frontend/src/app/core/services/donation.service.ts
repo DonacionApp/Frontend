@@ -151,6 +151,15 @@ export interface Donation {
   articles: DonationArticle[];
   // Reviews/valoraciones asociadas a la donación (opcional)
   reviews?: Review[];
+  // Nuevo campo: chat asociado a la donación (puede venir vacío/null)
+  chat?: {
+    id: number;
+    name?: string;
+    donationId?: number;
+    createdAt?: string;
+    updatedAt?: string;
+    participants?: Array<{ id: number; donator?: boolean; user?: Partial<DonationUser> }>;
+  } | null;
 }
 
 export interface OrganizationStats {

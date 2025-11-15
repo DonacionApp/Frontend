@@ -2,8 +2,8 @@ import { Injectable, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError, switchMap } from 'rxjs/operators';
+import { Observable, throwError, Subject } from 'rxjs';
+import { tap, catchError, switchMap, map, startWith } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
 import { NotificationService } from './notification.service';
 
@@ -15,20 +15,22 @@ export interface User {
   username?: string;
   firstLogin?: boolean;
   isDocumentVerified?: boolean;
-  verified?: boolean; // Campo verified del token
+  verified?: boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
-  private accessTokenSubject = new BehaviorSubject<string | null>(null);
-  public accessToken$ = this.accessTokenSubject.asObservable();
-  // Llave unificada para persistir el token de acceso (usar siempre la misma nomenclatura)
+  // Usar localStorage como única fuente de verdad
+  // El Subject solo se usa como señal de cambio, NO almacena el valor (siempre se lee de localStorage)
+  private userChangeSignal = new Subject<void>();
+  public currentUser$ = this.userChangeSignal.pipe(
+    startWith(void 0),
+    map(() => this.getCurrentUser()) // Siempre lee de localStorage, nunca del Subject
+  );
   private readonly TOKEN_STORAGE_KEY = 'token';
-  private baseUrl = environment.apiBaseUrl; // backend auth base (configurado por environment)
+  private baseUrl = environment.apiBaseUrl;
   private api=environment.apiBackendUrl;
   private router: Router | null = null;
 
@@ -38,15 +40,11 @@ export class AuthService {
     private notificationService: NotificationService,
     private injector: Injector
   ) {
-    // Verificar si hay un usuario en localStorage al iniciar
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      this.currentUserSubject.next(JSON.parse(savedUser));
-    }
-    // Cargar token si existe (usar la llave unificada)
     const token = localStorage.getItem(this.TOKEN_STORAGE_KEY);
-    if (token) {
-      // Cargar token en memoria y mantenerlo persistido para compatibilidad con reloads
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (token && this.isTokenValid(token)) {
+      // Token válido - cargar usuario normalmente
       this.setAccessToken(token);
       const payload = this.decodeToken(token);
       if (payload) {
@@ -60,14 +58,61 @@ export class AuthService {
           name: payload.name || '',
           verified: payload.verified || false
         };
-        this.currentUserSubject.next(user);
+        this.setCurrentUser(user);
       }
+    } else if (token && refreshToken) {
+      // Token expirado pero hay refreshToken - mantener sesión y cargar usuario
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        const payload = this.decodeToken(token);
+        if (payload) {
+          const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+          const normalizedRole = this.normalizeRole(rawRole);
+          
+          const user: User = {
+            id: payload.sub || payload.id || '',
+            email: payload.email || '',
+            role: normalizedRole,
+            name: payload.name || '',
+            verified: payload.verified || false
+          };
+          this.setCurrentUser(user);
+        }
+      }
+      // NO limpiar la sesión - el token se refrescará automáticamente en la próxima petición
+    } else if (token && !refreshToken) {
+      // Solo limpiar si hay token pero NO hay refreshToken Y NO hay usuario guardado
+      // Si hay usuario guardado, mantener la sesión ya que el backend puede retornar refresh token
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        this.clearAuthData();
+      }
+      // Si hay usuario guardado, mantener la sesión - el backend puede retornar refresh token
+    }
+  }
+  public getCurrentUser(): User | null {
+    try {
+      const s = localStorage.getItem('currentUser');
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
     }
   }
 
-  // Access token management (in-memory only)
+  public setCurrentUser(user: User | null): void {
+    try {
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('currentUser');
+      }
+      this.userChangeSignal.next();
+    } catch (e) {
+      console.warn('No se pudo persistir currentUser en localStorage:', e);
+    }
+  }
+
   setAccessToken(token: string | null): void {
-    this.accessTokenSubject.next(token);
     try {
       if (token) {
         localStorage.setItem(this.TOKEN_STORAGE_KEY, token);
@@ -75,52 +120,44 @@ export class AuthService {
         localStorage.removeItem(this.TOKEN_STORAGE_KEY);
       }
     } catch (e) {
-      // Si no se puede persistir por alguna razón, seguir funcionando en memoria
       console.warn('No se pudo persistir token en localStorage:', e);
     }
   }
 
   getAccessToken(): string | null {
-    // Preferir token en memoria, pero fall back a la persistencia para reloads
-    return this.accessTokenSubject.value || localStorage.getItem(this.TOKEN_STORAGE_KEY);
+    try {
+      return localStorage.getItem(this.TOKEN_STORAGE_KEY);
+    } catch (e) {
+      return null;
+    }
   }
 
   clearAccessToken(): void {
-    this.accessTokenSubject.next(null);
     try { localStorage.removeItem(this.TOKEN_STORAGE_KEY); } catch(e) {}
   }
 
-  /** Solicitar enlace de recuperación */
   forgotPassword(email: string) {
     const url = `${this.baseUrl}/forgot-password`;
     return this.http.post<any>(url, { email });
   }
 
-  /** Restablecer contraseña usando token recibido por email */
   resetPassword(token: string, password: string) {
     const url = `${this.baseUrl}/reset-password`;
     return this.http.post<any>(url, { token, password });
   }
 
-  /** Verifica/consume el token usando el endpoint de verificación que expone el backend */
   verifyResetToken(code: string) {
     const urlVerify = `${this.baseUrl}/verify-reset-passord-token`;
     return this.http.post<any>(urlVerify, { token: code });
   }
 
-  /** Alternativa: enviar token y nueva contraseña al endpoint que procesa ambos campos */
   resetWithToken(code: string, newPassword: string) {
-  const urlVerify = `${this.baseUrl}/verify-reset-passord-token`; // endpoint confirmado por el backend
+  const urlVerify = `${this.baseUrl}/verify-reset-passord-token`;
     const url1 = `${this.baseUrl}/reset-password-token`;
     const url2 = `${this.baseUrl}/reset-password`;
 
-    // Intentamos en este orden, intentando adaptarnos al endpoint que el backend expone:
-    // 1) /verify-reset-passsord-token { token, newPassword } (según tu Postman)
-    // 2) /reset-password-token { token, newPassword }
-    // 3) /reset-password { token, password }
     return this.http.post<any>(urlVerify, { token: code, newPassword }).pipe(
       catchError((err) => {
-        // if not found or server error, try next
         if (err?.status === 404 || err?.status === 500) {
           return this.http.post<any>(url1, { token: code, newPassword }).pipe(
             catchError((err2) => {
@@ -182,20 +219,17 @@ export class AuthService {
     const url = `${this.baseUrl}/login`;
     return this.http.post<any>(url, { email, password }).pipe(
       tap(res => {
-        // Si backend entrega access_token (o accessToken), guardarlo
         const token = res.access_token || res.accessToken || res.token;
         const refresh = res.refresh_token || res.refreshToken;
         if (token) {
-          // No persistir accessToken en localStorage por seguridad
           this.setAccessToken(token);
-          // Conectar WebSocket con el token
           this.websocketService.connect(token);
+          this.websocketService.connectMessages(token);
         }
         if (refresh) {
           localStorage.setItem('refreshToken', refresh);
         }
 
-        // Decodificar token para extraer user
           if (token) {
           const payload = this.decodeToken(token);
           const rawRole = payload?.role || payload?.roles || payload?.rol || 'donor';
@@ -209,12 +243,10 @@ export class AuthService {
             isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
             verified: payload?.verified || res.verified || false
           };
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          this.currentUserSubject.next(user);
+          this.setCurrentUser(user);
         }
       }),
       catchError(err => {
-        // Pasar el error hacia el componente
         throw err;
       })
     );
@@ -224,23 +256,20 @@ export class AuthService {
     this.clearAuthData();
   }
 
-  /**
-   * Actualizar token silenciosamente sin emitir cambios de usuario
-   * Usado por el interceptor cuando el backend envía un token renovado
-   */
   updateTokenSilently(newToken: string): void {
     try {
-      // Mantener token en memoria por seguridad
       this.setAccessToken(newToken);
       const payload = this.decodeToken(newToken);
+      if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+        try { console.debug('[AuthService] updateTokenSilently - newToken payload:', payload); } catch (e) {}
+      }
       if (payload) {
-        // Solo actualizar si el usuario es el mismo
-        const currentUser = this.currentUserSubject.value;
-          if (currentUser && currentUser.id === (payload.sub || payload.id)) {
-          // El token ya está en localStorage (actualizado por el interceptor)
-          // No es necesario emitir cambios en currentUserSubject
-          // Solo reconectar WebSocket si existe
+        const currentUser = this.getCurrentUser();
+        if (currentUser && currentUser.id === (payload.sub || payload.id)) {
           if (this.websocketService) {
+            if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+              try { console.debug('[AuthService] updateTokenSilently - reconnecting websockets with refreshed token'); } catch (e) {}
+            }
             this.websocketService.reconnectWithNewToken(newToken);
           }
         }
@@ -250,26 +279,23 @@ export class AuthService {
     }
   }
 
-  /**
-   * Procesar silenciosamente la recepción de un nuevo refresh token.
-   * - Reemplaza el refreshToken en localStorage si cambia
-   * - Si hay un accessToken válido, reconecta WebSocket y recarga notificaciones
-   */
   updateRefreshTokenSilently(newRefreshToken: string): void {
     try {
       if (!newRefreshToken) return;
       const current = localStorage.getItem('refreshToken');
       if (current === newRefreshToken) return; // no hay cambio
 
+      if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+        try { console.debug('[AuthService] updateRefreshTokenSilently - oldRefresh:', !!current, 'newRefresh:', !!newRefreshToken); } catch (e) {}
+      }
+
       localStorage.setItem('refreshToken', newRefreshToken);
-  // Refresh token actualizado silenciosamente
+
 
       const access = this.getAccessToken();
       if (access) {
-        // Reconectar WebSocket usando el access token actual
         try {
           this.websocketService.reconnectWithNewToken(access);
-          // Intentar recargar notificaciones vía NotificationService
           try {
             this.notificationService.getMyNotifications().subscribe({ next: () => {}, error: () => {} });
           } catch (e) {
@@ -284,17 +310,11 @@ export class AuthService {
     }
   }
 
-  /**
-   * Limpiar todos los datos de autenticación del localStorage
-   */
   private clearAuthData(): void {
-    // Limpiar todos los datos relacionados con autenticación
     localStorage.removeItem('currentUser');
-    // El access token se mantiene en memoria, limpiarlo también
     this.clearAccessToken();
     localStorage.removeItem('refreshToken');
-    
-    // Limpiar cualquier otro dato relacionado que pueda existir
+
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -303,27 +323,33 @@ export class AuthService {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    
-    // Actualizar el estado del usuario
-    this.currentUserSubject.next(null);
-    
-  // Desconectar WebSocket
-  this.websocketService.disconnect();
+
+    // Forzar que la app "olvide" al usuario en memoria sin recargar
+    try {
+      this.setCurrentUser(null);
+    } catch (e) {
+      console.warn('No se pudo limpiar currentUser en memoria:', e);
+    }
+
+    try {
+      this.websocketService.disconnect();
+    } catch (e) {}
   }
 
   /**
-   * Limpiar datos de autenticación y redirigir al login
-   * Usado cuando el token expira y el refresh token falla
+   * Forzar olvido del usuario: limpia `localStorage.currentUser` y el BehaviorSubject
+   * Útil para cuando quieres que la app deje de tener usuario en memoria sin recargar.
    */
+  public forgetCurrentUser(): void {
+    try { this.setCurrentUser(null); } catch (e) { console.warn('forgetCurrentUser error', e); }
+  }
+
   logoutAndRedirect(): void {
     this.clearAuthData();
     
-    // Obtener Router de forma lazy para evitar dependencias circulares
     if (!this.router) {
       this.router = this.injector.get(Router);
     }
-    
-    // Redirigir al login
     this.router?.navigate(['/auth/login'], {
       queryParams: { 
         expired: 'true',
@@ -331,11 +357,10 @@ export class AuthService {
       }
     });
     
-  // Sesión expirada, redirigiendo al login
   }
 
   get currentUserValue(): User | null {
-    return this.currentUserSubject.value;
+    return this.getCurrentUser();
   }
 
   isAuthenticated(): boolean {
@@ -347,7 +372,6 @@ export class AuthService {
   }
 
   isVerified(): boolean {
-    // Los admins siempre están verificados
     if (this.currentUserValue?.role === 'admin') {
       return true;
     }
@@ -355,7 +379,6 @@ export class AuthService {
   }
 
   canCreatePost(): boolean {
-    // Los admins pueden crear posts sin verificación
     if (this.currentUserValue?.role === 'admin') {
       return this.isAuthenticated();
     }
@@ -363,7 +386,6 @@ export class AuthService {
   }
 
   canRequestDonation(): boolean {
-    // Los admins pueden solicitar donaciones sin verificación
     if (this.currentUserValue?.role === 'admin') {
       return this.isAuthenticated();
     }
@@ -371,52 +393,45 @@ export class AuthService {
   }
 
   canLike(): boolean {
-    return this.isAuthenticated(); // Los autenticados pueden dar like, incluso sin verificar
+    return this.isAuthenticated(); 
   }
 
-  /**
-   * Refrescar el token de acceso usando el refresh token
-   * El refresh token puede venir en el body, headers o respuesta del backend
-   */
   refreshToken(): Observable<any> {
     const refreshToken = localStorage.getItem('refreshToken');
     
     if (!refreshToken) {
-      // Si no hay refresh token, limpiar y redirigir
       console.warn('⚠️ No hay refresh token disponible');
-      this.logoutAndRedirect();
+      // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+      // en la próxima petición exitosa
       return throwError(() => new Error('No hay refresh token disponible'));
     }
-
-    // Intentar diferentes endpoints según la implementación del backend
-    // El refresh token puede enviarse en el body o en headers
-    // Intentamos primero en el body (más común)
     const url = `${this.baseUrl}/refresh`;
     
-    // Intentar primero con el refresh token en el body
+    if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+      try {
+        console.debug('[AuthService] refreshToken - refreshToken present:', !!refreshToken, 'localStorage.tokenExists:', !!localStorage.getItem(this.TOKEN_STORAGE_KEY));
+      } catch (e) {}
+    }
     return this.http.post<any>(url, { refresh_token: refreshToken }, {
-      observe: 'response' // Observar la respuesta completa para acceder a headers
+      observe: 'response' 
     }).pipe(
       switchMap((response) => {
-        // El nuevo access token puede venir en:
-        // 1. El body de la respuesta (más común)
-        // 2. Los headers de la respuesta (x-access-token, authorization, etc.)
-        // 3. Ambos (body tiene prioridad)
+        
         
         const body = response.body || {};
         const headers = response.headers;
         
-        // Intentar obtener el token del body primero
+       
         let newToken = body.access_token || body.accessToken || body.token;
         
-        // Si no está en el body, intentar desde headers
+       
         if (!newToken) {
           newToken = headers.get('x-access-token') || 
                     headers.get('authorization')?.replace('Bearer ', '') ||
                     headers.get('access-token');
         }
         
-        // El refresh token también puede venir en el body o headers
+       
         let newRefreshToken = body.refresh_token || body.refreshToken || refreshToken;
         if (!newRefreshToken || newRefreshToken === refreshToken) {
           newRefreshToken = headers.get('x-refresh-token') || 
@@ -425,15 +440,21 @@ export class AuthService {
         }
         
         if (newToken) {
-          // Guardar el access token solo en memoria
+          if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+            try {
+              const p = this.decodeToken(newToken);
+              console.debug('[AuthService] refreshToken - received newToken payload:', p);
+            } catch (e) {}
+          }
+          
           this.setAccessToken(newToken);
           
-          // Actualizar refresh token si viene uno nuevo
+          
           if (newRefreshToken && newRefreshToken !== refreshToken) {
             localStorage.setItem('refreshToken', newRefreshToken);
           }
           
-          // Actualizar usuario si viene información en el token
+          
           const payload = this.decodeToken(newToken);
           if (payload) {
             const rawRole = payload.role || payload.roles || payload.rol || 'donor';
@@ -447,14 +468,13 @@ export class AuthService {
               verified: payload.verified || false
             };
             
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            this.currentUserSubject.next(user);
+            this.setCurrentUser(user);
           }
           
-          // Reconectar WebSocket con el nuevo token
+          
           this.websocketService.connect(newToken);
           
-          // Retornar el body de la respuesta para compatibilidad
+         
           return new Observable(observer => {
             observer.next(body);
             observer.complete();
@@ -464,9 +484,8 @@ export class AuthService {
         return throwError(() => new Error('No se recibió un nuevo token'));
       }),
       catchError(err => {
-        // Si el refresh falla, intentar con headers si no se intentó antes
+        
         if (err.status === 400 || err.status === 401) {
-          // Intentar con refresh token en headers
           return this.http.post<any>(url, {}, {
             headers: {
               'x-refresh-token': refreshToken,
@@ -484,7 +503,6 @@ export class AuthService {
                             headers.get('access-token');
               
               if (newToken) {
-          // Guardar token de acceso solo en memoria
           this.setAccessToken(newToken);
                 const payload = this.decodeToken(newToken);
                 if (payload) {
@@ -499,8 +517,7 @@ export class AuthService {
                     verified: payload.verified || false
                   };
                   
-                  localStorage.setItem('currentUser', JSON.stringify(user));
-                  this.currentUserSubject.next(user);
+                  this.setCurrentUser(user);
                 }
                 
                 this.websocketService.connect(newToken);
@@ -514,31 +531,28 @@ export class AuthService {
               return throwError(() => new Error('No se recibió un nuevo token'));
             }),
             catchError(finalErr => {
-              // Si el refresh falla completamente, limpiar y redirigir
               console.error('Error al refrescar token (intento con headers):', finalErr);
-              this.logoutAndRedirect();
+              // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+              // en la próxima petición exitosa
               return throwError(() => finalErr);
             })
           );
         }
         
-        // Si el refresh falla, limpiar y redirigir
         console.error('Error al refrescar token:', err);
-        this.logoutAndRedirect();
+        // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
+        // en la próxima petición exitosa
         return throwError(() => err);
       })
     );
   }
 
-  /**
-   * Normalizar el rol del backend al formato del frontend
-   */
   private normalizeRole(roleName: string): 'donor' | 'organization' | 'admin' {
     const normalizedRol = roleName.toLowerCase();
     if (normalizedRol === 'donante' || normalizedRol === 'donor' || normalizedRol === 'user') return 'donor';
     if (normalizedRol === 'organizacion' || normalizedRol === 'organization') return 'organization';
     if (normalizedRol === 'admin' || normalizedRol === 'administrador') return 'admin';
-    return 'donor'; // default
+    return 'donor';
   }
 
   private decodeToken(token: string): any | null {
@@ -546,7 +560,6 @@ export class AuthService {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
       const payload = parts[1];
-      // Base64 url -> base64
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
       const json = decodeURIComponent(atob(base64).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
@@ -554,6 +567,44 @@ export class AuthService {
       return JSON.parse(json);
     } catch (e) {
       return null;
+    }
+  }
+
+  /**
+   * Verifica si un token JWT es válido (no expirado)
+   */
+  public isTokenValid(token: string): boolean {
+    if (!token) return false;
+    
+    try {
+      const payload = this.decodeToken(token);
+      if (!payload) return false;
+      
+      // Verificar expiración
+      const exp = payload.exp;
+      if (!exp) return false;
+      
+      // exp está en segundos, Date.now() está en milisegundos
+      const currentTime = Math.floor(Date.now() / 1000);
+      return exp > currentTime;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Conecta WebSocket si hay un token válido
+   * Debe llamarse después de login o cuando se valide el token
+   */
+  public connectWebSocketIfAuthenticated(): void {
+    const token = this.getAccessToken();
+    if (token && this.isTokenValid(token)) {
+      try {
+        this.websocketService.connect(token);
+        this.websocketService.connectMessages(token);
+      } catch (e) {
+        console.warn('Error conectando WebSocket:', e);
+      }
     }
   }
 }

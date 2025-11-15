@@ -1,0 +1,229 @@
+<div class="flex h-full chats-root">
+  <!-- Left: chats list (card) -->
+  <div class="w-96 pr-4">
+    <div class="card chat-list-card flex flex-col h-full">
+      <div class="p-3 border-b">
+        <div class="mb-2 font-semibold flex items-center justify-between">
+          <div>Mensajes</div>
+          <div class="flex items-center">
+            <app-floating-menu *ngIf="isAdmin()" [items]="createChatMenuItems" (selectItem)="onCreateMenuSelect($event)"></app-floating-menu>
+          </div>
+        </div>
+        <input [(ngModel)]="search" (ngModelChange)="search$.next($event)" placeholder="Buscar conversaciones..." class="w-full px-2 py-1 border rounded" />
+        <div *ngIf="showCreateChatForm" class="mt-3 p-2 bg-gray-50 rounded border">
+          <div class="flex flex-col gap-2">
+            <input [(ngModel)]="createChatName" placeholder="Nombre del chat" class="px-2 py-1 border rounded" />
+            <button type="button" (click)="openUserPicker()" class="px-2 py-1 bg-gray-200 rounded w-fit">Seleccionar participantes</button>
+            <div class="flex flex-wrap gap-1">
+              <span *ngFor="let uid of userPickerSelected" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                {{ getUserPickerDisplay(uid) }}
+              </span>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" (click)="createChatFromForm()" [disabled]="createChatLoading" class="px-3 py-1 bg-blue-600 text-white rounded flex items-center gap-2">
+                <span *ngIf="!createChatLoading">Crear</span>
+                <span *ngIf="createChatLoading" class="flex items-center"><svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Creando...</span>
+              </button>
+              <button type="button" (click)="cancelCreateChat()" [disabled]="createChatLoading" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+            </div>
+          </div>
+          <!-- Modal flotante de selección de usuarios -->
+          <div *ngIf="showUserPicker" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" (click)="closeUserPicker()">
+            <div class="bg-white rounded shadow-lg w-full max-w-md p-4 relative" (click)="$event.stopPropagation()">
+              <div class="flex justify-between items-center mb-2">
+                <div class="font-semibold text-base">Selecciona participantes</div>
+                <button type="button" (click)="closeUserPicker(); $event.stopPropagation()" class="text-gray-500 hover:text-red-500">✕</button>
+              </div>
+              <div *ngIf="userPickerLoading" class="text-xs text-gray-500 py-2">Cargando usuarios...</div>
+              <div *ngIf="!userPickerLoading">
+                <input type="text" [(ngModel)]="userPickerSearch" placeholder="Buscar usuario..." class="w-full px-2 py-1 border rounded mb-2" />
+                <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                  <label *ngFor="let u of filteredUserPickerList" class="flex items-center gap-2 py-2 cursor-pointer">
+                    <input type="checkbox" [checked]="userPickerSelected.has(u.id)" (change)="toggleUserPickerSelect(u.id)" />
+                    <img *ngIf="u.profilePhoto" [src]="u.profilePhoto" class="w-7 h-7 rounded-full" />
+                    <span class="text-sm">{{ u.username || u.email || u.people?.name || u.id }}</span>
+                    <span class="text-xs text-gray-400 ml-1">{{ u.email }}</span>
+                  </label>
+                  <div *ngIf="!filteredUserPickerList.length" class="text-xs text-gray-400 px-2 py-1">Sin usuarios</div>
+                </div>
+                <div class="flex justify-end mt-3 gap-2">
+                  <button type="button" (click)="closeUserPicker(); $event.stopPropagation()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+                  <button type="button" (click)="showUserPicker=false; $event.stopPropagation()" class="px-3 py-1 bg-blue-600 text-white rounded">Listo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal flotante para agregar usuarios a un chat -->
+      <div *ngIf="showAddUsersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" (click)="closeAddUsersModal()">
+        <div class="bg-white rounded shadow-lg w-full max-w-md p-4 relative" (click)="$event.stopPropagation()">
+          <div class="flex justify-between items-center mb-2">
+            <div class="font-semibold text-base">Agregar usuarios al chat</div>
+            <button type="button" (click)="closeAddUsersModal(); $event.stopPropagation()" class="text-gray-500 hover:text-red-500">✕</button>
+          </div>
+          <div *ngIf="addUsersModalLoading" class="text-xs text-gray-500 py-2">Cargando usuarios...</div>
+          <div *ngIf="!addUsersModalLoading">
+            <input type="text" [(ngModel)]="addUsersModalSearch" placeholder="Buscar usuario..." class="w-full px-2 py-1 border rounded mb-2" />
+            <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
+              <label *ngFor="let u of filteredAddUsersModalList" class="flex items-center gap-2 py-2 cursor-pointer">
+                <input type="checkbox" [checked]="addUsersModalSelected.has(u.id)" (change)="toggleAddUsersModalSelect(u.id)" />
+                <img *ngIf="u.profilePhoto" [src]="u.profilePhoto" class="w-7 h-7 rounded-full" />
+                <span class="text-sm">{{ u.username || u.email || u.people?.name || u.id }}</span>
+                <span class="text-xs text-gray-400 ml-1">{{ u.email }}</span>
+              </label>
+              <div *ngIf="!filteredAddUsersModalList.length" class="text-xs text-gray-400 px-2 py-1">Sin usuarios</div>
+            </div>
+            <div class="flex justify-end mt-3 gap-2">
+              <button type="button" (click)="closeAddUsersModal(); $event.stopPropagation()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+              <button type="button" (click)="submitAddUsersToChat(getChatById(showAddUsersModal)); $event.stopPropagation()" [disabled]="addUsersModalSubmitting" class="px-3 py-1 bg-blue-600 text-white rounded flex items-center gap-2">
+                <span *ngIf="!addUsersModalSubmitting">Agregar</span>
+                <span *ngIf="addUsersModalSubmitting" class="flex items-center"><svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Agregando...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-auto chat-list-scroll" (scroll)="onChatsScroll($event)">
+        <div *ngIf="loadingChats && (!chats || chats.length === 0)" class="p-3 text-sm text-gray-600">Cargando chats...</div>
+           <div *ngFor="let chat of chats"
+             class="chat-item p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3"
+             [class.selected]="selectedChat && (selectedChat.id == chat.id)"
+             (click)="selectChat(chat)"
+             role="button"
+             tabindex="0">
+          <img [src]="getChatAvatar(chat)" class="w-10 h-10 rounded-full" />
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-start">
+              <div class="flex-1 min-w-0 pr-2">
+                <div class="truncate font-semibold chat-title">
+                  <span class="truncate">{{ getChatName(chat) }}</span>
+                </div>
+                <div *ngIf="chat.participants || chat.participants === 0" class="chat-participants text-xs text-gray-400">{{ chat.participants }} {{ chat.participants === 1 ? 'participante' : 'participantes' }}</div>
+              </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="text-xs text-gray-500">{{ getChatTime(chat) }}</div>
+                <div *ngIf="chat.unread && chat.unread > 0" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ chat.unread }}</div>
+                <div *ngIf="isAdmin()" class="ml-2" (click)="$event.stopPropagation()">
+                  <app-floating-menu [items]="getAdminMenuItems(chat)" (selectItem)="onAdminMenuSelect($event, chat)"></app-floating-menu>
+                </div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-500 truncate">{{ getChatLastMessage(chat) }}</div>
+            <!-- Menú flotante de usuarios del chat -->
+            <div *ngIf="usersListState && usersListState[chat.id]?.open" class="relative z-50"
+                 (click)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()" (mouseup)="$event.stopPropagation()">
+              <div class="fixed inset-0 z-40" (click)="closeUsersList(chat); $event.stopPropagation()"></div>
+              <div class="absolute right-0 mt-2 w-64 bg-white border rounded shadow-lg p-2 z-50" (click)="$event.stopPropagation()">
+                <div class="flex justify-between items-center mb-2">
+                  <div class="font-semibold text-sm">Usuarios en el chat</div>
+                  <button type="button" (click)="closeUsersList(chat); $event.stopPropagation()" class="text-gray-500 hover:text-red-500">✕</button>
+                </div>
+                <div *ngIf="usersListState[chat.id].loading" class="text-xs text-gray-500 py-2">Cargando usuarios...</div>
+                <ul *ngIf="!usersListState[chat.id].loading">
+                  <li *ngFor="let u of usersListState[chat.id].users" class="py-1 px-2 rounded hover:bg-gray-100 flex items-center gap-2">
+                    <img *ngIf="u.user?.profilePhoto" [src]="u.user.profilePhoto" class="w-6 h-6 rounded-full" />
+                    <span class="text-xs">{{ u.user?.username || u.user?.email || u.user?.name || u.username || u.email || u.name || 'Usuario' }}</span>
+                    <span *ngIf="u.isAdmin" class="ml-1 text-green-600 text-xs font-bold">(admin)</span>
+                    <span *ngIf="u._removing" class="ml-auto text-xs text-gray-400 animate-pulse">Eliminando...</span>
+                    <button *ngIf="isAdmin() && !u._removing" (click)="removeUserFromChat(chat, u.user?.id || u.id); $event.stopPropagation()" class="ml-auto px-2 py-0.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50">Eliminar</button>
+                  </li>
+                  <li *ngIf="!usersListState[chat.id].users.length" class="text-xs text-gray-400 px-2 py-1">Sin usuarios</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Admin action inline form -->
+            <div *ngIf="adminActionState && adminActionState[chat.id]" class="px-3 pt-2">
+              <ng-container *ngIf="adminActionState[chat.id] as st">
+                <div class="bg-gray-50 p-2 rounded flex items-center gap-2">
+                  <div class="text-sm">Acción: <strong>{{ st.action }}</strong></div>
+                  <input *ngIf="st.action==='add' || st.action==='remove'" [(ngModel)]="st.input" placeholder="Ingrese id" class="px-2 py-1 border rounded" />
+                  <button type="button" (click)="submitAdminAction(chat)" [disabled]="st.loading" class="px-2 py-1 bg-green-600 text-white rounded">OK</button>
+                  <button type="button" (click)="cancelAdminAction(chat)" class="px-2 py-1 bg-gray-200 rounded">Cancelar</button>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="hasMoreChats && !loadingChats" class="p-3 text-center">
+          <button (click)="loadChats(false, true)" class="px-3 py-1 bg-gray-100 rounded">Cargar más</button>
+        </div>
+        <div *ngIf="loadingChats && chats && chats.length > 0" class="p-3 text-center">
+          <svg class="animate-spin h-5 w-5 inline-block text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span class="text-sm text-gray-600 ml-2">Cargando más chats...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: selected chat messages (card) -->
+  <div class="flex-1 flex flex-col chat-panel">
+    <div class="card chat-card flex-1 flex flex-col">
+      <div *ngIf="!selectedChat" class="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
+        <div>
+          <div class="text-2xl mb-2">Selecciona una conversación</div>
+          <div class="text-sm text-gray-500">Elige una conversación para empezar a chatear</div>
+        </div>
+      </div>
+
+      <div class="flex-1 flex flex-col chat-panel">
+    <div class="card chat-card flex-1 flex flex-col">
+        <div *ngIf="selectedChat" class="flex-1 flex flex-col">
+          <!-- Miniheader del chat seleccionado -->
+          <div class="flex items-center gap-3 border-b py-2 px-4 bg-gray-50">
+            <img [src]="getChatAvatar(selectedChat)" class="w-10 h-10 rounded-full object-cover border" alt="avatar" />
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-lg truncate">{{ getChatName(selectedChat) }}</div>
+              <div *ngIf="selectedChat.userChat && selectedChat.userChat.length > 0" class="text-xs text-gray-500 truncate">
+                <span *ngFor="let uc of selectedChat.userChat; let last = last">
+                  {{ uc.user?.username || 'Usuario' }}<span *ngIf="!last">, </span>
+                </span>
+              </div>
+            </div>
+          </div>
+            <app-messages-view
+                #messagesView
+                [messages]="messages"
+                [currentUserId]="currentUserId"
+                [loadingMessages]="loadingMessages"
+                [hasMoreMessages]="hasMoreMessages"
+                [attachments]="selectedFiles"
+                (removeAttachment)="removeSelectedFile($event)"
+              (loadOlder)="loadMessages(selectedChat.id, false, true)"
+              (editMessage)="onEditMessage($event)"
+              (deleteMessage)="onDeleteMessage($event)">
+            </app-messages-view>
+
+            <div *ngIf="selectedFiles && selectedFiles.length" class="flex gap-2 items-center overflow-auto py-1 flex-shrink-0">
+                <div *ngFor="let f of selectedFiles; let i = index" class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
+                    <ng-container *ngIf="getPreviewUrlForFile(f) && f.type.startsWith('image/')">
+                        <img [src]="getPreviewUrlForFile(f)" class="w-10 h-10 object-cover rounded" />
+                    </ng-container>
+                    <div class="text-xs">
+                        <div class="font-medium truncate" style="max-width:160px">{{ f.name }}</div>
+                        <div class="text-gray-500">{{ (f.size / 1024) | number:'1.0-0' }} KB</div>
+                    </div>
+                    <button type="button" (click)="removeSelectedFile(i)" class="text-red-500 ml-2">✕</button>
+                </div>
+            </div>
+
+            <div class="p-3 border-t flex flex-col gap-2 chat-input">
+                <div class="flex items-center gap-2">
+                    <input #fileInput type="file" (change)="onFilesSelected($event)" accept="image/*,video/*,audio/*,application/pdf" multiple hidden />
+                    <button type="button" class="px-3 py-2 bg-gray-100 rounded" (click)="fileInput.click()">Adjuntar</button>
+                    <input [(ngModel)]="newMessage" (keydown.enter)="$event.preventDefault(); sendTextMessage()" placeholder="Escribe un mensaje..." class="flex-1 px-2 py-2 border rounded min-w-0" />
+                    <button (click)="sendTextMessage()" class="px-3 py-2 bg-green-600 text-white rounded">Enviar</button>
+                </div>
+            </div>
+        </div>
+        </div>
+</div>
+    </div>
+  </div>
+</div>

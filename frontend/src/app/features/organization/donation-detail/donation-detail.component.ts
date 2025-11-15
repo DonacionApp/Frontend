@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DonationService, Donation, Comment, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
@@ -24,6 +25,8 @@ export class DonationDetailComponent implements OnInit {
   canEditStatus = false;
   isBeneficiary = false;
   isDonator = false;
+  // Note: chat list is shown in the global Sidebar component; donation-detail
+  // only keeps the Create/Open chat actions.
 
   newReviewText = '';
   submittingReview = false;
@@ -41,6 +44,8 @@ export class DonationDetailComponent implements OnInit {
     private location: Location,
     private http: HttpClient,
     private alertService: AlertService
+    ,
+    private messageService: MessageService
   ) { }
 
   ngOnInit(): void {
@@ -123,7 +128,6 @@ export class DonationDetailComponent implements OnInit {
             this.checkPermissions();
           },
           error: (err) => {
-            // Non-fatal: log but keep optimistic UI
             console.warn('No se pudo refrescar la donación tras crear review:', err);
           }
         });
@@ -172,6 +176,7 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
+
   private checkPermissions(): void {
     if (!this.donation) return;
 
@@ -206,7 +211,6 @@ export class DonationDetailComponent implements OnInit {
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
 
-  // Navegar a editar
   onEdit(): void {
     if (!this.donation) return;
 
@@ -224,7 +228,6 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/organization/donations', this.donation.id, 'edit']);
   }
 
-  // Navegar a gestionar artículos
   onManageArticles(): void {
     if (!this.donation) return;
 
@@ -242,7 +245,6 @@ export class DonationDetailComponent implements OnInit {
     this.router.navigate(['/organization/donations', this.donation.id, 'manage-articles']);
   }
 
-  // Eliminar donación
   onDelete(): void {
     if (!this.donation) return;
 
@@ -279,8 +281,6 @@ export class DonationDetailComponent implements OnInit {
       });
     }
   }
-
-  // Extender fecha de entrega en 10 días (usa alerta personalizada)
   async onExtendDate(): Promise<void> {
     if (!this.donation) return;
 
@@ -317,12 +317,58 @@ export class DonationDetailComponent implements OnInit {
     }
   }
 
-  // Volver a la lista
   onBack(): void {
     this.location.back();
   }
 
-  // Formatear fecha
+  onCreateChat(): void {
+    if (!this.donation) return;
+    if (!this.authService.currentUserValue) {
+      this.alertService.showAlert('Debes iniciar sesión', 'info');
+      return;
+    }
+    if (!this.isBeneficiary && !this.isDonator) {
+      this.alertService.error('No permitido', 'Solo los participantes de esta donación pueden crear o abrir el chat.');
+      return;
+    }
+
+    this.loading = true;
+    this.messageService.createChatFromDonation(this.donation.id).subscribe({
+      next: async (res) => {
+        try {
+          const fresh = await new Promise<Donation>((resolve, reject) => {
+            this.donationService.getDonationById(this.donation!.id).subscribe({ next: d => resolve(d), error: e => reject(e) });
+          });
+          this.donation = fresh;
+          this.checkPermissions();
+          this.alertService.success('Chat creado', 'El chat se creó correctamente.');
+        } catch (err) {
+          console.warn('No se pudo refrescar la donación después de crear chat:', err);
+          this.alertService.success('Chat creado', 'El chat se creó correctamente.');
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('Error al crear chat desde donación:', err);
+        const msg = err?.error?.message || 'No se pudo crear el chat. Intenta nuevamente.';
+        this.alertService.error('Error', msg);
+      }
+    });
+  }
+
+  onOpenChat(): void {
+    if (!this.donation || !this.donation.chat || !this.donation.chat.id) return;
+ 
+    if (!this.authService.currentUserValue || (!this.isBeneficiary && !this.isDonator)) {
+      this.alertService.error('No permitido', 'No tienes permiso para ver este chat.');
+      return;
+    }
+    console.log('Navegando al chat ID:', this.donation.chat.id);
+    
+    this.router.navigate(['/chat'], { queryParams: { chat: this.donation.chat.id } });
+  }
+
   formatDate(dateString: string): string {
     if (!dateString) return 'No especificado';
 

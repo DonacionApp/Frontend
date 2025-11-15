@@ -12,7 +12,7 @@ import { NavComponent } from './shared/components/nav/nav.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 // Servicios integrados directamente
 import { BehaviorSubject, Observable } from 'rxjs';
-import { WebsocketService, ToastService, NotificationService } from './core/services';
+import { WebsocketService, ToastService, NotificationService, AuthService } from './core/services';
 
 export interface User {
   id?: string;
@@ -133,7 +133,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private websocketService: WebsocketService,
     private toastService: ToastService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private authService: AuthService
   ) {
     this.appState = new AppStateService();
     this.registrationState = new RegistrationStateService();
@@ -214,14 +215,15 @@ export class AppComponent implements OnInit, OnDestroy {
         this.subscribeToNotifications();
       }
 
+      // (temporary debug subscription removed)
+
   /**
-   * Inicializar WebSocket cuando hay un token guardado
+   * Inicializar WebSocket cuando hay un token guardado y válido
    */
   private initializeWebSocket(): void {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      this.websocketService.connect(token);
-    }
+    // Usar AuthService para validar el token antes de conectar
+    // Esto evita intentar conectar con tokens expirados
+    this.authService.connectWebSocketIfAuthenticated();
   }
 
   /**
@@ -237,6 +239,8 @@ export class AppComponent implements OnInit, OnDestroy {
   link: notification.link
       });
     });
+
+    // (global debug listener removed)
   }
 
   /**
@@ -440,6 +444,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     // Desconectar WebSocket al destruir el componente
     this.websocketService.disconnect();
+    // (global debug listener was removed earlier)
   }
 
 }

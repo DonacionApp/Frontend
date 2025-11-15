@@ -1,15 +1,24 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, HostListener, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subject, takeUntil } from 'rxjs';
 import { Post, PostsService } from '../../../core/services/posts.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScrollRestorationService } from '../../../core/services/scroll-restoration.service';
 
+@Pipe({ name: 'safeUrl' })
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
+
 @Component({
   selector: 'app-user-posts-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SafeUrlPipe],
   templateUrl: './user-posts-list.component.html',
   styleUrls: ['./user-posts-list.component.scss']
 })
@@ -22,6 +31,11 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
 
   isAuthenticated = false;
   currentUserId: number | null = null;
+
+  // Image gallery modal
+  showImageModal = false;
+  currentGalleryFiles: { url: string, type: 'image' | 'video' | 'audio' | 'pdf' | 'doc' }[] = [];
+  currentGalleryIndex = 0;
 
   constructor(
     private router: Router,
@@ -90,10 +104,76 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
     this.router.navigate(['/post', postId]);
   }
 
+  // Helpers para tipo de archivo
+  isPdfFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.pdf') || u.includes('.pdf?') || u.startsWith('data:application/pdf');
+  }
+
+  isVideoFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.ogg');
+  }
+
+  isAudioFile(url: string): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.endsWith('.mp3') || u.endsWith('.wav') || u.endsWith('.ogg');
+  }
+
+  isImageFile(url: string): boolean {
+    if (!url) return false;
+    return /\.(jpeg|jpg|png|gif|bmp|webp)$/.test(url.toLowerCase());
+  }
+
+  openGallery(files: any[], index: number, event?: Event): void {
+    if (event) event.stopPropagation();
+    // files: post.imagePost
+    this.currentGalleryFiles = files.map(f => {
+      const url = f.image;
+      if (this.isImageFile(url)) return { url, type: 'image' as const };
+      if (this.isVideoFile(url)) return { url, type: 'video' as const };
+      if (this.isAudioFile(url)) return { url, type: 'audio' as const };
+      if (this.isPdfFile(url)) return { url, type: 'pdf' as const };
+      return { url, type: 'doc' as const };
+    });
+    this.currentGalleryIndex = index;
+    this.showImageModal = true;
+    document.body.style.overflow = 'hidden';
+  }
+
   openImageGallery(images: any[], event: Event): void {
-    event.stopPropagation();
-    if (images.length > 0) {
-      window.open(images[0].image, '_blank');
+    this.openGallery(images, 0, event);
+  }
+
+  closeImageGallery(): void {
+    this.showImageModal = false;
+    document.body.style.overflow = 'auto';
+  }
+
+  nextGalleryFile(): void {
+    if (this.currentGalleryIndex < this.currentGalleryFiles.length - 1) {
+      this.currentGalleryIndex++;
+    }
+  }
+
+  previousGalleryFile(): void {
+    if (this.currentGalleryIndex > 0) {
+      this.currentGalleryIndex--;
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    if (!this.showImageModal) return;
+    if (event.key === 'ArrowRight') {
+      this.nextGalleryFile();
+    } else if (event.key === 'ArrowLeft') {
+      this.previousGalleryFile();
+    } else if (event.key === 'Escape') {
+      this.closeImageGallery();
     }
   }
 

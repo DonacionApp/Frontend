@@ -1,22 +1,56 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, Pipe, PipeTransform } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { ViewportScroller } from '@angular/common';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, forkJoin, debounceTime, distinctUntilChanged, take } from 'rxjs';
 import { PostsService, Post, TypePost, FilterPostDTO, PostLiked } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertService } from '../../../shared/services/alert.service';
+import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
+
+@Pipe({ name: 'safeUrl' })
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
 
 @Component({
   selector: 'app-list',
-  imports: [CommonModule, RouterModule, ButtonComponent, SidebarComponent],
+  imports: [CommonModule, RouterModule, ButtonComponent, SidebarComponent, SafeUrlPipe, SpinnerComponent],
   templateUrl: './list.component.html',
   styleUrl: './list.component.scss'
 })
 export class ListComponent implements OnInit, OnDestroy {
+    // Detecta si una url es PDF
+    isPdfFile(url: string): boolean {
+      if (!url) return false;
+      const u = url.toLowerCase();
+      return u.endsWith('.pdf') || u.includes('.pdf?') || u.startsWith('data:application/pdf');
+    }
+
+    isVideoFile(url: string): boolean {
+      if (!url) return false;
+      const u = url.toLowerCase();
+      return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.ogg');
+    }
+
+    isAudioFile(url: string): boolean {
+      if (!url) return false;
+      const u = url.toLowerCase();
+      return u.endsWith('.mp3') || u.endsWith('.wav') || u.endsWith('.ogg');
+    }
+
+    isImageFile(url: string): boolean {
+      if (!url) return false;
+      return /\.(jpeg|jpg|png|gif|bmp|webp)$/.test(url.toLowerCase());
+    }
   private destroy$ = new Subject<void>();
+  private searchSubject$ = new Subject<string>();
   
   posts: Post[] = [];
   typesPosts: TypePost[] = [];
@@ -33,8 +67,8 @@ export class ListComponent implements OnInit, OnDestroy {
   hasMore = true;
 
   showImageModal = false;
-  currentImages: string[] = [];
-  currentImageIndex = 0;
+  currentGalleryFiles: { url: string, type: 'image' | 'video' | 'audio' | 'pdf' | 'doc' }[] = [];
+  currentGalleryIndex = 0;
 
   showDropdownId: number | null = null;
   currentUserId: number | null = null;
@@ -42,6 +76,13 @@ export class ListComponent implements OnInit, OnDestroy {
   showLikesModal = false;
   usersWhoLiked: PostLiked[] = [];
   loadingLikes = false;
+
+  // Cache de permisos
+  private _canLike: boolean | null = null;
+  private _canRequestDonation: boolean | null = null;
+  private _canCreatePost: boolean | null = null;
+  private _permissionsCacheTime: number = 0;
+  private readonly PERMISSIONS_CACHE_TTL = 5000; // 5 segundos
 
   constructor(
     private postsService: PostsService,
@@ -53,7 +94,22 @@ export class ListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loadTypePosts();
+    // Paralelizar carga inicial de tipos y usuario
+    forkJoin({
+      types: this.postsService.getAllTypePost(),
+      user: this.authService.currentUser$.pipe(take(1))
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ types }) => {
+          this.typesPosts = types;
+        },
+        error: (err) => {
+          console.error('Error loading initial data:', err);
+          // Cargar tipos por separado si falla
+          this.loadTypePosts();
+        }
+      });
     
     this.route.queryParams
       .pipe(takeUntil(this.destroy$))
@@ -76,12 +132,97 @@ export class ListComponent implements OnInit, OnDestroy {
       .subscribe((user) => {
         this.isAuthenticated = this.authService.isAuthenticated();
         this.currentUserId = user?.id ? Number(user.id) : null;
+        // Invalidar cache de permisos cuando cambia el usuario
+        this._canLike = null;
+        this._canRequestDonation = null;
+        this._canCreatePost = null;
+      });
+
+    // Debounce para búsqueda
+    this.searchSubject$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(searchTerm => {
+        this.searchTerm = searchTerm;
+        if (searchTerm.length >= 3) {
+          this.filterPosts();
+        } else if (searchTerm.length === 0 && !this.selectedTypeId) {
+          this.loadPosts();
+        } else if (searchTerm.length === 0 && this.selectedTypeId) {
+          this.filterPosts();
+        }
       });
   }
 
   ngOnDestroy(): void {
+    this.searchSubject$.complete();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // TrackBy functions para optimizar *ngFor
+  trackByPostId(index: number, post: Post): number {
+    return post.id;
+  }
+
+  trackByFileIndex(index: number, file: any): string | number {
+    // Usar la URL o el ID del archivo como identificador único
+    return file?.id || file?.image || index;
+  }
+
+  trackByTagId(index: number, postTag: any): string {
+    return postTag?.tag?.id || index;
+  }
+
+  trackByArticleId(index: number, article: any): number {
+    return article?.article?.id || index;
+  }
+
+  trackByTypeId(index: number, type: TypePost): number {
+    return type.id;
+  }
+
+  // Métodos helper optimizados usando datos precalculados
+  getFileType(file: any, index: number): string {
+    if ((file as any)._cachedType) {
+      return (file as any)._cachedType;
+    }
+    const url = file.image || '';
+    let type = 'doc';
+    if (this.isImageFile(url)) type = 'image';
+    else if (this.isVideoFile(url)) type = 'video';
+    else if (this.isAudioFile(url)) type = 'audio';
+    else if (this.isPdfFile(url)) type = 'pdf';
+    (file as any)._cachedType = type;
+    return type;
+  }
+
+  isImageFileCached(post: Post, index: number): boolean {
+    const fileTypes = (post as any)._fileTypes;
+    return fileTypes && fileTypes[index] === 'image';
+  }
+
+  isVideoFileCached(post: Post, index: number): boolean {
+    const fileTypes = (post as any)._fileTypes;
+    return fileTypes && fileTypes[index] === 'video';
+  }
+
+  isAudioFileCached(post: Post, index: number): boolean {
+    const fileTypes = (post as any)._fileTypes;
+    return fileTypes && fileTypes[index] === 'audio';
+  }
+
+  isPdfFileCached(post: Post, index: number): boolean {
+    const fileTypes = (post as any)._fileTypes;
+    return fileTypes && fileTypes[index] === 'pdf';
+  }
+
+  isDocFileCached(post: Post, index: number): boolean {
+    const fileTypes = (post as any)._fileTypes;
+    return fileTypes && fileTypes[index] === 'doc';
   }
 
   loadTypePosts(): void {
@@ -115,6 +256,9 @@ export class ListComponent implements OnInit, OnDestroy {
             ? posts
             : (posts && Array.isArray((posts as any).data) ? (posts as any).data : []);
 
+          // Precalcular tipos de archivo para optimización
+          this.precalculateFileTypes(normalizedPosts);
+
           if (append) {
             this.posts = [...this.posts, ...normalizedPosts];
           } else {
@@ -135,6 +279,22 @@ export class ListComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         }
       });
+  }
+
+  // Precalcular tipos de archivo para evitar llamadas repetidas en el template
+  private precalculateFileTypes(posts: Post[]): void {
+    posts.forEach(post => {
+      if (post.imagePost && Array.isArray(post.imagePost)) {
+        (post as any)._fileTypes = post.imagePost.map((file: any) => {
+          const url = file.image || '';
+          if (this.isImageFile(url)) return 'image';
+          if (this.isVideoFile(url)) return 'video';
+          if (this.isAudioFile(url)) return 'audio';
+          if (this.isPdfFile(url)) return 'pdf';
+          return 'doc';
+        });
+      }
+    });
   }
 
   restoreScrollPosition(): void {
@@ -184,6 +344,8 @@ export class ListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (posts) => {
+          // Precalcular tipos de archivo
+          this.precalculateFileTypes(posts);
           this.posts = posts;
           this.isLoading = false;
         },
@@ -215,15 +377,9 @@ export class ListComponent implements OnInit, OnDestroy {
 
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.searchTerm = input.value.trim();
-    
-    if (this.searchTerm.length >= 3) {
-      this.filterPosts();
-    } else if (this.searchTerm.length === 0 && !this.selectedTypeId) {
-      this.loadPosts();
-    } else if (this.searchTerm.length === 0 && this.selectedTypeId) {
-      this.filterPosts();
-    }
+    const value = input.value.trim();
+    // Usar Subject con debounce en lugar de filtrar inmediatamente
+    this.searchSubject$.next(value);
   }
 
   loadMore(): void {
@@ -336,16 +492,32 @@ export class ListComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Getters con caché para evitar llamadas repetidas
   get canLike(): boolean {
-    return this.authService.canLike();
+    const now = Date.now();
+    if (this._canLike === null || (now - this._permissionsCacheTime) > this.PERMISSIONS_CACHE_TTL) {
+      this._canLike = this.authService.canLike();
+      this._permissionsCacheTime = now;
+    }
+    return this._canLike;
   }
 
   get canRequestDonation(): boolean {
-    return this.authService.canRequestDonation();
+    const now = Date.now();
+    if (this._canRequestDonation === null || (now - this._permissionsCacheTime) > this.PERMISSIONS_CACHE_TTL) {
+      this._canRequestDonation = this.authService.canRequestDonation();
+      this._permissionsCacheTime = now;
+    }
+    return this._canRequestDonation;
   }
 
   get canCreatePost(): boolean {
-    return this.authService.canCreatePost();
+    const now = Date.now();
+    if (this._canCreatePost === null || (now - this._permissionsCacheTime) > this.PERMISSIONS_CACHE_TTL) {
+      this._canCreatePost = this.authService.canCreatePost();
+      this._permissionsCacheTime = now;
+    }
+    return this._canCreatePost;
   }
 
   toggleLike(post: Post): void {
@@ -409,37 +581,44 @@ export class ListComponent implements OnInit, OnDestroy {
     });
   }
 
-  openImageGallery(images: any[], index: number): void {
-    this.currentImages = images.map(img => img.image);
-    this.currentImageIndex = index;
+  openGallery(files: any[], index: number): void {
+    // files: post.imagePost
+    this.currentGalleryFiles = files.map(f => {
+      const url = f.image;
+      if (this.isImageFile(url)) return { url, type: 'image' };
+      if (this.isVideoFile(url)) return { url, type: 'video' };
+      if (this.isAudioFile(url)) return { url, type: 'audio' };
+      if (this.isPdfFile(url)) return { url, type: 'pdf' };
+      return { url, type: 'doc' };
+    });
+    this.currentGalleryIndex = index;
     this.showImageModal = true;
-    document.body.style.overflow = 'hidden'; // Prevent scroll
+    document.body.style.overflow = 'hidden';
   }
 
   closeImageGallery(): void {
     this.showImageModal = false;
-    document.body.style.overflow = 'auto'; // Restore scroll
+    document.body.style.overflow = 'auto';
   }
 
-  nextImage(): void {
-    if (this.currentImageIndex < this.currentImages.length - 1) {
-      this.currentImageIndex++;
+  nextGalleryFile(): void {
+    if (this.currentGalleryIndex < this.currentGalleryFiles.length - 1) {
+      this.currentGalleryIndex++;
     }
   }
 
-  previousImage(): void {
-    if (this.currentImageIndex > 0) {
-      this.currentImageIndex--;
+  previousGalleryFile(): void {
+    if (this.currentGalleryIndex > 0) {
+      this.currentGalleryIndex--;
     }
   }
 
   onKeyDown(event: KeyboardEvent): void {
     if (!this.showImageModal) return;
-    
     if (event.key === 'ArrowRight') {
-      this.nextImage();
+      this.nextGalleryFile();
     } else if (event.key === 'ArrowLeft') {
-      this.previousImage();
+      this.previousGalleryFile();
     } else if (event.key === 'Escape') {
       this.closeImageGallery();
     }

@@ -1,0 +1,127 @@
+<div #messagesScrollRef 
+  class="messages-scroll" 
+  (scroll)="onScroll($event)">
+     
+  <div *ngIf="loadingMessages && (!messages || messages.length === 0)" class="text-sm text-gray-500 mb-2">Cargando mensajes...</div>
+  <div *ngIf="loadingMessages && messages && messages.length > 0" class="text-sm text-gray-500 mb-2">
+    <svg class="animate-spin h-4 w-4 inline-block text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+    </svg>
+    <span class="ml-2">Cargando mensajes...</span>
+  </div>
+
+  <!-- Attachments preview passed from parent (selected files) -->
+  <div *ngIf="attachments && attachments.length" class="attachments-preview mb-3">
+    <div class="flex gap-2 items-center overflow-auto py-1">
+      <div *ngFor="let f of attachments; let i = index" class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
+        <ng-container *ngIf="getAttachmentPreview(f) && ((f.type && f.type.startsWith) ? f.type.startsWith('image/') : (f.type || '').startsWith('image/'))">
+          <img [src]="getAttachmentPreview(f)" class="w-14 h-14 object-cover rounded" />
+        </ng-container>
+        <div class="text-xs">
+          <div class="font-medium truncate" style="max-width:200px">{{ f.name }}</div>
+          <div class="text-gray-500">{{ (f.size / 1024) | number:'1.0-0' }} KB</div>
+        </div>
+        <button type="button" class="text-red-500 ml-2" (click)="$event.stopPropagation(); removeAttachment.emit(i)">✕</button>
+      </div>
+    </div>
+  </div>
+
+    <div *ngFor="let m of messages" 
+      class="mb-3 msg-row" 
+      [ngClass]="{ 'own': isOwnMessage(m) }"
+      [attr.data-msg-id]="m?.id">
+       
+    <img *ngIf="!isOwnMessage(m)" 
+         [src]="m?.user?.profilePhoto || ('https://i.pravatar.cc/40?u=' + (m?.user?.id || 'guest'))" 
+         class="avatar" />
+
+    <div class="message-col">
+      <div class="msg-bubble" 
+           [ngClass]="{ 'msg-own': isOwnMessage(m), 'msg-other': !isOwnMessage(m) }">
+           
+        <div [ngSwitch]="m.type?.type">
+          <div *ngSwitchCase="'texto'" class="msg-content">{{ m?.message }}</div>
+          <div *ngIf="editingMessageId === m?.id" class="inline-edit mt-2">
+            <textarea #inlineEditInput [(ngModel)]="editingText" class="inline-edit-input text-black" rows="2" (keydown)="onInlineEditKeydown($event)"></textarea>
+            <div class="inline-edit-actions mt-2 flex gap-2">
+              <button type="button" class="px-3 py-1 bg-green-600 text-black rounded text-sm" (click)="$event.stopPropagation(); saveEdit();">Guardar</button>
+              <button type="button" class="px-3 py-1 bg-gray-300 text-gray-800 rounded text-sm" (click)="$event.stopPropagation(); cancelEdit();">Cancelar</button>
+            </div>
+          </div>
+
+          <div *ngSwitchCase="'imagen'">
+            <ng-container *ngIf="isMediaMultiple(m); else singleImage">
+              <div class="media-grid">
+                <div class="media-item" *ngFor="let url of getMediaList(m)">
+                  <img [src]="url" alt="imagen" (click)="openMediaViewer(url, 'image')" />
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #singleImage>
+              <div class="single-media" (click)="openMediaViewer(getMediaList(m)[0], 'image')">
+                <img [src]="getMediaList(m)[0] || ''" alt="imagen" />
+              </div>
+            </ng-template>
+          </div>
+
+          <div *ngSwitchCase="'video'">
+            <ng-container *ngIf="isMediaMultiple(m); else singleVideo">
+              <div class="media-grid">
+                <div class="media-item" *ngFor="let url of getMediaList(m)">
+                  <div class="video-wrapper" (click)="openMediaViewer(url, 'video')">
+                    <video [src]="url" controls (click)="$event.stopPropagation()"></video>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #singleVideo>
+              <div class="single-media" (click)="openMediaViewer(getMediaList(m)[0], 'video')">
+                <video [src]="getMediaList(m)[0] || ''" controls (click)="$event.stopPropagation()"></video>
+              </div>
+            </ng-template>
+          </div>
+
+          <div *ngSwitchCase="'audio'" class="msg-content">
+            <audio [src]="m.message" controls></audio>
+          </div>
+          
+          <div *ngSwitchCase="'documento'" class="msg-content">
+            <ng-container *ngIf="isPdfFile(m.message || ''); else otherDoc">
+              <iframe [src]="(m.message || '') | safeUrl" width="100%" height="400px" style="border:none;"></iframe>
+              <div class="text-xs text-gray-500 mt-1"><a [href]="m.message || ''" target="_blank">Abrir PDF en nueva pestaña</a></div>
+            </ng-container>
+            <ng-template #otherDoc>
+              <a [href]="m.message || ''" target="_blank" class="text-blue-600">Abrir documento</a>
+            </ng-template>
+          </div>
+          
+          <div *ngSwitchDefault class="msg-content">{{ m?.message }}</div>
+        </div>
+      </div>
+
+      <div class="msg-meta">
+        <span class="msg-sender" *ngIf="!isOwnMessage(m)">{{ m?.user?.username || m?.user?.email || 'Usuario' }}</span>
+        <span class="msg-time">{{ formatMessageTime(m?.createdAt) }}</span>
+        <span class="msg-actions" *ngIf="isOwnMessage(m)">
+          <!-- Edit only for text messages -->
+          <button type="button" class="text-xs text-blue-600 ml-2" *ngIf="m?.type?.type === 'texto'" (click)="$event.stopPropagation(); onEditMessage(m)">Editar</button>
+          <button type="button" class="text-xs text-red-600 ml-2" (click)="$event.stopPropagation(); onDeleteMessage(m)">Eliminar</button>
+        </span>
+      </div>
+    </div>
+
+    <img *ngIf="isOwnMessage(m)" 
+         [src]="m?.user?.profilePhoto || ('https://i.pravatar.cc/40?u=' + (m?.user?.id || 'me'))" 
+         class="avatar" />
+  </div>
+
+  <!-- Fullscreen media viewer -->
+  <div class="media-viewer-overlay" *ngIf="mediaViewerOpen" (click)="closeMediaViewer()">
+    <div class="media-viewer-content" (click)="$event.stopPropagation()">
+      <button class="media-viewer-close" (click)="closeMediaViewer()">✕</button>
+      <img *ngIf="mediaViewerType === 'image'" [src]="mediaViewerUrl" alt="preview" />
+      <video *ngIf="mediaViewerType === 'video'" [src]="mediaViewerUrl" controls autoplay></video>
+    </div>
+  </div>
+</div>
