@@ -1,8 +1,88 @@
 // Estilos específicos para el componente system
 
+// Main container
+.space-y-6 {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+// Header centering
+.text-center {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+}
+
+// Tabs navigation styles
+.border-b {
+  display: flex;
+  justify-content: center;
+  
+  nav {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+// Desktop tabs styling
+@media (min-width: 769px) {
+  :host ::ng-deep {
+    // Mostrar tabs en desktop
+    .hidden.md\:flex {
+      display: flex !important;
+    }
+
+    // Ocultar menu hamburguesa en desktop
+    .md\:hidden {
+      display: none !important;
+    }
+
+    .border-b {
+      nav {
+        button {
+          font-size: 1rem;
+          padding: 1rem 1.5rem;
+          
+          span:first-child {
+            font-size: 1.25rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Mobile menu styles  
+.mobile-menu {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 // Responsive improvements
 @media (max-width: 768px) {
   :host ::ng-deep {
+    // Ocultar tabs desktop en móvil
+    .hidden.md\:flex {
+      display: none !important;
+    }
+
+    // Mostrar menu hamburguesa en móvil
+    .md\:hidden {
+      display: block !important;
+      padding: 0 1rem;
+      
+      > div {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+    }
+
     // Adjust main container spacing
     .space-y-6 > * + * {
       margin-top: 1.25rem;
@@ -11,10 +91,12 @@
     // Improve header on mobile
     h1 {
       font-size: 1.5rem !important;
+      padding: 0 1rem;
     }
 
     p {
       font-size: 0.875rem !important;
+      padding: 0 1rem;
     }
 
     // Better card padding

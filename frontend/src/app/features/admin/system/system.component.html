@@ -12,8 +12,8 @@
 
   <!-- Tabs Navigation -->
   <!-- Desktop Navigation -->
-  <div class="hidden md:block border-b border-gray-200">
-    <nav class="-mb-px flex justify-center space-x-8" aria-label="Tabs">
+  <div class="hidden md:flex border-b border-gray-200 justify-center">
+    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
       <button
         (click)="switchTab('policies')"
         [class.border-blue-500]="activeTab === 'policies'"
@@ -22,7 +22,7 @@
         [class.text-gray-500]="activeTab !== 'policies'"
         [class.hover:text-gray-700]="activeTab !== 'policies'"
         [class.hover:border-gray-300]="activeTab !== 'policies'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
         <span>📋</span>
         <span>Políticas</span>
@@ -35,7 +35,7 @@
         [class.text-gray-500]="activeTab !== 'terms'"
         [class.hover:text-gray-700]="activeTab !== 'terms'"
         [class.hover:border-gray-300]="activeTab !== 'terms'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
         <span>📜</span>
         <span>Términos y Condiciones</span>
@@ -48,7 +48,7 @@
         [class.text-gray-500]="activeTab !== 'about-us'"
         [class.hover:text-gray-700]="activeTab !== 'about-us'"
         [class.hover:border-gray-300]="activeTab !== 'about-us'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
         <span>ℹ️</span>
         <span>Acerca de Nosotros</span>
@@ -93,9 +93,6 @@
         >
           <span class="text-xl">📋</span>
           <span>Políticas</span>
-          <svg *ngIf="activeTab === 'policies'" class="ml-auto w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
         </button>
         <button
           (click)="selectTab('terms')"
@@ -106,9 +103,6 @@
         >
           <span class="text-xl">📜</span>
           <span>Términos y Condiciones</span>
-          <svg *ngIf="activeTab === 'terms'" class="ml-auto w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
         </button>
         <button
           (click)="selectTab('about-us')"
@@ -119,9 +113,6 @@
         >
           <span class="text-xl">ℹ️</span>
           <span>Acerca de Nosotros</span>
-          <svg *ngIf="activeTab === 'about-us'" class="ml-auto w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
         </button>
       </div>
     </div>
