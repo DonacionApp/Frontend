@@ -69,6 +69,33 @@ export interface ChangeBlockStatusDTO {
   block: boolean;
 }
 
+export interface CreateUserDTO {
+  username: string;
+  email?: string;
+  password: string;
+  rolId: number;
+  people?: {
+    name?: string;
+    lastName?: string;
+    birdthDate?: string;
+    tipodDni?: number;
+    dni?: string;
+    residencia?: string;
+    telefono?: string;
+    municipio?: {
+      pais?: {
+        iso2?: string;
+      };
+      state?: {
+        iso2?: string;
+      };
+      city?: {
+        name?: string;
+      };
+    };
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -156,6 +183,15 @@ export class UserManagementService {
     return this.http.delete<void>(`${this.apiUrl}/batch`, { body: { ids } }).pipe(
       catchError((error) => {
         console.error('Error deleting users:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  createUser(user: CreateUserDTO): Observable<UserManagement> {
+    return this.http.post<UserManagement>(this.apiUrl, user).pipe(
+      catchError((error) => {
+        console.error('Error creating user:', error);
         return throwError(() => error);
       })
     );

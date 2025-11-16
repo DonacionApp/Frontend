@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { Subject, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../../../shared/components/data-table/data-table.component';
-import { UserManagementService, UserManagement, UpdateUserDTO } from '../../../core/services/user-management.service';
+import { UserManagementService, UserManagement, UpdateUserDTO, CreateUserDTO } from '../../../core/services/user-management.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
@@ -13,6 +13,8 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { CountriesService } from '../../../core/services/countries.service';
 
 @Component({
   selector: 'app-organizations',
@@ -39,6 +41,15 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
   showEditOrganizationModal = false;
   editOrganizationForm!: FormGroup;
   editingOrganization = false;
+
+  // Modal de creación de organización
+  showCreateOrganizationModal = false;
+  createOrganizationForm!: FormGroup;
+  creatingOrganization = false;
+  typeDniOptions: any[] = [];
+  countriesOptions: any[] = [];
+  statesOptions: any[] = [];
+  citiesOptions: any[] = [];
   
   // Pestañas del modal
   activeTab: 'data' | 'articles' = 'data';
@@ -279,14 +290,19 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
     private roleService: RoleService,
     private toastService: ToastService,
     private articlesService: ArticlesService,
+    private authService: AuthService,
+    private countriesService: CountriesService,
     private fb: FormBuilder
   ) {
     this.initializeEditForm();
+    this.initializeCreateForm();
   }
 
   ngOnInit(): void {
     this.loadOrganizations();
     this.loadRoles();
+    this.loadTypeDniOptions();
+    this.loadCountries();
   }
 
   loadRoles(): void {
@@ -335,13 +351,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       });
   }
 
-  initializeEditForm(): void {
-    this.editOrganizationForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      // Agregar más campos según sea necesario
-    });
-  }
+
 
   viewOrganizationDetails(organization: UserManagement): void {
     this.selectedOrganizationForAction = organization;
@@ -390,13 +400,32 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
 
   openEditOrganizationModal(organization: UserManagement): void {
     this.selectedOrganization = organization;
-    this.showEditOrganizationModal = true;
     this.activeTab = 'data';
-    this.editOrganizationForm.patchValue({
-      username: organization.username,
-      email: organization.email
-    });
-    this.loadAvailableArticles();
+    
+    // Cargar datos completos de la organización si no están disponibles
+    if (!organization.people && organization.id) {
+      this.userService.getUserById(organization.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (fullOrganization) => {
+            this.populateEditForm(fullOrganization);
+            this.showEditOrganizationModal = true;
+            this.loadAvailableArticles();
+          },
+          error: (error) => {
+            console.error('Error loading organization details:', error);
+            this.toastService.show({
+              title: 'Error',
+              message: 'No se pudieron cargar los detalles de la organización',
+              type: 'error'
+            });
+          }
+        });
+    } else {
+      this.populateEditForm(organization);
+      this.showEditOrganizationModal = true;
+      this.loadAvailableArticles();
+    }
   }
 
   closeEditOrganizationModal(): void {
@@ -412,6 +441,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
     this.addingArticle = false;
     this.editingArticleQuantity = null;
     this.editOrganizationForm.reset();
+    this.initializeEditForm();
   }
 
   switchTab(tab: 'data' | 'articles'): void {
@@ -455,110 +485,244 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
 
   saveOrganization(): void {
     if (this.editOrganizationForm.invalid || !this.selectedOrganization) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
       this.editOrganizationForm.markAllAsTouched();
       return;
     }
 
     this.editingOrganization = true;
     const formValue = this.editOrganizationForm.value;
+    
+    // Preparar datos para enviar
     const updateData: UpdateUserDTO = {
       username: formValue.username,
-      email: formValue.email
+      email: formValue.email,
+      profilePhoto: formValue.profilePhoto || undefined
     };
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.description)) {
+      let municipioValue: any = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
+        }
+      }
+
+      // Para organizaciones, la descripción se guarda en lastName como JSON
+      let lastNameValue: string | null = null;
+      if (formValue.description) {
+        lastNameValue = JSON.stringify({ description: formValue.description });
+      } else if (formValue.people.lastName) {
+        // Mantener el lastName existente si no hay nueva descripción
+        lastNameValue = formValue.people.lastName;
+      }
+
+      updateData.people = {
+        name: formValue.people.name || null,
+        lastName: lastNameValue,
+        birdthDate: formValue.people.birdthDate || null,
+        dni: formValue.people.dni || null,
+        residencia: formValue.people.residencia || null,
+        telefono: formValue.people.telefono || null,
+        municipio: municipioValue
+      };
+    }
 
     this.userService.updateUser(this.selectedOrganization.id, updateData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización actualizada correctamente');
+          this.editingOrganization = false;
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Organización actualizada correctamente',
+            type: 'success'
+          });
           this.closeEditOrganizationModal();
           this.loadOrganizations();
         },
         error: (error) => {
-          console.error('Error updating organization:', error);
-          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la organización';
-          alert(`Error: ${errorMessage}`);
           this.editingOrganization = false;
+          console.error('Error updating organization:', error);
+          let errorMessage = 'No se pudo actualizar la organización';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          }
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
         }
       });
   }
 
   blockOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de bloquear a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Bloquear Organización',
+      message: `¿Estás seguro de bloquear a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeBlockOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.blockUser(organization.id)
+  executeBlockOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.blockUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización bloqueada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización bloqueada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error blocking organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo bloquear la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   unblockOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desbloquear a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Desbloquear Organización',
+      message: `¿Estás seguro de desbloquear a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnblockOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unblockUser(organization.id)
+  executeUnblockOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unblockUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización desbloqueada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización desbloqueada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error unblocking organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo desbloquear la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   verifyOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de verificar a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Verificar Organización',
+      message: `¿Estás seguro de verificar a ${organization.username}?`,
+      type: 'info',
+      onConfirm: () => this.executeVerifyOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.verifyUser(organization.id)
+  executeVerifyOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.verifyUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización verificada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización verificada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error verifying organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo verificar la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   unverifyOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desverificar a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Desverificar Organización',
+      message: `¿Estás seguro de desverificar a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnverifyOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unverifyUser(organization.id)
+  executeUnverifyOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unverifyUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización desverificada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización desverificada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error unverifying organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo desverificar la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
@@ -928,6 +1092,401 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       'organization': 'Organización'
     };
     return roleMap[role?.toLowerCase()] || role || '-';
+  }
+
+  // Métodos para edición de organización
+  initializeEditForm(): void {
+    this.editOrganizationForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      profilePhoto: [''],
+      description: [''], // Descripción de la organización
+      people: this.fb.group({
+        name: [''],
+        birdthDate: [''],
+        tipodDni: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
+      })
+    });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.editOrganizationForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+          // Limpiar estado y ciudad cuando se limpia el país
+          this.editOrganizationForm.get('people.municipio.state.iso2')?.setValue('');
+          this.editOrganizationForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.editOrganizationForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.editOrganizationForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+          // Limpiar ciudad cuando se limpia el estado
+          this.editOrganizationForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+  }
+
+  populateEditForm(organization: UserManagement): void {
+    const people = organization.people;
+    
+    // Parsear municipio si viene como string JSON o como objeto
+    let municipioData: any = {
+      pais: { iso2: '' },
+      state: { iso2: '' },
+      city: { name: '' }
+    };
+    
+    let countryIso = '';
+    let stateIso = '';
+    let description = '';
+
+    // Parsear descripción de lastName (JSON)
+    if (people?.lastName) {
+      try {
+        const lastNameData = typeof people.lastName === 'string' 
+          ? JSON.parse(people.lastName) 
+          : people.lastName;
+        
+        if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
+          description = lastNameData.description;
+        }
+      } catch (e) {
+        // Si no es JSON válido, dejar vacío
+        console.warn('Error parsing description from lastName:', e);
+      }
+    }
+    
+    if (people?.municipio) {
+      try {
+        let municipioObj: any;
+        if (typeof people.municipio === 'string') {
+          municipioObj = JSON.parse(people.municipio);
+        } else {
+          municipioObj = people.municipio;
+        }
+        
+        // Extraer valores del objeto parseado
+        countryIso = municipioObj?.pais?.iso2 || '';
+        stateIso = municipioObj?.state?.iso2 || '';
+        
+        municipioData = {
+          pais: {
+            iso2: countryIso
+          },
+          state: {
+            iso2: stateIso
+          },
+          city: {
+            name: municipioObj?.city?.name || ''
+          }
+        };
+      } catch (e) {
+        console.warn('Error parsing municipio:', e);
+        // Mantener valores por defecto vacíos
+      }
+    }
+    
+    this.editOrganizationForm.patchValue({
+      username: organization.username || '',
+      email: organization.email || '',
+      profilePhoto: organization.profilePhoto || '',
+      description: description,
+      people: {
+        name: people?.name || '',
+        birdthDate: people?.birdthDate ? people.birdthDate.split('T')[0] : '',
+        tipodDni: people?.typeDni?.id || '',
+        dni: people?.dni || '',
+        residencia: people?.residencia || '',
+        telefono: people?.telefono || '',
+        municipio: municipioData
+      }
+    });
+
+    // Cargar estados y ciudades si hay datos de municipio
+    if (countryIso) {
+      this.countriesService.statesByCountry(countryIso)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (states) => {
+            this.statesOptions = states || [];
+            // Una vez cargados los estados, cargar las ciudades si hay estado
+            if (stateIso) {
+              this.countriesService.citiesByState(countryIso, stateIso)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (cities) => {
+                    this.citiesOptions = cities || [];
+                  },
+                  error: (error) => {
+                    console.error('Error loading cities:', error);
+                    this.citiesOptions = [];
+                  }
+                });
+            }
+          },
+          error: (error) => {
+            console.error('Error loading states:', error);
+            this.statesOptions = [];
+          }
+        });
+    }
+  }
+
+  get editFormControls() {
+    return this.editOrganizationForm.controls;
+  }
+
+  get editPeopleFormGroup() {
+    return this.editOrganizationForm.get('people') as FormGroup;
+  }
+
+  // Métodos para creación de organización
+  initializeCreateForm(): void {
+    this.createOrganizationForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rolId: ['', Validators.required],
+      description: [''], // Descripción de la organización
+      people: this.fb.group({
+        name: [''],
+        birdthDate: [''],
+        tipodDni: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
+      })
+    });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.createOrganizationForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.createOrganizationForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.createOrganizationForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  loadTypeDniOptions(): void {
+    this.authService.loadTypesDni()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (types) => {
+          this.typeDniOptions = types || [];
+        },
+        error: (error) => {
+          console.error('Error loading DNI types:', error);
+        }
+      });
+  }
+
+  loadCountries(): void {
+    this.countriesService.countriesList()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (countries) => {
+          this.countriesOptions = countries || [];
+        },
+        error: (error) => {
+          console.error('Error loading countries:', error);
+        }
+      });
+  }
+
+  loadStates(countryIso: string): void {
+    this.countriesService.statesByCountry(countryIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (states) => {
+          this.statesOptions = states || [];
+          this.citiesOptions = [];
+        },
+        error: (error) => {
+          console.error('Error loading states:', error);
+          this.statesOptions = [];
+        }
+      });
+  }
+
+  loadCities(countryIso: string, stateIso: string): void {
+    this.countriesService.citiesByState(countryIso, stateIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cities) => {
+          this.citiesOptions = cities || [];
+        },
+        error: (error) => {
+          console.error('Error loading cities:', error);
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  openCreateOrganizationModal(): void {
+    this.showCreateOrganizationModal = true;
+    this.createOrganizationForm.reset();
+    this.initializeCreateForm();
+  }
+
+  closeCreateOrganizationModal(): void {
+    this.showCreateOrganizationModal = false;
+    this.createOrganizationForm.reset();
+    this.initializeCreateForm();
+  }
+
+  createOrganization(): void {
+    if (this.createOrganizationForm.invalid) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
+      return;
+    }
+
+    this.creatingOrganization = true;
+    const formValue = this.createOrganizationForm.value;
+
+    // Preparar datos para enviar
+    const createData: CreateUserDTO = {
+      username: formValue.username,
+      email: formValue.email || undefined,
+      password: formValue.password,
+      rolId: Number(formValue.rolId)
+    };
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.description)) {
+      let municipioValue: any = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
+        }
+      }
+
+      // Para organizaciones, la descripción se guarda en lastName como JSON
+      let lastNameValue: string | undefined = undefined;
+      if (formValue.description) {
+        lastNameValue = JSON.stringify({ description: formValue.description });
+      }
+
+      createData.people = {
+        name: formValue.people.name || undefined,
+        lastName: lastNameValue,
+        birdthDate: formValue.people.birdthDate || undefined,
+        tipodDni: formValue.people.tipodDni ? Number(formValue.people.tipodDni) : undefined,
+        dni: formValue.people.dni || undefined,
+        residencia: formValue.people.residencia || undefined,
+        telefono: formValue.people.telefono || undefined,
+        municipio: municipioValue
+      };
+    }
+
+    this.userService.createUser(createData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.creatingOrganization = false;
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Organización creada correctamente',
+            type: 'success'
+          });
+          this.closeCreateOrganizationModal();
+          this.loadOrganizations();
+        },
+        error: (error) => {
+          this.creatingOrganization = false;
+          console.error('Error creating organization:', error);
+          let errorMessage = 'No se pudo crear la organización';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          }
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  get createFormControls() {
+    return this.createOrganizationForm.controls;
+  }
+
+  get createPeopleFormGroup() {
+    return this.createOrganizationForm.get('people') as FormGroup;
   }
 }
 

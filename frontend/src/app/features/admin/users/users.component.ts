@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { Subject, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../../../shared/components/data-table/data-table.component';
-import { UserManagementService, UserManagement, UpdateUserDTO } from '../../../core/services/user-management.service';
+import { UserManagementService, UserManagement, UpdateUserDTO, CreateUserDTO } from '../../../core/services/user-management.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
@@ -13,6 +13,8 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { CountriesService } from '../../../core/services/countries.service';
 
 @Component({
   selector: 'app-users',
@@ -39,6 +41,15 @@ export class UsersComponent implements OnInit, OnDestroy {
   showEditUserModal = false;
   editUserForm!: FormGroup;
   editingUser = false;
+
+  // Modal de creación de usuario
+  showCreateUserModal = false;
+  createUserForm!: FormGroup;
+  creatingUser = false;
+  typeDniOptions: any[] = [];
+  countriesOptions: any[] = [];
+  statesOptions: any[] = [];
+  citiesOptions: any[] = [];
   
   // Pestañas del modal
   activeTab: 'data' | 'articles' = 'data';
@@ -255,14 +266,19 @@ export class UsersComponent implements OnInit, OnDestroy {
     private roleService: RoleService,
     private toastService: ToastService,
     private articlesService: ArticlesService,
+    private authService: AuthService,
+    private countriesService: CountriesService,
     private fb: FormBuilder
   ) {
     this.initializeEditForm();
+    this.initializeCreateForm();
   }
 
   ngOnInit(): void {
     this.loadUsers();
     this.loadRoles();
+    this.loadTypeDniOptions();
+    this.loadCountries();
   }
 
   loadRoles(): void {
@@ -814,6 +830,35 @@ export class UsersComponent implements OnInit, OnDestroy {
         })
       })
     });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.editUserForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+          // Limpiar estado y ciudad cuando se limpia el país
+          this.editUserForm.get('people.municipio.state.iso2')?.setValue('');
+          this.editUserForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.editUserForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.editUserForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+          // Limpiar ciudad cuando se limpia el estado
+          this.editUserForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
   }
 
   openEditUserModal(user: UserManagement): void {
@@ -856,6 +901,9 @@ export class UsersComponent implements OnInit, OnDestroy {
       city: { name: '' }
     };
     
+    let countryIso = '';
+    let stateIso = '';
+    
     if (people?.municipio) {
       try {
         let municipioObj: any;
@@ -866,12 +914,15 @@ export class UsersComponent implements OnInit, OnDestroy {
         }
         
         // Extraer valores del objeto parseado
+        countryIso = municipioObj?.pais?.iso2 || '';
+        stateIso = municipioObj?.state?.iso2 || '';
+        
         municipioData = {
           pais: {
-            iso2: municipioObj?.pais?.iso2 || ''
+            iso2: countryIso
           },
           state: {
-            iso2: municipioObj?.state?.iso2 || ''
+            iso2: stateIso
           },
           city: {
             name: municipioObj?.city?.name || ''
@@ -903,6 +954,35 @@ export class UsersComponent implements OnInit, OnDestroy {
         municipio: municipioData
       }
     });
+
+    // Cargar estados y ciudades si hay datos de municipio
+    if (countryIso) {
+      this.countriesService.statesByCountry(countryIso)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (states) => {
+            this.statesOptions = states || [];
+            // Una vez cargados los estados, cargar las ciudades si hay estado
+            if (stateIso) {
+              this.countriesService.citiesByState(countryIso, stateIso)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (cities) => {
+                    this.citiesOptions = cities || [];
+                  },
+                  error: (error) => {
+                    console.error('Error loading cities:', error);
+                    this.citiesOptions = [];
+                  }
+                });
+            }
+          },
+          error: (error) => {
+            console.error('Error loading states:', error);
+            this.statesOptions = [];
+          }
+        });
+    }
   }
 
   closeEditUserModal(): void {
@@ -1189,6 +1269,223 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   get peopleFormGroup() {
     return this.editUserForm.get('people') as FormGroup;
+  }
+
+  // Métodos para creación de usuario
+  initializeCreateForm(): void {
+    this.createUserForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rolId: ['', Validators.required],
+      people: this.fb.group({
+        name: [''],
+        lastName: [''],
+        birdthDate: [''],
+        tipodDni: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
+      })
+    });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.createUserForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.createUserForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.createUserForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  loadTypeDniOptions(): void {
+    this.authService.loadTypesDni()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (types) => {
+          this.typeDniOptions = types || [];
+        },
+        error: (error) => {
+          console.error('Error loading DNI types:', error);
+        }
+      });
+  }
+
+  loadCountries(): void {
+    this.countriesService.countriesList()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (countries) => {
+          this.countriesOptions = countries || [];
+        },
+        error: (error) => {
+          console.error('Error loading countries:', error);
+        }
+      });
+  }
+
+  loadStates(countryIso: string): void {
+    this.countriesService.statesByCountry(countryIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (states) => {
+          this.statesOptions = states || [];
+          this.citiesOptions = []; // Limpiar ciudades cuando cambia el estado
+        },
+        error: (error) => {
+          console.error('Error loading states:', error);
+          this.statesOptions = [];
+        }
+      });
+  }
+
+  loadCities(countryIso: string, stateIso: string): void {
+    this.countriesService.citiesByState(countryIso, stateIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cities) => {
+          this.citiesOptions = cities || [];
+        },
+        error: (error) => {
+          console.error('Error loading cities:', error);
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  openCreateUserModal(): void {
+    this.showCreateUserModal = true;
+    this.createUserForm.reset();
+    this.initializeCreateForm();
+  }
+
+  closeCreateUserModal(): void {
+    this.showCreateUserModal = false;
+    this.createUserForm.reset();
+    this.initializeCreateForm();
+  }
+
+  createUser(): void {
+    if (this.createUserForm.invalid) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
+      return;
+    }
+
+    this.creatingUser = true;
+    const formValue = this.createUserForm.value;
+
+    // Preparar datos para enviar
+    const createData: CreateUserDTO = {
+      username: formValue.username,
+      email: formValue.email || undefined,
+      password: formValue.password,
+      rolId: Number(formValue.rolId)
+    };
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.people.lastName)) {
+      let municipioValue: any = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
+        }
+      }
+
+      createData.people = {
+        name: formValue.people.name || undefined,
+        lastName: formValue.people.lastName || undefined,
+        birdthDate: formValue.people.birdthDate || undefined,
+        tipodDni: formValue.people.tipodDni ? Number(formValue.people.tipodDni) : undefined,
+        dni: formValue.people.dni || undefined,
+        residencia: formValue.people.residencia || undefined,
+        telefono: formValue.people.telefono || undefined,
+        municipio: municipioValue
+      };
+    }
+
+    this.userService.createUser(createData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.creatingUser = false;
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Usuario creado correctamente',
+            type: 'success'
+          });
+          this.closeCreateUserModal();
+          this.loadUsers();
+        },
+        error: (error) => {
+          this.creatingUser = false;
+          console.error('Error creating user:', error);
+          let errorMessage = 'No se pudo crear el usuario';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          }
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  get createFormControls() {
+    return this.createUserForm.controls;
+  }
+
+  get createPeopleFormGroup() {
+    return this.createUserForm.get('people') as FormGroup;
   }
 }
 

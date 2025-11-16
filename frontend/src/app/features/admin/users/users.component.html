@@ -5,6 +5,16 @@
       <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
       <p class="text-sm text-gray-600 mt-1">Administra los usuarios del sistema</p>
     </div>
+    <button
+      type="button"
+      (click)="openCreateUserModal()"
+      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Crear Usuario
+    </button>
   </div>
 
   <!-- Error Message -->
@@ -352,41 +362,50 @@
             <div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div formGroupName="pais">
                 <label for="municipioPais" class="block text-sm font-medium text-gray-700 mb-1">
-                  País (ISO2)
+                  País
                 </label>
-                <input
+                <select
                   id="municipioPais"
-                  type="text"
                   formControlName="iso2"
-                  maxlength="2"
-                  placeholder="CO"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                />
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option [value]="''">Seleccione un país</option>
+                  <option *ngFor="let country of countriesOptions" [value]="country.iso2">
+                    {{ country.name }}
+                  </option>
+                </select>
               </div>
               <div formGroupName="state">
                 <label for="municipioState" class="block text-sm font-medium text-gray-700 mb-1">
-                  Estado/Departamento (ISO2)
+                  Estado/Departamento
                 </label>
-                <input
+                <select
                   id="municipioState"
-                  type="text"
                   formControlName="iso2"
-                  maxlength="3"
-                  placeholder="PUT"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
-                />
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [disabled]="!editUserForm.get('people.municipio.pais.iso2')?.value"
+                >
+                  <option [value]="''">Seleccione un estado</option>
+                  <option *ngFor="let state of statesOptions" [value]="state.iso2">
+                    {{ state.name }}
+                  </option>
+                </select>
               </div>
               <div formGroupName="city">
                 <label for="municipioCity" class="block text-sm font-medium text-gray-700 mb-1">
                   Ciudad
                 </label>
-                <input
+                <select
                   id="municipioCity"
-                  type="text"
                   formControlName="name"
-                  placeholder="Mocoa"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                  [disabled]="!editUserForm.get('people.municipio.state.iso2')?.value"
+                >
+                  <option [value]="''">Seleccione una ciudad</option>
+                  <option *ngFor="let city of citiesOptions" [value]="city.name">
+                    {{ city.name }}
+                  </option>
+                </select>
               </div>
             </div>
           </div>
@@ -563,5 +582,262 @@
     [type]="messageModalConfig.type"
     (onClose)="closeMessageModal()"
   ></app-message-modal>
+
+  <!-- Modal de Creación de Usuario -->
+  <app-modal
+    [isOpen]="showCreateUserModal"
+    [title]="'Crear Nuevo Usuario'"
+    [size]="'xl'"
+    [showCloseButton]="true"
+    [closeOnBackdropClick]="false"
+    (onClose)="closeCreateUserModal()"
+  >
+    <form [formGroup]="createUserForm" (ngSubmit)="createUser()" class="space-y-6">
+      <!-- Información Básica -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="createUsername" class="block text-sm font-medium text-gray-700 mb-1">
+              Usuario <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="createUsername"
+              type="text"
+              formControlName="username"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="createFormControls['username'].invalid && createFormControls['username'].touched"
+            />
+            <div *ngIf="createFormControls['username'].invalid && createFormControls['username'].touched" class="text-xs text-red-500 mt-1">
+              <div *ngIf="createFormControls['username'].errors?.['required']">El usuario es requerido</div>
+              <div *ngIf="createFormControls['username'].errors?.['minlength']">El usuario debe tener al menos 3 caracteres</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="createEmail" class="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              id="createEmail"
+              type="email"
+              formControlName="email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="createFormControls['email'].invalid && createFormControls['email'].touched"
+            />
+            <div *ngIf="createFormControls['email'].invalid && createFormControls['email'].touched" class="text-xs text-red-500 mt-1">
+              <div *ngIf="createFormControls['email'].errors?.['email']">El email no es válido</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="createPassword" class="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="createPassword"
+              type="password"
+              formControlName="password"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="createFormControls['password'].invalid && createFormControls['password'].touched"
+            />
+            <div *ngIf="createFormControls['password'].invalid && createFormControls['password'].touched" class="text-xs text-red-500 mt-1">
+              <div *ngIf="createFormControls['password'].errors?.['required']">La contraseña es requerida</div>
+              <div *ngIf="createFormControls['password'].errors?.['minlength']">La contraseña debe tener al menos 6 caracteres</div>
+            </div>
+          </div>
+
+          <div>
+            <label for="createRolId" class="block text-sm font-medium text-gray-700 mb-1">
+              Rol <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="createRolId"
+              formControlName="rolId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              [class.border-red-500]="createFormControls['rolId'].invalid && createFormControls['rolId'].touched"
+            >
+              <option [value]="''" disabled>Seleccione un rol</option>
+              <option *ngFor="let role of availableRoles" [value]="role.id">
+                {{ getRoleDisplayName(role.rol) }}
+              </option>
+            </select>
+            <div *ngIf="createFormControls['rolId'].invalid && createFormControls['rolId'].touched" class="text-xs text-red-500 mt-1">
+              El rol es requerido
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información Personal (People) -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Personal (Opcional)</h3>
+        <div formGroupName="people" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="createPeopleName" class="block text-sm font-medium text-gray-700 mb-1">
+              Nombre
+            </label>
+            <input
+              id="createPeopleName"
+              type="text"
+              formControlName="name"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="createPeopleLastName" class="block text-sm font-medium text-gray-700 mb-1">
+              Apellido
+            </label>
+            <input
+              id="createPeopleLastName"
+              type="text"
+              formControlName="lastName"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="createPeopleBirdthDate" class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de Nacimiento
+            </label>
+            <input
+              id="createPeopleBirdthDate"
+              type="date"
+              formControlName="birdthDate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="createPeopleTipodDni" class="block text-sm font-medium text-gray-700 mb-1">
+              Tipo de DNI
+            </label>
+            <select
+              id="createPeopleTipodDni"
+              formControlName="tipodDni"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option [value]="''">Seleccione tipo de DNI...</option>
+              <option *ngFor="let type of typeDniOptions" [value]="type.id">
+                {{ type.type }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="createPeopleDni" class="block text-sm font-medium text-gray-700 mb-1">
+              DNI
+            </label>
+            <input
+              id="createPeopleDni"
+              type="text"
+              formControlName="dni"
+              maxlength="10"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="createPeopleResidencia" class="block text-sm font-medium text-gray-700 mb-1">
+              Residencia
+            </label>
+            <input
+              id="createPeopleResidencia"
+              type="text"
+              formControlName="residencia"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="createPeopleTelefono" class="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono
+            </label>
+            <input
+              id="createPeopleTelefono"
+              type="text"
+              formControlName="telefono"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <!-- Municipio -->
+          <div class="md:col-span-2">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Municipio</h4>
+            <div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div formGroupName="pais">
+                <label for="createMunicipioPais" class="block text-sm font-medium text-gray-700 mb-1">
+                  País (ISO2)
+                </label>
+                <select
+                  id="createMunicipioPais"
+                  formControlName="iso2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option [value]="''">Seleccione un país</option>
+                  <option *ngFor="let country of countriesOptions" [value]="country.iso2">
+                    {{ country.name }}
+                  </option>
+                </select>
+              </div>
+              <div formGroupName="state">
+                <label for="createMunicipioState" class="block text-sm font-medium text-gray-700 mb-1">
+                  Estado/Departamento (ISO2)
+                </label>
+                <select
+                  id="createMunicipioState"
+                  formControlName="iso2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [disabled]="!createUserForm.get('people.municipio.pais.iso2')?.value"
+                >
+                  <option [value]="''">Seleccione un estado</option>
+                  <option *ngFor="let state of statesOptions" [value]="state.iso2">
+                    {{ state.name }}
+                  </option>
+                </select>
+              </div>
+              <div formGroupName="city">
+                <label for="createMunicipioCity" class="block text-sm font-medium text-gray-700 mb-1">
+                  Ciudad
+                </label>
+                <select
+                  id="createMunicipioCity"
+                  formControlName="name"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [disabled]="!createUserForm.get('people.municipio.state.iso2')?.value"
+                >
+                  <option [value]="''">Seleccione una ciudad</option>
+                  <option *ngFor="let city of citiesOptions" [value]="city.name">
+                    {{ city.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          (click)="closeCreateUserModal()"
+          [disabled]="creatingUser"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="createUserForm.invalid || creatingUser"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span *ngIf="!creatingUser">Crear Usuario</span>
+          <span *ngIf="creatingUser">Creando...</span>
+        </button>
+      </div>
+    </form>
+  </app-modal>
 </div>
 
