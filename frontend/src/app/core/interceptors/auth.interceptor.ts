@@ -3,6 +3,8 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { RateLimitService } from '../services/rate-limit.service';
+import { ToastService } from '../services/toast.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
@@ -12,7 +14,11 @@ export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: Observable<any> | null = null;
 
-  constructor(private injector: Injector) {}
+  constructor(
+    private injector: Injector,
+    private rateLimitService: RateLimitService,
+    private toastService: ToastService
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (this.isAuthRequest(req.url)) {
@@ -35,6 +41,10 @@ export class AuthInterceptor implements HttpInterceptor {
           // Si es un error 401 (Unauthorized), intentar refrescar el token
           if (error.status === 401 && !this.isAuthRequest(req.url)) {
             return this.handle401Error(req, next, authService);
+          }
+          // Si es un error 429 (Too Many Requests), manejar rate limiting
+          if (error.status === 429) {
+            return this.handle429Error(error);
           }
           return throwError(() => error);
         })
@@ -93,6 +103,11 @@ export class AuthInterceptor implements HttpInterceptor {
       catchError((err) => {
         this.isRefreshing = false;
         this.refreshTokenSubject = null;
+        
+        // Si el refresh token falla, mostrar modal de problema de sesión
+        if (err.status === 401 || err.status === 403) {
+          this.handleSessionProblem(err);
+        }
         
         // No cerrar sesión automáticamente - dejar que el componente maneje el error
         // El backend puede retornar un refresh token en la próxima petición exitosa
@@ -227,5 +242,46 @@ export class AuthInterceptor implements HttpInterceptor {
     });
   }
 
+  /**
+   * Maneja errores 429 (Too Many Requests / Rate Limiting)
+   */
+  private handle429Error(error: HttpErrorResponse): Observable<never> {
+    // Extraer Retry-After del header si está presente
+    const retryAfterHeader = error.headers?.get('Retry-After') || 
+                            error.headers?.get('retry-after') ||
+                            undefined;
+    
+    // Bloquear peticiones según el tiempo indicado
+    this.rateLimitService.setBlock(retryAfterHeader || undefined, 60);
+    
+    // Mostrar notificación al usuario
+    const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : 60;
+    const minutes = Math.ceil(retryAfter / 60);
+    
+    this.toastService.error(
+      'Demasiadas solicitudes',
+      `Has excedido el límite de solicitudes. Por favor, espera ${minutes} minuto${minutes > 1 ? 's' : ''} antes de intentar nuevamente.`
+    );
+    
+    return throwError(() => error);
+  }
 
+  /**
+   * Maneja problemas de sesión cuando el refresh token falla
+   */
+  private handleSessionProblem(error: HttpErrorResponse): void {
+    const authService = this.injector.get(AuthService);
+    const message = error.error?.message || error.message || 'Tu sesión ha expirado o no es válida.';
+    
+    // Mostrar notificación
+    this.toastService.error(
+      'Problema de sesión',
+      message + ' Por favor, inicia sesión nuevamente.'
+    );
+    
+    // Redirigir a login después de un breve delay
+    setTimeout(() => {
+      authService.logoutAndRedirect();
+    }, 2000);
+  }
 }
