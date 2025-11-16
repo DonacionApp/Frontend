@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { Subject, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DataTableComponent, TableColumn, TableAction, BatchAction } from '../../../shared/components/data-table/data-table.component';
-import { UserManagementService, UserManagement, UpdateUserDTO } from '../../../core/services/user-management.service';
+import { UserManagementService, UserManagement, UpdateUserDTO, CreateUserDTO } from '../../../core/services/user-management.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { RoleService } from '../../../core/services/role.service';
 import { Rol } from '../../../shared/model/rol.model';
@@ -13,6 +13,8 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
 import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 import { DetailsModalComponent, DetailItem } from '../../../shared/components/details-modal/details-modal.component';
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { CountriesService } from '../../../core/services/countries.service';
 
 @Component({
   selector: 'app-organizations',
@@ -39,6 +41,15 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
   showEditOrganizationModal = false;
   editOrganizationForm!: FormGroup;
   editingOrganization = false;
+
+  // Modal de creación de organización
+  showCreateOrganizationModal = false;
+  createOrganizationForm!: FormGroup;
+  creatingOrganization = false;
+  typeDniOptions: any[] = [];
+  countriesOptions: any[] = [];
+  statesOptions: any[] = [];
+  citiesOptions: any[] = [];
   
   // Pestañas del modal
   activeTab: 'data' | 'articles' = 'data';
@@ -279,14 +290,19 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
     private roleService: RoleService,
     private toastService: ToastService,
     private articlesService: ArticlesService,
+    private authService: AuthService,
+    private countriesService: CountriesService,
     private fb: FormBuilder
   ) {
     this.initializeEditForm();
+    this.initializeCreateForm();
   }
 
   ngOnInit(): void {
     this.loadOrganizations();
     this.loadRoles();
+    this.loadTypeDniOptions();
+    this.loadCountries();
   }
 
   loadRoles(): void {
@@ -928,6 +944,229 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       'organization': 'Organización'
     };
     return roleMap[role?.toLowerCase()] || role || '-';
+  }
+
+  // Métodos para creación de organización
+  initializeCreateForm(): void {
+    this.createOrganizationForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rolId: ['', Validators.required],
+      description: [''], // Descripción de la organización
+      people: this.fb.group({
+        name: [''],
+        birdthDate: [''],
+        tipodDni: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
+      })
+    });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.createOrganizationForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.createOrganizationForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.createOrganizationForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  loadTypeDniOptions(): void {
+    this.authService.loadTypesDni()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (types) => {
+          this.typeDniOptions = types || [];
+        },
+        error: (error) => {
+          console.error('Error loading DNI types:', error);
+        }
+      });
+  }
+
+  loadCountries(): void {
+    this.countriesService.countriesList()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (countries) => {
+          this.countriesOptions = countries || [];
+        },
+        error: (error) => {
+          console.error('Error loading countries:', error);
+        }
+      });
+  }
+
+  loadStates(countryIso: string): void {
+    this.countriesService.statesByCountry(countryIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (states) => {
+          this.statesOptions = states || [];
+          this.citiesOptions = [];
+        },
+        error: (error) => {
+          console.error('Error loading states:', error);
+          this.statesOptions = [];
+        }
+      });
+  }
+
+  loadCities(countryIso: string, stateIso: string): void {
+    this.countriesService.citiesByState(countryIso, stateIso)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cities) => {
+          this.citiesOptions = cities || [];
+        },
+        error: (error) => {
+          console.error('Error loading cities:', error);
+          this.citiesOptions = [];
+        }
+      });
+  }
+
+  openCreateOrganizationModal(): void {
+    this.showCreateOrganizationModal = true;
+    this.createOrganizationForm.reset();
+    this.initializeCreateForm();
+  }
+
+  closeCreateOrganizationModal(): void {
+    this.showCreateOrganizationModal = false;
+    this.createOrganizationForm.reset();
+    this.initializeCreateForm();
+  }
+
+  createOrganization(): void {
+    if (this.createOrganizationForm.invalid) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
+      return;
+    }
+
+    this.creatingOrganization = true;
+    const formValue = this.createOrganizationForm.value;
+
+    // Preparar datos para enviar
+    const createData: CreateUserDTO = {
+      username: formValue.username,
+      email: formValue.email || undefined,
+      password: formValue.password,
+      rolId: Number(formValue.rolId)
+    };
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.description)) {
+      let municipioValue: any = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
+        }
+      }
+
+      // Para organizaciones, la descripción se guarda en lastName como JSON
+      let lastNameValue: string | undefined = undefined;
+      if (formValue.description) {
+        lastNameValue = JSON.stringify({ description: formValue.description });
+      }
+
+      createData.people = {
+        name: formValue.people.name || undefined,
+        lastName: lastNameValue,
+        birdthDate: formValue.people.birdthDate || undefined,
+        tipodDni: formValue.people.tipodDni ? Number(formValue.people.tipodDni) : undefined,
+        dni: formValue.people.dni || undefined,
+        residencia: formValue.people.residencia || undefined,
+        telefono: formValue.people.telefono || undefined,
+        municipio: municipioValue
+      };
+    }
+
+    this.userService.createUser(createData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.creatingOrganization = false;
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Organización creada correctamente',
+            type: 'success'
+          });
+          this.closeCreateOrganizationModal();
+          this.loadOrganizations();
+        },
+        error: (error) => {
+          this.creatingOrganization = false;
+          console.error('Error creating organization:', error);
+          let errorMessage = 'No se pudo crear la organización';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          }
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
+        }
+      });
+  }
+
+  get createFormControls() {
+    return this.createOrganizationForm.controls;
+  }
+
+  get createPeopleFormGroup() {
+    return this.createOrganizationForm.get('people') as FormGroup;
   }
 }
 
