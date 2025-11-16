@@ -167,9 +167,32 @@
 										</div>
 									</div>
 
-									<div class="flex items-center gap-3">
-										<input id="terms" type="checkbox" (change)="termsChange($event)" class="h-4 w-4 text-green-500 rounded" />
-										<label for="terms" class="text-sm text-gray-600">Acepto los <a class="text-green-500 underline">términos y condiciones</a> y la <a class="text-green-500 underline">política de privacidad</a></label>
+									<!-- Términos y Condiciones -->
+									<div class="space-y-3">
+										<!-- Términos y Condiciones -->
+										<div class="flex items-start">
+											<div class="flex items-center h-5">
+												<input
+													id="acceptTerms"
+													type="checkbox"
+													formControlName="acceptTerms"
+													class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
+											</div>
+											<div class="ml-3 text-sm">
+												<label for="acceptTerms" class="font-medium text-gray-700">
+													He leído y acepto los
+													<a
+														(click)="openTermsModal($event)"
+														class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold">
+														Términos y Condiciones
+													</a>
+												</label>
+												<p *ngIf="registerForm.get('acceptTerms')?.invalid && registerForm.get('acceptTerms')?.touched"
+													class="mt-1 text-sm text-red-600">
+													Debes aceptar los términos y condiciones
+												</p>
+											</div>
+										</div>
 									</div>
 
 									<!-- Success / Error / Loader messages -->
@@ -182,7 +205,7 @@
 									<!-- Buttons -->
 									<div class="flex gap-3 justify-end mt-2 items-center">
 										<app-button variant="ghost" size="md" type="button">Ya tengo cuenta</app-button>
-										<app-button variant="primary" size="md" [disabled]="!terms || !isFormValid || loadingRegister" id="submit_create_acount" type="submit">Crear Cuenta</app-button>
+										<app-button variant="primary" size="md" [disabled]="registerForm.invalid || loadingRegister" id="submit_create_acount" type="submit">Crear Cuenta</app-button>
 									</div>
 								</form>
 							</div>

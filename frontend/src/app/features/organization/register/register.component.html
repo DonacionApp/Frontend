@@ -295,6 +295,59 @@
             <p class="info-text">Tu organización será revisada por nuestro equipo antes de ser aprobada. Este proceso puede tomar de 1 a 3 días hábiles.</p>
           </div>
         </div>
+
+        <!-- Términos y Condiciones -->
+        <div class="space-y-4 mt-6">
+          <!-- Términos y Condiciones -->
+          <div class="relative bg-gradient-to-r from-blue-50 to-blue-100/50 p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+            <div class="flex items-start gap-3">
+              <div class="flex items-center h-5 mt-0.5">
+                <input
+                  id="acceptTerms"
+                  type="checkbox"
+                  formControlName="acceptTerms"
+                  class="h-5 w-5 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-2 border-blue-300 rounded cursor-pointer transition-all duration-200 hover:border-blue-500">
+              </div>
+              <div class="flex-1">
+                <label for="acceptTerms" class="flex items-start gap-2 cursor-pointer">
+                  <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-gray-800 leading-relaxed">
+                    He leído y acepto los
+                    <a
+                      (click)="openTermsModal($event)"
+                      class="text-blue-600 hover:text-blue-800 underline decoration-2 underline-offset-2 cursor-pointer font-bold inline-flex items-center gap-1 transition-colors">
+                      Términos y Condiciones
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </a>
+                  </span>
+                </label>
+                <p *ngIf="orgForm.get('acceptTerms')?.invalid && orgForm.get('acceptTerms')?.touched"
+                  class="mt-2 text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-md">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Debes aceptar los términos y condiciones para continuar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nota informativa -->
+          <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg mt-4">
+            <div class="flex gap-2">
+              <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-xs text-yellow-800">
+                Al registrarte, aceptas nuestros términos legales según la legislación colombiana (Ley 1581 de 2012).
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Navigation Buttons -->

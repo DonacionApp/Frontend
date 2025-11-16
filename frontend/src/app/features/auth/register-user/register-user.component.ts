@@ -11,11 +11,13 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { Rol } from '../../../shared/model/rol.model';
 import { TypeDniModel } from '../../../shared/model/type.dni.model';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
 
 @Component({
   selector: 'app-register-user',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent, MatDialogModule],
   templateUrl: './register-user.component.html',
   styleUrls: ['./register-user.component.scss']
 })
@@ -27,7 +29,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   rolesOptions: Rol[] = [];
   typeOptions: TypeDniModel[] = [];
   countriesOptions: Countris[] = [];
-  terms: boolean = false;
 
   loadStates: boolean = false;
   loadCities = false;
@@ -55,6 +56,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private dialog: MatDialog
   ) { }
 
   goToOrganizationRegister(): void {
@@ -73,6 +75,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       confirmPassword: ['', Validators.required],
       rolId: ['', Validators.required],
       profilePhoto: [''],
+      acceptTerms: [false, [Validators.requiredTrue]],
       people: this.fb.group({
         name: ['', Validators.required],
         lastName: [''],
@@ -135,10 +138,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     if (!this.registerForm) { return; }
-    if (!this.terms) {
-      console.warn('Debe aceptar los términos y condiciones');
-      return;
-    }
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       console.warn('Formulario inválido');
@@ -330,14 +329,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  termsChange(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.terms = checked;
-    if (checked) {
-
-    }
-  }
-
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
@@ -346,4 +337,18 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 
+  openTermsModal(event: Event): void {
+    event.preventDefault();
+    console.log('Opening terms modal...');
+    const dialogRef = this.dialog.open(TermsModalComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      panelClass: 'terms-modal-container'
+    });
+    console.log('Dialog ref:', dialogRef);
+  }
+
 }
+

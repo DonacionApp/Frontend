@@ -1,0 +1,67 @@
+<div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh]">
+    <!-- Header con gradiente -->
+    <div class="relative bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-8 py-4 sm:py-6">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+          <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Términos y Condiciones</h2>
+            <p class="text-blue-100 text-sm mt-1">de Uso de la Plataforma DonaApp</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="close()"
+          class="close-button text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all duration-200 z-50 relative">
+          <svg class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Decoración -->
+      <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+      <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+    </div>
+
+  <!-- Content -->
+  <div class="p-4 sm:p-8 max-h-[40vh] sm:max-h-[65vh] overflow-y-auto modal-scroll bg-gradient-to-b from-gray-50 to-white">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando términos y condiciones...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+      <p class="text-red-700">{{ error }}</p>
+    </div>
+
+    <!-- Content State -->
+    <div *ngIf="!loading && !error" class="text-gray-700 markdown-content">
+      <div [innerHTML]="termsContent"></div>
+    </div>
+  </div>
+
+    <!-- Footer -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+      <p class="text-xs text-gray-500 flex items-center gap-2 order-2 sm:order-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+        <span class="hidden sm:inline">Documento legalmente vinculante</span>
+        <span class="sm:hidden">Documento legal</span>
+      </p>
+      <button
+        type="button"
+        (click)="close()"
+        class="w-full sm:w-auto order-1 sm:order-2 px-6 sm:px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+        Entendido
+      </button>
+    </div>
+  </div>

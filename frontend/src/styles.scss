@@ -1,5 +1,22 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* Angular Material Theme */
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$my-primary: mat.m2-define-palette(mat.$m2-blue-palette);
+$my-accent: mat.m2-define-palette(mat.$m2-green-palette);
+
+$my-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $my-primary,
+    accent: $my-accent,
+  )
+));
+
+@include mat.all-component-themes($my-theme);
+
 /* Tailwind CSS */
 @tailwind base;
 @tailwind components;

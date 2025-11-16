@@ -1,0 +1,108 @@
+// Terms Modal Styles - Optimized
+::ng-deep .terms-modal-container {
+  .mat-mdc-dialog-container { padding: 0 !important; border-radius: 16px !important; overflow: hidden; }
+  .mat-mdc-dialog-surface { border-radius: 16px !important; }
+}
+
+.close-button { position: relative; z-index: 10; }
+
+:host {
+  .modal-scroll::-webkit-scrollbar { width: 8px; }
+  .modal-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+  .modal-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+
+  .markdown-content {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+    line-height: 1.8;
+    color: #374151;
+
+    h1, h2, h3, h4, h5, h6 { font-weight: 700; margin: 1.5rem 0 0.75rem; color: #1f2937; }
+    h1 { font-size: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.75rem; color: #2563eb; border-left: 4px solid #3b82f6; padding-left: 1rem; }
+    h3 { font-size: 1.25rem; color: #1e40af; }
+    h4, h5, h6 { font-size: 1rem; }
+    p { margin: 1rem 0; text-align: justify; }
+    a { color: #3b82f6; text-decoration: underline; }
+    a:hover { color: #1e40af; }
+    strong, b { font-weight: 700; color: #1e40af; }
+    em, i { font-style: italic; color: #6b7280; }
+
+    ul {
+      margin: 1.5rem 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    ul li {
+      margin-bottom: 0.75rem;
+      padding-left: 2.5rem;
+      position: relative;
+      color: #4b5563;
+      font-weight: 500;
+      line-height: 1.8;
+    }
+    ul li::before {
+      content: '●';
+      position: absolute;
+      left: 0;
+      color: #3b82f6;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    ul li:nth-child(2)::before { color: #06b6d4; }
+    ul li:nth-child(3)::before { color: #8b5cf6; }
+    ul li:nth-child(4)::before { color: #ec4899; }
+    ul li:nth-child(5)::before { color: #f59e0b; }
+    ul li:nth-child(n+6)::before { color: #10b981; }
+    ul ul { margin: 0.5rem 0; }
+    ul ul li { padding-left: 2rem; font-size: 0.95rem; color: #6b7280; }
+
+    ol {
+      margin: 1.5rem 0;
+      padding-left: 0;
+      list-style: none;
+      counter-reset: item;
+    }
+    ol li {
+      margin-bottom: 0.75rem;
+      padding-left: 3rem;
+      position: relative;
+      color: #4b5563;
+      font-weight: 500;
+      line-height: 1.8;
+      counter-increment: item;
+    }
+    ol li::before {
+      content: counter(item);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      background: #3b82f6;
+      color: white;
+      font-weight: 700;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    ol li:nth-child(2)::before { background: #06b6d4; }
+    ol li:nth-child(3)::before { background: #8b5cf6; }
+    ol li:nth-child(4)::before { background: #ec4899; }
+    ol li:nth-child(5)::before { background: #f59e0b; }
+    ol li:nth-child(n+6)::before { background: #10b981; }
+    ol ol { margin: 0.5rem 0; counter-reset: item; }
+    ol ol li { padding-left: 2.5rem; font-size: 0.95rem; color: #6b7280; }
+
+    blockquote { border-left: 4px solid #3b82f6; margin: 1.5rem 0; padding: 1rem 1.5rem; background: #f0f4f8; border-radius: 8px; color: #4b5563; font-style: italic; }
+    code { background: #f3f4f6; color: #dc2626; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid #e5e7eb; }
+    pre { background: #1f2937; color: #e5e7eb; padding: 1.25rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid #374151; }
+    pre code { background: transparent; color: #e5e7eb; padding: 0; border: none; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+    table th { background: #3b82f6; color: white; padding: 0.75rem; font-weight: 700; text-align: left; border: 1px solid #e5e7eb; }
+    table td { padding: 0.75rem; border: 1px solid #e5e7eb; }
+    table tr:nth-child(even) { background: #f8fafc; }
+    hr { border: none; height: 2px; background: #3b82f6; margin: 2rem 0; }
+  }
+}
+
