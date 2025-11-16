@@ -56,9 +56,9 @@ export class VerificationService {
    * @returns Resultado de validación
    */
   validateFile(file: File): ValidationResult {
-    // Validar tipo de archivo
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    const validExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
+    // Validar tipo de archivo - Solo PDF
+    const validTypes = ['application/pdf'];
+    const validExtensions = ['.pdf'];
     
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
     const isValidType = validTypes.includes(file.type) || validExtensions.includes(fileExtension);
@@ -66,17 +66,17 @@ export class VerificationService {
     if (!isValidType) {
       return {
         valid: false,
-        error: 'Formato de archivo no válido. Solo se aceptan JPG, PNG y PDF.'
+        error: 'Formato de archivo no válido. Solo se aceptan archivos PDF.'
       };
     }
 
-    // Validar tamaño (máximo 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5 MB en bytes
+    // Validar tamaño (máximo 1MB)
+    const maxSize = 1 * 1024 * 1024; // 1 MB en bytes
     if (file.size > maxSize) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
       return {
         valid: false,
-        error: `El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 5 MB.`
+        error: `El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`
       };
     }
 
@@ -120,7 +120,7 @@ export class VerificationService {
       case 409:
         return 'Tu cuenta ya está verificada. No es necesario subir otro documento.';
       case 413:
-        return 'El archivo es demasiado grande. El tamaño máximo permitido es 5 MB.';
+        return 'El archivo es demasiado grande. El tamaño máximo permitido es 1 MB.';
       case 500:
         return 'Error del servidor. Por favor, intenta nuevamente más tarde.';
       default:

@@ -63,6 +63,9 @@ export class ChatsComponent implements OnInit, OnDestroy {
   newMessage = '';
 
   selectedFiles: File[] = [];
+  // Estados de validación por archivo (usando índice como clave)
+  fileValidationStates: Map<number, 'validating' | 'valid' | 'error'> = new Map();
+  fileValidationErrors: Map<number, string> = new Map();
 
   readonly MAX_IMAGE_PDF_BYTES = 1 * 1024 * 1024;
   readonly MAX_VIDEO_BYTES = 10 * 1024 * 1024;
@@ -947,15 +950,31 @@ export class ChatsComponent implements OnInit, OnDestroy {
       const input = ev.target as HTMLInputElement;
       if (!input || !input.files) return;
       const files = Array.from(input.files);
-      for (const f of files) {
-        const err = this.validateFile(f);
-        if (err) {
-          try { this.alertService.error('Archivo inválido', err); } catch (e) {}
-          continue;
-        }
-        try { (f as any).__previewUrl = URL.createObjectURL(f); } catch (e) {}
-        this.selectedFiles.push(f);
-      }
+      
+      files.forEach((f, index) => {
+        const fileIndex = this.selectedFiles.length + index;
+        
+        // Iniciar validación
+        this.fileValidationStates.set(fileIndex, 'validating');
+        this.fileValidationErrors.delete(fileIndex);
+        
+        // Simular validación asíncrona
+        setTimeout(() => {
+          const err = this.validateFile(f);
+          if (err) {
+            this.fileValidationStates.set(fileIndex, 'error');
+            this.fileValidationErrors.set(fileIndex, err);
+            try { this.alertService.error('Archivo inválido', err); } catch (e) {}
+            return;
+          }
+          
+          // Archivo válido
+          this.fileValidationStates.set(fileIndex, 'valid');
+          try { (f as any).__previewUrl = URL.createObjectURL(f); } catch (e) {}
+          this.selectedFiles.push(f);
+        }, 300);
+      });
+      
       try { input.value = ''; } catch (e) {}
     } catch (e) {}
   }
@@ -964,8 +983,18 @@ export class ChatsComponent implements OnInit, OnDestroy {
     try {
       const f = this.selectedFiles[index];
       this.selectedFiles.splice(index, 1);
+      this.fileValidationStates.delete(index);
+      this.fileValidationErrors.delete(index);
       try { if (f && (f as any).__previewUrl) { URL.revokeObjectURL((f as any).__previewUrl); } } catch (e) {}
     } catch (e) {}
+  }
+  
+  getFileValidationState(index: number): 'validating' | 'valid' | 'error' | null {
+    return this.fileValidationStates.get(index) || null;
+  }
+  
+  getFileValidationError(index: number): string {
+    return this.fileValidationErrors.get(index) || '';
   }
 
   validateFile(file: File): string | null {

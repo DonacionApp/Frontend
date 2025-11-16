@@ -54,8 +54,17 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   
   selectedLogo: File | null = null;
   logoPreview: string | null = null;
+  // Estados de validación para logo
+  logoValidationState: 'idle' | 'validating' | 'valid' | 'error' = 'idle';
+  logoValidationError: string = '';
+  logoFileSizeMB: string = '';
+  
   selectedCover: File | null = null;
   coverPreview: string | null = null;
+  // Estados de validación para cover
+  coverValidationState: 'idle' | 'validating' | 'valid' | 'error' = 'idle';
+  coverValidationError: string = '';
+  coverFileSizeMB: string = '';
 
   showLocationPicker = false;
   selectedLocation: { lat: number; lng: number } | null = null;
@@ -64,6 +73,10 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
   documentPreview: string | null = null;
   isUploadingDocument = false;
   verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
+  // Estados de validación para documento
+  documentValidationState: 'idle' | 'validating' | 'valid' | 'error' = 'idle';
+  documentValidationError: string = '';
+  documentFileSizeMB: string = '';
   
   showCurrentPassword = false;
   showNewPassword = false;
@@ -352,31 +365,44 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validar tipo de archivo
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
-        input.value = '';
-        return;
-      }
+      // Iniciar validación
+      this.logoValidationState = 'validating';
+      this.logoValidationError = '';
+      this.logoFileSizeMB = '';
       
-      // Validar tamaño (máximo 1 MB)
-      const maxSize = 1048576; // 1 MB
-      if (file.size > maxSize) {
-        const sizeMB = (file.size / 1048576).toFixed(2);
-        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
-        input.value = '';
-        return;
-      }
-      
-      this.selectedLogo = file;
-      this.clearMessages();
-      
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.logoPreview = e.target?.result as string;
-      };
-      reader.readAsDataURL(this.selectedLogo);
+      // Simular validación asíncrona para mostrar estado
+      setTimeout(() => {
+        // Validar tipo de archivo
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          this.logoValidationState = 'error';
+          this.logoValidationError = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+          input.value = '';
+          return;
+        }
+        
+        // Validar tamaño (máximo 1 MB)
+        const maxSize = 1048576; // 1 MB
+        if (file.size > maxSize) {
+          const sizeMB = (file.size / 1048576).toFixed(2);
+          this.logoValidationState = 'error';
+          this.logoValidationError = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
+          input.value = '';
+          return;
+        }
+        
+        // Archivo válido
+        this.logoValidationState = 'valid';
+        this.logoFileSizeMB = (file.size / 1048576).toFixed(2);
+        this.selectedLogo = file;
+        this.clearMessages();
+        
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.logoPreview = e.target?.result as string;
+        };
+        reader.readAsDataURL(this.selectedLogo);
+      }, 300);
     }
   }
 
@@ -385,31 +411,44 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validar tipo de archivo
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
-        input.value = '';
-        return;
-      }
+      // Iniciar validación
+      this.coverValidationState = 'validating';
+      this.coverValidationError = '';
+      this.coverFileSizeMB = '';
       
-      // Validar tamaño (máximo 1 MB)
-      const maxSize = 1048576; // 1 MB
-      if (file.size > maxSize) {
-        const sizeMB = (file.size / 1048576).toFixed(2);
-        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
-        input.value = '';
-        return;
-      }
-      
-      this.selectedCover = file;
-      this.clearMessages();
-      
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.coverPreview = e.target?.result as string;
-      };
-      reader.readAsDataURL(this.selectedCover);
+      // Simular validación asíncrona para mostrar estado
+      setTimeout(() => {
+        // Validar tipo de archivo
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          this.coverValidationState = 'error';
+          this.coverValidationError = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+          input.value = '';
+          return;
+        }
+        
+        // Validar tamaño (máximo 1 MB)
+        const maxSize = 1048576; // 1 MB
+        if (file.size > maxSize) {
+          const sizeMB = (file.size / 1048576).toFixed(2);
+          this.coverValidationState = 'error';
+          this.coverValidationError = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB.`;
+          input.value = '';
+          return;
+        }
+        
+        // Archivo válido
+        this.coverValidationState = 'valid';
+        this.coverFileSizeMB = (file.size / 1048576).toFixed(2);
+        this.selectedCover = file;
+        this.clearMessages();
+        
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.coverPreview = e.target?.result as string;
+        };
+        reader.readAsDataURL(this.selectedCover);
+      }, 300);
     }
   }
 
@@ -752,34 +791,44 @@ export class OrganizationProfileComponent implements OnInit, OnDestroy {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validar el archivo usando el servicio
-      const validation = this.verificationService.validateFile(file);
+      // Iniciar validación
+      this.documentValidationState = 'validating';
+      this.documentValidationError = '';
+      this.documentFileSizeMB = '';
       
-      if (!validation.valid) {
-        this.errorMessage = validation.error || 'Archivo inválido';
-        this.selectedDocument = null;
-        this.documentPreview = null;
-        input.value = '';
-        return;
-      }
-      
-  this.selectedDocument = file;
-  this.clearMessages();
-  this.verificationState = 'none';
-      
-      // Preview del documento (solo para imágenes)
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e: ProgressEvent<FileReader>) => {
-          this.documentPreview = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        // Para PDFs, mostrar icono genérico
-        this.documentPreview = 'pdf';
-      }
-      
-      // seleccionado: nombre disponible en la UI
+      // Simular validación asíncrona para mostrar estado
+      setTimeout(() => {
+        // Validar el archivo usando el servicio
+        const validation = this.verificationService.validateFile(file);
+        
+        if (!validation.valid) {
+          this.documentValidationState = 'error';
+          this.documentValidationError = validation.error || 'Archivo inválido';
+          this.selectedDocument = null;
+          this.documentPreview = null;
+          input.value = '';
+          return;
+        }
+        
+        // Archivo válido
+        this.documentValidationState = 'valid';
+        this.documentFileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        this.selectedDocument = file;
+        this.clearMessages();
+        this.verificationState = 'none';
+        
+        // Preview del documento (solo para imágenes)
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e: ProgressEvent<FileReader>) => {
+            this.documentPreview = e.target?.result as string;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Para PDFs, mostrar icono genérico
+          this.documentPreview = 'pdf';
+        }
+      }, 300);
     }
   }
 

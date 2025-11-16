@@ -34,6 +34,10 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   
   selectedFile: File | null = null;
   imagePreview: string | null = null;
+  // Estados de validación para foto de perfil
+  imageValidationState: 'idle' | 'validating' | 'valid' | 'error' = 'idle';
+  imageValidationError: string = '';
+  imageFileSizeMB: string = '';
   
   // Verificación de documento
   selectedDocument: File | null = null;
@@ -41,6 +45,10 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
   isUploadingDocument = false;
   // Estado de verificación: 'none' | 'uploading' | 'pending' | 'verified' | 'error'
   verificationState: 'none' | 'uploading' | 'pending' | 'verified' | 'error' = 'none';
+  // Estados de validación para documento
+  documentValidationState: 'idle' | 'validating' | 'valid' | 'error' = 'idle';
+  documentValidationError: string = '';
+  documentFileSizeMB: string = '';
   
   // Control de visibilidad de contraseñas
   showCurrentPassword = false;
@@ -235,34 +243,47 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validar tipo de archivo
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        this.errorMessage = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
-        this.selectedFile = null;
-        input.value = '';
-        return;
-      }
+      // Iniciar validación
+      this.imageValidationState = 'validating';
+      this.imageValidationError = '';
+      this.imageFileSizeMB = '';
       
-      // Validar tamaño (máximo 1 MB = 1048576 bytes)
-      const maxSize = 1048576; // 1 MB
-      if (file.size > maxSize) {
-        const sizeMB = (file.size / 1048576).toFixed(2);
-        this.errorMessage = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB. Por favor, comprime la imagen o selecciona una más pequeña.`;
-        this.selectedFile = null;
-        input.value = '';
-        return;
-      }
-      
-      this.selectedFile = file;
-      this.clearMessages();
-      
-      // Preview de la imagen
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.imagePreview = e.target?.result as string;
-      };
-      reader.readAsDataURL(this.selectedFile);
+      // Simular validación asíncrona para mostrar estado
+      setTimeout(() => {
+        // Validar tipo de archivo
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          this.imageValidationState = 'error';
+          this.imageValidationError = 'Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)';
+          this.selectedFile = null;
+          input.value = '';
+          return;
+        }
+        
+        // Validar tamaño (máximo 1 MB = 1048576 bytes)
+        const maxSize = 1048576; // 1 MB
+        if (file.size > maxSize) {
+          const sizeMB = (file.size / 1048576).toFixed(2);
+          this.imageValidationState = 'error';
+          this.imageValidationError = `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 1 MB. Por favor, comprime la imagen o selecciona una más pequeña.`;
+          this.selectedFile = null;
+          input.value = '';
+          return;
+        }
+        
+        // Archivo válido
+        this.imageValidationState = 'valid';
+        this.imageFileSizeMB = (file.size / 1048576).toFixed(2);
+        this.selectedFile = file;
+        this.clearMessages();
+        
+        // Preview de la imagen
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.imagePreview = e.target?.result as string;
+        };
+        reader.readAsDataURL(this.selectedFile);
+      }, 300);
     }
   }
 
@@ -549,34 +570,44 @@ export class DonorProfileComponent implements OnInit, OnDestroy {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       
-      // Validar el archivo usando el servicio
-      const validation = this.verificationService.validateFile(file);
+      // Iniciar validación
+      this.documentValidationState = 'validating';
+      this.documentValidationError = '';
+      this.documentFileSizeMB = '';
       
-      if (!validation.valid) {
-        this.errorMessage = validation.error || 'Archivo inválido';
-        this.selectedDocument = null;
-        this.documentPreview = null;
-        input.value = '';
-        return;
-      }
-      
-      this.selectedDocument = file;
-      this.clearMessages();
-      this.verificationState = 'none';
-      
-      // Preview del documento (solo para imágenes)
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e: ProgressEvent<FileReader>) => {
-          this.documentPreview = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        // Para PDFs, mostrar icono genérico
-        this.documentPreview = 'pdf';
-      }
-      
-      // seleccionado: nombre disponible en la UI
+      // Simular validación asíncrona para mostrar estado
+      setTimeout(() => {
+        // Validar el archivo usando el servicio
+        const validation = this.verificationService.validateFile(file);
+        
+        if (!validation.valid) {
+          this.documentValidationState = 'error';
+          this.documentValidationError = validation.error || 'Archivo inválido';
+          this.selectedDocument = null;
+          this.documentPreview = null;
+          input.value = '';
+          return;
+        }
+        
+        // Archivo válido
+        this.documentValidationState = 'valid';
+        this.documentFileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        this.selectedDocument = file;
+        this.clearMessages();
+        this.verificationState = 'none';
+        
+        // Preview del documento (solo para imágenes)
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e: ProgressEvent<FileReader>) => {
+            this.documentPreview = e.target?.result as string;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Para PDFs, mostrar icono genérico
+          this.documentPreview = 'pdf';
+        }
+      }, 300);
     }
   }
 

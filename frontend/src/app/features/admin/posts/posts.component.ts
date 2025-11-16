@@ -36,6 +36,9 @@ export class PostsComponent implements OnInit, OnDestroy {
   currentPostId: number | null = null;
   uploadingImages = false;
   selectedFiles: File[] = [];
+  // Estados de validación por archivo
+  fileValidationStates: Map<number, 'validating' | 'valid' | 'error'> = new Map();
+  fileValidationErrors: Map<number, string> = new Map();
 
   // Modal de gestión de tags
   showTagsModal = false;
@@ -275,11 +278,56 @@ export class PostsComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: any): void {
     const files = Array.from(event.target.files) as File[];
-    this.selectedFiles = [...this.selectedFiles, ...files];
+    
+    files.forEach((file, index) => {
+      const fileIndex = this.selectedFiles.length + index;
+      
+      // Iniciar validación
+      this.fileValidationStates.set(fileIndex, 'validating');
+      this.fileValidationErrors.delete(fileIndex);
+      
+      // Simular validación asíncrona
+      setTimeout(() => {
+        // Validar tipo
+        if (!file.type.startsWith('image/')) {
+          this.fileValidationStates.set(fileIndex, 'error');
+          this.fileValidationErrors.set(fileIndex, 'Solo se permiten imágenes');
+          return;
+        }
+        
+        // Validar tamaño (máximo 5 MB para imágenes)
+        const maxSize = 5 * 1024 * 1024; // 5 MB
+        if (file.size > maxSize) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          this.fileValidationStates.set(fileIndex, 'error');
+          this.fileValidationErrors.set(fileIndex, `La imagen es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 5 MB.`);
+          return;
+        }
+        
+        // Archivo válido
+        this.fileValidationStates.set(fileIndex, 'valid');
+        this.selectedFiles.push(file);
+      }, 300);
+    });
   }
 
   removeSelectedFile(index: number): void {
     this.selectedFiles.splice(index, 1);
+    this.fileValidationStates.delete(index);
+    this.fileValidationErrors.delete(index);
+  }
+  
+  getFileValidationState(index: number): 'validating' | 'valid' | 'error' | null {
+    return this.fileValidationStates.get(index) || null;
+  }
+  
+  getFileValidationError(index: number): string {
+    return this.fileValidationErrors.get(index) || '';
+  }
+  
+  hasInvalidFiles(): boolean {
+    if (this.selectedFiles.length === 0) return false;
+    return this.selectedFiles.some((_, i) => this.getFileValidationState(i) !== 'valid');
   }
 
   uploadImages(): void {
