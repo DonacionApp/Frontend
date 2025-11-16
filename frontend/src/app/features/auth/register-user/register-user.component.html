@@ -167,7 +167,7 @@
 										</div>
 									</div>
 
-									<!-- Términos y Condiciones -->
+									<!-- Términos y Condiciones y Políticas de Privacidad -->
 									<div class="space-y-3">
 										<!-- Términos y Condiciones -->
 										<div class="flex items-start">
@@ -190,6 +190,31 @@
 												<p *ngIf="registerForm.get('acceptTerms')?.invalid && registerForm.get('acceptTerms')?.touched"
 													class="mt-1 text-sm text-red-600">
 													Debes aceptar los términos y condiciones
+												</p>
+											</div>
+										</div>
+
+										<!-- Políticas de Privacidad -->
+										<div class="flex items-start">
+											<div class="flex items-center h-5">
+												<input
+													id="acceptPrivacyPolicy"
+													type="checkbox"
+													formControlName="acceptPrivacyPolicy"
+													class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
+											</div>
+											<div class="ml-3 text-sm">
+												<label for="acceptPrivacyPolicy" class="font-medium text-gray-700">
+													He leído y acepto la
+													<a
+														(click)="openPrivacyPolicyModal($event)"
+														class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold">
+														Política de Privacidad
+													</a>
+												</label>
+												<p *ngIf="registerForm.get('acceptPrivacyPolicy')?.invalid && registerForm.get('acceptPrivacyPolicy')?.touched"
+													class="mt-1 text-sm text-red-600">
+													Debes aceptar la política de privacidad
 												</p>
 											</div>
 										</div>

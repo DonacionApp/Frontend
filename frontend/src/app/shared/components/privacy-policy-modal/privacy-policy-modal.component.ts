@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { HttpClient } from '@angular/common/http';
+import { SystemService } from '../../../core/services/system.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 
@@ -19,7 +19,7 @@ export class PrivacyPolicyModalComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<PrivacyPolicyModalComponent>,
-    private http: HttpClient,
+    private systemService: SystemService,
     private sanitizer: DomSanitizer
   ) {}
 
@@ -36,50 +36,36 @@ export class PrivacyPolicyModalComponent implements OnInit {
     
     console.log('🔧 Marked configurado para Privacy Policy');
 
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
-    );
+    try {
+      const response = await this.systemService.getPolicies().toPromise();
+      
+      if (!response || !response.policies) {
+        throw new Error('No se recibió contenido');
+      }
 
-    const httpPromise = this.http.get('http://localhost:5000/system/policies').toPromise();
+      const policyText = response.policies;
 
-    Promise.race([httpPromise, timeoutPromise])
-      .then(async (data: any) => {
-        try {
-          console.log('✅ Policy data received:', data);
-          
-          let policyText = '';
+      // Validar que el contenido tenga markdown real
+      const hasMarkdown = policyText.includes('#') || 
+                         policyText.includes('**') || 
+                         policyText.includes('-') || 
+                         policyText.includes('*') ||
+                         policyText.includes('`');
 
-          if (typeof data === 'object' && data !== null) {
-            policyText = data.content || data.text || data.policy || data.data || '';
-          } else {
-            policyText = String(data);
-          }
+      if (!policyText || policyText.trim().length < 50) {
+        throw new Error('Contenido inválido o vacío');
+      }
 
-          // Validar que el contenido tenga markdown real
-          const hasMarkdown = policyText.includes('#') || policyText.includes('**') || policyText.includes('-') || policyText.includes('*');
-          
-          if (!policyText || policyText.length < 100 || !hasMarkdown) {
-            console.log('⚠️ Contenido del backend no válido, usando default');
-            policyText = this.getDefaultPolicy();
-          }
-
-          console.log('📝 Policy text (first 200 chars):', policyText.substring(0, 200));
-
-          const html = await marked.parse(policyText);
-          console.log('✅ HTML parseado (first 200 chars):', html.substring(0, 200));
-          
-          this.policyContent = this.sanitizer.bypassSecurityTrustHtml(html);
-          this.loading = false;
-        } catch (err) {
-          console.error('❌ Error parsing markdown:', err);
-          this.loadDefaultPolicy();
-        }
-      })
-      .catch((err) => {
-        console.error('❌ Error loading policy from backend:', err);
-        console.log('⚠️ Usando política por defecto');
-        this.loadDefaultPolicy();
-      });
+      // Convertir markdown a HTML
+      const html = await marked.parse(policyText) as string;
+      
+      // Sanitizar el HTML para prevenir XSS
+      this.policyContent = this.sanitizer.bypassSecurityTrustHtml(html);
+      this.loading = false;
+    } catch (err: any) {
+      console.error('Error loading privacy policy:', err);
+      this.loadDefaultPolicy();
+    }
   }
 
   private async loadDefaultPolicy(): Promise<void> {
