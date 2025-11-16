@@ -6,7 +6,6 @@ import { OrganizationRegistrationService } from '../../../core/services';
 import { RegistrationStateService } from '../../../core/services/registration-state.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
-import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
 
 
 @Component({
@@ -57,9 +56,8 @@ export class OrganizationRegisterComponent implements OnInit {
       birdthDate: ['', Validators.required],
       tipodDni: [1, Validators.required],
       dni: [''],
-      // Términos y Privacidad
-      acceptTerms: [false, [Validators.requiredTrue]],
-      acceptPrivacy: [false, [Validators.requiredTrue]]
+      // Términos
+      acceptTerms: [false, [Validators.requiredTrue]]
     });
   }
 
@@ -229,15 +227,5 @@ export class OrganizationRegisterComponent implements OnInit {
     });
   }
 
-  openPrivacyModal(event: Event): void {
-    event.preventDefault();
-    this.dialog.open(PrivacyPolicyModalComponent, {
-      width: '800px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      autoFocus: false,
-      panelClass: 'privacy-modal-container'
-    });
-  }
-
 }
+

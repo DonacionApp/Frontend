@@ -172,49 +172,24 @@
 										<!-- Términos y Condiciones -->
 										<div class="flex items-start">
 											<div class="flex items-center h-5">
-												<input 
+												<input
 													id="acceptTerms"
-													type="checkbox" 
+													type="checkbox"
 													formControlName="acceptTerms"
 													class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
 											</div>
 											<div class="ml-3 text-sm">
 												<label for="acceptTerms" class="font-medium text-gray-700">
-													He leído y acepto los 
-													<a 
-														(click)="openTermsModal($event)" 
+													He leído y acepto los
+													<a
+														(click)="openTermsModal($event)"
 														class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold">
 														Términos y Condiciones
 													</a>
 												</label>
-												<p *ngIf="registerForm.get('acceptTerms')?.invalid && registerForm.get('acceptTerms')?.touched" 
+												<p *ngIf="registerForm.get('acceptTerms')?.invalid && registerForm.get('acceptTerms')?.touched"
 													class="mt-1 text-sm text-red-600">
 													Debes aceptar los términos y condiciones
-												</p>
-											</div>
-										</div>
-
-										<!-- Política de Privacidad -->
-										<div class="flex items-start">
-											<div class="flex items-center h-5">
-												<input 
-													id="acceptPrivacy"
-													type="checkbox" 
-													formControlName="acceptPrivacy"
-													class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer">
-											</div>
-											<div class="ml-3 text-sm">
-												<label for="acceptPrivacy" class="font-medium text-gray-700">
-													Autorizo el tratamiento de mis datos personales conforme a la 
-													<a 
-														(click)="openPrivacyModal($event)" 
-														class="text-green-600 hover:text-green-800 underline cursor-pointer font-semibold">
-														Política de Privacidad y Protección de Datos
-													</a>
-												</label>
-												<p *ngIf="registerForm.get('acceptPrivacy')?.invalid && registerForm.get('acceptPrivacy')?.touched" 
-													class="mt-1 text-sm text-red-600">
-													Debes autorizar el tratamiento de tus datos personales
 												</p>
 											</div>
 										</div>
