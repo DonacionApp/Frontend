@@ -830,6 +830,35 @@ export class UsersComponent implements OnInit, OnDestroy {
         })
       })
     });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.editUserForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+          // Limpiar estado y ciudad cuando se limpia el país
+          this.editUserForm.get('people.municipio.state.iso2')?.setValue('');
+          this.editUserForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.editUserForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.editUserForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+          // Limpiar ciudad cuando se limpia el estado
+          this.editUserForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
   }
 
   openEditUserModal(user: UserManagement): void {
@@ -872,6 +901,9 @@ export class UsersComponent implements OnInit, OnDestroy {
       city: { name: '' }
     };
     
+    let countryIso = '';
+    let stateIso = '';
+    
     if (people?.municipio) {
       try {
         let municipioObj: any;
@@ -882,12 +914,15 @@ export class UsersComponent implements OnInit, OnDestroy {
         }
         
         // Extraer valores del objeto parseado
+        countryIso = municipioObj?.pais?.iso2 || '';
+        stateIso = municipioObj?.state?.iso2 || '';
+        
         municipioData = {
           pais: {
-            iso2: municipioObj?.pais?.iso2 || ''
+            iso2: countryIso
           },
           state: {
-            iso2: municipioObj?.state?.iso2 || ''
+            iso2: stateIso
           },
           city: {
             name: municipioObj?.city?.name || ''
@@ -919,6 +954,35 @@ export class UsersComponent implements OnInit, OnDestroy {
         municipio: municipioData
       }
     });
+
+    // Cargar estados y ciudades si hay datos de municipio
+    if (countryIso) {
+      this.countriesService.statesByCountry(countryIso)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (states) => {
+            this.statesOptions = states || [];
+            // Una vez cargados los estados, cargar las ciudades si hay estado
+            if (stateIso) {
+              this.countriesService.citiesByState(countryIso, stateIso)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (cities) => {
+                    this.citiesOptions = cities || [];
+                  },
+                  error: (error) => {
+                    console.error('Error loading cities:', error);
+                    this.citiesOptions = [];
+                  }
+                });
+            }
+          },
+          error: (error) => {
+            console.error('Error loading states:', error);
+            this.statesOptions = [];
+          }
+        });
+    }
   }
 
   closeEditUserModal(): void {
