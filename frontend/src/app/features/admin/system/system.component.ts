@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { SystemService, UpdateSystemContentDTO } from '../../../core/services/system.service';
+import { MarkdownEditorComponent } from '../../../shared/components/markdown-editor/markdown-editor.component';
 
 @Component({
   selector: 'app-system',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MarkdownEditorComponent],
   templateUrl: './system.component.html',
   styleUrls: ['./system.component.scss']
 })
@@ -254,6 +255,39 @@ export class SystemComponent implements OnInit, OnDestroy {
           this.savingAboutUs = false;
         }
       });
+  }
+
+  /**
+   * Insertar markdown en el textarea
+   */
+  insertMarkdown(prefix: string, suffix: string, textareaId: string): void {
+    const textarea = document.getElementById(textareaId) as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const textToInsert = selectedText || 'texto';
+
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+
+    const newValue = before + prefix + textToInsert + suffix + after;
+    textarea.value = newValue;
+
+    // Actualizar el formulario
+    const formName = textareaId.replace('Content', '') + 'Form';
+    if (formName === 'policiesForm') {
+      this.policiesForm.get('content')?.setValue(newValue);
+    } else if (formName === 'termsForm') {
+      this.termsForm.get('content')?.setValue(newValue);
+    } else if (formName === 'aboutUsForm') {
+      this.aboutUsForm.get('content')?.setValue(newValue);
+    }
+
+    // Restaurar el foco
+    textarea.focus();
+    textarea.setSelectionRange(start + prefix.length + textToInsert.length, start + prefix.length + textToInsert.length);
   }
 }
 

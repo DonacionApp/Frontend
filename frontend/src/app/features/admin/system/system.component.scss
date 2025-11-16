@@ -1,2 +1,182 @@
-// Estilos específicos para el componente system si son necesarios
+// Estilos específicos para el componente system
 
+// Responsive improvements
+@media (max-width: 640px) {
+  :host ::ng-deep {
+    // Improve tab navigation on mobile
+    .border-b {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    // Make tabs more touch-friendly
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    // Stack buttons vertically on mobile
+    .flex-col {
+      &.sm\:flex-row {
+        flex-direction: column;
+      }
+    }
+
+    // Improve form spacing
+    .space-y-4 > * + * {
+      margin-top: 1rem;
+    }
+
+    // Improve padding on mobile
+    .px-6 {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    // Better textarea handling
+    textarea {
+      font-size: 16px; // Prevents zoom on iOS
+      min-height: 200px;
+    }
+
+    // Improve markdown editor on mobile
+    app-markdown-editor {
+      ::ng-deep {
+        .toolbar {
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .toolbar-btn {
+          width: 36px;
+          height: 36px;
+          min-width: 36px;
+          min-height: 36px;
+        }
+      }
+    }
+  }
+}
+
+// Animation for loading states
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// Better focus states for accessibility
+button {
+  &:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+input,
+textarea,
+select {
+  &:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+}
+
+// Smooth transitions
+button,
+input,
+select,
+textarea {
+  transition: all 0.15s ease-in-out;
+}
+
+// Form validation styles
+.has-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+
+  &:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+}
+
+// Success state for saved content
+.save-success {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive grid adjustments
+.grid {
+  &.grid-cols-1 {
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &.grid-cols-2 {
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &.grid-cols-3 {
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 1025px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+// Improve table responsiveness
+table {
+  td,
+  th {
+    @media (max-width: 640px) {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// Loading state styling
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+// Tab content transitions
+[ngIf] {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

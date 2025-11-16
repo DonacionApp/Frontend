@@ -13,6 +13,43 @@ export interface UpdateSystemContentDTO {
   content: string;
 }
 
+export interface ExpirationConfig {
+  policiesExpiresAt?: Date;
+  termsExpiresAt?: Date;
+  aboutUsExpiresAt?: Date;
+  expirationIntervalDays?: number;
+}
+
+export interface BackupConfig {
+  autoBackupEnabled: boolean;
+  backupIntervalDays?: number;
+  lastBackupDate?: Date;
+  retentionDays?: number;
+}
+
+export interface BackupStatus {
+  id: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  startedAt: Date;
+  completedAt?: Date;
+  fileName?: string;
+  size?: number;
+  error?: string;
+}
+
+export interface UpdateExpirationDTO {
+  policiesExpiresAt?: Date;
+  termsExpiresAt?: Date;
+  aboutUsExpiresAt?: Date;
+  expirationIntervalDays?: number;
+}
+
+export interface UpdateBackupConfigDTO {
+  autoBackupEnabled: boolean;
+  backupIntervalDays?: number;
+  retentionDays?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -61,6 +98,69 @@ export class SystemService {
    */
   updateAboutUs(data: UpdateSystemContentDTO): Observable<{ aboutUs: string }> {
     return this.http.put<{ aboutUs: string }>(`${this.apiUrl}/about-us`, data);
+  }
+
+  /**
+   * Obtener configuración de expiración
+   */
+  getExpirationConfig(): Observable<ExpirationConfig> {
+    return this.http.get<ExpirationConfig>(`${this.apiUrl}/expiration`);
+  }
+
+  /**
+   * Actualizar configuración de expiración
+   */
+  updateExpirationConfig(data: UpdateExpirationDTO): Observable<ExpirationConfig> {
+    return this.http.put<ExpirationConfig>(`${this.apiUrl}/expiration`, data);
+  }
+
+  /**
+   * Obtener configuración de backups
+   */
+  getBackupConfig(): Observable<BackupConfig> {
+    return this.http.get<BackupConfig>(`${this.apiUrl}/backup/config`);
+  }
+
+  /**
+   * Actualizar configuración de backups
+   */
+  updateBackupConfig(data: UpdateBackupConfigDTO): Observable<BackupConfig> {
+    return this.http.put<BackupConfig>(`${this.apiUrl}/backup/config`, data);
+  }
+
+  /**
+   * Disparar backup manual
+   */
+  triggerBackup(): Observable<BackupStatus> {
+    return this.http.post<BackupStatus>(`${this.apiUrl}/backup/trigger`, {});
+  }
+
+  /**
+   * Obtener estado de un backup
+   */
+  getBackupStatus(backupId: string): Observable<BackupStatus> {
+    return this.http.get<BackupStatus>(`${this.apiUrl}/backup/${backupId}/status`);
+  }
+
+  /**
+   * Obtener historial de backups
+   */
+  getBackupHistory(limit: number = 10): Observable<BackupStatus[]> {
+    return this.http.get<BackupStatus[]>(`${this.apiUrl}/backup/history?limit=${limit}`);
+  }
+
+  /**
+   * Descargar backup
+   */
+  downloadBackup(backupId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/backup/${backupId}/download`, { responseType: 'blob' });
+  }
+
+  /**
+   * Eliminar backup
+   */
+  deleteBackup(backupId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/backup/${backupId}`);
   }
 }
 

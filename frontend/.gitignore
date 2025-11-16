@@ -200,3 +200,34 @@ TODO.md
 # Temporary files
 *.tmp
 *.temp
+
+# Documentation files generated during development
+IMPLEMENTATION_SUMMARY.md
+FEATURE_COMPLETION_SUMMARY.md
+BACKEND_IMPLEMENTATION_GUIDE.md
+DEPLOYMENT_CHECKLIST.md
+USAGE_EXAMPLES.md
+SYSTEM_CONFIG_README.md
+*.implementation.md
+
+# Test files
+*.spec.ts
+/src/**/*.spec.ts
+
+# Component test files (if not needed in repo)
+/src/app/features/admin/system/system.component.spec.ts
+
+# Markdown editor component (not used - using simple textarea instead)
+/src/app/shared/components/markdown-editor/
+
+# IDE and editor temporary files
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.vscode/launch.json
+
+# Temporary build/compilation files
+*.js.map
+*.d.ts
+.ng
