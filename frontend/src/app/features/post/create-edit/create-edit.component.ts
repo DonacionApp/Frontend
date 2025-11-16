@@ -55,6 +55,8 @@ export class CreateEditComponent implements OnInit, OnDestroy {
   imagePreviews: ImagePreview[] = [];
   maxImages = 5;
   isDragging = false;
+  // Archivos en proceso de validación (antes de agregarse a imagePreviews)
+  filesInValidation: Array<{ file: File; state: 'validating' | 'valid' | 'error'; error?: string }> = [];
 
   // Tags state
   tags: string[] = [];
@@ -418,19 +420,52 @@ export class CreateEditComponent implements OnInit, OnDestroy {
 
     const filesToAdd = files.slice(0, remainingSlots);
     
-    filesToAdd.forEach(file => {
-      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+    filesToAdd.forEach((file) => {
+      // Agregar a lista de validación
+      const validationItem = { file, state: 'validating' as const };
+      this.filesInValidation.push(validationItem);
+      const validationIndex = this.filesInValidation.length - 1;
+      
+      // Simular validación asíncrona
+      setTimeout(() => {
+        // Validar tipo
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+          this.filesInValidation[validationIndex].state = 'error';
+          this.filesInValidation[validationIndex].error = 'Solo se permiten imágenes y videos';
+          return;
+        }
+        
+        // Validar tamaño (máximo 10 MB)
+        const maxSize = 10 * 1024 * 1024; // 10 MB
+        if (file.size > maxSize) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          this.filesInValidation[validationIndex].state = 'error';
+          this.filesInValidation[validationIndex].error = `El archivo es demasiado grande (${sizeMB} MB). El tamaño máximo permitido es 10 MB.`;
+          return;
+        }
+        
+        // Archivo válido - mover a imagePreviews
+        this.filesInValidation[validationIndex].state = 'valid';
         const url = URL.createObjectURL(file);
         this.imagePreviews.push({ file, url });
-      }
+        
+        // Remover de validación después de un breve delay
+        setTimeout(() => {
+          this.filesInValidation.splice(validationIndex, 1);
+        }, 500);
+        
+        // Trigger AI tags fetch after images updated
+        this.queueAiTagsFetch();
+      }, 300);
     });
 
     if (files.length > remainingSlots) {
       this.errorMessage = `Solo se agregaron ${remainingSlots} de ${files.length} archivos (máximo ${this.maxImages})`;
     }
-    
-    // Trigger AI tags fetch after images updated
-    this.queueAiTagsFetch();
+  }
+  
+  removeFileInValidation(index: number): void {
+    this.filesInValidation.splice(index, 1);
   }
 
   removeImage(index: number): void {
