@@ -14,3 +14,5 @@ export * from './message.service';
 export * from './category.service';
 export * from './role.service';
 export * from './user-management.service';
+export * from './rate-limit.service';
+export * from './retry.service';

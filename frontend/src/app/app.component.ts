@@ -10,6 +10,7 @@ import { filter } from 'rxjs/operators';
 // Importar solo el componente que se usa directamente
 import { NavComponent } from './shared/components/nav/nav.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
+import { RetryIndicatorComponent } from './shared/components/retry-indicator/retry-indicator.component';
 // Servicios integrados directamente
 import { BehaviorSubject, Observable } from 'rxjs';
 import { WebsocketService, ToastService, NotificationService, AuthService } from './core/services';
@@ -116,7 +117,8 @@ interface ApiResponse {
     FormsModule, 
     RouterModule,
     NavComponent,
-    ToastContainerComponent
+    ToastContainerComponent,
+    RetryIndicatorComponent
   ],
   providers: [HttpClient, AppStateService, RegistrationStateService],
   templateUrl: './app.component.html'
