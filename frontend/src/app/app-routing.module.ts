@@ -15,6 +15,10 @@ const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'home', component: HomeComponent },
   {
+    path: 'about',
+    loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent)
+  },
+  {
     path: 'post', 
     loadChildren:()=>import('./features/post/post.module').then(m=>m.PostModule)
   },
