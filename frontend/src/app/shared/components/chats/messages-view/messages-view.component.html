@@ -11,21 +11,6 @@
     <span class="ml-2">Cargando mensajes...</span>
   </div>
 
-  <!-- Attachments preview passed from parent (selected files) -->
-  <div *ngIf="attachments && attachments.length" class="attachments-preview mb-3">
-    <div class="flex gap-2 items-center overflow-auto py-1">
-      <div *ngFor="let f of attachments; let i = index" class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
-        <ng-container *ngIf="getAttachmentPreview(f) && ((f.type && f.type.startsWith) ? f.type.startsWith('image/') : (f.type || '').startsWith('image/'))">
-          <img [src]="getAttachmentPreview(f)" class="w-14 h-14 object-cover rounded" />
-        </ng-container>
-        <div class="text-xs">
-          <div class="font-medium truncate" style="max-width:200px">{{ f.name }}</div>
-          <div class="text-gray-500">{{ (f.size / 1024) | number:'1.0-0' }} KB</div>
-        </div>
-        <button type="button" class="text-red-500 ml-2" (click)="$event.stopPropagation(); removeAttachment.emit(i)">✕</button>
-      </div>
-    </div>
-  </div>
 
     <div *ngFor="let m of messages" 
       class="mb-3 msg-row" 
