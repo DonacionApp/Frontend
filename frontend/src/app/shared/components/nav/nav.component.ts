@@ -176,7 +176,7 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onAboutClick(): void {
     this.closeMobileMenu();
-    this.router.navigate(['/']);
+    this.router.navigate(['/about']);
   }
 
   onLoginClick(): void {
