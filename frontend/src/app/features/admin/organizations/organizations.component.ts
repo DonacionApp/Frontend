@@ -580,81 +580,149 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
   }
 
   blockOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de bloquear a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Bloquear Organización',
+      message: `¿Estás seguro de bloquear a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeBlockOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.blockUser(organization.id)
+  executeBlockOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.blockUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización bloqueada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización bloqueada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error blocking organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo bloquear la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   unblockOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desbloquear a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Desbloquear Organización',
+      message: `¿Estás seguro de desbloquear a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnblockOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unblockUser(organization.id)
+  executeUnblockOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unblockUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización desbloqueada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización desbloqueada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error unblocking organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo desbloquear la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   verifyOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de verificar a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Verificar Organización',
+      message: `¿Estás seguro de verificar a ${organization.username}?`,
+      type: 'info',
+      onConfirm: () => this.executeVerifyOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.verifyUser(organization.id)
+  executeVerifyOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.verifyUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización verificada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización verificada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error verifying organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo verificar la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
 
   unverifyOrganization(organization: UserManagement): void {
-    if (!confirm(`¿Estás seguro de desverificar a ${organization.username}?`)) {
-      return;
-    }
+    this.confirmModalConfig = {
+      title: 'Desverificar Organización',
+      message: `¿Estás seguro de desverificar a ${organization.username}?`,
+      type: 'warning',
+      onConfirm: () => this.executeUnverifyOrganization(organization.id)
+    };
+    this.showConfirmModal = true;
+  }
 
-    this.userService.unverifyUser(organization.id)
+  executeUnverifyOrganization(organizationId: number): void {
+    this.showConfirmModal = false;
+    this.userService.unverifyUser(organizationId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización desverificada correctamente');
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Éxito',
+            message: 'Organización desverificada correctamente',
+            type: 'success'
+          };
           this.loadOrganizations();
         },
         error: (error) => {
           console.error('Error unverifying organization:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo desverificar la organización';
-          alert(`Error: ${errorMessage}`);
+          this.showMessageModal = true;
+          this.messageModalConfig = {
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          };
         }
       });
   }
