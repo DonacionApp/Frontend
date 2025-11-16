@@ -8,6 +8,7 @@ src/environments
 
 # Compiled output
 /dist
+dist/
 /tmp
 /out-tsc
 /bazel-out
@@ -126,6 +127,9 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
+dist
+/dist
+dist/
 
 # Gatsby files
 .cache/
@@ -196,31 +200,3 @@ TODO.md
 # Temporary files
 *.tmp
 *.temp
-
-# Documentation files generated during development
-IMPLEMENTATION_SUMMARY.md
-FEATURE_COMPLETION_SUMMARY.md
-BACKEND_IMPLEMENTATION_GUIDE.md
-DEPLOYMENT_CHECKLIST.md
-USAGE_EXAMPLES.md
-SYSTEM_CONFIG_README.md
-*.implementation.md
-
-# Test files (commented - usually you want tests in your repo)
-# *.spec.ts
-# /src/**/*.spec.ts
-
-# Component test files (if not needed in repo)
-# /src/app/features/admin/system/system.component.spec.ts
-
-# IDE and editor temporary files
-*.swp
-*.swo
-*~
-.vscode/settings.json
-.vscode/launch.json
-
-# Temporary build/compilation files
-*.js.map
-*.d.ts
-.ng
