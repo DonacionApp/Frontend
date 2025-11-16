@@ -7,6 +7,7 @@ import { OrganizationProfileService } from '../../../core/services/organization-
 import { NotificationService } from '../../../core/services/notification.service';
 import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil, filter } from 'rxjs';
+import { WebsocketService } from '../../../core/services/websocket.service';
 
 @Component({
   selector: 'app-nav',
@@ -27,6 +28,7 @@ export class NavComponent implements OnInit, OnDestroy {
   isOnProfilePage = false;
   isDocumentVerified = false;
   unreadNotificationsCount = 0;
+  unreadMessagesCount = 0;
   
   constructor(
     private router: Router,
@@ -34,7 +36,8 @@ export class NavComponent implements OnInit, OnDestroy {
     private profileService: UserProfileService,
     private organizationProfileService: OrganizationProfileService,
     private notificationService: NotificationService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private websocketService: WebsocketService
   ) {}
 
   ngOnInit(): void {
@@ -90,6 +93,8 @@ export class NavComponent implements OnInit, OnDestroy {
           this.isDocumentVerified = orgProfile.isVerified || false;
         }
       });
+
+    this.loadMessages();
   }
   
   private loadUserProfile(): void {
@@ -142,6 +147,30 @@ export class NavComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  private loadMessages(): void {
+    // Suscribirse a los mensajes no leídos
+    this.websocketService.onUnreadChats()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ totalUnreadChats }) => {
+          this.unreadMessagesCount = totalUnreadChats || 0;
+        },
+        error: (error) => {
+          console.error('Error en suscripción a mensajes no leídos:', error);
+          this.unreadMessagesCount = 0;
+        }
+      });
+    
+    // Resetear contador cuando el websocket se desconecta
+    this.websocketService.connectionStatus$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isConnected => {
+        if (!isConnected) {
+          this.unreadMessagesCount = 0;
+        }
+      });
   }
   
   get displayName(): string {
@@ -234,12 +263,12 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onOrganizationsClick(): void {
     this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/organization/list']);
   }
 
   onMessagesClick(): void {
     this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/chat']);
   }
 
   onStatisticsClick(): void {

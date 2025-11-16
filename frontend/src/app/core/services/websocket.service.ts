@@ -34,7 +34,7 @@ export class WebsocketService {
   private messageDeletedSubject = new ReplaySubject<any>(1);
   private _lastMessageDeleted: any = null;
   private notificationMessageSubject = new Subject<any>();
-  private unreadChatsSubject = new Subject<{ chatId: number; unreadInChat: number; totalUnreadChats: number }>();
+  private unreadChatsSubject = new BehaviorSubject<{ chatId: number; unreadInChat: number; totalUnreadChats: number }>({ chatId: 0, unreadInChat: 0, totalUnreadChats: 0 });
   private joinedChatSubject = new Subject<{ chatId: number }>();
   private leftChatSubject = new Subject<{ chatId: number }>();
   private chatReadSubject = new Subject<{ chatId: number; userId: number }>();
@@ -138,23 +138,37 @@ export class WebsocketService {
     this.removeListeners();
 
     let notificationTimeout: any = null;
+    let lastNotificationTime: number = Date.now();
 
     this.socket.on('connect', () => {
       this.connectionStatus.next(true);
+      lastNotificationTime = Date.now();
+      // Solo mostrar advertencia si no se reciben notificaciones después de 60 segundos
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+      }
       notificationTimeout = setTimeout(() => {
-        console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
-      }, 30000);
+        const timeSinceLastNotification = Date.now() - lastNotificationTime;
+        // Solo mostrar advertencia si realmente no se recibió ninguna notificación
+        if (timeSinceLastNotification >= 60000) {
+          console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
+        }
+      }, 60000); // Aumentado a 60 segundos para dar más tiempo
     });
 
     this.socket.on('connected', (data: { message: string; userId: number; userName: string; timestamp: Date }) => {
       this.connectionStatus.next(true);
+      lastNotificationTime = Date.now();
       if (notificationTimeout) {
         clearTimeout(notificationTimeout);
       }
       // Reiniciar timeout después de conexión confirmada
       notificationTimeout = setTimeout(() => {
-        console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
-      }, 30000);
+        const timeSinceLastNotification = Date.now() - lastNotificationTime;
+        if (timeSinceLastNotification >= 60000) {
+          console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
+        }
+      }, 60000);
     });
 
     // Evento: Desconexión
@@ -178,9 +192,16 @@ export class WebsocketService {
 
     // Evento: Nueva notificación (emitido por el backend)
     this.socket.on('notification', (notification: Notification) => {
+      lastNotificationTime = Date.now(); // Actualizar tiempo de última notificación
       if (notificationTimeout) {
         clearTimeout(notificationTimeout);
-        notificationTimeout = null;
+        // Reiniciar timeout solo si no se reciben notificaciones por 60 segundos
+        notificationTimeout = setTimeout(() => {
+          const timeSinceLastNotification = Date.now() - lastNotificationTime;
+          if (timeSinceLastNotification >= 60000) {
+            console.warn('ADVERTENCIA: No se reciben notificaciones en tiempo real. Verifica tu conexión o permisos.');
+          }
+        }, 60000);
       }
       this.notificationSubject.next(notification);
     });
@@ -269,13 +290,17 @@ export class WebsocketService {
     this.msgSocket.on('notification:unreadChats', (payload: any) => {
       try {
         const parsed = payload || {};
-        const chatId = Number(parsed.chatId ?? parsed.chatID ?? parsed.chat_id);
+        const chatId = Number(parsed.chatId ?? parsed.chatID ?? parsed.chat_id) || 0;
         const unreadInChat = Number(parsed.unreadInChat ?? parsed.unread_in_chat ?? parsed.unread ?? 0) || 0;
         const totalUnreadChats = Number(parsed.totalUnreadChats ?? parsed.total_unread_chats ?? parsed.totalUnread ?? 0) || 0;
-        if (!isNaN(chatId)) {
+        
+        // Emitir siempre que haya un totalUnreadChats válido, incluso sin chatId específico
+        // Esto permite actualizar el contador general en el nav aunque no haya un chatId
+        if (!isNaN(totalUnreadChats)) {
           this.unreadChatsSubject.next({ chatId, unreadInChat, totalUnreadChats });
         }
       } catch (e) {
+        console.error('Error procesando notification:unreadChats:', e);
       }
     });
 

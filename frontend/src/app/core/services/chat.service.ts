@@ -109,6 +109,15 @@ export class ChatService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Obtener el contador de mensajes sin leer global
+   */
+  getUnreadMessagesCount(): Observable<number> {
+    return this.http.get<{ unreadcount: number }>(`${this.messageChatApiUrl}/unread/count`).pipe(
+      map(res => res.unreadcount || 0)
+    );
+  }
+
+  /**
    * Obtener lista de chats con scroll infinito y filtros
    */
   getChats(filters?: ChatFilters): Observable<ChatListResponse> {
@@ -222,4 +231,3 @@ export class ChatService {
     return this.http.delete<{ message: string; status: number }>(`${this.messageChatApiUrl}/admin/delete/message/${messageId}/chat`);
   }
 }
-
