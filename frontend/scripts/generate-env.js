@@ -28,13 +28,9 @@ if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
 }
 
-// Write environment files if they don't exist
-if (!fs.existsSync(envPath)) {
-  fs.writeFileSync(envPath, createEnvConfig(false));
-  console.log('Generated environment.ts');
-}
+// Always write environment files to ensure they're up to date
+fs.writeFileSync(envPath, createEnvConfig(false));
+console.log('Generated environment.ts');
 
-if (!fs.existsSync(envProdPath)) {
-  fs.writeFileSync(envProdPath, createEnvConfig(true));
-  console.log('Generated environment.prod.ts');
-}
+fs.writeFileSync(envProdPath, createEnvConfig(true));
+console.log('Generated environment.prod.ts');
