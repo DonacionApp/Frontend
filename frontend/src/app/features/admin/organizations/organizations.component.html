@@ -138,31 +138,206 @@
     <!-- Contenido de la pestaña "Datos de la Organización" -->
     <div *ngIf="activeTab === 'data'">
       <form [formGroup]="editOrganizationForm" (ngSubmit)="saveOrganization()" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
-              Usuario <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="username"
-              type="text"
-              formControlName="username"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              [class.border-red-500]="editOrganizationForm.get('username')?.invalid && editOrganizationForm.get('username')?.touched"
-            />
-          </div>
+        <!-- Información Básica -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="editUsername" class="block text-sm font-medium text-gray-700 mb-1">
+                Usuario <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="editUsername"
+                type="text"
+                formControlName="username"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                [class.border-red-500]="editFormControls['username'].invalid && editFormControls['username'].touched"
+              />
+              <div *ngIf="editFormControls['username'].invalid && editFormControls['username'].touched" class="text-xs text-red-500 mt-1">
+                <div *ngIf="editFormControls['username'].errors?.['required']">El usuario es requerido</div>
+                <div *ngIf="editFormControls['username'].errors?.['minlength']">El usuario debe tener al menos 3 caracteres</div>
+              </div>
+            </div>
 
-          <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-              Email <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="email"
-              type="email"
-              formControlName="email"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              [class.border-red-500]="editOrganizationForm.get('email')?.invalid && editOrganizationForm.get('email')?.touched"
-            />
+            <div>
+              <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-1">
+                Email <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="editEmail"
+                type="email"
+                formControlName="email"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                [class.border-red-500]="editFormControls['email'].invalid && editFormControls['email'].touched"
+              />
+              <div *ngIf="editFormControls['email'].invalid && editFormControls['email'].touched" class="text-xs text-red-500 mt-1">
+                <div *ngIf="editFormControls['email'].errors?.['required']">El email es requerido</div>
+                <div *ngIf="editFormControls['email'].errors?.['email']">El email no es válido</div>
+              </div>
+            </div>
+
+            <div>
+              <label for="editProfilePhoto" class="block text-sm font-medium text-gray-700 mb-1">
+                Foto de Perfil (URL)
+              </label>
+              <input
+                id="editProfilePhoto"
+                type="text"
+                formControlName="profilePhoto"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://..."
+              />
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">
+                Descripción
+              </label>
+              <textarea
+                id="editDescription"
+                formControlName="description"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Descripción de la organización..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información Adicional -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Adicional (Opcional)</h3>
+          <div formGroupName="people" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="editPeopleName" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre
+              </label>
+              <input
+                id="editPeopleName"
+                type="text"
+                formControlName="name"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="editPeopleBirdthDate" class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Constitución
+              </label>
+              <input
+                id="editPeopleBirdthDate"
+                type="date"
+                formControlName="birdthDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="editPeopleTipodDni" class="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Documento
+              </label>
+              <select
+                id="editPeopleTipodDni"
+                formControlName="tipodDni"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option [value]="''">Seleccione tipo de documento...</option>
+                <option *ngFor="let type of typeDniOptions" [value]="type.id">
+                  {{ type.type }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label for="editPeopleDni" class="block text-sm font-medium text-gray-700 mb-1">
+                DNI/NIT
+              </label>
+              <input
+                id="editPeopleDni"
+                type="text"
+                formControlName="dni"
+                maxlength="10"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="editPeopleResidencia" class="block text-sm font-medium text-gray-700 mb-1">
+                Residencia
+              </label>
+              <input
+                id="editPeopleResidencia"
+                type="text"
+                formControlName="residencia"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="editPeopleTelefono" class="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                id="editPeopleTelefono"
+                type="text"
+                formControlName="telefono"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <!-- Municipio -->
+            <div class="md:col-span-2">
+              <h4 class="text-sm font-semibold text-gray-700 mb-3">Municipio</h4>
+              <div formGroupName="municipio" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div formGroupName="pais">
+                  <label for="editMunicipioPais" class="block text-sm font-medium text-gray-700 mb-1">
+                    País
+                  </label>
+                  <select
+                    id="editMunicipioPais"
+                    formControlName="iso2"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option [value]="''">Seleccione un país</option>
+                    <option *ngFor="let country of countriesOptions" [value]="country.iso2">
+                      {{ country.name }}
+                    </option>
+                  </select>
+                </div>
+                <div formGroupName="state">
+                  <label for="editMunicipioState" class="block text-sm font-medium text-gray-700 mb-1">
+                    Estado/Departamento
+                  </label>
+                  <select
+                    id="editMunicipioState"
+                    formControlName="iso2"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    [disabled]="!editOrganizationForm.get('people.municipio.pais.iso2')?.value"
+                  >
+                    <option [value]="''">Seleccione un estado</option>
+                    <option *ngFor="let state of statesOptions" [value]="state.iso2">
+                      {{ state.name }}
+                    </option>
+                  </select>
+                </div>
+                <div formGroupName="city">
+                  <label for="editMunicipioCity" class="block text-sm font-medium text-gray-700 mb-1">
+                    Ciudad
+                  </label>
+                  <select
+                    id="editMunicipioCity"
+                    formControlName="name"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    [disabled]="!editOrganizationForm.get('people.municipio.state.iso2')?.value"
+                  >
+                    <option [value]="''">Seleccione una ciudad</option>
+                    <option *ngFor="let city of citiesOptions" [value]="city.name">
+                      {{ city.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

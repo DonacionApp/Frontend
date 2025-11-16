@@ -351,13 +351,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       });
   }
 
-  initializeEditForm(): void {
-    this.editOrganizationForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      // Agregar más campos según sea necesario
-    });
-  }
+
 
   viewOrganizationDetails(organization: UserManagement): void {
     this.selectedOrganizationForAction = organization;
@@ -406,13 +400,32 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
 
   openEditOrganizationModal(organization: UserManagement): void {
     this.selectedOrganization = organization;
-    this.showEditOrganizationModal = true;
     this.activeTab = 'data';
-    this.editOrganizationForm.patchValue({
-      username: organization.username,
-      email: organization.email
-    });
-    this.loadAvailableArticles();
+    
+    // Cargar datos completos de la organización si no están disponibles
+    if (!organization.people && organization.id) {
+      this.userService.getUserById(organization.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (fullOrganization) => {
+            this.populateEditForm(fullOrganization);
+            this.showEditOrganizationModal = true;
+            this.loadAvailableArticles();
+          },
+          error: (error) => {
+            console.error('Error loading organization details:', error);
+            this.toastService.show({
+              title: 'Error',
+              message: 'No se pudieron cargar los detalles de la organización',
+              type: 'error'
+            });
+          }
+        });
+    } else {
+      this.populateEditForm(organization);
+      this.showEditOrganizationModal = true;
+      this.loadAvailableArticles();
+    }
   }
 
   closeEditOrganizationModal(): void {
@@ -428,6 +441,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
     this.addingArticle = false;
     this.editingArticleQuantity = null;
     this.editOrganizationForm.reset();
+    this.initializeEditForm();
   }
 
   switchTab(tab: 'data' | 'articles'): void {
@@ -471,30 +485,96 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
 
   saveOrganization(): void {
     if (this.editOrganizationForm.invalid || !this.selectedOrganization) {
+      this.toastService.show({
+        title: 'Error',
+        message: 'Por favor completa todos los campos requeridos',
+        type: 'error'
+      });
       this.editOrganizationForm.markAllAsTouched();
       return;
     }
 
     this.editingOrganization = true;
     const formValue = this.editOrganizationForm.value;
+    
+    // Preparar datos para enviar
     const updateData: UpdateUserDTO = {
       username: formValue.username,
-      email: formValue.email
+      email: formValue.email,
+      profilePhoto: formValue.profilePhoto || undefined
     };
+
+    // Incluir datos de people si existen
+    if (formValue.people && (formValue.people.name || formValue.people.dni || formValue.description)) {
+      let municipioValue: any = null;
+      if (formValue.people.municipio) {
+        const municipio = formValue.people.municipio;
+        if (municipio.pais?.iso2 || municipio.state?.iso2 || municipio.city?.name) {
+          municipioValue = {
+            pais: {
+              iso2: municipio.pais?.iso2 || null
+            },
+            state: {
+              iso2: municipio.state?.iso2 || null
+            },
+            city: {
+              name: municipio.city?.name || null
+            }
+          };
+        }
+      }
+
+      // Para organizaciones, la descripción se guarda en lastName como JSON
+      let lastNameValue: string | null = null;
+      if (formValue.description) {
+        lastNameValue = JSON.stringify({ description: formValue.description });
+      } else if (formValue.people.lastName) {
+        // Mantener el lastName existente si no hay nueva descripción
+        lastNameValue = formValue.people.lastName;
+      }
+
+      updateData.people = {
+        name: formValue.people.name || null,
+        lastName: lastNameValue,
+        birdthDate: formValue.people.birdthDate || null,
+        dni: formValue.people.dni || null,
+        residencia: formValue.people.residencia || null,
+        telefono: formValue.people.telefono || null,
+        municipio: municipioValue
+      };
+    }
 
     this.userService.updateUser(this.selectedOrganization.id, updateData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Organización actualizada correctamente');
+          this.editingOrganization = false;
+          this.toastService.show({
+            title: 'Éxito',
+            message: 'Organización actualizada correctamente',
+            type: 'success'
+          });
           this.closeEditOrganizationModal();
           this.loadOrganizations();
         },
         error: (error) => {
-          console.error('Error updating organization:', error);
-          const errorMessage = error?.error?.message || error?.message || 'No se pudo actualizar la organización';
-          alert(`Error: ${errorMessage}`);
           this.editingOrganization = false;
+          console.error('Error updating organization:', error);
+          let errorMessage = 'No se pudo actualizar la organización';
+          if (error.error) {
+            if (error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            } else if (Array.isArray(error.error) && error.error.length > 0) {
+              errorMessage = error.error.map((e: any) => e.message || e).join(', ');
+            }
+          }
+          this.toastService.show({
+            title: 'Error',
+            message: errorMessage,
+            type: 'error'
+          });
         }
       });
   }
@@ -944,6 +1024,178 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       'organization': 'Organización'
     };
     return roleMap[role?.toLowerCase()] || role || '-';
+  }
+
+  // Métodos para edición de organización
+  initializeEditForm(): void {
+    this.editOrganizationForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      profilePhoto: [''],
+      description: [''], // Descripción de la organización
+      people: this.fb.group({
+        name: [''],
+        birdthDate: [''],
+        tipodDni: [''],
+        dni: [''],
+        residencia: [''],
+        telefono: [''],
+        municipio: this.fb.group({
+          pais: this.fb.group({
+            iso2: ['']
+          }),
+          state: this.fb.group({
+            iso2: ['']
+          }),
+          city: this.fb.group({
+            name: ['']
+          })
+        })
+      })
+    });
+
+    // Suscribirse a cambios en el país para cargar estados
+    this.editOrganizationForm.get('people.municipio.pais.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(countryIso => {
+        if (countryIso) {
+          this.loadStates(countryIso);
+        } else {
+          this.statesOptions = [];
+          this.citiesOptions = [];
+          // Limpiar estado y ciudad cuando se limpia el país
+          this.editOrganizationForm.get('people.municipio.state.iso2')?.setValue('');
+          this.editOrganizationForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+
+    // Suscribirse a cambios en el estado para cargar ciudades
+    this.editOrganizationForm.get('people.municipio.state.iso2')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stateIso => {
+        const countryIso = this.editOrganizationForm.get('people.municipio.pais.iso2')?.value;
+        if (stateIso && countryIso) {
+          this.loadCities(countryIso, stateIso);
+        } else {
+          this.citiesOptions = [];
+          // Limpiar ciudad cuando se limpia el estado
+          this.editOrganizationForm.get('people.municipio.city.name')?.setValue('');
+        }
+      });
+  }
+
+  populateEditForm(organization: UserManagement): void {
+    const people = organization.people;
+    
+    // Parsear municipio si viene como string JSON o como objeto
+    let municipioData: any = {
+      pais: { iso2: '' },
+      state: { iso2: '' },
+      city: { name: '' }
+    };
+    
+    let countryIso = '';
+    let stateIso = '';
+    let description = '';
+
+    // Parsear descripción de lastName (JSON)
+    if (people?.lastName) {
+      try {
+        const lastNameData = typeof people.lastName === 'string' 
+          ? JSON.parse(people.lastName) 
+          : people.lastName;
+        
+        if (lastNameData && typeof lastNameData === 'object' && lastNameData.description) {
+          description = lastNameData.description;
+        }
+      } catch (e) {
+        // Si no es JSON válido, dejar vacío
+        console.warn('Error parsing description from lastName:', e);
+      }
+    }
+    
+    if (people?.municipio) {
+      try {
+        let municipioObj: any;
+        if (typeof people.municipio === 'string') {
+          municipioObj = JSON.parse(people.municipio);
+        } else {
+          municipioObj = people.municipio;
+        }
+        
+        // Extraer valores del objeto parseado
+        countryIso = municipioObj?.pais?.iso2 || '';
+        stateIso = municipioObj?.state?.iso2 || '';
+        
+        municipioData = {
+          pais: {
+            iso2: countryIso
+          },
+          state: {
+            iso2: stateIso
+          },
+          city: {
+            name: municipioObj?.city?.name || ''
+          }
+        };
+      } catch (e) {
+        console.warn('Error parsing municipio:', e);
+        // Mantener valores por defecto vacíos
+      }
+    }
+    
+    this.editOrganizationForm.patchValue({
+      username: organization.username || '',
+      email: organization.email || '',
+      profilePhoto: organization.profilePhoto || '',
+      description: description,
+      people: {
+        name: people?.name || '',
+        birdthDate: people?.birdthDate ? people.birdthDate.split('T')[0] : '',
+        tipodDni: people?.typeDni?.id || '',
+        dni: people?.dni || '',
+        residencia: people?.residencia || '',
+        telefono: people?.telefono || '',
+        municipio: municipioData
+      }
+    });
+
+    // Cargar estados y ciudades si hay datos de municipio
+    if (countryIso) {
+      this.countriesService.statesByCountry(countryIso)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (states) => {
+            this.statesOptions = states || [];
+            // Una vez cargados los estados, cargar las ciudades si hay estado
+            if (stateIso) {
+              this.countriesService.citiesByState(countryIso, stateIso)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (cities) => {
+                    this.citiesOptions = cities || [];
+                  },
+                  error: (error) => {
+                    console.error('Error loading cities:', error);
+                    this.citiesOptions = [];
+                  }
+                });
+            }
+          },
+          error: (error) => {
+            console.error('Error loading states:', error);
+            this.statesOptions = [];
+          }
+        });
+    }
+  }
+
+  get editFormControls() {
+    return this.editOrganizationForm.controls;
+  }
+
+  get editPeopleFormGroup() {
+    return this.editOrganizationForm.get('people') as FormGroup;
   }
 
   // Métodos para creación de organización
