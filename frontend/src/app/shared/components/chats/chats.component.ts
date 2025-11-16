@@ -75,6 +75,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
   currentUser: any | null = null;
 
   private desiredChatId: string | null = null;
+  isMobileView = false;
 
   constructor(
     private messageService: MessageService,
@@ -511,7 +512,16 @@ export class ChatsComponent implements OnInit, OnDestroy {
     } catch (e) {}
   };
 
+  private _boundResize = () => {
+    this.checkMobileView();
+    this.cd.detectChanges();
+  };
+
   ngOnInit(): void {
+    // Detectar si es móvil
+    this.checkMobileView();
+    window.addEventListener('resize', this._boundResize);
+    
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(u => {
       this.currentUserId = u?.id ?? null;
       this.currentUser = u ?? null;
@@ -1131,12 +1141,13 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     try { window.removeEventListener('keydown', this._boundGlobalKeydown); } catch (e) {}
+    try { window.removeEventListener('resize', this._boundResize); } catch (e) {}
     this._cleanupSubscriptions();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  private closeSelectedChat(): void {
+  closeSelectedChat(): void {
     const chatId = this.selectedChat ? Number((this.selectedChat as any).id) : null;
     this.selectedChat = null;
     this.messages = [];
@@ -1160,6 +1171,10 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   private _cleanupSubscriptions(): void {
     try { this._currentMessagesSub?.unsubscribe(); } catch (e) {}
+  }
+
+  private checkMobileView(): void {
+    this.isMobileView = window.innerWidth < 768; // md breakpoint de Tailwind
   }
 }
 

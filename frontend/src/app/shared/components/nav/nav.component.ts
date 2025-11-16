@@ -104,6 +104,7 @@ export class NavComponent implements OnInit, OnDestroy {
         next: (profile) => {
           this.userProfileImage = profile.profileImage || null;
           this.userFullName = profile.name || this.user?.name || 'Usuario';
+          this.isDocumentVerified = profile.isVerified || false;
           this.isLoadingProfile = false;
         },
         error: (error) => {
@@ -143,6 +144,8 @@ export class NavComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+
   
   get displayName(): string {
     return this.userFullName || this.user?.name || 'Usuario';
@@ -221,7 +224,7 @@ export class NavComponent implements OnInit, OnDestroy {
     if (this.user?.role === 'organization') {
       this.router.navigate(['/organization']);
     } else if (this.user?.role === 'donor') {
-      this.router.navigate(['/donor/profile']);
+      this.router.navigate(['/organization']);
     } else {
       this.router.navigate(['/post']);
     }
@@ -234,12 +237,12 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onOrganizationsClick(): void {
     this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/organization/list']);
   }
 
   onMessagesClick(): void {
     this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/chat']);
   }
 
   onStatisticsClick(): void {

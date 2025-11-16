@@ -6,6 +6,7 @@ import {
   ChatService, 
   Chat, 
   ChatFilters, 
+  ChatListResponse,
   CreateChatDTO,
   AddUserToChatDTO,
   Message,
@@ -425,7 +426,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
             this.chatService.getChats({ limit: 1, search: this.selectedChat.id.toString() })
               .pipe(takeUntil(this.destroy$))
               .subscribe({
-                next: (response) => {
+                next: (response: ChatListResponse) => {
                   if (response.items.length > 0) {
                     this.selectedChat = response.items[0];
                   }
@@ -433,7 +434,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
               });
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error removing user from chat:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo remover el usuario del chat';
           alert(`Error: ${errorMessage}`);
@@ -461,7 +462,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           this.loadChats();
           this.closingChat = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error closing chat:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo cerrar el chat';
           alert(`Error: ${errorMessage}`);
@@ -497,7 +498,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           this.loadChatMessages();
           this.sendingMessage = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error sending message:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo enviar el mensaje';
           alert(`Error: ${errorMessage}`);
@@ -533,7 +534,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
           };
           this.loadChatMessages();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting message:', error);
           const errorMessage = error?.error?.message || error?.message || 'No se pudo eliminar el mensaje';
           this.showMessageModal = true;
