@@ -8,7 +8,6 @@ src/environments
 
 # Compiled output
 /dist
-dist/
 /tmp
 /out-tsc
 /bazel-out
@@ -127,9 +126,6 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
-/dist
-dist/
 
 # Gatsby files
 .cache/
@@ -210,15 +206,12 @@ USAGE_EXAMPLES.md
 SYSTEM_CONFIG_README.md
 *.implementation.md
 
-# Test files
-*.spec.ts
-/src/**/*.spec.ts
+# Test files (commented - usually you want tests in your repo)
+# *.spec.ts
+# /src/**/*.spec.ts
 
 # Component test files (if not needed in repo)
-/src/app/features/admin/system/system.component.spec.ts
-
-# Markdown editor component (not used - using simple textarea instead)
-/src/app/shared/components/markdown-editor/
+# /src/app/features/admin/system/system.component.spec.ts
 
 # IDE and editor temporary files
 *.swp

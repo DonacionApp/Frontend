@@ -1,0 +1,67 @@
+<div class="markdown-editor-container">
+  <!-- Barra de herramientas -->
+  <div class="toolbar">
+    <button
+      *ngFor="let btn of formatButtons"
+      type="button"
+      (click)="btn.action()"
+      [title]="btn.tooltip"
+      [disabled]="disabled"
+      class="toolbar-btn"
+    >
+      <span [innerHTML]="btn.icon"></span>
+    </button>
+    
+    <div class="flex-1"></div>
+    
+    <!-- Botón de vista previa (opcional) -->
+    <button
+      *ngIf="showPreview"
+      type="button"
+      (click)="togglePreview()"
+      [disabled]="disabled"
+      class="toolbar-btn"
+      [class.active]="showPreviewMode"
+      [title]="showPreviewMode ? 'Editar' : 'Vista previa'"
+    >
+      <span *ngIf="!showPreviewMode">👁️</span>
+      <span *ngIf="showPreviewMode">✏️</span>
+    </button>
+  </div>
+
+  <!-- Editor de texto -->
+  <div *ngIf="!showPreviewMode" class="editor-wrapper">
+    <textarea
+      #textarea
+      [value]="value"
+      (input)="onInput($event)"
+      (blur)="onBlur()"
+      [placeholder]="placeholder"
+      [rows]="rows"
+      [attr.maxlength]="maxLength"
+      [disabled]="disabled"
+      class="editor-textarea"
+    ></textarea>
+  </div>
+
+  <!-- Vista previa -->
+  <div *ngIf="showPreviewMode" class="preview-wrapper">
+    <div *ngIf="previewHtml" class="preview-content markdown-body" [innerHTML]="previewHtml"></div>
+    <p *ngIf="!previewHtml" class="preview-empty">
+      No hay contenido para previsualizar
+    </p>
+  </div>
+
+  <!-- Contador de caracteres -->
+  <div class="footer">
+    <span [class]="characterCountClass">
+      {{ characterCount }} / {{ maxLength }} caracteres
+    </span>
+    
+    <div class="format-hints">
+      <span class="hint-item" title="Negrita">**texto**</span>
+      <span class="hint-item" title="Cursiva">*texto*</span>
+      <span class="hint-item" title="Enlace">[texto](url)</span>
+    </div>
+  </div>
+</div>
