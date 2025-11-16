@@ -1,6 +1,6 @@
 <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh]">
-  <!-- Header con gradiente verde -->
-  <div class="relative bg-gradient-to-r from-green-600 to-emerald-600 px-4 sm:px-8 py-4 sm:py-6">
+  <!-- Header con gradiente naranja -->
+  <div class="relative bg-gradient-to-r from-orange-600 to-orange-700 px-4 sm:px-8 py-4 sm:py-6">
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-4">
         <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
@@ -8,10 +8,10 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
           </svg>
         </div>
-        <div>
-          <h2 class="text-2xl font-bold text-white">Política de Privacidad</h2>
-          <p class="text-green-100 text-sm mt-1">y Protección de Datos Personales</p>
-        </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Política de Privacidad 🔄 [ACTUALIZADO]</h2>
+            <p class="text-orange-100 text-sm mt-1">y Protección de Datos Personales - Versión 2025</p>
+          </div>
       </div>
       <button 
         type="button"
@@ -28,18 +28,37 @@
   </div>
 
   <!-- Content -->
-  <div class="p-4 sm:p-8 max-h-[40vh] sm:max-h-[70vh] overflow-y-auto modal-scroll bg-gradient-to-b from-green-50 to-white">
-    <div class="space-y-4 sm:space-y-6 text-gray-700 modal-content">
+  <div class="p-4 sm:p-8 max-h-[40vh] sm:max-h-[70vh] overflow-y-auto modal-scroll bg-gradient-to-b from-orange-50 to-white">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando política de privacidad...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+      <p class="text-red-700">{{ error }}</p>
+    </div>
+
+    <!-- Content State -->
+    <div *ngIf="!loading && !error" class="text-gray-700 markdown-content">
+      <div [innerHTML]="policyContent"></div>
+    </div>
+
+    <!-- Old hardcoded content removed -->
+    <div class="space-y-4 sm:space-y-6 text-gray-700 modal-content" style="display: none;">
       
       <!-- Nota introductoria -->
-      <div class="bg-green-50 border-l-4 border-green-500 p-3 sm:p-5 rounded-r-lg mb-4 sm:mb-6">
+      <div class="bg-orange-50 border-l-4 border-orange-500 p-3 sm:p-5 rounded-r-lg mb-4 sm:mb-6">
         <div class="flex items-start gap-3">
-          <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
           </svg>
           <div>
-            <p class="text-sm font-medium text-green-900 mb-1">Protección de sus Datos</p>
-            <p class="text-sm text-green-800 leading-relaxed">
+            <p class="text-sm font-medium text-orange-900 mb-1">Protección de sus Datos</p>
+            <p class="text-sm text-orange-800 leading-relaxed">
               En DonaApp nos tomamos muy en serio la protección de sus datos personales. Esta política cumple 
               con la Ley 1581 de 2012 de Colombia y describe cómo recopilamos, usamos y protegemos su información.
             </p>
@@ -48,7 +67,7 @@
       </div>
       
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">1. Responsable del Tratamiento</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">1. Responsable del Tratamiento</h3>
         <p class="text-justify leading-relaxed">
           DonaApp, plataforma de donaciones, es responsable del tratamiento de sus datos personales conforme a lo establecido 
           en la Ley 1581 de 2012 y el Decreto 1377 de 2013.
@@ -56,7 +75,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">2. Marco Legal</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">2. Marco Legal</h3>
         <p class="text-justify leading-relaxed">
           Esta política se rige por la Ley Estatutaria 1581 de 2012, el Decreto Reglamentario 1377 de 2013 y demás 
           normas aplicables en materia de protección de datos personales en Colombia.
@@ -64,7 +83,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">3. Datos que Recopilamos</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">3. Datos que Recopilamos</h3>
         <p class="text-justify leading-relaxed mb-3">Recopilamos los siguientes datos personales:</p>
         <ul class="list-disc list-inside space-y-2 ml-4">
           <li>Nombre completo</li>
@@ -79,7 +98,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">4. Finalidad del Tratamiento</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">4. Finalidad del Tratamiento</h3>
         <p class="text-justify leading-relaxed mb-3">Sus datos personales serán utilizados para:</p>
         <ul class="list-disc list-inside space-y-2 ml-4">
           <li>Crear y gestionar su cuenta de usuario</li>
@@ -93,7 +112,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">5. Sus Derechos (ARCO)</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">5. Sus Derechos (ARCO)</h3>
         <p class="text-justify leading-relaxed mb-3">
           De acuerdo con la Ley 1581 de 2012, usted tiene derecho a:
         </p>
@@ -106,7 +125,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">6. Cómo Ejercer sus Derechos</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">6. Cómo Ejercer sus Derechos</h3>
         <p class="text-justify leading-relaxed mb-3">
           Puede ejercer sus derechos de acceso, rectificación, cancelación y oposición contactándonos a través de:
         </p>
@@ -120,7 +139,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">7. Seguridad de los Datos</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">7. Seguridad de los Datos</h3>
         <p class="text-justify leading-relaxed">
           Implementamos medidas técnicas, administrativas y físicas apropiadas para proteger su información personal 
           contra acceso no autorizado, pérdida, alteración o destrucción. Utilizamos protocolos de seguridad estándar 
@@ -129,7 +148,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">8. Conservación de Datos</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">8. Conservación de Datos</h3>
         <p class="text-justify leading-relaxed">
           Sus datos personales serán conservados durante el tiempo que mantenga su cuenta activa en la plataforma. 
           Una vez eliminada su cuenta, conservaremos únicamente la información necesaria para cumplir con obligaciones 
@@ -138,7 +157,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">9. Datos Sensibles</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">9. Datos Sensibles</h3>
         <p class="text-justify leading-relaxed">
           En principio, DonaApp no recopila datos sensibles. En caso de ser necesario recopilar información sensible, 
           se solicitará su consentimiento expreso, claro e informado de manera separada y previa.
@@ -146,7 +165,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">10. Transferencias Internacionales</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">10. Transferencias Internacionales</h3>
         <p class="text-justify leading-relaxed">
           Sus datos personales pueden ser almacenados y procesados en servidores ubicados fuera de Colombia. 
           En tal caso, garantizamos que dichas transferencias cumplen con los estándares de protección establecidos 
@@ -155,7 +174,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">11. Cookies y Tecnologías Similares</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">11. Cookies y Tecnologías Similares</h3>
         <p class="text-justify leading-relaxed">
           Utilizamos cookies y tecnologías similares para mejorar su experiencia en la plataforma. Puede configurar 
           su navegador para rechazar cookies, aunque esto puede afectar algunas funcionalidades.
@@ -163,7 +182,7 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">12. Menores de Edad</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">12. Menores de Edad</h3>
         <p class="text-justify leading-relaxed">
           DonaApp está dirigida a personas mayores de 18 años. Si es menor de edad, debe contar con la autorización 
           de su representante legal para usar la plataforma.
@@ -171,20 +190,20 @@
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">13. Autoridad de Control</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">13. Autoridad de Control</h3>
         <p class="text-justify leading-relaxed">
           Si considera que sus derechos han sido vulnerados, puede presentar una queja ante la Superintendencia de 
           Industria y Comercio (SIC), autoridad de control en materia de protección de datos en Colombia.
         </p>
         <p class="text-justify leading-relaxed mt-2">
           <strong>Superintendencia de Industria y Comercio:</strong><br>
-          Sitio web: <a href="https://www.sic.gov.co" target="_blank" class="text-blue-600 underline">www.sic.gov.co</a><br>
+          Sitio web: <a href="https://www.sic.gov.co" target="_blank" class="text-orange-600 underline">www.sic.gov.co</a><br>
           Dirección: Carrera 13 No. 27 – 00, pisos 3 y 4, Bogotá D.C.
         </p>
       </section>
 
       <section>
-        <h3 class="text-xl font-semibold text-green-600 mb-3">14. Modificaciones a esta Política</h3>
+        <h3 class="text-xl font-semibold text-orange-600 mb-3">14. Modificaciones a esta Política</h3>
         <p class="text-justify leading-relaxed">
           Nos reservamos el derecho de modificar esta política en cualquier momento. Los cambios serán notificados 
           a través de la plataforma y/o por correo electrónico. El uso continuado de nuestros servicios después de 
@@ -192,8 +211,8 @@
         </p>
       </section>
 
-      <section class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
-        <h3 class="text-lg font-semibold text-blue-800 mb-2">Consentimiento Informado</h3>
+      <section class="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-600">
+        <h3 class="text-lg font-semibold text-orange-800 mb-2">Consentimiento Informado</h3>
         <p class="text-sm text-gray-700 leading-relaxed">
           Al aceptar esta política de privacidad, usted declara que ha leído, entendido y aceptado el tratamiento 
           de sus datos personales en los términos aquí descritos, y autoriza expresamente a DonaApp para recopilar, 
@@ -220,7 +239,7 @@
     <button 
       type="button"
       (click)="close()"
-      class="w-full sm:w-auto order-1 sm:order-2 px-6 sm:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+      class="w-full sm:w-auto order-1 sm:order-2 px-6 sm:px-8 py-3 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 font-semibold rounded-lg hover:from-green-500 hover:to-green-600 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
       Entendido
     </button>
   </div>

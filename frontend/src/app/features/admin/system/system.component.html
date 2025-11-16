@@ -1,10 +1,8 @@
 <div class="space-y-6">
   <!-- Header -->
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Configuración del Sistema</h1>
-      <p class="text-sm text-gray-600 mt-1">Gestiona las políticas, términos y condiciones, e información "Acerca de Nosotros"</p>
-    </div>
+  <div class="text-center">
+    <h1 class="text-2xl font-bold text-gray-900">Configuración del Sistema</h1>
+    <p class="text-sm text-gray-600 mt-1">Gestiona las políticas, términos, información y configuraciones del sistema</p>
   </div>
 
   <!-- Error Message -->
@@ -13,7 +11,8 @@
   </div>
 
   <!-- Tabs Navigation -->
-  <div class="border-b border-gray-200">
+  <!-- Desktop Navigation -->
+  <div class="hidden md:flex border-b border-gray-200 justify-center">
     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
       <button
         (click)="switchTab('policies')"
@@ -23,9 +22,10 @@
         [class.text-gray-500]="activeTab !== 'policies'"
         [class.hover:text-gray-700]="activeTab !== 'policies'"
         [class.hover:border-gray-300]="activeTab !== 'policies'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
-        Políticas
+        <span>📋</span>
+        <span>Políticas</span>
       </button>
       <button
         (click)="switchTab('terms')"
@@ -35,9 +35,10 @@
         [class.text-gray-500]="activeTab !== 'terms'"
         [class.hover:text-gray-700]="activeTab !== 'terms'"
         [class.hover:border-gray-300]="activeTab !== 'terms'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
-        Términos y Condiciones
+        <span>📜</span>
+        <span>Términos y Condiciones</span>
       </button>
       <button
         (click)="switchTab('about-us')"
@@ -47,57 +48,123 @@
         [class.text-gray-500]="activeTab !== 'about-us'"
         [class.hover:text-gray-700]="activeTab !== 'about-us'"
         [class.hover:border-gray-300]="activeTab !== 'about-us'"
-        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-base transition-colors flex items-center gap-2"
       >
-        Acerca de Nosotros
+        <span>ℹ️</span>
+        <span>Acerca de Nosotros</span>
       </button>
     </nav>
+  </div>
+
+  <!-- Mobile Navigation - Hamburger Menu -->
+  <div class="md:hidden">
+    <div class="relative">
+      <!-- Hamburger Button -->
+      <button
+        (click)="toggleMobileMenu()"
+        class="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+      >
+        <div class="flex items-center gap-2">
+          <span class="text-xl">{{ getActiveTabIcon() }}</span>
+          <span class="font-medium text-gray-900">{{ getActiveTabLabel() }}</span>
+        </div>
+        <svg
+          [class.rotate-180]="showMobileMenu"
+          class="w-5 h-5 text-gray-500 transition-transform duration-200"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <!-- Dropdown Menu -->
+      <div
+        *ngIf="showMobileMenu"
+        class="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden mobile-menu-animation"
+      >
+        <button
+          (click)="selectTab('policies')"
+          [class.bg-blue-50]="activeTab === 'policies'"
+          [class.text-blue-600]="activeTab === 'policies'"
+          [class.font-semibold]="activeTab === 'policies'"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+        >
+          <span class="text-xl">📋</span>
+          <span>Políticas</span>
+        </button>
+        <button
+          (click)="selectTab('terms')"
+          [class.bg-blue-50]="activeTab === 'terms'"
+          [class.text-blue-600]="activeTab === 'terms'"
+          [class.font-semibold]="activeTab === 'terms'"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+        >
+          <span class="text-xl">📜</span>
+          <span>Términos y Condiciones</span>
+        </button>
+        <button
+          (click)="selectTab('about-us')"
+          [class.bg-blue-50]="activeTab === 'about-us'"
+          [class.text-blue-600]="activeTab === 'about-us'"
+          [class.font-semibold]="activeTab === 'about-us'"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+        >
+          <span class="text-xl">ℹ️</span>
+          <span>Acerca de Nosotros</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Tab Content: Políticas -->
   <div *ngIf="activeTab === 'policies'" class="bg-white rounded-lg shadow-md p-6">
     <div class="mb-4">
       <h2 class="text-xl font-semibold text-gray-900 mb-2">Políticas del Sistema</h2>
-      <p class="text-sm text-gray-600">Edita el contenido de las políticas del sistema</p>
+      <p class="text-sm text-gray-600">Edita el contenido de las políticas del sistema (Markdown/HTML seguro)</p>
     </div>
 
     <form [formGroup]="policiesForm" (ngSubmit)="savePolicies()">
       <div class="space-y-4">
-        <div>
-          <label for="policies-content" class="block text-sm font-medium text-gray-700 mb-2">
-            Contenido <span class="text-red-500">*</span>
-          </label>
-          <div *ngIf="loadingPolicies" class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span class="ml-2 text-gray-600">Cargando políticas...</span>
-          </div>
-          <textarea
-            *ngIf="!loadingPolicies"
-            id="policies-content"
+        <div *ngIf="loadingPolicies" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600 font-medium">Cargando políticas...</span>
+        </div>
+
+        <div *ngIf="!loadingPolicies">
+          <app-markdown-editor
             formControlName="content"
-            rows="15"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-            [class.border-red-500]="policiesForm.get('content')?.invalid && policiesForm.get('content')?.touched"
-            placeholder="Ingresa el contenido de las políticas..."
-          ></textarea>
-          <p *ngIf="policiesForm.get('content')?.invalid && policiesForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
-            El contenido es requerido
+            [rows]="20"
+            [maxLength]="50000"
+            [showPreview]="true"
+            placeholder="Escribe las políticas del sistema aquí...
+
+Usa los botones de la barra de herramientas o markdown:
+• **negrita** para texto en negrita
+• *cursiva* para texto en cursiva
+• ## Encabezado para crear títulos
+• - Lista para crear listas"
+            [disabled]="savingPolicies"
+          ></app-markdown-editor>
+          <p *ngIf="policiesForm.get('content')?.invalid && policiesForm.get('content')?.touched" class="mt-2 text-sm text-red-600">
+            ⚠️ El contenido es requerido
           </p>
         </div>
 
-        <div class="flex justify-end gap-3">
+        <div class="flex flex-col sm:flex-row justify-end gap-3">
           <button
             type="button"
             (click)="loadPolicies()"
             [disabled]="loadingPolicies"
-            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Recargar
           </button>
           <button
             type="submit"
             [disabled]="policiesForm.invalid || savingPolicies"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span *ngIf="!savingPolicies">Guardar Cambios</span>
             <span *ngIf="savingPolicies">Guardando...</span>
@@ -111,46 +178,46 @@
   <div *ngIf="activeTab === 'terms'" class="bg-white rounded-lg shadow-md p-6">
     <div class="mb-4">
       <h2 class="text-xl font-semibold text-gray-900 mb-2">Términos y Condiciones</h2>
-      <p class="text-sm text-gray-600">Edita el contenido de los términos y condiciones</p>
+      <p class="text-sm text-gray-600">Edita el contenido de los términos y condiciones (Markdown/HTML seguro)</p>
     </div>
 
     <form [formGroup]="termsForm" (ngSubmit)="saveTerms()">
       <div class="space-y-4">
-        <div>
-          <label for="terms-content" class="block text-sm font-medium text-gray-700 mb-2">
-            Contenido <span class="text-red-500">*</span>
-          </label>
-          <div *ngIf="loadingTerms" class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span class="ml-2 text-gray-600">Cargando términos...</span>
-          </div>
-          <textarea
-            *ngIf="!loadingTerms"
-            id="terms-content"
+        <div *ngIf="loadingTerms" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600 font-medium">Cargando términos...</span>
+        </div>
+
+        <div *ngIf="!loadingTerms">
+          <app-markdown-editor
             formControlName="content"
-            rows="15"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-            [class.border-red-500]="termsForm.get('content')?.invalid && termsForm.get('content')?.touched"
-            placeholder="Ingresa el contenido de los términos y condiciones..."
-          ></textarea>
-          <p *ngIf="termsForm.get('content')?.invalid && termsForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
-            El contenido es requerido
+            [rows]="20"
+            [maxLength]="50000"
+            [showPreview]="true"
+            placeholder="Escribe los términos y condiciones aquí...
+
+Documenta tus términos y condiciones de forma clara y profesional.
+Usa encabezados, listas y formatos para mejorar la legibilidad."
+            [disabled]="savingTerms"
+          ></app-markdown-editor>
+          <p *ngIf="termsForm.get('content')?.invalid && termsForm.get('content')?.touched" class="mt-2 text-sm text-red-600">
+            ⚠️ El contenido es requerido
           </p>
         </div>
 
-        <div class="flex justify-end gap-3">
+        <div class="flex flex-col sm:flex-row justify-end gap-3">
           <button
             type="button"
             (click)="loadTerms()"
             [disabled]="loadingTerms"
-            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Recargar
           </button>
           <button
             type="submit"
             [disabled]="termsForm.invalid || savingTerms"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span *ngIf="!savingTerms">Guardar Cambios</span>
             <span *ngIf="savingTerms">Guardando...</span>
@@ -164,46 +231,51 @@
   <div *ngIf="activeTab === 'about-us'" class="bg-white rounded-lg shadow-md p-6">
     <div class="mb-4">
       <h2 class="text-xl font-semibold text-gray-900 mb-2">Acerca de Nosotros</h2>
-      <p class="text-sm text-gray-600">Edita el contenido de la sección "Acerca de Nosotros"</p>
+      <p class="text-sm text-gray-600">Edita el contenido de la sección "Acerca de Nosotros" (Markdown/HTML seguro)</p>
     </div>
 
     <form [formGroup]="aboutUsForm" (ngSubmit)="saveAboutUs()">
       <div class="space-y-4">
         <div>
-          <label for="about-us-content" class="block text-sm font-medium text-gray-700 mb-2">
-            Contenido <span class="text-red-500">*</span>
-          </label>
-          <div *ngIf="loadingAboutUs" class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span class="ml-2 text-gray-600">Cargando información...</span>
+          <div *ngIf="loadingAboutUs" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-600 font-medium">Cargando información...</span>
           </div>
-          <textarea
-            *ngIf="!loadingAboutUs"
-            id="about-us-content"
-            formControlName="content"
-            rows="15"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-            [class.border-red-500]="aboutUsForm.get('content')?.invalid && aboutUsForm.get('content')?.touched"
-            placeholder="Ingresa el contenido de la sección 'Acerca de Nosotros'..."
-          ></textarea>
-          <p *ngIf="aboutUsForm.get('content')?.invalid && aboutUsForm.get('content')?.touched" class="mt-1 text-sm text-red-600">
-            El contenido es requerido
-          </p>
+
+          <div *ngIf="!loadingAboutUs">
+            <app-markdown-editor
+              formControlName="content"
+              [rows]="20"
+              [maxLength]="50000"
+              [showPreview]="true"
+              placeholder="Escribe acerca de tu organización aquí...
+
+Cuéntale al mundo sobre tu organización:
+• Misión y visión
+• Historia y logros
+• Equipo y valores
+• Impacto social"
+              [disabled]="savingAboutUs"
+            ></app-markdown-editor>
+            <p *ngIf="aboutUsForm.get('content')?.invalid && aboutUsForm.get('content')?.touched" class="mt-2 text-sm text-red-600">
+              ⚠️ El contenido es requerido
+            </p>
+          </div>
         </div>
 
-        <div class="flex justify-end gap-3">
+        <div class="flex flex-col sm:flex-row justify-end gap-3">
           <button
             type="button"
             (click)="loadAboutUs()"
             [disabled]="loadingAboutUs"
-            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Recargar
           </button>
           <button
             type="submit"
             [disabled]="aboutUsForm.invalid || savingAboutUs"
-            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span *ngIf="!savingAboutUs">Guardar Cambios</span>
             <span *ngIf="savingAboutUs">Guardando...</span>
@@ -212,5 +284,5 @@
       </div>
     </form>
   </div>
-</div>
 
+</div>

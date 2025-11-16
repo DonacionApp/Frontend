@@ -8,6 +8,7 @@ import { ArticlesService, Article } from '../../../core/services/articles.servic
 import { Tag } from '../../../core/services/posts.service';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { MarkdownEditorComponent } from '../../../shared/components/markdown-editor/markdown-editor.component';
 
 interface SelectedArticle {
   articleId: number;
@@ -27,7 +28,7 @@ interface ImagePreview {
 
 @Component({
   selector: 'app-create-edit',
-  imports: [CommonModule, FormsModule, ButtonComponent],
+  imports: [CommonModule, FormsModule, ButtonComponent, MarkdownEditorComponent],
   templateUrl: './create-edit.component.html',
   styleUrl: './create-edit.component.scss'
 })
