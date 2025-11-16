@@ -39,6 +39,9 @@ export class SystemComponent implements OnInit, OnDestroy {
   // Mensajes de error
   errorMessage = '';
 
+  // Control del menú móvil
+  showMobileMenu = false;
+
   constructor(
     private systemService: SystemService,
     private fb: FormBuilder
@@ -84,6 +87,45 @@ export class SystemComponent implements OnInit, OnDestroy {
   switchTab(tab: 'policies' | 'terms' | 'about-us'): void {
     this.activeTab = tab;
     this.errorMessage = '';
+  }
+
+  /**
+   * Toggle menú móvil
+   */
+  toggleMobileMenu(): void {
+    this.showMobileMenu = !this.showMobileMenu;
+  }
+
+  /**
+   * Seleccionar tab y cerrar menú móvil
+   */
+  selectTab(tab: 'policies' | 'terms' | 'about-us'): void {
+    this.switchTab(tab);
+    this.showMobileMenu = false;
+  }
+
+  /**
+   * Obtener label del tab activo
+   */
+  getActiveTabLabel(): string {
+    const labels = {
+      'policies': 'Políticas',
+      'terms': 'Términos y Condiciones',
+      'about-us': 'Acerca de Nosotros'
+    };
+    return labels[this.activeTab];
+  }
+
+  /**
+   * Obtener icono del tab activo
+   */
+  getActiveTabIcon(): string {
+    const icons = {
+      'policies': '📋',
+      'terms': '📜',
+      'about-us': 'ℹ️'
+    };
+    return icons[this.activeTab];
   }
 
   /**

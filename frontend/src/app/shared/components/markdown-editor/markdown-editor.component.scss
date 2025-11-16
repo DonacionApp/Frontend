@@ -588,7 +588,8 @@
 // Responsive
 @media (max-width: 768px) {
   .toolbar {
-    gap: 8px;
+    gap: 6px;
+    padding: 8px;
   }
 
   .button-group {
@@ -598,13 +599,20 @@
   }
 
   .toolbar-btn {
-    min-width: 28px;
-    height: 28px;
-    font-size: 12px;
+    min-width: 36px;
+    height: 36px;
+    font-size: 13px;
+    padding: 6px;
   }
 
   .editor-container {
     max-height: 400px;
+  }
+
+  .markdown-editor {
+    min-height: 200px;
+    font-size: 15px;
+    padding: 12px;
   }
 
   .status-bar {
@@ -619,6 +627,135 @@
 
     .help-item {
       font-size: 11px;
+    }
+  }
+}
+
+// Extra small devices (phones, less than 480px)
+@media (max-width: 480px) {
+  .markdown-editor-container {
+    border-width: 1px;
+  }
+
+  .toolbar {
+    gap: 4px;
+    padding: 6px;
+    flex-wrap: wrap;
+  }
+
+  .button-group {
+    .buttons {
+      gap: 3px;
+    }
+  }
+
+  .toolbar-btn {
+    min-width: 40px;
+    min-height: 40px;
+    height: 40px;
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .markdown-editor {
+    min-height: 250px;
+    font-size: 16px; // Prevents zoom on iOS
+    padding: 14px;
+    line-height: 1.6;
+  }
+
+  .character-count {
+    font-size: 12px;
+  }
+
+  .footer {
+    padding: 10px 12px;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+
+    .stats {
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .actions {
+      width: 100%;
+      
+      .footer-btn {
+        flex: 1;
+        min-height: 44px;
+        font-size: 14px;
+      }
+    }
+  }
+
+  // Split view on mobile - stack vertically
+  .split-view {
+    flex-direction: column;
+
+    .editor-pane,
+    .preview-pane {
+      width: 100% !important;
+      max-width: 100%;
+      border-right: none;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-pane {
+      border-bottom: none;
+    }
+  }
+
+  .markdown-preview {
+    padding: 14px;
+    font-size: 15px;
+    
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.1rem; }
+    h5 { font-size: 1rem; }
+    h6 { font-size: 0.95rem; }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      
+      li {
+        margin-bottom: 6px;
+      }
+    }
+
+    pre {
+      padding: 10px;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+
+    code {
+      font-size: 13px;
+      padding: 2px 6px;
+    }
+
+    blockquote {
+      padding: 10px 14px;
+      margin: 12px 0;
+    }
+
+    table {
+      font-size: 13px;
+      
+      th, td {
+        padding: 8px 10px;
+      }
     }
   }
 }
@@ -780,17 +917,103 @@
   }
 }
 
-// Responsive
-@media (max-width: 640px) {
+// ===== RESPONSIVE =====
+@media (max-width: 768px) {
+  .markdown-editor-container {
+    font-size: 14px;
+  }
+
+  .toolbar {
+    padding: 0.5rem 0.375rem;
+    gap: 0.375rem;
+    
+    .toolbar-btn {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      font-size: 13px;
+    }
+  }
+
+  .editor-wrapper {
+    .editor-textarea {
+      padding: 1rem 0.875rem;
+      font-size: 15px; // Evita zoom en iOS
+      line-height: 1.6;
+    }
+  }
+
+  .preview-wrapper {
+    padding: 1rem 0.875rem;
+    
+    .preview-content {
+      font-size: 14px;
+    }
+  }
+
   .footer {
     flex-direction: column;
-    gap: 8px;
+    gap: 0.625rem;
     align-items: flex-start;
+    padding: 0.625rem 0.875rem;
 
     .format-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      width: 100%;
+      
+      .hint-item {
+        font-size: 11px;
+        padding: 0.25rem 0.5rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .markdown-editor-container {
+    border-radius: 6px;
+  }
+
+  .toolbar {
+    padding: 0.375rem 0.25rem;
+    gap: 0.25rem;
+    
+    .toolbar-btn {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      font-size: 12px;
+      padding: 0.25rem;
+    }
+  }
+
+  .editor-wrapper {
+    .editor-textarea {
+      padding: 0.875rem 0.75rem;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+
+  .preview-wrapper {
+    padding: 0.875rem 0.75rem;
+  }
+
+  .footer {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+    font-size: 11px;
+    
+    .format-hints {
+      gap: 0.375rem;
+      
       .hint-item {
         font-size: 10px;
-        padding: 3px 6px;
+        padding: 0.125rem 0.375rem;
       }
     }
   }
