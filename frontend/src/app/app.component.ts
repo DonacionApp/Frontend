@@ -205,7 +205,11 @@ export class AppComponent implements OnInit, OnDestroy {
   // Método para controlar cuándo mostrar el nav
   shouldShowNav(): boolean {
     const currentUrl = this.router.url;
-    // Mostrar nav en todas las rutas
+    // No mostrar nav en rutas de admin (tiene su propio layout)
+    if (currentUrl.startsWith('/admin')) {
+      return false;
+    }
+    // Mostrar nav en todas las demás rutas
     return true;
   }
 

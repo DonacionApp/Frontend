@@ -130,6 +130,82 @@ export class NotificationService {
     );
   }
 
+  /**
+   * Crear notificación para administradores
+   */
+  createNotificationForAdmins(data: {
+    title: string;
+    message: string;
+    typeNotifyId: number;
+    link?: string;
+  }): Observable<{
+    id: number;
+    title: string;
+    message: string;
+    link: string;
+    type: {
+      id: number;
+      type: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    userNotify: Array<{
+      id: number;
+      user: {
+        id: number;
+        username: string;
+        email: string;
+        profilePhoto: string;
+        emailVerified: boolean;
+        verified: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+      read: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  }> {
+    const url = `${this.baseUrl}/notify/create/admins/new`;
+
+    return this.http.post<{
+      id: number;
+      title: string;
+      message: string;
+      link: string;
+      type: {
+        id: number;
+        type: string;
+        createdAt: string;
+        updatedAt: string;
+      };
+      userNotify: Array<{
+        id: number;
+        user: {
+          id: number;
+          username: string;
+          email: string;
+          profilePhoto: string;
+          emailVerified: boolean;
+          verified: boolean;
+          createdAt: string;
+          updatedAt: string;
+        };
+        read: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }>(url, data).pipe(
+      catchError((error: HttpErrorResponse) => {
+        return throwError(() => error);
+      })
+    );
+  }
+
   filterNotifications(filters: {
     search?: string;
     type?: number;

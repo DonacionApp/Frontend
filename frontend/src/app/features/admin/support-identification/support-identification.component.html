@@ -1,0 +1,424 @@
+<div class="space-y-6">
+  <!-- Vista de Usuarios -->
+  <div *ngIf="currentView === 'users'">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Soporte de Identificación</h1>
+        <p class="text-sm text-gray-600 mt-1">Selecciona un usuario para ver su solicitud de soporte</p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          (click)="toggleFilters()"
+          class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          {{ showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Filtros -->
+    <div *ngIf="showFilters" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
+      <form [formGroup]="filterForm" (ngSubmit)="applyFilters()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+            Búsqueda
+          </label>
+          <input
+            id="search"
+            type="text"
+            formControlName="search"
+            placeholder="Buscar por usuario, email..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="clearFilters()"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Limpiar
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Aplicar Filtros
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Data Table de Usuarios -->
+    <app-data-table
+      [columns]="userColumns"
+      [data]="users"
+      [loading]="loadingUsers"
+      [searchable]="true"
+      [selectable]="false"
+      [actions]="userActions"
+      searchPlaceholder="Buscar usuarios con soporte..."
+      emptyMessage="No hay usuarios con solicitudes de soporte"
+    ></app-data-table>
+  </div>
+
+  <!-- Vista de Soporte del Usuario -->
+  <div *ngIf="currentView === 'support'">
+    <!-- Header con botón de volver -->
+    <div class="flex items-center justify-between">
+      <div>
+        <button
+          (click)="goBackToUsers()"
+          class="mb-2 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Volver a usuarios
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">Soporte de {{ selectedUser?.username }}</h1>
+        <p class="text-sm text-gray-600 mt-1">Gestiona la solicitud de soporte de identificación</p>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Información del Soporte -->
+    <div *ngIf="loadingSupport" class="bg-white rounded-lg shadow-md p-8 text-center">
+      <p class="text-gray-500">Cargando información del soporte...</p>
+    </div>
+
+    <div *ngIf="!loadingSupport" class="bg-white rounded-lg shadow-md p-6 space-y-6">
+      <!-- Información del Usuario -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información del Usuario</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm text-gray-600">Usuario</p>
+            <p class="font-medium text-gray-900">{{ selectedUser?.username || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Email</p>
+            <p class="font-medium text-gray-900">{{ selectedUser?.email || '-' }}</p>
+          </div>
+          <div *ngIf="selectedUser?.people">
+            <p class="text-sm text-gray-600">Nombre</p>
+            <p class="font-medium text-gray-900">
+              {{ getUserFullName(selectedUser) }}
+            </p>
+          </div>
+          <div *ngIf="selectedUser?.people && isOrganization(selectedUser)">
+            <p class="text-sm text-gray-600">Descripción</p>
+            <p class="font-medium text-gray-900">
+              {{ getUserDescription(selectedUser) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Rol</p>
+            <p class="font-medium text-gray-900">{{ selectedUser?.role?.name || '-' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información del Documento de Soporte -->
+      <div class="border-t border-gray-200 pt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Documento de Identificación</h3>
+          <div *ngIf="selectedUser?.people?.supportId" class="flex gap-2">
+            <button
+              (click)="toggleDocumentViewer()"
+              class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              {{ showDocumentViewer ? 'Ocultar Documento' : 'Ver Documento en Página' }}
+            </button>
+            <a 
+              [href]="getDocumentUrl()" 
+              target="_blank"
+              class="px-3 py-1.5 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+              Abrir en Nueva Pestaña
+            </a>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div *ngIf="selectedUser?.people?.supportId">
+            <p class="text-sm text-gray-600 mb-2">URL del Documento:</p>
+            <p class="text-xs text-gray-500 break-all bg-gray-50 p-2 rounded">{{ getDocumentUrl() }}</p>
+            
+            <!-- Visor de Documento -->
+            <div *ngIf="showDocumentViewer" class="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+              <div class="bg-gray-100 px-4 py-2 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Vista Previa del Documento</span>
+                <button
+                  (click)="toggleDocumentViewer()"
+                  class="text-gray-500 hover:text-gray-700"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Visor de PDF -->
+              <div *ngIf="isPdfDocument(getDocumentUrl())" class="bg-gray-50" style="height: 800px;">
+                <iframe
+                  [src]="getSafeDocumentUrl()"
+                  class="w-full h-full border-0"
+                  style="min-height: 800px;"
+                  title="Vista previa del documento PDF"
+                ></iframe>
+              </div>
+              
+              <!-- Visor de Imagen -->
+              <div *ngIf="!isPdfDocument(getDocumentUrl())" class="bg-gray-50 p-4 flex items-center justify-center" style="min-height: 400px;">
+                <img
+                  [src]="getDocumentUrl()"
+                  alt="Documento de identificación"
+                  class="max-w-full max-h-[800px] object-contain rounded"
+                  (error)="onImageError($event)"
+                />
+              </div>
+            </div>
+          </div>
+          <div *ngIf="!selectedUser?.people?.supportId">
+            <p class="text-sm text-gray-500">El usuario no ha subido un documento de identificación</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información del Comentario de Soporte -->
+      <div *ngIf="userCommentSupport" class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Comentario de Soporte</h3>
+        <div class="space-y-4">
+          <div>
+            <p class="text-sm text-gray-600">ID</p>
+            <p class="font-medium text-gray-900">{{ userCommentSupport.id }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Comentario</p>
+            <p class="font-medium text-gray-900 whitespace-pre-wrap">{{ userCommentSupport.comment || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Estado</p>
+            <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(userCommentSupport.status.name || '')">
+              {{ userCommentSupport.status.name || '-' }}
+            </span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-600">Fecha de Creación</p>
+              <p class="font-medium text-gray-900">
+                {{ formatDate(userCommentSupport.createdAt) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Última Actualización</p>
+              <p class="font-medium text-gray-900">
+                {{ formatDate(userCommentSupport.updatedAt) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!userCommentSupport && selectedUser?.people?.supportId" class="border-t border-gray-200 pt-6">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <p class="text-sm text-yellow-800">
+            El usuario ha subido un documento de identificación, pero aún no se ha procesado. Puedes aceptar o rechazar el soporte.
+          </p>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="border-t border-gray-200 pt-6 flex gap-3">
+        <button
+          *ngIf="canAccept() || (!userCommentSupport && selectedUser?.people?.supportId)"
+          (click)="openAcceptModal()"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+        >
+          Aceptar Soporte
+        </button>
+        <button
+          *ngIf="canReject() || (!userCommentSupport && selectedUser?.people?.supportId)"
+          (click)="openRejectModal()"
+          class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Rechazar Soporte
+        </button>
+        <button
+          *ngIf="userCommentSupport"
+          (click)="openEditCommentModal()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Editar Comentario
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Aceptar Soporte -->
+<app-modal
+  [isOpen]="showAcceptModal"
+  [title]="'Aceptar Soporte de Identificación'"
+  [size]="'md'"
+  (onClose)="closeAcceptModal()"
+>
+  <form [formGroup]="acceptForm" (ngSubmit)="acceptSupport()" class="space-y-4">
+    <div *ngIf="selectedUser">
+      <p class="text-sm text-gray-600 mb-2">
+        Usuario: <span class="font-semibold text-gray-900">{{ selectedUser.username }}</span>
+      </p>
+      <p class="text-sm text-gray-600 mb-4">
+        Email: <span class="font-semibold text-gray-900">{{ selectedUser.email }}</span>
+      </p>
+    </div>
+    <div>
+      <label for="acceptComment" class="block text-sm font-medium text-gray-700 mb-1">
+        Comentario <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="acceptComment"
+        formControlName="comment"
+        rows="4"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Ingresa un comentario sobre la aceptación..."
+        [class.border-red-500]="acceptForm.get('comment')?.invalid && acceptForm.get('comment')?.touched"
+      ></textarea>
+      <p *ngIf="acceptForm.get('comment')?.invalid && acceptForm.get('comment')?.touched" class="mt-1 text-sm text-red-600">
+        El comentario es requerido
+      </p>
+    </div>
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      <button
+        type="button"
+        (click)="closeAcceptModal()"
+        [disabled]="acceptingSupport"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        [disabled]="acceptForm.invalid || acceptingSupport"
+        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ acceptingSupport ? 'Aceptando...' : 'Aceptar Soporte' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal de Rechazar Soporte -->
+<app-modal
+  [isOpen]="showRejectModal"
+  [title]="'Rechazar Soporte de Identificación'"
+  [size]="'md'"
+  (onClose)="closeRejectModal()"
+>
+  <form [formGroup]="rejectForm" (ngSubmit)="rejectSupport()" class="space-y-4">
+    <div *ngIf="selectedUser">
+      <p class="text-sm text-gray-600 mb-2">
+        Usuario: <span class="font-semibold text-gray-900">{{ selectedUser.username }}</span>
+      </p>
+      <p class="text-sm text-gray-600 mb-4">
+        Email: <span class="font-semibold text-gray-900">{{ selectedUser.email }}</span>
+      </p>
+    </div>
+    <div>
+      <label for="rejectComment" class="block text-sm font-medium text-gray-700 mb-1">
+        Comentario <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="rejectComment"
+        formControlName="comment"
+        rows="4"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Ingresa un comentario sobre el rechazo..."
+        [class.border-red-500]="rejectForm.get('comment')?.invalid && rejectForm.get('comment')?.touched"
+      ></textarea>
+      <p *ngIf="rejectForm.get('comment')?.invalid && rejectForm.get('comment')?.touched" class="mt-1 text-sm text-red-600">
+        El comentario es requerido
+      </p>
+    </div>
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      <button
+        type="button"
+        (click)="closeRejectModal()"
+        [disabled]="rejectingSupport"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        [disabled]="rejectForm.invalid || rejectingSupport"
+        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ rejectingSupport ? 'Rechazando...' : 'Rechazar Soporte' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal de Editar Comentario -->
+<app-modal
+  [isOpen]="showEditCommentModal"
+  [title]="'Editar Comentario'"
+  [size]="'md'"
+  (onClose)="closeEditCommentModal()"
+>
+  <form [formGroup]="editCommentForm" (ngSubmit)="updateComment()" class="space-y-4">
+    <div>
+      <label for="newComment" class="block text-sm font-medium text-gray-700 mb-1">
+        Nuevo Comentario <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="newComment"
+        formControlName="newComment"
+        rows="4"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Ingresa el nuevo comentario..."
+        [class.border-red-500]="editCommentForm.get('newComment')?.invalid && editCommentForm.get('newComment')?.touched"
+      ></textarea>
+      <p *ngIf="editCommentForm.get('newComment')?.invalid && editCommentForm.get('newComment')?.touched" class="mt-1 text-sm text-red-600">
+        El comentario es requerido
+      </p>
+    </div>
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      <button
+        type="button"
+        (click)="closeEditCommentModal()"
+        [disabled]="editingComment"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        [disabled]="editCommentForm.invalid || editingComment"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ editingComment ? 'Actualizando...' : 'Actualizar Comentario' }}
+      </button>
+    </div>
+  </form>
+</app-modal>

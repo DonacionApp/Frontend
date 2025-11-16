@@ -11,3 +11,6 @@ export * from './post-donation-article.service';
 export * from './websocket.service';
 export * from './toast.service';
 export * from './message.service';
+export * from './category.service';
+export * from './role.service';
+export * from './user-management.service';

@@ -1,29 +1,104 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
+import { AdminLayoutComponent } from './layout/admin-layout.component';
+import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
+import { AdminGuard } from '../../core/guards/admin.guard';
 
 const routes: Routes = [
-  // Aquí irán las rutas del administrador
-  // { path: '', component: AdminDashboardComponent },
-  // { path: 'users', component: UsersManagementComponent },
-  // { path: 'organizations', component: OrganizationsManagementComponent },
-  // { path: 'reports', component: ReportsComponent }
+  {
+    path: '',
+    component: AdminLayoutComponent,
+    canActivate: [AdminGuard], // Proteger el layout y todas sus rutas hijas
+    children: [
+      { path: '', component: AdminDashboardComponent, canActivate: [AdminGuard] },
+      { 
+        path: 'categories', 
+        loadComponent: () => import('./categories/categories.component').then(m => m.CategoriesComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'roles', 
+        loadComponent: () => import('./roles/roles.component').then(m => m.RolesComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'users', 
+        loadComponent: () => import('./users/users.component').then(m => m.UsersComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'tags', 
+        loadComponent: () => import('./tags/tags.component').then(m => m.TagsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'posts', 
+        loadComponent: () => import('./posts/posts.component').then(m => m.PostsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'donations', 
+        loadComponent: () => import('./donations/donations.component').then(m => m.DonationsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'articles', 
+        loadComponent: () => import('./articles/articles.component').then(m => m.ArticlesComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'organizations', 
+        loadComponent: () => import('./organizations/organizations.component').then(m => m.OrganizationsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'support-identification',
+        loadComponent: () => import('./support-identification/support-identification.component').then(m => m.SupportIdentificationComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'system', 
+        loadComponent: () => import('./system/system.component').then(m => m.SystemComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'user-system', 
+        loadComponent: () => import('./user-system/user-system.component').then(m => m.UserSystemComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'notifications', 
+        loadComponent: () => import('./admin-notifications/admin-notifications.component').then(m => m.AdminNotificationsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'reports', 
+        loadComponent: () => import('./reports/reports.component').then(m => m.ReportsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'chats', 
+        loadComponent: () => import('./chats/chats.component').then(m => m.ChatsComponent),
+        canActivate: [AdminGuard]
+      },
+      { 
+        path: 'profile', 
+        loadComponent: () => import('./profile/admin-profile.component').then(m => m.AdminProfileComponent),
+        canActivate: [AdminGuard]
+      },
+    ]
+  }
 ];
 
 @NgModule({
-  declarations: [
-    // Aquí irán los componentes del administrador
-    // AdminDashboardComponent,
-    // UsersManagementComponent,
-    // OrganizationsManagementComponent,
-    // ReportsComponent
-  ],
+  declarations: [],
   imports: [
     CommonModule,
     RouterModule.forChild(routes)
+    // Los componentes standalone (AdminLayoutComponent, AdminDashboardComponent) 
+    // se cargan directamente a través de las rutas, no necesitan estar en imports
   ],
-  providers: [
-    // Aquí irán los servicios específicos del administrador
-  ]
+  providers: []
 })
 export class AdminModule { }

@@ -184,16 +184,33 @@ export class PostsService {
     return this.http.post<ApiResponse>(`${this.postEndpoint}/update/${postId}`, data);
   }
 
+  // Admin methods
+  updatePostAdmin(postId: number, data: UpdatePostDTO): Observable<Post> {
+    return this.http.post<Post>(`${this.postEndpoint}/update/admin/${postId}`, data);
+  }
+
   deletePost(postId: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.postEndpoint}/delete/${postId}`);
+  }
+
+  deletePostAdmin(postId: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.postEndpoint}/admin/delete/${postId}`);
   }
 
   addImageToPost(postId: number, formData: FormData): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.postEndpoint}/image/add/${postId}`, formData);
   }
 
+  addImageToPostAdmin(postId: number, formData: FormData): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.postEndpoint}/image/admin/add/${postId}`, formData);
+  }
+
   deleteImageFromPost(imageId: number, postId: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.postEndpoint}/image/delete/${imageId}/post/${postId}`);
+  }
+
+  deleteImageFromPostAdmin(imageId: number, postId: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.postEndpoint}/image/delete/admin/${imageId}/post/${postId}`);
   }
 
   getPostImages(postId: number): Observable<ImagePost[]> {
@@ -227,13 +244,29 @@ export class PostsService {
   createTag(tag: string): Observable<Tag> {
     return this.http.post<Tag>(`${this.tagsEndpoint}/create`, { tag });
   }
+  
+  updateTag(id: number, tag: string): Observable<Tag> {
+    return this.http.post<Tag>(`${this.tagsEndpoint}/update/${id}`, { tag });
+  }
+
+  deleteTag(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.tagsEndpoint}/delete/${id}`);
+  }
 
   addTagToPost(tagId: number, postId: number): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.postEndpoint}/add/tag/${tagId}/post/${postId}`, {});
   }
 
+  addTagToPostAdmin(tagId: number, postId: number): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.postEndpoint}/add/tag/admin/${tagId}/post/${postId}`, {});
+  }
+
   removeTagFromPost(tagId: number, postId: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.postEndpoint}/remove/tag/${tagId}/post/${postId}`);
+  }
+
+  removeTagFromPostAdmin(tagId: number, postId: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.postEndpoint}/remove/tag/admin/${tagId}/post/${postId}`);
   }
 
   getPostTags(postId: number): Observable<PostTag[]> {

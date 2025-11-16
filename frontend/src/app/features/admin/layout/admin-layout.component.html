@@ -1,0 +1,166 @@
+<div class="min-h-screen bg-gray-50 flex">
+  <!-- Sidebar -->
+  <aside 
+    [class]="'bg-white border-r border-gray-200 transition-all duration-300 flex flex-col ' + (isSidebarOpen ? 'w-64' : 'w-20')"
+  >
+    <!-- Logo Section -->
+    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div class="flex items-center gap-3" *ngIf="isSidebarOpen">
+        <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-gray-900">Admin Panel</h1>
+          <p class="text-xs text-gray-500">DonacionApp</p>
+        </div>
+      </div>
+      <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center" *ngIf="!isSidebarOpen">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+      </div>
+      <button
+        (click)="toggleSidebar()"
+        class="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+        [title]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'"
+      >
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path *ngIf="isSidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          <path *ngIf="!isSidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 overflow-y-auto py-4">
+      <ul class="space-y-1 px-2">
+        <li *ngFor="let item of menuItems">
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-green-50 text-green-700"
+            [routerLinkActiveOptions]="{exact: item.route === '/admin'}"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 transition-colors group"
+            [title]="!isSidebarOpen ? item.label : ''"
+          >
+            <svg class="w-5 h-5 text-gray-600 group-hover:text-gray-900 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getIconPath(item.icon)"></path>
+            </svg>
+            <span *ngIf="isSidebarOpen" class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ item.label }}</span>
+            <span *ngIf="item.badge && isSidebarOpen" class="ml-auto px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{{ item.badge }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- User Section -->
+    <div class="p-4 border-t border-gray-200">
+      <div class="flex items-center gap-3 mb-3" *ngIf="isSidebarOpen && user">
+        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+          {{ getUserInitial() }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">{{ user.name || 'Admin' }}</p>
+          <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+        </div>
+      </div>
+      <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold mx-auto" *ngIf="!isSidebarOpen && user">
+        {{ getUserInitial() }}
+      </div>
+      <button
+        (click)="logout()"
+        class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors group"
+        [title]="!isSidebarOpen ? 'Cerrar sesión' : ''"
+      >
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span *ngIf="isSidebarOpen" class="text-sm font-medium">Cerrar Sesión</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Top Bar -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div class="flex items-center gap-4">
+        <h2 class="text-xl font-semibold text-gray-900">
+          {{ getPageTitle() }}
+        </h2>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <!-- Notifications Dropdown -->
+        <div class="relative notification-dropdown-container">
+          <button 
+            (click)="toggleNotificationsDropdown()"
+            class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            <span *ngIf="unreadNotificationsCount > 0" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
+          </button>
+
+          <!-- Dropdown de Notificaciones -->
+          <div 
+            *ngIf="showNotificationsDropdown"
+            class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto"
+          >
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-900">Notificaciones</h3>
+              <button
+                (click)="goToNotificationsCenter()"
+                class="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Ver todas
+              </button>
+            </div>
+            <div class="divide-y divide-gray-200">
+              <div *ngFor="let notification of notifications.slice(0, 5)" class="p-4 hover:bg-gray-50 cursor-pointer" (click)="goToNotificationsCenter()">
+                <div class="flex items-start gap-3">
+                  <div class="flex-shrink-0">
+                    <div class="w-2 h-2 rounded-full" [class.bg-blue-500]="!notification.read" [class.bg-gray-300]="notification.read"></div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
+                    <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ notification.message }}</p>
+                    <p class="text-xs text-gray-400 mt-1">{{ notification.createdAt ? (notification.createdAt | date:'short') : '' }}</p>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="notifications.length === 0" class="p-8 text-center text-gray-500 text-sm">
+                No hay notificaciones
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Menu -->
+        <div class="flex items-center gap-3">
+          <div class="text-right hidden sm:block">
+            <p class="text-sm font-medium text-gray-900">{{ user?.name || 'Admin' }}</p>
+            <p class="text-xs text-gray-500">Administrador</p>
+          </div>
+          <button
+            (click)="goToProfile()"
+            class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold hover:bg-green-600 transition-colors cursor-pointer"
+            title="Ver perfil"
+          >
+            {{ getUserInitial() }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
+

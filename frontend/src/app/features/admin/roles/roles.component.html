@@ -1,0 +1,105 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Gestión de Roles</h1>
+      <p class="text-sm text-gray-600 mt-1">Administra los roles de usuario del sistema</p>
+    </div>
+    <button
+      (click)="openCreateModal()"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Rol
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Data Table -->
+  <app-data-table
+    [columns]="columns"
+    [data]="roles"
+    [loading]="loading"
+    [searchable]="true"
+    [selectable]="true"
+    [actions]="actions"
+    [batchActions]="batchActions"
+    searchPlaceholder="Buscar roles..."
+    emptyMessage="No hay roles registrados"
+    (batchActionExecuted)="onBatchActionExecuted($event)"
+  ></app-data-table>
+</div>
+
+<!-- Modal -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeModal()"></div>
+
+    <!-- Modal panel -->
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900" id="modal-title">
+              {{ isEditMode ? 'Editar Rol' : 'Nuevo Rol' }}
+            </h3>
+            <button
+              type="button"
+              (click)="closeModal()"
+              class="text-gray-400 hover:text-gray-600"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Role Name Field -->
+            <div>
+              <label for="rol" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del Rol <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="rol"
+                formControlName="rol"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                [class.border-red-500]="roleForm.get('rol')?.invalid && roleForm.get('rol')?.touched"
+                placeholder="Ej: admin, donor, organization"
+              />
+              <p *ngIf="roleForm.get('rol')?.invalid && roleForm.get('rol')?.touched" class="mt-1 text-sm text-red-600">
+                El nombre del rol es requerido y debe tener al menos 2 caracteres
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button
+            type="submit"
+            [disabled]="roleForm.invalid"
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ isEditMode ? 'Actualizar' : 'Crear' }}
+          </button>
+          <button
+            type="button"
+            (click)="closeModal()"
+            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+

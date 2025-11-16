@@ -1,0 +1,323 @@
+<div class="space-y-6">
+  <!-- Vista de Usuarios -->
+  <div *ngIf="currentView === 'users'">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Gestión de Donaciones</h1>
+        <p class="text-sm text-gray-600 mt-1">Selecciona un usuario para ver sus donaciones</p>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="p-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Usuarios</h2>
+      </div>
+      <div *ngIf="loadingUsers" class="p-8 text-center">
+        <p class="text-gray-500">Cargando usuarios...</p>
+      </div>
+      <div *ngIf="!loadingUsers && users.length === 0" class="p-8 text-center">
+        <p class="text-gray-500">No hay usuarios registrados</p>
+      </div>
+      <div *ngIf="!loadingUsers && users.length > 0" class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let user of users" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.username }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ user.people?.name || '-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.rol.rol || '-' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button
+                  (click)="selectUser(user)"
+                  class="text-blue-600 hover:text-blue-900 font-medium"
+                >
+                  Ver Donaciones
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista de Donaciones del Usuario -->
+  <div *ngIf="currentView === 'donations'">
+    <!-- Header con botón de volver -->
+    <div class="flex items-center justify-between">
+      <div>
+        <button
+          (click)="goBackToUsers()"
+          class="mb-2 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Volver a usuarios
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">Donaciones de {{ selectedUser?.username }}</h1>
+        <p class="text-sm text-gray-600 mt-1">Administra las donaciones de este usuario</p>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Data Table de Donaciones -->
+    <app-data-table
+      [columns]="columns"
+      [data]="donations"
+      [loading]="loading"
+      [searchable]="true"
+      [selectable]="true"
+      [actions]="actions"
+      [batchActions]="batchActions"
+      searchPlaceholder="Buscar donaciones..."
+      emptyMessage="No hay donaciones registradas para este usuario"
+      (batchActionExecuted)="onBatchActionExecuted($event)"
+    ></app-data-table>
+  </div>
+</div>
+
+<!-- Modal de Edición de Donación -->
+<app-modal
+  [isOpen]="showEditDonationModal"
+  [title]="'Editar Donación'"
+  [size]="'lg'"
+  (onClose)="closeEditDonationModal()"
+>
+  <form [formGroup]="editDonationForm" (ngSubmit)="saveDonation()">
+    <div class="space-y-4">
+      <div>
+        <label for="lugarDonacion" class="block text-sm font-medium text-gray-700 mb-1">
+          Lugar de Donación <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="lugarDonacion"
+          formControlName="lugarDonacion"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [class.border-red-500]="editDonationForm.get('lugarDonacion')?.invalid && editDonationForm.get('lugarDonacion')?.touched"
+          placeholder="Lugar de donación"
+        />
+        <p *ngIf="editDonationForm.get('lugarDonacion')?.invalid && editDonationForm.get('lugarDonacion')?.touched" class="mt-1 text-sm text-red-600">
+          El lugar de donación es requerido
+        </p>
+      </div>
+
+      <div>
+        <label for="fechaMaximaEntrega" class="block text-sm font-medium text-gray-700 mb-1">
+          Fecha Máxima de Entrega <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="date"
+          id="fechaMaximaEntrega"
+          formControlName="fechaMaximaEntrega"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          [class.border-red-500]="editDonationForm.get('fechaMaximaEntrega')?.invalid && editDonationForm.get('fechaMaximaEntrega')?.touched"
+        />
+        <p *ngIf="editDonationForm.get('fechaMaximaEntrega')?.invalid && editDonationForm.get('fechaMaximaEntrega')?.touched" class="mt-1 text-sm text-red-600">
+          La fecha de entrega es requerida
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        type="button"
+        (click)="closeEditDonationModal()"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        [disabled]="editDonationForm.invalid || updatingDonation"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ updatingDonation ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal de Gestión de Artículos -->
+<app-modal
+  [isOpen]="showArticlesModal"
+  [title]="'Gestionar Artículos de la Donación'"
+  [size]="'xl'"
+  (onClose)="closeArticlesModal()"
+>
+  <div class="space-y-6">
+    <!-- Agregar nuevo artículo -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Agregar Artículo</h4>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="md:col-span-2">
+          <select
+            [(ngModel)]="selectedPostArticleId"
+            [ngModelOptions]="{standalone: true}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option [ngValue]="null">Seleccionar artículo del post...</option>
+            <option *ngFor="let article of availablePostArticles" [ngValue]="article.id">
+              {{ article.article?.name || 'Artículo ' + article.id }} (Cantidad disponible: {{ article.quantity }})
+            </option>
+          </select>
+        </div>
+        <div>
+          <input
+            type="number"
+            [(ngModel)]="articleQuantity"
+            [ngModelOptions]="{standalone: true}"
+            min="1"
+            placeholder="Cantidad"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <button
+            type="button"
+            (click)="addArticleToDonation()"
+            [disabled]="!selectedPostArticleId || articleQuantity <= 0 || addingArticle"
+            class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            {{ addingArticle ? 'Agregando...' : 'Agregar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Artículos actuales -->
+    <div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-3">Artículos de la Donación</h4>
+      <div *ngIf="currentDonationArticles.length === 0" class="text-sm text-gray-500">
+        No hay artículos en esta donación
+      </div>
+      <div *ngIf="currentDonationArticles.length > 0" class="space-y-2">
+        <div *ngFor="let article of currentDonationArticles" class="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+          <div class="flex-1">
+            <p class="font-medium text-gray-900">{{ article.article?.name || 'Artículo ' + article.id }}</p>
+            <p class="text-sm text-gray-600">Cantidad: {{ article.quantity }}</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="updateArticleQuantity(article.id, article.quantity)"
+              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+            >
+              Actualizar Cantidad
+            </button>
+            <button
+              type="button"
+              (click)="removeArticleFromDonation(article.id)"
+              class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Cambio de Estado -->
+<app-modal
+  [isOpen]="showStatusModal"
+  [title]="'Cambiar Estado de Donación'"
+  [size]="'md'"
+  (onClose)="closeStatusModal()"
+>
+  <div class="space-y-4">
+    <div>
+      <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
+        Estado <span class="text-red-500">*</span>
+      </label>
+      <select
+        [(ngModel)]="selectedStatusId"
+        [ngModelOptions]="{standalone: true}"
+        id="status"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option [ngValue]="null">Seleccionar estado...</option>
+        <option *ngFor="let status of availableStatuses" [ngValue]="status.id">
+          {{ status.status }}
+        </option>
+      </select>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        type="button"
+        (click)="closeStatusModal()"
+        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        (click)="changeStatus()"
+        [disabled]="!selectedStatusId || changingStatus"
+        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {{ changingStatus ? 'Cambiando...' : 'Cambiar Estado' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Reviews -->
+<app-modal
+  [isOpen]="showReviewsModal"
+  [title]="'Reviews de Donaciones'"
+  [size]="'xl'"
+  (onClose)="closeReviewsModal()"
+>
+  <div class="space-y-4">
+    <div *ngIf="donationReviews.length === 0" class="text-sm text-gray-500 text-center py-8">
+      No hay reviews disponibles
+    </div>
+    <div *ngIf="donationReviews.length > 0" class="space-y-3">
+      <div *ngFor="let review of donationReviews" class="bg-gray-50 p-4 rounded-md">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <p class="text-sm text-gray-600">Review ID: {{ review.id }}</p>
+            <p *ngIf="review.message" class="mt-2 text-gray-900">{{ review.message }}</p>
+            <p *ngIf="review.rating" class="mt-1 text-sm text-gray-600">Rating: {{ review.rating }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="deleteReview(review.id)"
+            class="ml-4 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>
+
