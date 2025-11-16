@@ -296,7 +296,7 @@
           </div>
         </div>
 
-        <!-- Términos y Condiciones -->
+        <!-- Términos y Condiciones y Políticas de Privacidad -->
         <div class="space-y-4 mt-6">
           <!-- Términos y Condiciones -->
           <div class="relative bg-gradient-to-r from-blue-50 to-blue-100/50 p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
@@ -331,6 +331,44 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   Debes aceptar los términos y condiciones para continuar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Políticas de Privacidad -->
+          <div class="relative bg-gradient-to-r from-orange-50 to-orange-100/50 p-4 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all duration-200 hover:shadow-md">
+            <div class="flex items-start gap-3">
+              <div class="flex items-center h-5 mt-0.5">
+                <input
+                  id="acceptPrivacyPolicy"
+                  type="checkbox"
+                  formControlName="acceptPrivacyPolicy"
+                  class="h-5 w-5 text-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 border-2 border-orange-300 rounded cursor-pointer transition-all duration-200 hover:border-orange-500">
+              </div>
+              <div class="flex-1">
+                <label for="acceptPrivacyPolicy" class="flex items-start gap-2 cursor-pointer">
+                  <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-gray-800 leading-relaxed">
+                    He leído y acepto la
+                    <a
+                      (click)="openPrivacyPolicyModal($event)"
+                      class="text-orange-600 hover:text-orange-800 underline decoration-2 underline-offset-2 cursor-pointer font-bold inline-flex items-center gap-1 transition-colors">
+                      Política de Privacidad
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </a>
+                  </span>
+                </label>
+                <p *ngIf="orgForm.get('acceptPrivacyPolicy')?.invalid && orgForm.get('acceptPrivacyPolicy')?.touched"
+                  class="mt-2 text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-md">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Debes aceptar la política de privacidad para continuar
                 </p>
               </div>
             </div>

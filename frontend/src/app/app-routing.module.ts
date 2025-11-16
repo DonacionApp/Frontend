@@ -39,6 +39,12 @@ const routes: Routes = [
   // Ruta de notificaciones (protegida por autenticación)
   { path: 'notifications', component: NotificationsCenterComponent, canActivate: [AuthGuard] },
   
+  // Ruta pública para política de privacidad
+  { 
+    path: 'privacy-policy', 
+    loadComponent: () => import('./features/privacy-policy/privacy-policy.component').then(m => m.PrivacyPolicyComponent)
+  },
+  
   // Lazy loading para cada módulo de feature
   {
     path: 'auth',

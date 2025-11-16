@@ -6,6 +6,7 @@ import { OrganizationRegistrationService } from '../../../core/services';
 import { RegistrationStateService } from '../../../core/services/registration-state.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
+import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
 
 
 @Component({
@@ -56,8 +57,9 @@ export class OrganizationRegisterComponent implements OnInit {
       birdthDate: ['', Validators.required],
       tipodDni: [1, Validators.required],
       dni: [''],
-      // Términos
-      acceptTerms: [false, [Validators.requiredTrue]]
+      // Términos y Políticas
+      acceptTerms: [false, [Validators.requiredTrue]],
+      acceptPrivacyPolicy: [false, [Validators.requiredTrue]]
     });
   }
 
@@ -130,6 +132,22 @@ export class OrganizationRegisterComponent implements OnInit {
 
   onSubmit(): void {
     if (this.isSubmitting) return;
+
+    // Validar que se acepten los términos y condiciones
+    if (!this.orgForm.value.acceptTerms) {
+      this.message = 'Debes aceptar los términos y condiciones para continuar';
+      this.success = false;
+      this.orgForm.get('acceptTerms')?.markAsTouched();
+      return;
+    }
+
+    // Validar que se acepte la política de privacidad
+    if (!this.orgForm.value.acceptPrivacyPolicy) {
+      this.message = 'Debes aceptar la política de privacidad para continuar';
+      this.success = false;
+      this.orgForm.get('acceptPrivacyPolicy')?.markAsTouched();
+      return;
+    }
 
     // Basic password confirm
     if (this.orgForm.value.password !== this.orgForm.value.confirmPassword) {
@@ -224,6 +242,17 @@ export class OrganizationRegisterComponent implements OnInit {
       maxHeight: '90vh',
       autoFocus: false,
       panelClass: 'terms-modal-container'
+    });
+  }
+
+  openPrivacyPolicyModal(event: Event): void {
+    event.preventDefault();
+    this.dialog.open(PrivacyPolicyModalComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      panelClass: 'privacy-modal-container'
     });
   }
 

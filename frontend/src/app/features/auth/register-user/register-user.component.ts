@@ -13,6 +13,7 @@ import { Rol } from '../../../shared/model/rol.model';
 import { TypeDniModel } from '../../../shared/model/type.dni.model';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
+import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
 
 @Component({
   selector: 'app-register-user',
@@ -76,6 +77,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       rolId: ['', Validators.required],
       profilePhoto: [''],
       acceptTerms: [false, [Validators.requiredTrue]],
+      acceptPrivacyPolicy: [false, [Validators.requiredTrue]],
       people: this.fb.group({
         name: ['', Validators.required],
         lastName: [''],
@@ -348,6 +350,17 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       panelClass: 'terms-modal-container'
     });
     console.log('Dialog ref:', dialogRef);
+  }
+
+  openPrivacyPolicyModal(event: Event): void {
+    event.preventDefault();
+    this.dialog.open(PrivacyPolicyModalComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      panelClass: 'privacy-modal-container'
+    });
   }
 
 }
