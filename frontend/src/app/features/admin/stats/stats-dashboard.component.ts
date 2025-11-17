@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
+import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.component';
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
@@ -23,12 +24,19 @@ interface KPICard {
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, KpiCardComponent],
   templateUrl: './stats-dashboard.component.html',
   styleUrls: ['./stats-dashboard.component.scss']
 })
 export class StatsDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+
+  // Variables para cálculos adicionales
+  private totalUsersCount = 0;
+  private verifiedUsersCount = 0;
+  private totalOrganizationsCount = 0;
+  private donationsThisMonth = 0;
+  private averageDailyDonations = 0;
 
   // KPIs Principales
   mainKPIs: KPICard[] = [
@@ -207,11 +215,15 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
             return role !== 'admin';
           }).length;
 
+          this.totalUsersCount = totalUsers;
+          this.verifiedUsersCount = allUsers.filter(user => user.verified).length;
+
           const organizations = allUsers.filter(user => {
             const role = user.rol?.rol?.toLowerCase();
             return role === 'organizacion' || role === 'organization';
           });
 
+          this.totalOrganizationsCount = organizations.length;
           const verifiedOrgs = organizations.filter(org => org.verified).length;
 
           // Actualizar KPIs principales
@@ -252,6 +264,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     if (donationRequests.length === 0) {
       this.mainKPIs[2].value = 0;
       this.mainKPIs[2].loading = false;
+      this.calculateDonationMetrics(0, []);
       return;
     }
 
@@ -259,18 +272,37 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (donationsArrays) => {
-          const totalDonations = donationsArrays.reduce((total, donations) => {
-            return total + (Array.isArray(donations) ? donations.length : 0);
-          }, 0);
+          const allDonations = donationsArrays.flat().filter(d => d);
+          const totalDonations = allDonations.length;
 
           this.mainKPIs[2].value = totalDonations;
           this.mainKPIs[2].loading = false;
+
+          this.calculateDonationMetrics(totalDonations, allDonations);
         },
         error: () => {
           this.mainKPIs[2].value = 0;
           this.mainKPIs[2].loading = false;
+          this.calculateDonationMetrics(0, []);
         }
       });
+  }
+
+  private calculateDonationMetrics(totalDonations: number, allDonations: any[]): void {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Contar donaciones de este mes
+    this.donationsThisMonth = allDonations.filter(donation => {
+      if (!donation.createdAt) return false;
+      const donationDate = new Date(donation.createdAt);
+      return donationDate >= startOfMonth;
+    }).length;
+
+    // Calcular promedio diario (basado en el mes actual)
+    const daysInMonth = now.getDate(); // Días transcurridos del mes
+    this.averageDailyDonations = daysInMonth > 0 ? 
+      Math.round(this.donationsThisMonth / daysInMonth) : 0;
   }
 
   private updateSecondaryKPIs(totalUsers: number, totalOrgs: number, totalPosts: number): void {
@@ -381,5 +413,155 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     if (direction === 'up') return 'text-green-600';
     if (direction === 'down') return 'text-red-600';
     return 'text-gray-600';
+  }
+
+  // Métodos para las tarjetas destacadas
+  getTotalOrganizations(): number {
+    return this.totalOrganizationsCount;
+  }
+
+  getVerifiedUsersCount(): number {
+    return this.verifiedUsersCount;
+  }
+
+  getDonationsThisMonth(): number {
+    return this.donationsThisMonth;
+  }
+
+  getAverageDailyDonations(): number {
+    return this.averageDailyDonations;
+  }
+
+  exportData(): void {
+    // Metadatos del reporte
+    const timestamp = new Date().toLocaleString('es-ES');
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    // ===== SECCIÓN 1: INFORMACIÓN DEL REPORTE =====
+    const header = [
+      'REPORTE DE ESTADÍSTICAS - DONACIONAPP',
+      `Fecha de Exportación: ${timestamp}`,
+      `Período Analizado: ${this.getReadablePeriod()}`,
+      ''
+    ];
+
+    // ===== SECCIÓN 2: RESUMEN EJECUTIVO =====
+    const resumenEjecutivo = [
+      '=== RESUMEN EJECUTIVO ===',
+      'Métrica,Valor',
+      `Total de Usuarios Registrados,${this.totalUsersCount}`,
+      `Usuarios Verificados,${this.verifiedUsersCount}`,
+      `Porcentaje de Verificación,${this.totalUsersCount > 0 ? ((this.verifiedUsersCount / this.totalUsersCount) * 100).toFixed(1) : 0}%`,
+      `Total de Organizaciones,${this.totalOrganizationsCount}`,
+      `Organizaciones Verificadas,${this.mainKPIs[1].value}`,
+      `Total de Donaciones,${this.mainKPIs[2].value}`,
+      `Donaciones Este Mes,${this.donationsThisMonth}`,
+      `Promedio Diario de Donaciones,${this.averageDailyDonations}`,
+      `Total de Publicaciones,${this.mainKPIs[3].value}`,
+      ''
+    ];
+
+    // ===== SECCIÓN 3: KPIs PRINCIPALES =====
+    const kpisPrincipales = [
+      '=== INDICADORES CLAVE DE RENDIMIENTO (KPI) ===',
+      'Categoría,Indicador,Valor Actual,Descripción,Tendencia,Dirección,Estado'
+    ];
+    
+    this.mainKPIs.forEach(kpi => {
+      const estado = this.getKPIStatus(kpi.trend?.direction);
+      kpisPrincipales.push(
+        `KPI Principal,"${kpi.title}",${kpi.value},"${kpi.subtitle || ''}",${kpi.trend?.value || 'N/A'},${kpi.trend?.direction || 'neutral'},${estado}`
+      );
+    });
+    kpisPrincipales.push('');
+
+    // ===== SECCIÓN 4: MÉTRICAS DE RENDIMIENTO =====
+    const metricasRendimiento = [
+      '=== MÉTRICAS DE RENDIMIENTO ===',
+      'Categoría,Indicador,Valor Actual,Descripción,Tendencia,Dirección,Estado'
+    ];
+    
+    this.secondaryKPIs.forEach(kpi => {
+      const estado = this.getKPIStatus(kpi.trend?.direction);
+      metricasRendimiento.push(
+        `Métrica Rendimiento,"${kpi.title}",${kpi.value},"${kpi.subtitle || ''}",${kpi.trend?.value || 'N/A'},${kpi.trend?.direction || 'neutral'},${estado}`
+      );
+    });
+    metricasRendimiento.push('');
+
+    // ===== SECCIÓN 5: INDICADORES DE ACTIVIDAD =====
+    const indicadoresActividad = [
+      '=== INDICADORES DE ACTIVIDAD (ÚLTIMOS 7 DÍAS) ===',
+      'Indicador,Cantidad Actual,Total,Porcentaje,Estado'
+    ];
+    
+    this.engagementKPIs.forEach(kpi => {
+      const estado = kpi.percentage >= 70 ? 'Excelente' : kpi.percentage >= 40 ? 'Bueno' : 'Bajo';
+      indicadoresActividad.push(
+        `"${kpi.label}",${kpi.value},${kpi.total},${kpi.percentage}%,${estado}`
+      );
+    });
+    indicadoresActividad.push('');
+
+    // ===== SECCIÓN 6: ANÁLISIS COMPARATIVO =====
+    const analisisComparativo = [
+      '=== ANÁLISIS COMPARATIVO ===',
+      'Métrica,Descripción,Valor',
+      `Ratio Usuarios/Organizaciones,Usuarios por cada organización,${this.totalOrganizationsCount > 0 ? (this.totalUsersCount / this.totalOrganizationsCount).toFixed(2) : 0}`,
+      `Ratio Donaciones/Usuarios,Donaciones por usuario,${this.totalUsersCount > 0 ? (Number(this.mainKPIs[2].value) / this.totalUsersCount).toFixed(2) : 0}`,
+      `Ratio Publicaciones/Organizaciones,Posts por organización,${this.totalOrganizationsCount > 0 ? (Number(this.mainKPIs[3].value) / this.totalOrganizationsCount).toFixed(2) : 0}`,
+      `Tasa de Verificación de Usuarios,Porcentaje de usuarios verificados,${this.totalUsersCount > 0 ? ((this.verifiedUsersCount / this.totalUsersCount) * 100).toFixed(1) : 0}%`,
+      `Tasa de Verificación de Organizaciones,Porcentaje de organizaciones verificadas,${this.totalOrganizationsCount > 0 ? ((Number(this.mainKPIs[1].value) / this.totalOrganizationsCount) * 100).toFixed(1) : 0}%`,
+      ''
+    ];
+
+    // ===== SECCIÓN 7: NOTAS Y OBSERVACIONES =====
+    const notas = [
+      '=== NOTAS Y OBSERVACIONES ===',
+      'Nota,Descripción',
+      `Generado automáticamente,Este reporte fue generado automáticamente desde el panel de administración`,
+      `Datos en tiempo real,Los datos reflejan el estado actual del sistema al momento de la exportación`,
+      `Período de análisis,${this.getReadablePeriod()}`,
+      `Próxima actualización recomendada,Se recomienda generar un nuevo reporte en 7 días`,
+      ''
+    ];
+
+    // ===== COMBINAR TODAS LAS SECCIONES =====
+    const fullContent = [
+      ...header,
+      ...resumenEjecutivo,
+      ...kpisPrincipales,
+      ...metricasRendimiento,
+      ...indicadoresActividad,
+      ...analisisComparativo,
+      ...notas
+    ].join('\n');
+
+    // Crear y descargar el archivo CSV
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + fullContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reporte_estadisticas_detallado_${fecha}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private getReadablePeriod(): string {
+    const periods: { [key: string]: string } = {
+      '7d': 'Últimos 7 días',
+      '30d': 'Últimos 30 días',
+      '3m': 'Últimos 3 meses',
+      '1y': 'Último año'
+    };
+    return periods[this.selectedPeriod] || this.selectedPeriod;
+  }
+
+  private getKPIStatus(direction?: 'up' | 'down' | 'neutral'): string {
+    if (!direction) return 'Sin cambios';
+    if (direction === 'up') return 'Positivo ↑';
+    if (direction === 'down') return 'Negativo ↓';
+    return 'Estable →';
   }
 }
