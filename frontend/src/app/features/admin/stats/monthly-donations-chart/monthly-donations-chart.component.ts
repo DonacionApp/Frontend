@@ -5,6 +5,7 @@ import { ChartConfiguration, ChartData } from 'chart.js';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CHART_COLORS, LINE_CHART_OPTIONS } from '../../../../shared/config/chart.config';
+import { StatsFilterService } from '../../../../core/services/stats-filter.service';
 
 interface MonthlyData {
   month: string;
@@ -24,6 +25,9 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
   @Input() data: MonthlyData[] = [];
   @Input() showAmount = false; // Si es true, muestra monto en lugar de cantidad
   @Input() chartHeight = '320px';
+
+  // Variable para mostrar información de filtros activos
+  public activeFiltersInfo = '';
 
   // Configuración del gráfico de líneas
   public lineChartData: ChartData<'line'> = {
@@ -92,11 +96,37 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
   public hasData = false;
   private resizeListener?: () => void;
 
-  constructor() {}
+  constructor(private filterService: StatsFilterService) {}
 
   ngOnInit(): void {
     this.initializeChart();
     this.setupResizeListener();
+    this.subscribeToFilterChanges();
+  }
+
+  private subscribeToFilterChanges(): void {
+    this.filterService.filters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => {
+        console.log('📊 [MonthlyDonationsChart] Filtros actualizados', filters);
+        this.updateActiveFiltersInfo(filters.dateRange?.startDate, filters.dateRange?.endDate);
+      });
+  }
+
+  private updateActiveFiltersInfo(startDate?: string, endDate?: string): void {
+    if (startDate && endDate) {
+      const start = new Date(startDate).toLocaleDateString('es-ES');
+      const end = new Date(endDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando desde ${start} hasta ${end}`;
+    } else if (startDate) {
+      const start = new Date(startDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando desde ${start}`;
+    } else if (endDate) {
+      const end = new Date(endDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando hasta ${end}`;
+    } else {
+      this.activeFiltersInfo = '';
+    }
   }
 
   private setupResizeListener(): void {

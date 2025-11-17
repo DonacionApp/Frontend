@@ -5,6 +5,7 @@ import { ChartConfiguration, ChartData } from 'chart.js';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { CHART_COLORS, BAR_CHART_OPTIONS } from '../../../../shared/config/chart.config';
+import { StatsFilterService } from '../../../../core/services/stats-filter.service';
 
 interface CategoryData {
   category: string;
@@ -25,6 +26,9 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   @Input() chartHeight = '360px';
   @Input() maxCategories = 10; // Mostrar top 10 por defecto
   @Input() totalCategoriesInDb = 0; // Total de categorías en la BD
+
+  // Variable para mostrar información de filtros activos
+  public activeFiltersInfo = '';
 
   // Configuración del gráfico de barras
   public barChartData: ChartData<'bar'> = {
@@ -107,11 +111,37 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   public hasData = false;
   private resizeListener?: () => void;
 
-  constructor() {}
+  constructor(private filterService: StatsFilterService) {}
 
   ngOnInit(): void {
     this.initializeChart();
     this.setupResizeListener();
+    this.subscribeToFilterChanges();
+  }
+
+  private subscribeToFilterChanges(): void {
+    this.filterService.filters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => {
+        console.log('📊 [PopularCategoriesChart] Filtros actualizados', filters);
+        this.updateActiveFiltersInfo(filters.dateRange?.startDate, filters.dateRange?.endDate);
+      });
+  }
+
+  private updateActiveFiltersInfo(startDate?: string, endDate?: string): void {
+    if (startDate && endDate) {
+      const start = new Date(startDate).toLocaleDateString('es-ES');
+      const end = new Date(endDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando desde ${start} hasta ${end}`;
+    } else if (startDate) {
+      const start = new Date(startDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando desde ${start}`;
+    } else if (endDate) {
+      const end = new Date(endDate).toLocaleDateString('es-ES');
+      this.activeFiltersInfo = `Filtrando hasta ${end}`;
+    } else {
+      this.activeFiltersInfo = '';
+    }
   }
 
   private setupResizeListener(): void {
