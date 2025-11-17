@@ -2,10 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PublicStatsViewComponent } from './public-stats-view.component';
-import { DonationService } from '../../../core/services/donation.service';
-import { PostsService } from '../../../core/services/posts.service';
-import { UserProfileService } from '../../../core/services/user-profile.service';
-import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
+import { PublicStatsService, UserPublicStats } from '../../../core/services/public-stats.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 describe('PublicStatsViewComponent', () => {
@@ -13,11 +10,25 @@ describe('PublicStatsViewComponent', () => {
   let fixture: ComponentFixture<PublicStatsViewComponent>;
   let mockActivatedRoute: any;
   let mockRouter: any;
-  let mockDonationService: any;
-  let mockPostsService: any;
-  let mockUserProfileService: any;
-  let mockOrganizationProfileService: any;
+  let mockPublicStatsService: any;
   let mockToastService: any;
+
+  const mockUserStats: UserPublicStats = {
+    userId: 1,
+    userType: 'donor',
+    username: 'testuser',
+    profilePhoto: 'photo.jpg',
+    verified: true,
+    createdAt: '2024-01-01',
+    totalDonations: 10,
+    donationsThisMonth: 2,
+    totalPosts: 5,
+    postsThisMonth: 1,
+    donations: [],
+    posts: [],
+    monthlyActivity: [],
+    categoryDistribution: []
+  };
 
   beforeEach(async () => {
     mockActivatedRoute = {
@@ -30,30 +41,8 @@ describe('PublicStatsViewComponent', () => {
       navigate: jasmine.createSpy('navigate')
     };
 
-    mockDonationService = {
-      getDonationsByDonor: jasmine.createSpy('getDonationsByDonor').and.returnValue(of([])),
-      getDonationsByOrganization: jasmine.createSpy('getDonationsByOrganization').and.returnValue(of([]))
-    };
-
-    mockPostsService = {
-      getPostsByUserId: jasmine.createSpy('getPostsByUserId').and.returnValue(of([]))
-    };
-
-    mockUserProfileService = {
-      getUserProfile: jasmine.createSpy('getUserProfile').and.returnValue(of({
-        id: 'test-user-id',
-        name: 'Test User',
-        username: 'testuser',
-        isVerified: true
-      }))
-    };
-
-    mockOrganizationProfileService = {
-      getOrganizationProfile: jasmine.createSpy('getOrganizationProfile').and.returnValue(of({
-        id: 'test-org-id',
-        organizationName: 'Test Organization',
-        isVerified: true
-      }))
+    mockPublicStatsService = {
+      getUserPublicStats: jasmine.createSpy('getUserPublicStats').and.returnValue(of(mockUserStats))
     };
 
     mockToastService = {
@@ -66,10 +55,7 @@ describe('PublicStatsViewComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
-        { provide: DonationService, useValue: mockDonationService },
-        { provide: PostsService, useValue: mockPostsService },
-        { provide: UserProfileService, useValue: mockUserProfileService },
-        { provide: OrganizationProfileService, useValue: mockOrganizationProfileService },
+        { provide: PublicStatsService, useValue: mockPublicStatsService },
         { provide: ToastService, useValue: mockToastService }
       ]
     }).compileComponents();
@@ -82,16 +68,19 @@ describe('PublicStatsViewComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load user profile on init', () => {
+  it('should load user stats on init', () => {
     fixture.detectChanges();
-    expect(mockUserProfileService.getUserProfile).toHaveBeenCalledWith('test-user-id');
+    expect(mockPublicStatsService.getUserPublicStats).toHaveBeenCalledWith('test-user-id');
     expect(component.userType).toBe('donor');
+    expect(component.userInfo?.name).toBe('testuser');
   });
 
-  it('should load organization profile if user profile fails', () => {
-    mockUserProfileService.getUserProfile.and.returnValue(throwError(() => new Error('Not found')));
+  it('should handle organization user type', () => {
+    const orgStats: UserPublicStats = { ...mockUserStats, userType: 'organization' };
+    mockPublicStatsService.getUserPublicStats.and.returnValue(of(orgStats));
+    
     fixture.detectChanges();
-    expect(mockOrganizationProfileService.getOrganizationProfile).toHaveBeenCalledWith('test-user-id');
+    expect(component.userType).toBe('organization');
   });
 
   it('should navigate to profile when goToProfile is called', () => {
@@ -106,5 +95,15 @@ describe('PublicStatsViewComponent', () => {
     });
     component.ngOnInit();
     expect(component.error).toBe('ID de usuario no proporcionado');
+  });
+
+  it('should handle stats loading error', () => {
+    mockPublicStatsService.getUserPublicStats.and.returnValue(
+      throwError(() => new Error('Not found'))
+    );
+    
+    fixture.detectChanges();
+    expect(component.error).toBe('No se pudo cargar el perfil del usuario');
+    expect(mockToastService.error).toHaveBeenCalled();
   });
 });

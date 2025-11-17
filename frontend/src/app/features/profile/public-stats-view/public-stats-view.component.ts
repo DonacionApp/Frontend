@@ -3,10 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import { PublicStatsComponent } from '../../../shared/components/public-stats/public-stats.component';
-import { DonationService } from '../../../core/services/donation.service';
-import { PostsService } from '../../../core/services/posts.service';
-import { UserProfileService } from '../../../core/services/user-profile.service';
-import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
+import { PublicStatsService, UserPublicStats } from '../../../core/services/public-stats.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 interface UserBasicInfo {
@@ -39,10 +36,7 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private donationService: DonationService,
-    private postsService: PostsService,
-    private userProfileService: UserProfileService,
-    private organizationProfileService: OrganizationProfileService,
+    private publicStatsService: PublicStatsService,
     private toastService: ToastService
   ) {}
 
@@ -74,96 +68,36 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.error = null;
 
-    // Primero intentar cargar como perfil de usuario/donante
-    this.userProfileService.getUserMinimal(Number(this.userId))
+    // Usar el servicio integrado de estadísticas públicas
+    this.publicStatsService.getUserPublicStats(this.userId)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isLoading = false)
       )
       .subscribe({
-        next: (profile) => {
+        next: (stats: UserPublicStats) => {
+          // Mapear la información del usuario
           this.userInfo = {
-            id: String(profile.id),
-            name: profile.username || 'Usuario',
-            userType: 'donor',
-            avatar: profile.profilePhoto,
-            verified: profile.emailVerified,
-            createdAt: profile.createdAt
+            id: String(stats.userId),
+            name: stats.username,
+            userType: stats.userType,
+            avatar: stats.profilePhoto,
+            verified: stats.verified,
+            createdAt: stats.createdAt
           };
-          this.userType = 'donor';
-          this.loadStatsData();
-        },
-        error: () => {
-          // Si falla como usuario, intentar como organización
-          this.loadOrganizationProfile();
-        }
-      });
-  }
+          this.userType = stats.userType;
 
-  /**
-   * Intenta cargar el perfil como organización
-   */
-  private loadOrganizationProfile(): void {
-    this.organizationProfileService.getOrganizationProfile(this.userId)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
-      )
-      .subscribe({
-        next: (profile: OrganizationProfile) => {
-          this.userInfo = {
-            id: profile.id || this.userId,
-            name: profile.name || profile.username || 'Organización',
-            userType: 'organization',
-            avatar: profile.logo,
-            verified: profile.isVerified,
-            createdAt: profile.createdAt
+          // Preparar datos para el componente de estadísticas
+          this.statsData = {
+            donations: stats.donations,
+            posts: stats.posts,
+            userType: stats.userType,
+            userId: stats.userId
           };
-          this.userType = 'organization';
-          this.loadStatsData();
         },
         error: () => {
           this.error = 'No se pudo cargar el perfil del usuario';
           this.toastService.error('Error', 'El perfil solicitado no existe o no está disponible');
-        }
-      });
-  }
-
-  /**
-   * Carga las estadísticas del usuario (donaciones y publicaciones)
-   */
-  private loadStatsData(): void {
-    const donationsRequest = this.userType === 'donor'
-      ? this.donationService.getDonationsByDonor(this.userId)
-      : this.donationService.getDonationsByOrganization(this.userId);
-
-    const postsRequest = this.postsService.getPostsByUserId(Number(this.userId));
-
-    // Cargar donaciones
-    donationsRequest
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (donations) => {
-          this.statsData.donations = donations;
-          this.statsData.userId = this.userId;
-          this.statsData.userType = this.userType;
-        },
-        error: (err) => {
-          console.error('Error al cargar donaciones:', err);
-          this.statsData.donations = [];
-        }
-      });
-
-    // Cargar publicaciones
-    postsRequest
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (posts) => {
-          this.statsData.posts = posts;
-        },
-        error: (err) => {
-          console.error('Error al cargar publicaciones:', err);
-          this.statsData.posts = [];
         }
       });
   }
