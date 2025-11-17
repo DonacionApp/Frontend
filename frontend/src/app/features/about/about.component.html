@@ -60,9 +60,31 @@
         >
           Acerca de DonacionApp
         </h1>
-        <p class="mx-auto mt-6 max-w-3xl text-base leading-7 text-gray-600 sm:text-lg md:text-xl">
-          Bienvenido a DonacionApp. Somos la plataforma que conecta de forma segura y transparente a personas solidarias con organizaciones que necesitan bienes materiales, agilizando cada entrega para generar impacto real y un futuro solidario.
-        </p>
+
+        <!-- Contenedor de contenido dinámico con estados de carga -->
+        <div class="mx-auto mt-6 max-w-3xl">
+          <!-- Estado de carga -->
+          <div *ngIf="isLoading" class="flex items-center justify-center py-8">
+            <div class="h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600"></div>
+            <span class="ml-3 text-sm text-gray-500">Cargando información...</span>
+          </div>
+
+          <!-- Estado de error (muestra contenido por defecto) -->
+          <p 
+            *ngIf="!isLoading && hasError" 
+            class="text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
+          >
+            Bienvenido a DonacionApp. Somos la plataforma que conecta de forma segura y transparente a personas solidarias con organizaciones que necesitan bienes materiales, agilizando cada entrega para generar impacto real y un futuro solidario.
+          </p>
+
+          <!-- Contenido dinámico del backend -->
+          <p 
+            *ngIf="!isLoading && !hasError" 
+            class="whitespace-pre-line text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
+          >
+            {{ aboutUsContent }}
+          </p>
+        </div>
       </div>
     </section>
 
@@ -130,7 +152,7 @@
               </header>
 
               <p class="mt-4 text-base leading-7 text-gray-600">
-                Promover donaciones confiables conectando a donantes y organizaciones mediante procesos digitales simples, trazables y humanos que aseguren que cada artículo llegue a quien más lo necesita.
+                Conectar de manera eficiente a personas y organizaciones que necesitan ayuda con donantes dispuestos a ofrecer recursos, bienes y apoyo. Proporcionamos las herramientas necesarias para publicar artículos para donar, gestionar necesidades específicas y asegurar un proceso de donación transparente y seguro.
               </p>
             </div>
           </article>
@@ -170,7 +192,7 @@
               </header>
 
               <p class="mt-4 text-base leading-7 text-gray-600">
-                Convertirnos en la red solidaria líder de la región, inspirando comunidades que reutilizan recursos, reducen desperdicios y potencian causas sociales sostenibles a través de la colaboración tecnológica.
+                Ser el puente tecnológico que conecta de forma directa y ágil a quienes desean ayudar con las organizaciones que lo necesitan. Buscamos catalizar el cambio social , asegurando que cada acto de bondad se traduzca en una ayuda real y tangible, optimizando recursos y fomentando un ecosistema de confianza y corresponsabilidad comunitaria.
               </p>
             </div>
           </article>
