@@ -5,6 +5,7 @@ import { AdminLayoutComponent } from './layout/admin-layout.component';
 import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
 import { AdminGuard } from '../../core/guards/admin.guard';
 import { AuditoriaComponent } from './auditoria/auditoria.component';
+import { DataTableComponent } from '../../shared/components/data-table/data-table.component';
 
 const routes: Routes = [
   {
@@ -103,6 +104,12 @@ const routes: Routes = [
         component:AuditoriaComponent,
         canActivate: [AdminGuard]
       }
+      ,
+      {
+        path: 'auditoria/user/:id',
+        loadComponent: () => import('./auditoria/auditoria-user.component').then(m => m.AuditoriaUserComponent),
+        canActivate: [AdminGuard]
+      }
     ]
   }
 ];
@@ -113,7 +120,9 @@ const routes: Routes = [
   ],
   imports: [
     CommonModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
+    // Importar el componente standalone usado en la plantilla
+    DataTableComponent
     // Los componentes standalone (AdminLayoutComponent, AdminDashboardComponent) 
     // se cargan directamente a través de las rutas, no necesitan estar en imports
   ],
