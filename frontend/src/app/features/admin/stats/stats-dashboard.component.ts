@@ -10,6 +10,7 @@ import { PopularCategoriesChartComponent } from './popular-categories-chart/popu
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
+import { StatsFilterService, DateFilters } from '../../../core/services/stats-filter.service';
 
 interface KPICard {
   title: string;
@@ -22,11 +23,6 @@ interface KPICard {
     direction: 'up' | 'down' | 'neutral';
   };
   loading: boolean;
-}
-
-interface DateFilters {
-  startDate: string;
-  endDate: string;
 }
 
 @Component({
@@ -209,10 +205,28 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private userService: UserManagementService,
     private postsService: PostsService,
-    private donationService: DonationService
+    private donationService: DonationService,
+    private filterService: StatsFilterService
   ) {}
 
   ngOnInit(): void {
+    // Suscribirse a cambios en los filtros
+    this.filterService.filters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => {
+        console.log('🔄 Filtros actualizados, recargando estadísticas:', filters);
+        // Solo recargar si no es la inicialización
+        if (this.lastUpdateTime) {
+          this.loadStatistics();
+        }
+      });
+
+    // Cargar filtros actuales al componente
+    const currentFilters = this.filterService.getCurrentFilters();
+    this.dateFilters = currentFilters.dateRange;
+    this.currentPreset = currentFilters.preset || '';
+
+    // Carga inicial de estadísticas
     this.loadStatistics();
   }
 
@@ -891,7 +905,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
     
     // Aplicar filtros de fecha si están activos
-    const filteredDonations = this.filterDataByDateRange(allDonations);
+    const filteredDonations = this.filterService.filterDataByDateRange(allDonations);
     console.log('📊 Donaciones después de filtrar:', filteredDonations.length);
     
     const monthNames = [
@@ -935,7 +949,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     console.log('📊 Calculando categorías populares con:', allPosts.length, 'posts');
     
     // Aplicar filtros de fecha si están activos
-    const filteredPosts = this.filterDataByDateRange(allPosts);
+    const filteredPosts = this.filterService.filterDataByDateRange(allPosts);
     console.log('📊 Posts después de filtrar:', filteredPosts.length);
     
     // Contar posts por tipo (typePost)
@@ -974,38 +988,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Aplica el preset de fecha seleccionado
    */
   applyDatePreset(preset: string): void {
+    this.filterService.applyDatePreset(preset);
+    // Actualizar el preset local para el UI
     this.currentPreset = preset;
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-
-    switch (preset) {
-      case 'today':
-        this.dateFilters.startDate = todayStr;
-        this.dateFilters.endDate = todayStr;
-        break;
-      
-      case 'week':
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay()); // Domingo
-        this.dateFilters.startDate = weekStart.toISOString().split('T')[0];
-        this.dateFilters.endDate = todayStr;
-        break;
-      
-      case 'month':
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        this.dateFilters.startDate = monthStart.toISOString().split('T')[0];
-        this.dateFilters.endDate = todayStr;
-        break;
-      
-      case 'year':
-        const yearStart = new Date(today.getFullYear(), 0, 1);
-        this.dateFilters.startDate = yearStart.toISOString().split('T')[0];
-        this.dateFilters.endDate = todayStr;
-        break;
-    }
-
-    // Aplicar automáticamente el filtro cuando se selecciona un preset
-    this.applyFilters();
   }
 
   /**
@@ -1014,6 +999,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   onDateFilterChange(): void {
     // Reset preset si el usuario modifica manualmente las fechas
     this.currentPreset = '';
+    this.filterService.setDateRange(this.dateFilters.startDate, this.dateFilters.endDate);
   }
 
   /**
@@ -1030,65 +1016,38 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Recargar estadísticas con los filtros aplicados
-    this.loadStatistics();
+    // Actualizar el servicio con las fechas actuales
+    this.filterService.setDateRange(this.dateFilters.startDate, this.dateFilters.endDate);
   }
 
   /**
    * Limpia todos los filtros aplicados
    */
   clearFilters(): void {
+    this.filterService.clearFilters();
+    // Actualizar variables locales
     this.dateFilters = {
       startDate: '',
       endDate: ''
     };
     this.currentPreset = '';
-    
-    console.log('🧹 Filtros limpiados');
-    
-    // Recargar estadísticas sin filtros
-    this.loadStatistics();
   }
 
   /**
    * Remueve un filtro de fecha específico
    */
   removeDateFilter(type: 'start' | 'end'): void {
-    if (type === 'start') {
-      this.dateFilters.startDate = '';
-    } else {
-      this.dateFilters.endDate = '';
-    }
+    this.filterService.removeDateFilter(type);
+    // Actualizar variables locales
+    const currentFilters = this.filterService.getCurrentFilters();
+    this.dateFilters = currentFilters.dateRange;
     this.currentPreset = '';
-    this.applyFilters();
   }
 
   /**
    * Verifica si hay filtros activos
    */
   hasActiveFilters(): boolean {
-    return !!(this.dateFilters.startDate || this.dateFilters.endDate);
-  }
-
-  /**
-   * Filtra un array de datos según el rango de fechas seleccionado
-   */
-  private filterDataByDateRange<T extends { createdAt?: string | Date }>(data: T[]): T[] {
-    if (!this.dateFilters.startDate && !this.dateFilters.endDate) {
-      return data;
-    }
-
-    return data.filter(item => {
-      if (!item.createdAt) return false;
-      
-      const itemDate = new Date(item.createdAt);
-      const startDate = this.dateFilters.startDate ? new Date(this.dateFilters.startDate) : null;
-      const endDate = this.dateFilters.endDate ? new Date(this.dateFilters.endDate + 'T23:59:59') : null;
-
-      if (startDate && itemDate < startDate) return false;
-      if (endDate && itemDate > endDate) return false;
-      
-      return true;
-    });
+    return this.filterService.hasActiveFilters();
   }
 }
