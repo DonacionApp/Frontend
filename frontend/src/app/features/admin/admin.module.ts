@@ -87,6 +87,11 @@ const routes: Routes = [
         loadComponent: () => import('./profile/admin-profile.component').then(m => m.AdminProfileComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'stats', 
+        loadComponent: () => import('./stats/stats-dashboard.component').then(m => m.StatsDashboardComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];

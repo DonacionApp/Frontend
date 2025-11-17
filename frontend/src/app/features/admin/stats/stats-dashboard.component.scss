@@ -1,0 +1,34 @@
+// Estilos adicionales para animaciones y transiciones personalizadas
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+// Estilos para las tarjetas de KPI con efecto hover mejorado
+.kpi-card {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
+// Animación para las barras de progreso
+.progress-bar {
+  transition: width 0.8s ease-in-out;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
