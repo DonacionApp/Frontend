@@ -15,6 +15,14 @@ export interface UserTotals {
 }
 
 /**
+ * Interface para resumen de artículos
+ */
+export interface ArticleSummary {
+  articleName: string;
+  quantity: number;
+}
+
+/**
  * Interface para donaciones agrupadas por estado
  */
 export interface DonationsByStatus {
@@ -42,6 +50,8 @@ export interface UserPublicStats {
   totals?: UserTotals;
   donationsByStatus?: DonationsByStatus[];
   donationsAsDonatorByStatus?: DonationsByStatus[];
+  donatedArticles?: ArticleSummary[];
+  receivedArticles?: ArticleSummary[];
   donations: DonationStat[];
   posts: PostStat[];
   monthlyActivity: MonthlyActivity[];
@@ -241,6 +251,10 @@ export class PublicStatsService {
         );
         const donationsAsDonatorByStatus = this.groupDonationsByStatus(donationsAsDonator);
 
+        // Calcular artículos donados y recibidos
+        const donatedArticles = this.calculateDonatedArticles(donations, user.id);
+        const receivedArticles = this.calculateReceivedArticles(donations, posts, user.id);
+
         return {
           userId: user.id,
           userType,
@@ -257,6 +271,8 @@ export class PublicStatsService {
           totals,
           donationsByStatus,
           donationsAsDonatorByStatus,
+          donatedArticles,
+          receivedArticles,
           donations: donationStats,
           posts: postStats,
           monthlyActivity,
@@ -373,6 +389,74 @@ export class PublicStatsService {
 
     // Ordenar por cantidad descendente
     return grouped.sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Calcular artículos donados por el usuario (como donador)
+   */
+  private calculateDonatedArticles(donations: any[], userId: number): ArticleSummary[] {
+    const articleMap = new Map<string, number>();
+
+    // Filtrar donaciones donde el usuario es el donador
+    const donationsAsDonor = donations.filter((d: any) => 
+      d.donator?.id === userId || d.userId === userId
+    );
+
+    donationsAsDonor.forEach((donation: any) => {
+      if (donation.articles && Array.isArray(donation.articles)) {
+        donation.articles.forEach((article: any) => {
+          const articleName = article.article?.name || article.name || 'Artículo sin nombre';
+          const quantity = parseInt(article.quantity) || 0;
+          
+          const currentQuantity = articleMap.get(articleName) || 0;
+          articleMap.set(articleName, currentQuantity + quantity);
+        });
+      }
+    });
+
+    // Convertir a array y ordenar por cantidad descendente
+    const articles: ArticleSummary[] = [];
+    articleMap.forEach((quantity, articleName) => {
+      articles.push({ articleName, quantity });
+    });
+
+    return articles.sort((a, b) => b.quantity - a.quantity);
+  }
+
+  /**
+   * Calcular artículos recibidos por el usuario (como organización/beneficiario)
+   */
+  private calculateReceivedArticles(donations: any[], posts: any[], userId: number): ArticleSummary[] {
+    const articleMap = new Map<string, number>();
+
+    // Obtener IDs de posts del usuario
+    const userPostIds = posts.map((p: any) => p.id);
+
+    // Filtrar donaciones dirigidas a posts del usuario
+    const donationsReceived = donations.filter((d: any) => {
+      const postId = d.post?.id || d.postId;
+      return userPostIds.includes(postId);
+    });
+
+    donationsReceived.forEach((donation: any) => {
+      if (donation.articles && Array.isArray(donation.articles)) {
+        donation.articles.forEach((article: any) => {
+          const articleName = article.article?.name || article.name || 'Artículo sin nombre';
+          const quantity = parseInt(article.quantity) || 0;
+          
+          const currentQuantity = articleMap.get(articleName) || 0;
+          articleMap.set(articleName, currentQuantity + quantity);
+        });
+      }
+    });
+
+    // Convertir a array y ordenar por cantidad descendente
+    const articles: ArticleSummary[] = [];
+    articleMap.forEach((quantity, articleName) => {
+      articles.push({ articleName, quantity });
+    });
+
+    return articles.sort((a, b) => b.quantity - a.quantity);
   }
 
   /**

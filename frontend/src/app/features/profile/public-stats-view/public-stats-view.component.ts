@@ -4,7 +4,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import { PublicStatsComponent } from '../../../shared/components/public-stats/public-stats.component';
 import { DonationStatusDonutChartComponent } from '../../../shared/components/donation-status-donut-chart/donation-status-donut-chart.component';
-import { PublicStatsService, UserPublicStats, UserTotals } from '../../../core/services/public-stats.service';
+import { ArticlesListComponent } from '../../../shared/components/articles-list/articles-list.component';
+import { PublicStatsService, UserPublicStats, UserTotals, ArticleSummary } from '../../../core/services/public-stats.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 interface UserBasicInfo {
@@ -19,7 +20,7 @@ interface UserBasicInfo {
 @Component({
   selector: 'app-public-stats-view',
   standalone: true,
-  imports: [CommonModule, PublicStatsComponent, DonationStatusDonutChartComponent, RouterModule],
+  imports: [CommonModule, PublicStatsComponent, DonationStatusDonutChartComponent, ArticlesListComponent, RouterModule],
   templateUrl: './public-stats-view.component.html',
   styleUrls: ['./public-stats-view.component.scss']
 })
@@ -32,6 +33,8 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
   totals: UserTotals | null = null;
   donationsByStatus: any[] = [];
   donationsAsDonatorByStatus: any[] = [];
+  donatedArticles: ArticleSummary[] = [];
+  receivedArticles: ArticleSummary[] = [];
   userType: 'donor' | 'organization' = 'donor';
   
   isLoading = true;
@@ -102,6 +105,10 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
           // Asignar datos de gráficos de dona
           this.donationsByStatus = stats.donationsByStatus || [];
           this.donationsAsDonatorByStatus = stats.donationsAsDonatorByStatus || [];
+
+          // Asignar artículos donados y recibidos
+          this.donatedArticles = stats.donatedArticles || [];
+          this.receivedArticles = stats.receivedArticles || [];
 
           // Preparar datos para el componente de estadísticas
           this.statsData = {

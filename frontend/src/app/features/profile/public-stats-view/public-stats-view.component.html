@@ -199,6 +199,29 @@
       </div>
     </div>
 
+    <!-- Listados de Artículos -->
+    <div *ngIf="!isLoading && userInfo && (donatedArticles.length > 0 || receivedArticles.length > 0)" class="mt-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Detalle de Artículos</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Artículos Donados -->
+        <app-articles-list
+          title="Artículos Donados"
+          [articles]="donatedArticles"
+          emptyMessage="No has donado artículos aún"
+          iconColor="orange">
+        </app-articles-list>
+
+        <!-- Artículos Recibidos -->
+        <app-articles-list
+          title="Artículos Recibidos"
+          [articles]="receivedArticles"
+          emptyMessage="No has recibido artículos aún"
+          iconColor="green">
+        </app-articles-list>
+      </div>
+    </div>
+
     <!-- Estado de carga -->
     <div *ngIf="isLoading" class="flex items-center justify-center py-16">
       <div class="text-center">
