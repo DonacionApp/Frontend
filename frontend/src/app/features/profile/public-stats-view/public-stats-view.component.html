@@ -76,8 +76,75 @@
 
   <!-- Contenedor de estadísticas -->
   <div class="container mx-auto px-4 py-8">
+    <!-- Tarjetas de Totales / KPIs -->
+    <div *ngIf="!isLoading && userInfo && totals" class="mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Resumen de Actividad</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Donaciones Realizadas -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals.totalDonationsAsDonator }}</p>
+            <p class="text-sm text-gray-600">Donaciones Realizadas</p>
+          </div>
+        </div>
+
+        <!-- Publicaciones Propias -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals.totalPosts }}</p>
+            <p class="text-sm text-gray-600">Publicaciones Propias</p>
+          </div>
+        </div>
+
+        <!-- Interacciones/Chats -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals.chatsCount }}</p>
+            <p class="text-sm text-gray-600">Interacciones/Chats</p>
+          </div>
+        </div>
+
+        <!-- "Me gusta" recibidos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-pink-500 to-pink-600">
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals.totalLikes }}</p>
+            <p class="text-sm text-gray-600">"Me gusta" recibidos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Título de estadísticas detalladas -->
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Estadísticas de Impacto</h2>
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">Estadísticas Detalladas</h2>
       <p class="text-gray-600">
         Historial público de {{ userType === 'donor' ? 'donaciones realizadas' : 'donaciones recibidas' }} y actividad en la plataforma
       </p>

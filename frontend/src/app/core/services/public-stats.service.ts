@@ -5,6 +5,16 @@ import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 /**
+ * Interface para los totales generales del usuario
+ */
+export interface UserTotals {
+  totalDonationsAsDonator: number;
+  totalPosts: number;
+  chatsCount: number;
+  totalLikes: number;
+}
+
+/**
  * Interface para las estadísticas públicas de un usuario
  */
 export interface UserPublicStats {
@@ -20,6 +30,7 @@ export interface UserPublicStats {
   postsThisMonth: number;
   totalArticlesDonated?: number;
   responseRate?: number;
+  totals?: UserTotals;
   donations: DonationStat[];
   posts: PostStat[];
   monthlyActivity: MonthlyActivity[];
@@ -195,6 +206,21 @@ export class PublicStatsService {
         // Calcular distribución por categoría
         const categoryDistribution = this.calculateCategoryDistribution(posts);
 
+        // Calcular totales para KPIs
+        const totalLikes = posts.reduce((sum: number, p: any) => {
+          return sum + (p.likes?.length || p.likesCount || 0);
+        }, 0);
+
+        // Contar chats únicos del usuario
+        const chatsCount = user.countChats || user.chatsCount || 0;
+
+        const totals: UserTotals = {
+          totalDonationsAsDonator: donations.length,
+          totalPosts: posts.length,
+          chatsCount,
+          totalLikes
+        };
+
         return {
           userId: user.id,
           userType,
@@ -208,6 +234,7 @@ export class PublicStatsService {
           postsThisMonth,
           totalArticlesDonated,
           responseRate,
+          totals,
           donations: donationStats,
           posts: postStats,
           monthlyActivity,

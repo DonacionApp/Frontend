@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import { PublicStatsComponent } from '../../../shared/components/public-stats/public-stats.component';
-import { PublicStatsService, UserPublicStats } from '../../../core/services/public-stats.service';
+import { PublicStatsService, UserPublicStats, UserTotals } from '../../../core/services/public-stats.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 interface UserBasicInfo {
@@ -28,6 +28,7 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
   userId: string = '';
   userInfo: UserBasicInfo | null = null;
   statsData: any = {};
+  totals: UserTotals | null = null;
   userType: 'donor' | 'organization' = 'donor';
   
   isLoading = true;
@@ -86,6 +87,14 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
             createdAt: stats.createdAt
           };
           this.userType = stats.userType;
+
+          // Asignar totales para los KPIs
+          this.totals = stats.totals || {
+            totalDonationsAsDonator: stats.totalDonations,
+            totalPosts: stats.totalPosts,
+            chatsCount: 0,
+            totalLikes: 0
+          };
 
           // Preparar datos para el componente de estadísticas
           this.statsData = {
