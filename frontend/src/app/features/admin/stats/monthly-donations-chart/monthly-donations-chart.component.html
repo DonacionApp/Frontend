@@ -1,0 +1,111 @@
+<div class="monthly-donations-chart-container">
+  <!-- Header con título y acciones -->
+  <div class="chart-header">
+    <div class="chart-info">
+      <h3 class="chart-title">
+        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+          </path>
+        </svg>
+        Donaciones por Mes
+      </h3>
+      <p class="chart-subtitle">
+        {{ showAmount ? 'Monto total recaudado' : 'Cantidad de donaciones' }} en los últimos 6 meses
+      </p>
+    </div>
+
+    <!-- Acciones -->
+    <div class="chart-actions">
+      <button 
+        class="action-btn refresh-btn" 
+        (click)="refresh()"
+        [disabled]="isLoading"
+        title="Actualizar datos">
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+          </path>
+        </svg>
+      </button>
+      
+      <button 
+        class="action-btn export-btn" 
+        (click)="exportCSV()"
+        [disabled]="isLoading || !hasData"
+        title="Exportar datos">
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+          </path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Estadísticas rápidas -->
+  <div class="quick-stats" *ngIf="hasData && !isLoading">
+    <div class="stat-item">
+      <span class="stat-label">Total</span>
+      <span class="stat-value">
+        {{ showAmount ? ('$' + getTotalAmount().toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : getTotalDonations().toLocaleString('es-ES') }}
+      </span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Promedio mensual</span>
+      <span class="stat-value">
+        {{ showAmount ? ('$' + getMonthlyAverage().toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : getMonthlyAverage().toFixed(1) }}
+      </span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Meses analizados</span>
+      <span class="stat-value">{{ data.length }}</span>
+    </div>
+  </div>
+
+  <!-- Contenedor del gráfico -->
+  <div class="chart-wrapper" [style.height]="chartHeight">
+    <!-- Skeleton loader -->
+    <div class="chart-skeleton" *ngIf="isLoading">
+      <div class="skeleton-pulse"></div>
+      <p class="skeleton-text">Cargando datos del gráfico...</p>
+    </div>
+
+    <!-- Mensaje sin datos -->
+    <div class="no-data-message" *ngIf="!hasData && !isLoading">
+      <svg class="no-data-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+        </path>
+      </svg>
+      <p class="no-data-text">No hay datos disponibles</p>
+      <p class="no-data-subtext">Los datos aparecerán aquí cuando estén disponibles</p>
+    </div>
+
+    <!-- Gráfico de Chart.js -->
+    <canvas 
+      *ngIf="hasData && !isLoading"
+      baseChart
+      [data]="lineChartData"
+      [options]="lineChartOptions"
+      type="line"
+      class="chart-canvas">
+    </canvas>
+  </div>
+
+  <!-- Footer informativo -->
+  <div class="chart-footer" *ngIf="hasData && !isLoading">
+    <div class="footer-info">
+      <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+        </path>
+      </svg>
+      <span class="footer-text">
+        Datos actualizados en tiempo real. Última actualización: {{ 'ahora' }}
+      </span>
+    </div>
+  </div>
+</div>

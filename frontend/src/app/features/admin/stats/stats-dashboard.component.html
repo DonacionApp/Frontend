@@ -132,6 +132,15 @@
     </div>
   </div>
 
+  <!-- Gráfico de Donaciones por Mes -->
+  <div class="mb-8">
+    <app-monthly-donations-chart 
+      [data]="monthlyDonationsData"
+      [showAmount]="false"
+      chartHeight="380px">
+    </app-monthly-donations-chart>
+  </div>
+
   <!-- Summary Cards -->
   <div class="mb-8">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Resumen Ejecutivo</h2>

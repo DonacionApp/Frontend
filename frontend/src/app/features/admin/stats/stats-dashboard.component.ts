@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, retry } from 'rxjs/operators';
 import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.component';
+import { MonthlyDonationsChartComponent } from './monthly-donations-chart/monthly-donations-chart.component';
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
@@ -24,7 +25,7 @@ interface KPICard {
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, KpiCardComponent],
+  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent],
   templateUrl: './stats-dashboard.component.html',
   styleUrls: ['./stats-dashboard.component.scss']
 })
@@ -65,6 +66,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   // Datos para Resumen Ejecutivo
   newUsersLast7Days = 0;
   newOrgsLast7Days = 0;
+
+  // Datos para el gráfico de donaciones mensuales
+  monthlyDonationsData: Array<{month: string, donations: number, amount?: number}> = [];
 
   // KPIs Principales (se actualizarán con datos reales y tendencias calculadas)
   mainKPIs: KPICard[] = [
@@ -349,6 +353,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[2].value = totalDonations;
     this.mainKPIs[2].loading = false;
     this.calculateDonationMetrics(totalDonations, allDonations);
+    this.calculateMonthlyDonations(allDonations);
   }
 
   /**
@@ -745,64 +750,67 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const periodReadable = this.getReadablePeriod();
 
-    // Generar CSV estructurado con 7 secciones
+    // Generar CSV estructurado con 7 secciones usando punto y coma como separador
     const csvRows = [
       // SECCIÓN 1: Encabezado
       `Reporte de Estadísticas - ${periodReadable}`,
-      `Fecha de generación: ${new Date().toLocaleString('es-ES')}`,
-      `Última actualización: ${this.lastUpdateTime?.toLocaleString('es-ES') || 'N/A'}`,
-      `Estado del sistema: ${this.systemHealth.overall}`,
+      `Fecha de generación;${new Date().toLocaleString('es-ES')}`,
+      `Última actualización;${this.lastUpdateTime?.toLocaleString('es-ES') || 'N/A'}`,
+      `Estado del sistema;${this.systemHealth.overall}`,
       '',
 
       // SECCIÓN 2: Resumen Ejecutivo
       '=== RESUMEN EJECUTIVO ===',
-      `Total de Usuarios: ${this.totalUsersCount}`,
-      `Organizaciones Totales: ${this.totalOrganizationsCount}`,
-      `Donaciones Totales: ${this.totalDonationsCount}`,
-      `Donaciones Este Mes: ${this.donationsThisMonth}`,
-      `Promedio Diario de Donaciones: ${this.averageDailyDonations}`,
+      `Métrica;Valor`,
+      `Total de Usuarios;${this.totalUsersCount}`,
+      `Organizaciones Totales;${this.totalOrganizationsCount}`,
+      `Donaciones Totales;${this.totalDonationsCount}`,
+      `Donaciones Este Mes;${this.donationsThisMonth}`,
+      `Promedio Diario de Donaciones;${this.averageDailyDonations}`,
       '',
 
       // SECCIÓN 3: KPIs Principales
       '=== INDICADORES CLAVE (KPIs) ===',
-      'Título,Valor,Subtítulo,Tendencia,Dirección',
+      'Título;Valor;Subtítulo;Tendencia;Dirección',
       ...this.mainKPIs.map(kpi => 
-        `"${kpi.title}",${kpi.value},"${kpi.subtitle}","${kpi.trend?.value || 'N/A'}",${kpi.trend?.direction || 'neutral'}`
+        `${kpi.title};${kpi.value};${kpi.subtitle};${kpi.trend?.value || 'N/A'};${kpi.trend?.direction || 'neutral'}`
       ),
       '',
 
       // SECCIÓN 4: Métricas de Rendimiento
       '=== MÉTRICAS DE RENDIMIENTO ===',
-      'Título,Valor,Subtítulo,Tendencia',
+      'Título;Valor;Subtítulo;Tendencia',
       ...this.secondaryKPIs.map(kpi =>
-        `"${kpi.title}",${kpi.value},"${kpi.subtitle}","${kpi.trend?.value || 'N/A'}"`
+        `${kpi.title};${kpi.value};${kpi.subtitle};${kpi.trend?.value || 'N/A'}`
       ),
       '',
 
       // SECCIÓN 5: Indicadores de Engagement
       '=== INDICADORES DE ACTIVIDAD ===',
-      'Indicador,Valor Actual,Total,Porcentaje',
+      'Indicador;Valor Actual;Total;Porcentaje',
       ...this.engagementKPIs.map(kpi =>
-        `"${kpi.label}",${kpi.value},${kpi.total},${kpi.percentage.toFixed(1)}%`
+        `${kpi.label};${kpi.value};${kpi.total};${kpi.percentage.toFixed(1)}%`
       ),
       '',
 
       // SECCIÓN 6: Análisis Comparativo
       '=== ANÁLISIS COMPARATIVO ===',
-      `Usuarios - Semana Actual: ${this.currentWeekUsers}`,
-      `Usuarios - Semana Anterior: ${this.previousWeekUsers}`,
-      `Donaciones - Mes Actual: ${this.donationsThisMonth}`,
-      `Donaciones - Mes Anterior: ${this.previousMonthDonations}`,
-      `Ratio Usuarios/Organizaciones: ${this.totalOrganizationsCount > 0 ? (this.totalUsersCount / this.totalOrganizationsCount).toFixed(2) : 'N/A'}`,
-      `Ratio Donaciones/Usuarios: ${this.totalUsersCount > 0 ? (this.totalDonationsCount / this.totalUsersCount).toFixed(2) : 'N/A'}`,
+      'Métrica;Valor',
+      `Usuarios - Semana Actual;${this.currentWeekUsers}`,
+      `Usuarios - Semana Anterior;${this.previousWeekUsers}`,
+      `Donaciones - Mes Actual;${this.donationsThisMonth}`,
+      `Donaciones - Mes Anterior;${this.previousMonthDonations}`,
+      `Ratio Usuarios/Organizaciones;${this.totalOrganizationsCount > 0 ? (this.totalUsersCount / this.totalOrganizationsCount).toFixed(2) : 'N/A'}`,
+      `Ratio Donaciones/Usuarios;${this.totalUsersCount > 0 ? (this.totalDonationsCount / this.totalUsersCount).toFixed(2) : 'N/A'}`,
       '',
 
-      // SECCIÓN 7: Notas y Observaciones
+      // SECCIÓN 7: Estado del Sistema
       '=== ESTADO DEL SISTEMA ===',
-      `Estado General: ${this.systemHealth.overall}`,
-      `Errores de API - Usuarios: ${this.apiErrors.users ? 'SÍ' : 'NO'}`,
-      `Errores de API - Publicaciones: ${this.apiErrors.posts ? 'SÍ' : 'NO'}`,
-      `Errores de API - Donaciones: ${this.apiErrors.donations ? 'SÍ' : 'NO'}`,
+      'Componente;Estado',
+      `Estado General;${this.systemHealth.overall}`,
+      `API - Usuarios;${this.apiErrors.users ? 'ERROR' : 'OK'}`,
+      `API - Publicaciones;${this.apiErrors.posts ? 'ERROR' : 'OK'}`,
+      `API - Donaciones;${this.apiErrors.donations ? 'ERROR' : 'OK'}`,
       '',
       '=== FIN DEL REPORTE ==='
     ];
@@ -832,5 +840,48 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     if (trend === 'up') return 'Mejorando';
     if (trend === 'down') return 'Decreciendo';
     return 'Estable';
+  }
+
+  /**
+   * Calcula las donaciones agrupadas por mes para el gráfico
+   */
+  private calculateMonthlyDonations(allDonations: any[]): void {
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Obtener los últimos 6 meses
+    const today = new Date();
+    const last6Months: Array<{month: string, donations: number, amount: number}> = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+
+      // Filtrar donaciones del mes
+      const monthDonations = allDonations.filter(donation => {
+        if (!donation.createdAt) return false;
+        const donationDate = new Date(donation.createdAt);
+        return donationDate >= monthStart && donationDate <= monthEnd;
+      });
+
+      // Calcular cantidad y monto total
+      const count = monthDonations.length;
+      const totalAmount = monthDonations.reduce((sum, d) => {
+        const amount = parseFloat(d.amount) || 0;
+        return sum + amount;
+      }, 0);
+
+      last6Months.push({
+        month: monthNames[date.getMonth()],
+        donations: count,
+        amount: totalAmount
+      });
+    }
+
+    this.monthlyDonationsData = last6Months;
+    console.log('📊 Datos mensuales calculados:', this.monthlyDonationsData);
   }
 }

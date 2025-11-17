@@ -22,7 +22,10 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  LineController,
+  BarController,
+  DoughnutController
 } from 'chart.js';
 
 // Registrar componentes de Chart.js globalmente
@@ -36,7 +39,10 @@ Chart.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  LineController,
+  BarController,
+  DoughnutController
 );
 
 // Registrar el locale español
