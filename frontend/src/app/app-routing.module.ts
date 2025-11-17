@@ -34,6 +34,13 @@ const routes: Routes = [
     loadComponent: () => import('./features/profile/public-stats-view/public-stats-view.component').then(m => m.PublicStatsViewComponent)
   },
   
+  // Ruta privada para ver las estadísticas propias (con AuthGuard)
+  {
+    path: 'dashboard/estadisticas',
+    loadComponent: () => import('./features/dashboard/stats/stats.component').then(m => m.StatsComponent),
+    canActivate: [AuthGuard]
+  },
+  
   // Página de acceso denegado
   { path: 'access-denied', component: AccessDeniedComponent },
   

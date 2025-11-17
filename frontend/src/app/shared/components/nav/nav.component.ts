@@ -252,7 +252,7 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onStatisticsClick(): void {
     this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/dashboard/estadisticas']);
   }
 
   getProfileRoute(): string {
