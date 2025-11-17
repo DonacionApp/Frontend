@@ -16,8 +16,7 @@ interface MonthlyData {
   selector: 'app-monthly-donations-chart',
   standalone: true,
   imports: [CommonModule, BaseChartDirective],
-  templateUrl: './monthly-donations-chart.component.html',
-  styleUrls: ['./monthly-donations-chart.component.scss']
+  templateUrl: './monthly-donations-chart.component.html'
 })
 export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();

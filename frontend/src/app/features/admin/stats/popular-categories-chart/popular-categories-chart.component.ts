@@ -16,8 +16,7 @@ interface CategoryData {
   selector: 'app-popular-categories-chart',
   standalone: true,
   imports: [CommonModule, BaseChartDirective],
-  templateUrl: './popular-categories-chart.component.html',
-  styleUrls: ['./popular-categories-chart.component.scss']
+  templateUrl: './popular-categories-chart.component.html'
 })
 export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnChanges {
   private destroy$ = new Subject<void>();

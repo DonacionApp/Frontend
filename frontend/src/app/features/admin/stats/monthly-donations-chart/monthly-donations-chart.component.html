@@ -1,28 +1,28 @@
-<div class="monthly-donations-chart-container">
+<div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow">
   <!-- Header con título y acciones -->
-  <div class="chart-header">
-    <div class="chart-info">
-      <h3 class="chart-title">
-        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5 pb-4 border-b border-gray-200">
+    <div class="flex-1">
+      <h3 class="flex items-center gap-2.5 text-xl font-semibold text-gray-800 mb-2">
+        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
           </path>
         </svg>
         Donaciones por Mes
       </h3>
-      <p class="chart-subtitle">
+      <p class="text-sm text-gray-500">
         {{ showAmount ? 'Monto total recaudado' : 'Cantidad de donaciones' }} en los últimos 6 meses
       </p>
     </div>
 
     <!-- Acciones -->
-    <div class="chart-actions">
+    <div class="flex gap-2">
       <button 
-        class="action-btn refresh-btn" 
+        class="flex items-center justify-center w-9 h-9 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all hover:bg-blue-50 hover:border-blue-200 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed" 
         (click)="refresh()"
         [disabled]="isLoading"
         title="Actualizar datos">
-        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
           </path>
@@ -30,11 +30,11 @@
       </button>
       
       <button 
-        class="action-btn export-btn" 
+        class="flex items-center justify-center w-9 h-9 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all hover:bg-green-50 hover:border-green-200 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed" 
         (click)="exportCSV()"
         [disabled]="isLoading || !hasData"
         title="Exportar datos">
-        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
           </path>
@@ -44,44 +44,44 @@
   </div>
 
   <!-- Estadísticas rápidas -->
-  <div class="quick-stats" *ngIf="hasData && !isLoading">
-    <div class="stat-item">
-      <span class="stat-label">Total</span>
-      <span class="stat-value">
+  <div class="flex flex-col sm:flex-row items-center justify-around bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 sm:p-5 mb-5" *ngIf="hasData && !isLoading">
+    <div class="flex flex-col items-center gap-1">
+      <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Total</span>
+      <span class="text-xl font-bold text-gray-900">
         {{ showAmount ? ('$' + getTotalAmount().toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : getTotalDonations().toLocaleString('es-ES') }}
       </span>
     </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <span class="stat-label">Promedio mensual</span>
-      <span class="stat-value">
+    <div class="w-full sm:w-px h-px sm:h-10 bg-gray-300"></div>
+    <div class="flex flex-col items-center gap-1">
+      <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Promedio mensual</span>
+      <span class="text-xl font-bold text-gray-900">
         {{ showAmount ? ('$' + getMonthlyAverage().toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : getMonthlyAverage().toFixed(1) }}
       </span>
     </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <span class="stat-label">Meses analizados</span>
-      <span class="stat-value">{{ data.length }}</span>
+    <div class="w-full sm:w-px h-px sm:h-10 bg-gray-300"></div>
+    <div class="flex flex-col items-center gap-1">
+      <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Meses analizados</span>
+      <span class="text-xl font-bold text-gray-900">{{ data.length }}</span>
     </div>
   </div>
 
   <!-- Contenedor del gráfico -->
-  <div class="chart-wrapper" [style.height]="chartHeight">
+  <div class="relative w-full min-h-[260px] sm:min-h-[240px] flex items-center justify-center" [style.height]="chartHeight">
     <!-- Skeleton loader -->
-    <div class="chart-skeleton" *ngIf="isLoading">
-      <div class="skeleton-pulse"></div>
-      <p class="skeleton-text">Cargando datos del gráfico...</p>
+    <div class="flex flex-col items-center justify-center w-full h-full gap-4" *ngIf="isLoading">
+      <div class="w-full h-[250px] bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] animate-pulse rounded-lg"></div>
+      <p class="text-sm text-gray-400">Cargando datos del gráfico...</p>
     </div>
 
     <!-- Mensaje sin datos -->
-    <div class="no-data-message" *ngIf="!hasData && !isLoading">
-      <svg class="no-data-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex flex-col items-center justify-center w-full h-full p-10 text-center" *ngIf="!hasData && !isLoading">
+      <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
               d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
         </path>
       </svg>
-      <p class="no-data-text">No hay datos disponibles</p>
-      <p class="no-data-subtext">Los datos aparecerán aquí cuando estén disponibles</p>
+      <p class="text-lg font-semibold text-gray-600 mb-2">No hay datos disponibles</p>
+      <p class="text-sm text-gray-400">Los datos aparecerán aquí cuando estén disponibles</p>
     </div>
 
     <!-- Gráfico de Chart.js -->
@@ -91,19 +91,19 @@
       [data]="lineChartData"
       [options]="lineChartOptions"
       type="line"
-      class="chart-canvas">
+      class="w-full h-full">
     </canvas>
   </div>
 
   <!-- Footer informativo -->
-  <div class="chart-footer" *ngIf="hasData && !isLoading">
-    <div class="footer-info">
-      <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="mt-4 pt-4 border-t border-gray-200" *ngIf="hasData && !isLoading">
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
         </path>
       </svg>
-      <span class="footer-text">
+      <span class="text-xs text-gray-600 leading-relaxed">
         Datos actualizados en tiempo real. Última actualización: {{ 'ahora' }}
       </span>
     </div>
