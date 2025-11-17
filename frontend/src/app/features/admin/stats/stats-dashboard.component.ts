@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, retry } from 'rxjs/operators';
@@ -9,6 +10,7 @@ import { PopularCategoriesChartComponent } from './popular-categories-chart/popu
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
+import { StatsFilterService, DateFilters } from '../../../core/services/stats-filter.service';
 
 interface KPICard {
   title: string;
@@ -26,7 +28,7 @@ interface KPICard {
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
+  imports: [CommonModule, FormsModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
   templateUrl: './stats-dashboard.component.html'
 })
 export class StatsDashboardComponent implements OnInit, OnDestroy {
@@ -42,6 +44,12 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private previousMonthDonations = 0;
   private previousWeekUsers = 0;
   private currentWeekUsers = 0;
+  
+  // Almacenar datos filtrados para cálculos secundarios
+  private filteredUsers: any[] = [];
+  private filteredOrganizations: any[] = [];
+  private filteredPosts: any[] = [];
+  private filteredDonations: any[] = [];
   
   // Métricas de rendimiento de API
   private apiLoadStartTime = 0;
@@ -184,14 +192,49 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     { label: '1 año', value: '1y' }
   ];
 
+  // Date filters
+  dateFilters: DateFilters = {
+    startDate: '',
+    endDate: ''
+  };
+
+  currentPreset: string = '';
+  maxDate: string = new Date().toISOString().split('T')[0];
+
+  datePresets = [
+    { label: 'Hoy', value: 'today' },
+    { label: 'Esta semana', value: 'week' },
+    { label: 'Este mes', value: 'month' },
+    { label: 'Este año', value: 'year' }
+  ];
+
   constructor(
     private userService: UserManagementService,
     private postsService: PostsService,
-    private donationService: DonationService
+    private donationService: DonationService,
+    private filterService: StatsFilterService
   ) {}
 
   ngOnInit(): void {
+    // Cargar filtros actuales al componente
+    const currentFilters = this.filterService.getCurrentFilters();
+    this.dateFilters = currentFilters.dateRange;
+    this.currentPreset = currentFilters.preset || '';
+
+    // Carga inicial de estadísticas
     this.loadStatistics();
+
+    // Suscribirse a cambios en los filtros (después de la carga inicial)
+    this.filterService.filters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => {
+        console.log('🔄 Filtros actualizados, recargando estadísticas:', filters);
+        // Actualizar los filtros locales
+        this.dateFilters = filters.dateRange;
+        this.currentPreset = filters.preset || '';
+        // Recargar datos con los nuevos filtros
+        this.loadStatistics();
+      });
   }
 
   ngOnDestroy(): void {
@@ -210,6 +253,13 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     
     // Capturar tiempo de inicio para calcular respuesta
     this.apiLoadStartTime = Date.now();
+
+    // Obtener filtros actuales
+    const filters = this.filterService.getCurrentFilters();
+    const startDate = filters.dateRange?.startDate;
+    const endDate = filters.dateRange?.endDate;
+
+    console.log('📅 Cargando estadísticas con filtros:', { startDate, endDate });
 
     // Realizar llamadas en paralelo a los endpoints con reintentos
     forkJoin({
@@ -260,8 +310,19 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Procesa los datos recibidos de la API y actualiza los KPIs
    */
   private processStatisticsData(data: any): void {
-    // Procesar usuarios
-    const allUsers = Array.isArray(data.users) ? data.users : [];
+    // Procesar usuarios y aplicar filtros
+    let allUsers = Array.isArray(data.users) ? data.users : [];
+    
+    // Aplicar filtros de fecha si están activos
+    const filters = this.filterService.getCurrentFilters();
+    if (filters.dateRange) {
+      allUsers = this.filterService.filterDataByDateRange(allUsers);
+      console.log('✅ Usuarios después de aplicar filtros:', allUsers.length);
+    }
+    
+    // Guardar para cálculos secundarios
+    this.filteredUsers = allUsers;
+    
     const nonAdminUsers = allUsers.filter((user: any) => {
       const role = user.rol?.rol?.toLowerCase();
       return role !== 'admin';
@@ -275,6 +336,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const role = user.rol?.rol?.toLowerCase();
       return role === 'organizacion' || role === 'organization';
     });
+    
+    // Guardar para cálculos secundarios
+    this.filteredOrganizations = organizations;
 
     this.totalOrganizationsCount = organizations.length;
     const verifiedOrgs = organizations.filter((org: any) => org.verified).length;
@@ -289,8 +353,18 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[1].loading = false;
     this.calculateOrganizationTrend(organizations);
 
-    // Procesar publicaciones
-    const allPosts = Array.isArray(data.posts) ? data.posts : [];
+    // Procesar publicaciones y aplicar filtros
+    let allPosts = Array.isArray(data.posts) ? data.posts : [];
+    
+    // Aplicar filtros de fecha si están activos
+    if (filters.dateRange) {
+      allPosts = this.filterService.filterDataByDateRange(allPosts);
+      console.log('✅ Publicaciones después de aplicar filtros:', allPosts.length);
+    }
+    
+    // Guardar para cálculos secundarios
+    this.filteredPosts = allPosts;
+    
     this.mainKPIs[3].value = allPosts.length;
     this.mainKPIs[3].loading = false;
     this.calculatePostsTrend(allPosts);
@@ -339,12 +413,22 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (donationsArrays) => {
           console.log('📦 Respuestas de donaciones recibidas:', donationsArrays);
-          const allDonations = donationsArrays.flat().filter(d => d);
+          let allDonations = donationsArrays.flat().filter(d => d);
           
           // Eliminar duplicados por ID (una donación puede aparecer en donante y beneficiario)
-          const uniqueDonations = Array.from(
+          let uniqueDonations = Array.from(
             new Map(allDonations.map(d => [d.id, d])).values()
           );
+          
+          // Aplicar filtros de fecha si están activos
+          const filters = this.filterService.getCurrentFilters();
+          if (filters.dateRange) {
+            uniqueDonations = this.filterService.filterDataByDateRange(uniqueDonations);
+            console.log('✅ Donaciones después de aplicar filtros:', uniqueDonations.length);
+          }
+          
+          // Guardar para cálculos secundarios
+          this.filteredDonations = uniqueDonations;
           
           console.log('📦 Total donaciones después de eliminar duplicados:', uniqueDonations);
           this.totalDonationsCount = uniqueDonations.length;
@@ -352,7 +436,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
           this.finalizeDonationMetrics(uniqueDonations.length, uniqueDonations);
           
           // IMPORTANTE: Actualizar KPIs secundarios DESPUÉS de cargar donaciones
-          this.updateSecondaryKPIs(users, organizations, posts);
+          // Usar los datos filtrados almacenados en las propiedades de la clase
+          this.updateSecondaryKPIs(this.filteredUsers, this.filteredOrganizations, this.filteredPosts);
           
           console.log(`✅ ${uniqueDonations.length} donaciones únicas cargadas desde API`);
         },
@@ -866,7 +951,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las donaciones agrupadas por mes para el gráfico
    */
   private calculateMonthlyDonations(allDonations: any[]): void {
-    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
+    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones (ya filtradas)');
+    
     const monthNames = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -905,6 +991,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las categorías más populares basándose en los posts
    */
   private calculatePopularCategories(allPosts: any[]): void {
+    console.log('📊 Calculando categorías populares con:', allPosts.length, 'posts (ya filtrados)');
+    
     // Contar posts por tipo (typePost)
     const categoryCount = new Map<string, number>();
     const allCategoryTypes = new Set<string>();
@@ -933,5 +1021,74 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
     this.popularCategoriesData = categoriesArray;
     console.log('📊 Categorías populares calculadas:', this.popularCategoriesData);
+  }
+
+  // ============= FILTER METHODS =============
+
+  /**
+   * Aplica el preset de fecha seleccionado
+   */
+  applyDatePreset(preset: string): void {
+    this.filterService.applyDatePreset(preset);
+    // Actualizar el preset local para el UI
+    this.currentPreset = preset;
+  }
+
+  /**
+   * Se ejecuta cuando cambia manualmente una fecha
+   */
+  onDateFilterChange(): void {
+    // Reset preset si el usuario modifica manualmente las fechas
+    this.currentPreset = '';
+    this.filterService.setDateRange(this.dateFilters.startDate, this.dateFilters.endDate);
+  }
+
+  /**
+   * Aplica los filtros seleccionados y recarga las estadísticas
+   */
+  applyFilters(): void {
+    console.log('🔍 Aplicando filtros:', this.dateFilters);
+    
+    // Validar que la fecha de inicio no sea mayor que la fecha fin
+    if (this.dateFilters.startDate && this.dateFilters.endDate) {
+      if (new Date(this.dateFilters.startDate) > new Date(this.dateFilters.endDate)) {
+        alert('La fecha de inicio no puede ser mayor que la fecha fin');
+        return;
+      }
+    }
+
+    // Actualizar el servicio con las fechas actuales
+    this.filterService.setDateRange(this.dateFilters.startDate, this.dateFilters.endDate);
+  }
+
+  /**
+   * Limpia todos los filtros aplicados
+   */
+  clearFilters(): void {
+    this.filterService.clearFilters();
+    // Actualizar variables locales
+    this.dateFilters = {
+      startDate: '',
+      endDate: ''
+    };
+    this.currentPreset = '';
+  }
+
+  /**
+   * Remueve un filtro de fecha específico
+   */
+  removeDateFilter(type: 'start' | 'end'): void {
+    this.filterService.removeDateFilter(type);
+    // Actualizar variables locales
+    const currentFilters = this.filterService.getCurrentFilters();
+    this.dateFilters = currentFilters.dateRange;
+    this.currentPreset = '';
+  }
+
+  /**
+   * Verifica si hay filtros activos
+   */
+  hasActiveFilters(): boolean {
+    return this.filterService.hasActiveFilters();
   }
 }
