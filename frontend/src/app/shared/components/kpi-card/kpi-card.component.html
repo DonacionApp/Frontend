@@ -1,0 +1,82 @@
+<div 
+  class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300"
+  [class.hover:shadow-xl]="!loading"
+  [class.transform]="!loading"
+  [class.hover:-translate-y-1]="!loading"
+  [class.cursor-pointer]="clickable"
+  (click)="handleClick()">
+  
+  <div [class]="colorClass" class="p-6 text-white">
+    <!-- Header: Icon and Trend Badge -->
+    <div class="flex items-center justify-between mb-4">
+      <!-- Icon Container -->
+      <div class="p-3 bg-white bg-opacity-20 rounded-lg backdrop-blur-sm">
+        <svg 
+          class="w-6 h-6" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+          aria-hidden="true">
+          <path 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            stroke-width="2" 
+            [attr.d]="iconPath">
+          </path>
+        </svg>
+      </div>
+      
+      <!-- Trend Badge -->
+      <div 
+        *ngIf="trend && !loading" 
+        class="flex items-center gap-1 bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-medium"
+        [attr.aria-label]="'Tendencia: ' + trend">
+        <svg 
+          class="w-4 h-4" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+          aria-hidden="true">
+          <path 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            stroke-width="2" 
+            [attr.d]="getTrendIconPath()">
+          </path>
+        </svg>
+        <span class="text-white">{{ trend }}</span>
+      </div>
+    </div>
+    
+    <!-- Title -->
+    <h3 class="text-sm font-medium mb-2 opacity-90">{{ title }}</h3>
+    
+    <!-- Value or Loading State -->
+    <div *ngIf="!loading" class="mb-1">
+      <p class="text-3xl font-bold" [attr.aria-label]="title + ': ' + value">
+        {{ formatValue(value) }}
+      </p>
+    </div>
+    
+    <div *ngIf="loading" class="mb-1">
+      <div 
+        class="h-9 bg-white bg-opacity-20 rounded animate-pulse"
+        role="status"
+        aria-label="Cargando...">
+      </div>
+    </div>
+    
+    <!-- Subtitle -->
+    <p *ngIf="subtitle" class="text-xs opacity-75">{{ subtitle }}</p>
+    
+    <!-- Custom Content Slot -->
+    <div *ngIf="!loading" class="mt-3">
+      <ng-content></ng-content>
+    </div>
+  </div>
+  
+  <!-- Optional Footer Section -->
+  <div *ngIf="showFooter && !loading" class="px-6 py-3 bg-gray-50 border-t border-gray-100">
+    <ng-content select="[footer]"></ng-content>
+  </div>
+</div>

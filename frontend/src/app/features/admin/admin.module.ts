@@ -92,6 +92,11 @@ const routes: Routes = [
         loadComponent: () => import('./stats/stats-dashboard.component').then(m => m.StatsDashboardComponent),
         canActivate: [AdminGuard]
       },
+      { 
+        path: 'kpi-test', 
+        loadComponent: () => import('./kpi-test/kpi-test.component').then(m => m.KpiTestComponent),
+        canActivate: [AdminGuard]
+      },
     ]
   }
 ];
