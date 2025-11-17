@@ -27,8 +27,7 @@ interface KPICard {
   selector: 'app-stats-dashboard',
   standalone: true,
   imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
-  templateUrl: './stats-dashboard.component.html',
-  styleUrls: ['./stats-dashboard.component.scss']
+  templateUrl: './stats-dashboard.component.html'
 })
 export class StatsDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
