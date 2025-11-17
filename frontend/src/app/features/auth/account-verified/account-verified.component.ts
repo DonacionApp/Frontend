@@ -96,32 +96,13 @@ export class AccountVerifiedComponent implements OnInit {
   }
 
   autoLogin(): void {
-    // Simular login automático después de verificación
-    // En un sistema real, aquí se haría una llamada al backend para obtener el token
-  // auto login for verified account (simulated)
-    
-    // Simular almacenamiento de datos de usuario en localStorage
-    const userData = {
-      id: 'temp-user-id',
-      email: this.userEmail,
-      role: 'donor',
-      name: this.userEmail.split('@')[0],
-      verified: true,
-      loginTime: new Date().toISOString()
-    };
-    
-    try {
-      this.authService.setCurrentUser(userData as any);
-      try { localStorage.setItem('isLoggedIn', 'true'); } catch (e) {}
-    } catch (e) {
-      try { localStorage.setItem('currentUser', JSON.stringify(userData)); localStorage.setItem('isLoggedIn', 'true'); } catch (inner) {}
-    }
-    
-    // Usuario logueado exitosamente - mantener en la página actual
-  // Usuario logueado exitosamente (simulado)
-    
-    // Prevenir cualquier navegación automática
-    // no-op timeout for UI stability
-    setTimeout(() => {}, 1000);
+    // NO hacer auto-login sin credenciales reales del usuario
+    // Redirigir al login en su lugar para que el usuario ingrese sus credenciales correctas
+    this.router.navigate(['/auth/login'], {
+      queryParams: {
+        email: this.userEmail,
+        message: 'Tu cuenta ha sido verificada. Por favor inicia sesión con tus credenciales.'
+      }
+    });
   }
 }
