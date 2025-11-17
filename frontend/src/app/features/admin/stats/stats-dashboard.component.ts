@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, retry } from 'rxjs/operators';
@@ -23,10 +24,15 @@ interface KPICard {
   loading: boolean;
 }
 
+interface DateFilters {
+  startDate: string;
+  endDate: string;
+}
+
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
+  imports: [CommonModule, FormsModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
   templateUrl: './stats-dashboard.component.html'
 })
 export class StatsDashboardComponent implements OnInit, OnDestroy {
@@ -182,6 +188,22 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     { label: '30 días', value: '30d' },
     { label: '3 meses', value: '3m' },
     { label: '1 año', value: '1y' }
+  ];
+
+  // Date filters
+  dateFilters: DateFilters = {
+    startDate: '',
+    endDate: ''
+  };
+
+  currentPreset: string = '';
+  maxDate: string = new Date().toISOString().split('T')[0];
+
+  datePresets = [
+    { label: 'Hoy', value: 'today' },
+    { label: 'Esta semana', value: 'week' },
+    { label: 'Este mes', value: 'month' },
+    { label: 'Este año', value: 'year' }
   ];
 
   constructor(
@@ -867,6 +889,11 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    */
   private calculateMonthlyDonations(allDonations: any[]): void {
     console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
+    
+    // Aplicar filtros de fecha si están activos
+    const filteredDonations = this.filterDataByDateRange(allDonations);
+    console.log('📊 Donaciones después de filtrar:', filteredDonations.length);
+    
     const monthNames = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -881,8 +908,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
 
-      // Filtrar donaciones del mes
-      const monthDonations = allDonations.filter(donation => {
+      // Filtrar donaciones del mes (usando ya los datos filtrados)
+      const monthDonations = filteredDonations.filter(donation => {
         if (!donation.createdAt) return false;
         const donationDate = new Date(donation.createdAt);
         return donationDate >= monthStart && donationDate <= monthEnd;
@@ -905,11 +932,17 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las categorías más populares basándose en los posts
    */
   private calculatePopularCategories(allPosts: any[]): void {
+    console.log('📊 Calculando categorías populares con:', allPosts.length, 'posts');
+    
+    // Aplicar filtros de fecha si están activos
+    const filteredPosts = this.filterDataByDateRange(allPosts);
+    console.log('📊 Posts después de filtrar:', filteredPosts.length);
+    
     // Contar posts por tipo (typePost)
     const categoryCount = new Map<string, number>();
     const allCategoryTypes = new Set<string>();
     
-    allPosts.forEach(post => {
+    filteredPosts.forEach(post => {
       // Usar typePost.type como categoría
       const categoryName = post.typePost?.type || 'Sin categoría';
       categoryCount.set(categoryName, (categoryCount.get(categoryName) || 0) + 1);
@@ -922,7 +955,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.totalCategoriesInDb = 5;
 
     // Calcular total para porcentajes
-    const totalPosts = allPosts.length;
+    const totalPosts = filteredPosts.length;
 
     // Convertir a array y calcular porcentajes
     const categoriesArray = Array.from(categoryCount.entries()).map(([category, count]) => ({
@@ -933,5 +966,129 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
     this.popularCategoriesData = categoriesArray;
     console.log('📊 Categorías populares calculadas:', this.popularCategoriesData);
+  }
+
+  // ============= FILTER METHODS =============
+
+  /**
+   * Aplica el preset de fecha seleccionado
+   */
+  applyDatePreset(preset: string): void {
+    this.currentPreset = preset;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    switch (preset) {
+      case 'today':
+        this.dateFilters.startDate = todayStr;
+        this.dateFilters.endDate = todayStr;
+        break;
+      
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Domingo
+        this.dateFilters.startDate = weekStart.toISOString().split('T')[0];
+        this.dateFilters.endDate = todayStr;
+        break;
+      
+      case 'month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        this.dateFilters.startDate = monthStart.toISOString().split('T')[0];
+        this.dateFilters.endDate = todayStr;
+        break;
+      
+      case 'year':
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        this.dateFilters.startDate = yearStart.toISOString().split('T')[0];
+        this.dateFilters.endDate = todayStr;
+        break;
+    }
+
+    // Aplicar automáticamente el filtro cuando se selecciona un preset
+    this.applyFilters();
+  }
+
+  /**
+   * Se ejecuta cuando cambia manualmente una fecha
+   */
+  onDateFilterChange(): void {
+    // Reset preset si el usuario modifica manualmente las fechas
+    this.currentPreset = '';
+  }
+
+  /**
+   * Aplica los filtros seleccionados y recarga las estadísticas
+   */
+  applyFilters(): void {
+    console.log('🔍 Aplicando filtros:', this.dateFilters);
+    
+    // Validar que la fecha de inicio no sea mayor que la fecha fin
+    if (this.dateFilters.startDate && this.dateFilters.endDate) {
+      if (new Date(this.dateFilters.startDate) > new Date(this.dateFilters.endDate)) {
+        alert('La fecha de inicio no puede ser mayor que la fecha fin');
+        return;
+      }
+    }
+
+    // Recargar estadísticas con los filtros aplicados
+    this.loadStatistics();
+  }
+
+  /**
+   * Limpia todos los filtros aplicados
+   */
+  clearFilters(): void {
+    this.dateFilters = {
+      startDate: '',
+      endDate: ''
+    };
+    this.currentPreset = '';
+    
+    console.log('🧹 Filtros limpiados');
+    
+    // Recargar estadísticas sin filtros
+    this.loadStatistics();
+  }
+
+  /**
+   * Remueve un filtro de fecha específico
+   */
+  removeDateFilter(type: 'start' | 'end'): void {
+    if (type === 'start') {
+      this.dateFilters.startDate = '';
+    } else {
+      this.dateFilters.endDate = '';
+    }
+    this.currentPreset = '';
+    this.applyFilters();
+  }
+
+  /**
+   * Verifica si hay filtros activos
+   */
+  hasActiveFilters(): boolean {
+    return !!(this.dateFilters.startDate || this.dateFilters.endDate);
+  }
+
+  /**
+   * Filtra un array de datos según el rango de fechas seleccionado
+   */
+  private filterDataByDateRange<T extends { createdAt?: string | Date }>(data: T[]): T[] {
+    if (!this.dateFilters.startDate && !this.dateFilters.endDate) {
+      return data;
+    }
+
+    return data.filter(item => {
+      if (!item.createdAt) return false;
+      
+      const itemDate = new Date(item.createdAt);
+      const startDate = this.dateFilters.startDate ? new Date(this.dateFilters.startDate) : null;
+      const endDate = this.dateFilters.endDate ? new Date(this.dateFilters.endDate + 'T23:59:59') : null;
+
+      if (startDate && itemDate < startDate) return false;
+      if (endDate && itemDate > endDate) return false;
+      
+      return true;
+    });
   }
 }
