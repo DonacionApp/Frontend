@@ -25,6 +25,7 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   @Input() data: CategoryData[] = [];
   @Input() chartHeight = '360px';
   @Input() maxCategories = 10; // Mostrar top 10 por defecto
+  @Input() totalCategoriesInDb = 0; // Total de categorías en la BD
 
   // Configuración del gráfico de barras
   public barChartData: ChartData<'bar'> = {
@@ -33,7 +34,9 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   };
 
   public barChartOptions: ChartConfiguration<'bar'>['options'] = {
-    ...BAR_CHART_OPTIONS,
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: window.innerWidth < 768 ? 0.8 : 1.5,
     indexAxis: 'y', // Barras horizontales
     plugins: {
       ...BAR_CHART_OPTIONS.plugins,
@@ -54,11 +57,11 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
         text: 'Categorías Más Populares',
         color: '#1F2937',
         font: {
-          size: 16,
+          size: window.innerWidth < 640 ? 14 : 16,
           weight: 'bold',
           family: "'Inter', sans-serif"
         },
-        padding: { top: 10, bottom: 20 }
+        padding: { top: 10, bottom: window.innerWidth < 640 ? 15 : 20 }
       },
       legend: {
         display: false
@@ -73,8 +76,15 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
         },
         ticks: {
           color: '#6B7280',
-          font: { size: 11 },
-          callback: (value) => value.toLocaleString('es-ES')
+          font: { size: window.innerWidth < 640 ? 9 : 11 },
+          stepSize: 1,
+          callback: (value) => {
+            // Mostrar solo números enteros
+            if (Number.isInteger(value)) {
+              return value.toLocaleString('es-ES');
+            }
+            return '';
+          }
         }
       },
       y: {
@@ -83,7 +93,12 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
         },
         ticks: {
           color: '#4B5563',
-          font: { size: 12, weight: 500 }
+          font: { 
+            size: window.innerWidth < 640 ? 10 : 12, 
+            weight: 500 
+          },
+          autoSkip: window.innerWidth < 640,
+          maxTicksLimit: window.innerWidth < 640 ? 5 : 10
         }
       }
     }
@@ -91,11 +106,97 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
 
   public isLoading = true;
   public hasData = false;
+  private resizeListener?: () => void;
 
   constructor() {}
 
   ngOnInit(): void {
     this.initializeChart();
+    this.setupResizeListener();
+  }
+
+  private setupResizeListener(): void {
+    this.resizeListener = () => {
+      this.updateChartResponsiveOptions();
+    };
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  private updateChartResponsiveOptions(): void {
+    const isMobile = window.innerWidth < 640;
+    const isTablet = window.innerWidth < 768;
+    
+    // Recrear opciones con configuraciones responsivas
+    this.barChartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: isTablet ? 0.8 : 1.5,
+      indexAxis: 'y',
+      plugins: {
+        ...BAR_CHART_OPTIONS.plugins,
+        tooltip: {
+          ...BAR_CHART_OPTIONS.plugins?.tooltip,
+          callbacks: {
+            label: (context) => {
+              const label = context.dataset.label || '';
+              const value = context.parsed.x;
+              if (value === null || value === undefined) return label;
+              const percentage = this.data[context.dataIndex]?.percentage || 0;
+              return `${label}: ${value.toLocaleString('es-ES')} (${percentage.toFixed(1)}%)`;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'Categorías Más Populares',
+          color: '#1F2937',
+          font: {
+            size: isMobile ? 14 : 16,
+            weight: 'bold',
+            family: "'Inter', sans-serif"
+          },
+          padding: { top: 10, bottom: isMobile ? 15 : 20 }
+        },
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: {
+            display: true,
+            color: 'rgba(229, 231, 235, 0.5)'
+          },
+          ticks: {
+            color: '#6B7280',
+            font: { size: isMobile ? 9 : 11 },
+            stepSize: 1,
+            callback: (value) => {
+              // Mostrar solo números enteros
+              if (Number.isInteger(value)) {
+                return value.toLocaleString('es-ES');
+              }
+              return '';
+            }
+          }
+        },
+        y: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#4B5563',
+            font: { 
+              size: isMobile ? 10 : 12, 
+              weight: 500 
+            },
+            autoSkip: isMobile,
+            maxTicksLimit: isMobile ? 5 : 10
+          }
+        }
+      }
+    };
   }
 
   ngOnChanges(): void {
@@ -105,6 +206,9 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   }
 
   ngOnDestroy(): void {
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -256,10 +360,13 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
   }
 
   /**
-   * Obtiene el número de categorías diferentes
+   * Obtiene el número de categorías diferentes con formato activas/totales
    */
-  public getCategoriesCount(): number {
-    if (!this.data || this.data.length === 0) return 0;
-    return this.data.length;
+  public getCategoriesCount(): string {
+    if (!this.data || this.data.length === 0) {
+      return this.totalCategoriesInDb > 0 ? `0/${this.totalCategoriesInDb}` : '0';
+    }
+    const activeCategories = this.data.length;
+    return this.totalCategoriesInDb > 0 ? `${activeCategories}/${this.totalCategoriesInDb}` : activeCategories.toString();
   }
 }

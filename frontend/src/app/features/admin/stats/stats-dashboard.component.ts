@@ -73,6 +73,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
   // Datos para el gráfico de categorías populares
   popularCategoriesData: Array<{category: string, count: number, percentage?: number}> = [];
+  
+  // Total de categorías disponibles en la base de datos
+  totalCategoriesInDb: number = 0;
 
   // KPIs Principales (se actualizarán con datos reales y tendencias calculadas)
   mainKPIs: KPICard[] = [
@@ -295,10 +298,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.calculatePopularCategories(allPosts);
 
     // Cargar donaciones (llamada separada por user)
-    this.loadDonations(allUsers);
-
-    // Actualizar KPIs secundarios
-    this.updateSecondaryKPIs(allUsers, organizations, allPosts);
+    this.loadDonations(allUsers, organizations, allPosts);
 
     // Actualizar indicadores de engagement
     this.updateEngagementKPIs(allUsers, allPosts);
@@ -315,7 +315,16 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Carga las donaciones para todos los usuarios
    * Incluye manejo de errores individual por usuario
    */
-  private loadDonations(users: any[]): void {
+  private loadDonations(users: any[], organizations: any[], posts: any[]): void {
+    console.log('🔄 Iniciando carga de donaciones para', users.length, 'usuarios');
+    
+    if (users.length === 0) {
+      console.warn('⚠️ No hay usuarios para cargar donaciones');
+      this.finalizeDonationMetrics(0, []);
+      return;
+    }
+
+    // Crear un array de requests para obtener donaciones de cada usuario
     const donationRequests = users.map(user => 
       this.donationService.getDonationsByUserId(user.id).pipe(
         retry(1),
@@ -326,20 +335,27 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       )
     );
 
-    if (donationRequests.length === 0) {
-      this.finalizeDonationMetrics(0, []);
-      return;
-    }
-
     forkJoin(donationRequests)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (donationsArrays) => {
+          console.log('📦 Respuestas de donaciones recibidas:', donationsArrays);
           const allDonations = donationsArrays.flat().filter(d => d);
-          this.totalDonationsCount = allDonations.length;
-          this.calculateDonationsToday(allDonations);
-          this.finalizeDonationMetrics(allDonations.length, allDonations);
-          console.log(`✅ ${allDonations.length} donaciones cargadas desde API`);
+          
+          // Eliminar duplicados por ID (una donación puede aparecer en donante y beneficiario)
+          const uniqueDonations = Array.from(
+            new Map(allDonations.map(d => [d.id, d])).values()
+          );
+          
+          console.log('📦 Total donaciones después de eliminar duplicados:', uniqueDonations);
+          this.totalDonationsCount = uniqueDonations.length;
+          this.calculateDonationsToday(uniqueDonations);
+          this.finalizeDonationMetrics(uniqueDonations.length, uniqueDonations);
+          
+          // IMPORTANTE: Actualizar KPIs secundarios DESPUÉS de cargar donaciones
+          this.updateSecondaryKPIs(users, organizations, posts);
+          
+          console.log(`✅ ${uniqueDonations.length} donaciones únicas cargadas desde API`);
         },
         error: (error) => {
           console.error('❌ Error cargando donaciones:', error);
@@ -851,6 +867,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las donaciones agrupadas por mes para el gráfico
    */
   private calculateMonthlyDonations(allDonations: any[]): void {
+    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
     const monthNames = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -858,7 +875,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
     // Obtener los últimos 6 meses
     const today = new Date();
-    const last6Months: Array<{month: string, donations: number, amount: number}> = [];
+    const last6Months: Array<{month: string, donations: number, amount?: number}> = [];
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -872,17 +889,12 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
         return donationDate >= monthStart && donationDate <= monthEnd;
       });
 
-      // Calcular cantidad y monto total
+      // Solo contar la cantidad de donaciones (no hay campo "amount" en donaciones de artículos)
       const count = monthDonations.length;
-      const totalAmount = monthDonations.reduce((sum, d) => {
-        const amount = parseFloat(d.amount) || 0;
-        return sum + amount;
-      }, 0);
 
       last6Months.push({
         month: monthNames[date.getMonth()],
-        donations: count,
-        amount: totalAmount
+        donations: count
       });
     }
 
@@ -896,12 +908,19 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private calculatePopularCategories(allPosts: any[]): void {
     // Contar posts por tipo (typePost)
     const categoryCount = new Map<string, number>();
+    const allCategoryTypes = new Set<string>();
     
     allPosts.forEach(post => {
       // Usar typePost.type como categoría
       const categoryName = post.typePost?.type || 'Sin categoría';
       categoryCount.set(categoryName, (categoryCount.get(categoryName) || 0) + 1);
+      if (post.typePost?.type) {
+        allCategoryTypes.add(post.typePost.type);
+      }
     });
+
+    // Total de categorías disponibles en la BD (según tu tabla type_post)
+    this.totalCategoriesInDb = 5;
 
     // Calcular total para porcentajes
     const totalPosts = allPosts.length;

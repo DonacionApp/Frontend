@@ -73,11 +73,16 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
         ticks: {
           color: '#6B7280',
           font: { size: 11 },
+          stepSize: 1,
           callback: (value) => {
-            if (this.showAmount) {
-              return '$' + Number(value).toLocaleString('es-ES');
+            // Mostrar solo números enteros
+            if (Number.isInteger(value)) {
+              if (this.showAmount) {
+                return '$' + Number(value).toLocaleString('es-ES');
+              }
+              return value.toLocaleString('es-ES');
             }
-            return value.toLocaleString('es-ES');
+            return '';
           }
         }
       }
@@ -86,11 +91,101 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
 
   public isLoading = true;
   public hasData = false;
+  private resizeListener?: () => void;
 
   constructor() {}
 
   ngOnInit(): void {
     this.initializeChart();
+    this.setupResizeListener();
+  }
+
+  private setupResizeListener(): void {
+    this.resizeListener = () => {
+      this.updateChartResponsiveOptions();
+    };
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  private updateChartResponsiveOptions(): void {
+    const isMobile = window.innerWidth < 640;
+    const isTablet = window.innerWidth < 768;
+    
+    // Recrear opciones con configuraciones responsivas
+    this.lineChartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: isTablet ? 1.2 : 2,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        ...LINE_CHART_OPTIONS.plugins,
+        tooltip: {
+          ...LINE_CHART_OPTIONS.plugins?.tooltip,
+          callbacks: {
+            label: (context) => {
+              const label = context.dataset.label || '';
+              const value = context.parsed.y;
+              if (value === null || value === undefined) return label;
+              return `${label}: ${value.toLocaleString('es-ES')}`;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: this.showAmount ? 'Donaciones Mensuales (Monto)' : 'Donaciones Mensuales (Cantidad)',
+          color: '#1F2937',
+          font: {
+            size: isMobile ? 14 : 16,
+            weight: 'bold',
+            family: "'Inter', sans-serif"
+          },
+          padding: { top: 10, bottom: isMobile ? 15 : 20 }
+        },
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#374151',
+            font: { size: isMobile ? 10 : 12 },
+            padding: 15,
+            usePointStyle: true
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(229, 231, 235, 0.5)'
+          },
+          ticks: {
+            color: '#6B7280',
+            font: { size: isMobile ? 10 : 12 },
+            stepSize: 1,
+            callback: (value) => {
+              // Mostrar solo números enteros
+              if (Number.isInteger(value)) {
+                return value.toLocaleString('es-ES');
+              }
+              return '';
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#4B5563',
+            font: { size: isMobile ? 9 : 11 },
+            maxRotation: isMobile ? 45 : 0,
+            minRotation: isMobile ? 45 : 0
+          }
+        }
+      }
+    };
   }
 
   ngOnChanges(): void {
@@ -101,6 +196,9 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
