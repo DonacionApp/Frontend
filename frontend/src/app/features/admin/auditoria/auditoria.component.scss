@@ -1,0 +1,91 @@
+/* Improved styles for auditoria: header, rows, badges, payloads */
+.auditoria-table-wrapper {
+	background: #ffffff;
+	border-radius: 10px;
+	padding: 12px;
+	box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+
+.auditoria-table-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	border-bottom: 1px solid #eef2f7;
+	margin-bottom: 8px;
+}
+
+.auditoria-table .mat-header-cell,
+.auditoria-table .mat-cell {
+	padding: 10px 12px;
+	vertical-align: middle;
+}
+
+.auditoria-row {
+	transition: background .12s ease, transform .06s ease, box-shadow .06s ease;
+}
+.auditoria-row:hover {
+	background: rgba(2,6,23,0.03);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(2,6,23,0.04);
+}
+
+.auditoria-username {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.auditoria-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 999px;
+	background-size: cover;
+	background-position: center;
+	box-shadow: 0 1px 2px rgba(2,6,23,0.06);
+}
+
+.auditoria-badge {
+	display: inline-block;
+	padding: 4px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	border-radius: 999px;
+	color: #fff;
+}
+.audit-status-200 { background:#059669; } /* green */
+.audit-status-4xx { background:#b45309; } /* amber/darker */
+.audit-status-500 { background:#dc2626; } /* red */
+
+.auditoria-item {
+	background: #ffffff;
+	border: 1px solid #eef2f7;
+	border-radius: 8px;
+	padding: 14px;
+}
+
+.auditoria-item + .auditoria-item { margin-top: 12px; }
+
+.auditoria-meta { font-size: 12px; color: #6b7280; }
+.auditoria-meta .muted { color:#9ca3af; }
+
+.auditoria-field-label { font-weight:700; margin-right:6px; }
+
+.auditoria-pre {
+	background: #0f172a0a; /* subtle blue-gray */
+	border: 1px solid #e6eef6;
+	padding: 10px;
+	border-radius: 6px;
+	font-size: 12px;
+	max-height: 30vh;
+	overflow:auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+	.auditoria-content { padding: 12px; }
+	.auditoria-dialog-panel .auditoria-content { max-width: 94vw; }
+	.auditoria-avatar { width: 30px; height:30px; }
+}
+
