@@ -1,8 +1,9 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AdminService, AuditAction, AuditFilters } from '../../../../core/services/admin/admin.service';
+import { AuditoriaActionDetailComponent } from './auditoria-action-detail.component';
 
 export interface AuditoriaDialogData {
   userId: number;
@@ -15,7 +16,7 @@ export interface AuditoriaDialogData {
   standalone: true,
   imports: [CommonModule, MatDialogModule, FormsModule],
   template: `
-   <div class="p-6 auditoria-content bg-white rounded-lg shadow-sm" style="display:inline-block; vertical-align: top;">
+  <div class="p-6 auditoria-content bg-white rounded-lg shadow-sm" style="display:inline-block; vertical-align: top; width: min(880px, 96vw);">
   <!-- Header -->
   <div class="flex items-start justify-between mb-6 pb-4 border-b border-gray-200">
     <div>
@@ -130,49 +131,24 @@ export interface AuditoriaDialogData {
     <p class="text-xs text-gray-500 mt-1">Intenta ajustar los filtros de búsqueda</p>
   </div>
 
-  <!-- Actions List -->
-  <div class="space-y-4">
-    <div *ngFor="let a of actions" class="auditoria-item bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
-      <!-- Action Header -->
-     
 
-      <!-- Action Details -->
-      <div *ngIf="a.action" class="mb-3 pb-3 border-b border-gray-100">
-        <span class="inline-flex items-center gap-2 text-sm">
-          <span class="font-semibold text-gray-700">Acción:</span>
-          <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-mono">{{ a.action }}</span>
-        </span>
-      </div>
-
-      <!-- Comment Section -->
-      <div *ngIf="a.comment" class="space-y-3">
-        <div class="bg-gray-50 rounded-md p-3">
-          <span class="auditoria-field-label text-xs font-semibold text-gray-700 uppercase tracking-wide">Mensaje:</span>
-          <p class="text-sm text-gray-800 mt-1">{{ a.comment.message }}</p>
-        </div>
-        
-        <div *ngIf="a.comment.payload" class="bg-amber-50 rounded-md p-3">
-          <div class="flex items-center gap-2 mb-2">
-            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <strong class="text-xs font-semibold text-amber-800 uppercase tracking-wide">Payload</strong>
+  <!-- Actions Timeline -->
+  <ul class="space-y-3">
+    <li *ngFor="let a of actions">
+      <button (click)="openAction(a)" class="w-full text-left auditoria-item bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow flex items-start gap-3">
+        <div class="w-2.5 h-2.5 rounded-full mt-2 bg-indigo-500"></div>
+        <div class="flex-1">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-sm font-semibold text-gray-800">{{ a.action }}</div>
+              <div class="text-xs text-gray-600 mt-1">{{ a.comment?.message || '-' }}</div>
+            </div>
+            <div class="text-xs text-gray-400">{{ a.createdAt | date:'short' }}</div>
           </div>
-          <pre class="auditoria-pre text-xs bg-white border border-amber-200 rounded p-2 overflow-x-auto text-gray-800">{{ a.comment.payload | json }}</pre>
         </div>
-        
-        <div *ngIf="a.comment.response" class="bg-green-50 rounded-md p-3">
-          <div class="flex items-center gap-2 mb-2">
-            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <strong class="text-xs font-semibold text-green-800 uppercase tracking-wide">Respuesta</strong>
-          </div>
-          <pre class="auditoria-pre text-xs bg-white border border-green-200 rounded p-2 overflow-x-auto text-gray-800">{{ a.comment.response | json }}</pre>
-        </div>
-      </div>
-    </div>
-  </div>
+      </button>
+    </li>
+  </ul>
 </div>
   `
 })
@@ -181,11 +157,11 @@ export class AuditoriaDialogComponent implements OnInit {
   loading = false;
   filters: AuditFilters = { order: 'DESC', limit: 50, page: 1 };
   showFilters = false;
-
   constructor(
     public dialogRef: MatDialogRef<AuditoriaDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AuditoriaDialogData,
-    private admin: AdminService
+    private admin: AdminService,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -197,6 +173,15 @@ export class AuditoriaDialogComponent implements OnInit {
 
   toggleFilters() {
     this.showFilters = !this.showFilters;
+  }
+
+  openAction(a: AuditAction) {
+    this.dialog.open(AuditoriaActionDetailComponent, {
+      data: a,
+      width: 'auto',
+      maxWidth: '90vw',
+      panelClass: 'auditoria-dialog-panel'
+    });
   }
 
   loadActions(userId: number, filters: AuditFilters) {
