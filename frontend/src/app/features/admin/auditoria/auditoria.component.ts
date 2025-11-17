@@ -44,8 +44,10 @@ export class AuditoriaComponent implements OnInit {
 
   onRowClick(row: AdminUser): void {
     this.dialog.open(AuditoriaDialogComponent, {
-      width: '800px',
+      width: 'auto',
+      maxWidth: '90vw',
       maxHeight: '80vh',
+      panelClass: 'auditoria-dialog-panel',
       data: { userId: row.id, username: row.username }
     });
   }

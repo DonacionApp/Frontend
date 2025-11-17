@@ -13,7 +13,7 @@ export interface AuditoriaDialogData {
   standalone: true,
   imports: [CommonModule, MatDialogModule],
   template: `
-    <div class="p-4 max-w-3xl w-full">
+    <div class="p-4 auditoria-content" style="display:inline-block; vertical-align: top;">
       <div class="flex items-start justify-between mb-4">
         <div>
           <h3 class="text-lg font-semibold">Auditoría — {{ data.username || ('ID: ' + data.userId) }}</h3>
@@ -35,11 +35,11 @@ export interface AuditoriaDialogData {
         <div class="text-sm text-gray-600 mt-2">Estado: {{ a.status }}</div>
         <div *ngIf="a.comment" class="mt-2 text-sm text-gray-700">
           <div><strong>Mensaje:</strong> {{ a.comment.message }}</div>
-          <div *ngIf="a.comment.payload" class="mt-2"><strong>Payload:</strong>
-            <pre class="text-xs bg-gray-50 p-2 rounded">{{ a.comment.payload | json }}</pre>
+            <div *ngIf="a.comment.payload" class="mt-2"><strong>Payload:</strong>
+            <pre class="text-xs bg-gray-50 p-2 rounded auditoria-pre">{{ a.comment.payload | json }}</pre>
           </div>
           <div *ngIf="a.comment.response" class="mt-2"><strong>Respuesta:</strong>
-            <pre class="text-xs bg-gray-50 p-2 rounded">{{ a.comment.response | json }}</pre>
+            <pre class="text-xs bg-gray-50 p-2 rounded auditoria-pre">{{ a.comment.response | json }}</pre>
           </div>
         </div>
       </div>
