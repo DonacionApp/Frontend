@@ -1,0 +1,145 @@
+<div class="received-donations-page">
+  <div class="page-header">
+    <div>
+      <p class="text-sm text-green-700 font-semibold uppercase tracking-wide">Historial</p>
+      <h1>Artículos recibidos</h1>
+      <p class="description">
+        Consulta las donaciones que ya fueron entregadas o completadas y revisa el detalle de los artículos recibidos.
+      </p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn ghost" (click)="refresh()">
+        <span class="icon refresh"></span>
+        Refrescar
+      </button>
+      <button type="button" class="btn primary" (click)="goBackToDashboard()">
+        <span class="icon dashboard"></span>
+        Volver al panel
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert error">
+    <div>
+      <p class="alert-title">No se pudo cargar la información</p>
+      <p>{{ errorMessage }}</p>
+    </div>
+    <button type="button" class="btn ghost" (click)="loadReceivedDonations()">Reintentar</button>
+  </div>
+
+  <div *ngIf="loading" class="loading-placeholder">
+    <div class="skeleton-card" *ngFor="let _ of [1,2,3]"></div>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <p class="stat-label">Donaciones recibidas</p>
+        <p class="stat-value">{{ stats.totalDonations }}</p>
+        <p class="stat-helper">Con estado entregada o completada</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Artículos registrados</p>
+        <p class="stat-value">{{ stats.totalArticles }}</p>
+        <p class="stat-helper">Sumatoria de cantidades recibidas</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Donantes únicos</p>
+        <p class="stat-value">{{ stats.uniqueDonors }}</p>
+        <p class="stat-helper">Personas que te han entregado artículos</p>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-field search">
+        <label>Buscar</label>
+        <input
+          type="text"
+          placeholder="Título, artículo, donante o lugar"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilters()"
+        />
+      </div>
+      <div class="filter-field">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="dateFrom" (change)="applyFilters()" />
+      </div>
+      <div class="filter-field">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="dateTo" (change)="applyFilters()" />
+      </div>
+      <div class="filter-field">
+        <label>&nbsp;</label>
+        <button type="button" class="btn ghost w-full" (click)="clearFilters()">
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="filteredDonations.length === 0" class="empty-state">
+      <div class="icon-container">
+        <span class="icon box"></span>
+      </div>
+      <h3>No hay donaciones entregadas con los filtros actuales</h3>
+      <p>
+        Ajusta los filtros o espera a que se complete una donación para ver el detalle de los artículos recibidos.
+      </p>
+      <button type="button" class="btn primary" (click)="clearFilters()">Ver todo</button>
+    </div>
+
+    <div class="donations-list" *ngIf="filteredDonations.length > 0">
+      <article
+        *ngFor="let donation of filteredDonations; trackBy: trackByDonationId"
+        class="donation-card"
+      >
+        <header>
+          <div>
+            <p class="donation-title">{{ donation.post?.title || 'Donación sin título' }}</p>
+            <p class="donation-meta">
+              Recibida el {{ formatDate(donation.updatedAt || donation.createdAt) }} ·
+              Entregada por {{ donation.donator?.username || donation.donator?.email || 'Usuario' }}
+            </p>
+          </div>
+          <span class="status-pill" [ngClass]="getStatusBadge(donation).class">
+            {{ getStatusBadge(donation).text }}
+          </span>
+        </header>
+
+        <div class="donation-body">
+          <div class="location">
+            <span class="icon pin"></span>
+            <div>
+              <p class="label">Lugar de entrega</p>
+              <p class="value">{{ donation.lugarRecogida || 'No especificado' }}</p>
+            </div>
+          </div>
+
+          <div class="articles">
+            <p class="label">Artículos recibidos</p>
+            <div class="articles-grid">
+              <div class="article" *ngFor="let article of donation.articles">
+                <div class="badge">{{ parseQuantity(article) }}</div>
+                <div>
+                  <p class="article-name">{{ article.article?.name || 'Artículo' }}</p>
+                  <p class="article-desc" *ngIf="article.article?.descripcion">
+                    {{ article.article.descripcion }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer>
+          <button type="button" class="btn outline" (click)="viewDonationDetail(donation.id)">
+            Ver detalle completo
+          </button>
+          <p class="articles-summary">
+            {{ getArticlesSummary(donation.articles) }}
+          </p>
+        </footer>
+      </article>
+    </div>
+  </div>
+</div>
+

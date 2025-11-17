@@ -9,6 +9,7 @@ import { DonationDetailComponent } from './donation-detail/donation-detail.compo
 import { EditDonationComponent } from './edit-donation/edit-donation.component';
 import { ManageDonationArticlesComponent } from './manage-donation-articles/manage-donation-articles.component';
 import { OrganizationListComponent } from './list/list.component';
+import { OrganizationReceivedDonationsComponent } from './received-donations/organization-received-donations.component';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { OrganizationGuard } from '../../core/guards/organization.guard';
 import { GuestGuard } from '../../core/guards/guest.guard';
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: '', component: OrganizationDashboardComponent, canActivate: [AuthGuard, ] },
   { path: 'profile', component: OrganizationProfileComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/create', component: CreateDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
+  { path: 'donations/received', component: OrganizationReceivedDonationsComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/edit', component: EditDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/manage-articles', component: ManageDonationArticlesComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id', component: DonationDetailComponent, canActivate: [AuthGuard, OrganizationGuard] },
@@ -38,7 +40,8 @@ const routes: Routes = [
     EditDonationComponent,
     ManageDonationArticlesComponent
     ,
-    OrganizationListComponent
+    OrganizationListComponent,
+    OrganizationReceivedDonationsComponent
   ],
   providers: [
   ]

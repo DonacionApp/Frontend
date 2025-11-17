@@ -64,6 +64,16 @@
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Donaciones</span>
           </button>
           <button 
+            *ngIf="user?.role === 'organization'"
+            (click)="onReceivedItemsClick()"
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
+            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+            </svg>
+            <span class="ml-1 hidden xl:inline whitespace-nowrap">Artículos Recibidos</span>
+            <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Recibidos</span>
+          </button>
+          <button 
             (click)="onDonateClick()"
             class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,6 +332,15 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <span>Mis Donaciones</span>
+          </button>
+          <button 
+            *ngIf="user?.role === 'organization'"
+            (click)="onReceivedItemsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+            </svg>
+            <span>Artículos Recibidos</span>
           </button>
           <button 
             (click)="onDonateClick()"
