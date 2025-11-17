@@ -1,0 +1,394 @@
+.received-donations-page {
+  padding: 2rem 1rem 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0.25rem 0;
+  }
+
+  .description {
+    color: #475569;
+    max-width: 640px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+
+  &.primary {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #fff;
+    box-shadow: 0 15px 35px rgba(34, 197, 94, 0.25);
+    border: none;
+
+    &:hover {
+      transform: translateY(-1px) scale(1.01);
+    }
+  }
+
+  &.ghost {
+    background: #f1f5f9;
+    color: #0f172a;
+    border: none;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+  }
+
+  &.outline {
+    border: 1px solid #94a3b8;
+    color: #0f172a;
+    background: transparent;
+
+    &:hover {
+      border-color: #16a34a;
+      color: #16a34a;
+    }
+  }
+}
+
+.stats-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+
+  .stat-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-helper {
+    color: #475569;
+    font-size: 0.9rem;
+  }
+}
+
+.filters {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 2rem;
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    input {
+      border: 1px solid #cbd5f5;
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      color: #0f172a;
+
+      &:focus {
+        outline: none;
+        border-color: #16a34a;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+      }
+    }
+  }
+
+  .search {
+    grid-column: span 2;
+  }
+}
+
+.donations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.donation-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+  padding: 1.5rem;
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+
+    @media (min-width: 640px) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .donation-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .donation-meta {
+    color: #475569;
+    font-size: 0.95rem;
+  }
+
+  .status-pill {
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .donation-body {
+    display: grid;
+    gap: 1rem;
+
+    @media (min-width: 640px) {
+      grid-template-columns: 250px 1fr;
+    }
+  }
+
+  .location {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 1rem;
+    background: #f8fafc;
+    border: 1px dashed #cbd5f5;
+
+    .label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 0.15rem;
+    }
+
+    .value {
+      font-weight: 600;
+      color: #0f172a;
+    }
+  }
+
+  .articles {
+    .label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  .articles-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .article {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    background: #fefefe;
+
+    .badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .article-name {
+      font-weight: 600;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .article-desc {
+      color: #64748b;
+      font-size: 0.85rem;
+      margin: 0.15rem 0 0;
+    }
+  }
+
+  footer {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    @media (min-width: 640px) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .articles-summary {
+    color: #475569;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+}
+
+.alert {
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  &.error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+
+    .alert-title {
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+  }
+}
+
+.loading-placeholder {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #f8fafc 25%, #e2e8f0 37%, #f8fafc 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.empty-state {
+  border: 1px dashed #cbd5f5;
+  border-radius: 1.25rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  margin-top: 1rem;
+
+  .icon-container {
+    width: 70px;
+    height: 70px;
+    border-radius: 999px;
+    margin: 0 auto 1rem;
+    background: #ecfccb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: #475569;
+    max-width: 440px;
+    margin: 0 auto 1rem;
+  }
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+
+  &.refresh::before {
+    content: '⟳';
+  }
+
+  &.dashboard::before {
+    content: '⌂';
+  }
+
+  &.pin::before {
+    content: '📍';
+  }
+
+  &.box::before {
+    content: '📦';
+    font-size: 1.5rem;
+  }
+}
+

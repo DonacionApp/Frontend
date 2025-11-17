@@ -240,6 +240,11 @@ export class NavComponent implements OnInit, OnDestroy {
     this.router.navigate(['/organization/list']);
   }
 
+  onReceivedItemsClick(): void {
+    this.closeMobileMenu();
+    this.router.navigate(['/organization/donations/received']);
+  }
+
   onMessagesClick(): void {
     this.closeMobileMenu();
     this.router.navigate(['/chat']);

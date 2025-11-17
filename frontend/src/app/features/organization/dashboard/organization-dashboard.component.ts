@@ -286,6 +286,10 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/organization/donations/create']);
   }
 
+  goToReceivedDonations(): void {
+    this.router.navigate(['/organization/donations/received']);
+  }
+
   /**
    * Navegar al detalle de una donación
    */
