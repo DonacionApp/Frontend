@@ -22,22 +22,31 @@ export interface AuditoriaDialogData {
       <h3 class="text-xl font-bold text-gray-900">Auditoría — {{ data.username || ('ID: ' + data.userId) }}</h3>
       <div class="text-sm text-gray-500 mt-1">Usuario ID: <span class="font-medium text-gray-700">{{ data.userId }}</span></div>
     </div>
-    <button 
-      (click)="close()" 
-      class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200">
-      Cerrar
-    </button>
+    <div class="flex items-center gap-2">
+      <button (click)="toggleFilters()" [attr.aria-expanded]="showFilters" title="Abrir/Cerrar filtros" class="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition">
+        <svg *ngIf="!showFilters" class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01.293.707l-7 7V21l-4-2v-7L2.707 6.707A1 1 0 013 6V4z"/></svg>
+        <svg *ngIf="showFilters" class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <span class="text-sm">{{ showFilters ? 'Cerrar filtros' : 'Abrir filtros' }}</span>
+      </button>
+
+      <button 
+        (click)="close()" 
+        class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200">
+        Cerrar
+      </button>
+    </div>
   </div>
 
-  <!-- Filters Form -->
-  <form class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end" (ngSubmit)="applyFilters()">
-    <div>
+  <!-- Filters Form (collapsible) -->
+  <div *ngIf="showFilters" class="w-full">
+    <form class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end" (ngSubmit)="applyFilters()">
+    <div class="col-span-1 sm:col-span-2 lg:col-span-2">
       <label class="block text-xs font-medium text-gray-700 mb-1">Acción</label>
       <input 
         [(ngModel)]="filters.action" 
         name="action" 
         placeholder="Ej: login" 
-        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
     </div>
     
     <div>
@@ -45,12 +54,12 @@ export interface AuditoriaDialogData {
       <select 
         [(ngModel)]="filters.order" 
         name="order" 
-        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white">
         <option [value]="'DESC'">Descendente</option>
         <option [value]="'ASC'">Ascendente</option>
       </select>
     </div>
-    
+
     <div>
       <label class="block text-xs font-medium text-gray-700 mb-1">Límite</label>
       <input 
@@ -58,10 +67,10 @@ export interface AuditoriaDialogData {
         [(ngModel)]="filters.limit" 
         name="limit" 
         min="1" 
-        placeholder="10"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        placeholder="20"
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
     </div>
-    
+
     <div>
       <label class="block text-xs font-medium text-gray-700 mb-1">Página</label>
       <input 
@@ -70,15 +79,39 @@ export interface AuditoriaDialogData {
         name="page" 
         min="1" 
         placeholder="1"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
     </div>
-    
-    <button 
-      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow-md" 
-      type="submit">
-      Aplicar Filtros
-    </button>
-  </form>
+
+    <!-- Date range filters -->
+    <div class="col-span-1 sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-2">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Desde</label>
+        <input type="date" [(ngModel)]="filters.startDate" name="startDate" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
+        <input type="date" [(ngModel)]="filters.endDate" name="endDate" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+      </div>
+    </div>
+
+    <!-- Buttons: primary apply and secondary clear -->
+    <div class="col-span-1 sm:col-span-2 lg:col-span-6 flex gap-2 justify-end mt-2">
+      <button type="button" (click)="resetFilters()" class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50 transition-shadow">
+        <!-- Clear icon -->
+        <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        Limpiar
+      </button>
+
+      <button 
+        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all" 
+        type="submit">
+        <!-- Apply icon -->
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Aplicar
+      </button>
+    </div>
+    </form>
+  </div>
 
   <!-- Loading State -->
   <div *ngIf="loading" class="flex items-center justify-center py-12">
@@ -147,6 +180,7 @@ export class AuditoriaDialogComponent implements OnInit {
   actions: AuditAction[] = [];
   loading = false;
   filters: AuditFilters = { order: 'DESC', limit: 50, page: 1 };
+  showFilters = false;
 
   constructor(
     public dialogRef: MatDialogRef<AuditoriaDialogComponent>,
@@ -155,11 +189,14 @@ export class AuditoriaDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // initialize filters from incoming data if provided
     if (this.data.filters) {
       this.filters = { ...this.filters, ...this.data.filters };
     }
     this.loadActions(this.data.userId, this.filters);
+  }
+
+  toggleFilters() {
+    this.showFilters = !this.showFilters;
   }
 
   loadActions(userId: number, filters: AuditFilters) {
@@ -175,8 +212,15 @@ export class AuditoriaDialogComponent implements OnInit {
       order: this.filters.order || 'DESC',
       limit: this.filters.limit ?? 50,
       page: this.filters.page ?? 1,
-      action: this.filters.action
+      action: this.filters.action,
+      startDate: this.filters.startDate,
+      endDate: this.filters.endDate
     };
+    this.loadActions(this.data.userId, this.filters);
+  }
+
+  resetFilters() {
+    this.filters = { order: 'DESC', limit: 50, page: 1 };
     this.loadActions(this.data.userId, this.filters);
   }
 

@@ -101,6 +101,8 @@ export interface AuditFilters {
   order?: 'ASC' | 'DESC';
   limit?: number;
   page?: number;
+  startDate?: string; // ISO date string or yyyy-mm-dd
+  endDate?: string;   // ISO date string or yyyy-mm-dd
   [key: string]: any;
 }
 
