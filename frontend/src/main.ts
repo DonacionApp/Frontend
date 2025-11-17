@@ -1,12 +1,17 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app/app.component';
-import { importProvidersFrom } from '@angular/core';
+import { importProvidersFrom, LOCALE_ID } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AppRoutingModule } from './app/app-routing.module';
 import { RetryInterceptor } from './app/core/interceptors/retry.interceptor';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
+
+// Registrar el locale español
+registerLocaleData(localeEs);
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -16,6 +21,7 @@ bootstrapApplication(AppComponent, {
       HttpClientModule,
       AppRoutingModule
     ),
+    { provide: LOCALE_ID, useValue: 'es' },
     // Los interceptores se ejecutan en orden: primero RetryInterceptor, luego AuthInterceptor
     {
       provide: HTTP_INTERCEPTORS,
