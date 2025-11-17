@@ -16,11 +16,14 @@ import { NotificationService } from '../../../shared/services/notification.servi
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { PostsService, Post } from '../../../core/services/posts.service';
 import { UserManagementService, UserManagement } from '../../../core/services/user-management.service';
+import { ExportDataComponent } from '../../../shared/components/export-data/export-data.component';
+import { ExportMetadata } from '../../../core/services/export.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-donations',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ExportDataComponent],
   templateUrl: './donations.component.html',
   styleUrls: ['./donations.component.scss']
 })
@@ -64,6 +67,9 @@ export class DonationsComponent implements OnInit, OnDestroy {
   // Modal de reviews
   showReviewsModal = false;
   donationReviews: any[] = [];
+
+  // Exportación
+  showExportModal = false;
 
   // Table configuration
   columns: TableColumn[] = [
@@ -606,6 +612,64 @@ export class DonationsComponent implements OnInit, OnDestroy {
 
   onBatchActionExecuted(event: { action: BatchAction; rows: any[] }): void {
     // La acción ya se ejecutó
+  }
+
+  // Métodos de exportación
+  openExportModal(): void {
+    if (this.donations.length === 0) {
+      this.notificationService.info('Sin datos', 'No hay donaciones para exportar');
+      return;
+    }
+    this.showExportModal = true;
+  }
+
+  closeExportModal(): void {
+    this.showExportModal = false;
+  }
+
+  onExportComplete(metadata: ExportMetadata): void {
+    console.log('Exportación completada:', metadata);
+  }
+
+  getExportData(): any[] {
+    // Preparar datos para exportación, aplanando objetos anidados
+    return this.donations.map(donation => ({
+      id: donation.id,
+      tituloPost: donation.post?.title || 'N/A',
+      lugarRecogida: donation.lugarRecogida || 'N/A',
+      lugarDonacion: donation.lugarDonacion || 'N/A',
+      estado: donation.statusDonation?.status || 'N/A',
+      fechaMaximaEntrega: donation.fechaMaximaEntrega ? new Date(donation.fechaMaximaEntrega).toLocaleDateString('es-ES') : 'N/A',
+      donador: donation.donator?.username || 'N/A',
+      beneficiario: donation.beneficiary?.username || 'N/A',
+      cantidadArticulos: donation.articles?.length || 0,
+      articulos: donation.articles?.map((a: any) => `${a.article?.name || 'N/A'} (${a.quantity || 0})`).join(', ') || 'N/A',
+      fechaCreacion: donation.createdAt ? new Date(donation.createdAt).toLocaleDateString('es-ES') : 'N/A',
+      fechaActualizacion: donation.updatedAt ? new Date(donation.updatedAt).toLocaleDateString('es-ES') : 'N/A'
+    }));
+  }
+
+  getExportColumns(): string[] {
+    return [
+      'id',
+      'tituloPost',
+      'lugarRecogida',
+      'lugarDonacion',
+      'estado',
+      'fechaMaximaEntrega',
+      'donador',
+      'beneficiario',
+      'cantidadArticulos',
+      'articulos',
+      'fechaCreacion',
+      'fechaActualizacion'
+    ];
+  }
+
+  getExportFilename(): string {
+    const today = new Date().toISOString().split('T')[0];
+    const username = this.selectedUser?.username || 'usuario';
+    return `donaciones-${username}-${today}`;
   }
 }
 

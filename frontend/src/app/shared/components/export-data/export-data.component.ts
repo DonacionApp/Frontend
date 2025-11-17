@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ExportService, ExportMetadata } from '../../../core/services/export.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -12,7 +12,7 @@ export type ExportFormat = 'csv' | 'excel' | 'pdf';
   templateUrl: './export-data.component.html',
   styleUrls: ['./export-data.component.scss']
 })
-export class ExportDataComponent implements OnInit {
+export class ExportDataComponent implements OnInit, OnChanges {
   @Input() data: any[] = [];
   @Input() filename: string = 'export';
   @Input() sheetName: string = 'Datos';
@@ -34,8 +34,23 @@ export class ExportDataComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    if (this.data.length === 0) {
+    this.validateData();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['data'] || changes['visible']) {
+      this.validateData();
+    }
+  }
+
+  private validateData(): void {
+    // Limpiar mensaje de error cuando hay datos o cuando el modal se cierra
+    if (this.data && this.data.length > 0) {
+      this.errorMessage = '';
+    } else if (this.visible && (!this.data || this.data.length === 0)) {
       this.errorMessage = 'No hay datos para exportar';
+    } else {
+      this.errorMessage = '';
     }
   }
 
@@ -44,7 +59,9 @@ export class ExportDataComponent implements OnInit {
   }
 
   onExport(): void {
-    if (this.data.length === 0) {
+    // Validar datos antes de exportar
+    if (!this.data || this.data.length === 0) {
+      this.errorMessage = 'No hay datos para exportar';
       this.toastService.error('Error', 'No hay datos para exportar');
       return;
     }

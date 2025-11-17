@@ -1,7 +1,15 @@
 import { Injectable } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+// @ts-ignore - jspdf-autotable puede tener problemas de tipos
+import autoTable from 'jspdf-autotable';
+
+// Extender el tipo de jsPDF para incluir autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 export interface ExportMetadata {
   totalRecords: number;
@@ -197,20 +205,42 @@ export class ExportService {
 
     if (onProgress) onProgress(80);
 
-    // Agregar tabla al PDF
-    (doc as any).autoTable({
-      head: includeHeaders ? [tableData[0]] : [],
-      body: includeHeaders ? tableData.slice(1) : tableData,
-      startY: margin + 10,
-      margin: { top: margin, right: margin, bottom: margin, left: margin },
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [66, 139, 202], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      columnStyles: exportColumns.reduce((acc, col, idx) => {
-        acc[idx] = { cellWidth: 'auto' };
-        return acc;
-      }, {} as any)
-    });
+    // Agregar tabla al PDF usando autoTable
+    // En jspdf-autotable v5, se usa como función con el doc como primer parámetro
+    try {
+      autoTable(doc, {
+        head: includeHeaders ? [tableData[0]] : [],
+        body: includeHeaders ? tableData.slice(1) : tableData,
+        startY: margin + 10,
+        margin: { top: margin, right: margin, bottom: margin, left: margin },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [66, 139, 202], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        columnStyles: exportColumns.reduce((acc, col, idx) => {
+          acc[idx] = { cellWidth: 'auto' };
+          return acc;
+        }, {} as any)
+      });
+    } catch (error: any) {
+      // Si autoTable falla, intentar con doc.autoTable
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable({
+          head: includeHeaders ? [tableData[0]] : [],
+          body: includeHeaders ? tableData.slice(1) : tableData,
+          startY: margin + 10,
+          margin: { top: margin, right: margin, bottom: margin, left: margin },
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [66, 139, 202], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          columnStyles: exportColumns.reduce((acc, col, idx) => {
+            acc[idx] = { cellWidth: 'auto' };
+            return acc;
+          }, {} as any)
+        });
+      } else {
+        throw new Error('jspdf-autotable no está disponible. Error: ' + (error?.message || 'Desconocido'));
+      }
+    }
 
     // Agregar nota si se limitaron las filas
     if (data.length > maxRows) {
