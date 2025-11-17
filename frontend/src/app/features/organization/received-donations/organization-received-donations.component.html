@@ -94,7 +94,7 @@
       >
         <header>
           <div>
-            <p class="donation-title">{{ donation.post?.title || 'Donación sin título' }}</p>
+            <p class="donation-title">{{ donation.post.title || 'Donación sin título' }}</p>
             <p class="donation-meta">
               Recibida el {{ formatDate(donation.updatedAt || donation.createdAt) }} ·
               Entregada por {{ donation.donator?.username || donation.donator?.email || 'Usuario' }}
@@ -120,7 +120,7 @@
               <div class="article" *ngFor="let article of donation.articles">
                 <div class="badge">{{ parseQuantity(article) }}</div>
                 <div>
-                  <p class="article-name">{{ article.article?.name || 'Artículo' }}</p>
+                  <p class="article-name">{{ article.article.name || 'Artículo' }}</p>
                   <p class="article-desc" *ngIf="article.article?.descripcion">
                     {{ article.article.descripcion }}
                   </p>

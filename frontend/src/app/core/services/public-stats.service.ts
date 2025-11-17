@@ -15,6 +15,15 @@ export interface UserTotals {
 }
 
 /**
+ * Interface para donaciones agrupadas por estado
+ */
+export interface DonationsByStatus {
+  status: string;
+  count: number;
+  donations: any[];
+}
+
+/**
  * Interface para las estadísticas públicas de un usuario
  */
 export interface UserPublicStats {
@@ -31,6 +40,8 @@ export interface UserPublicStats {
   totalArticlesDonated?: number;
   responseRate?: number;
   totals?: UserTotals;
+  donationsByStatus?: DonationsByStatus[];
+  donationsAsDonatorByStatus?: DonationsByStatus[];
   donations: DonationStat[];
   posts: PostStat[];
   monthlyActivity: MonthlyActivity[];
@@ -221,6 +232,15 @@ export class PublicStatsService {
           totalLikes
         };
 
+        // Calcular donaciones agrupadas por estado
+        const donationsByStatus = this.groupDonationsByStatus(donations);
+        
+        // Separar donaciones como donador vs como receptor (organización)
+        const donationsAsDonator = donations.filter((d: any) => 
+          d.donator?.id === user.id || d.userId === user.id
+        );
+        const donationsAsDonatorByStatus = this.groupDonationsByStatus(donationsAsDonator);
+
         return {
           userId: user.id,
           userType,
@@ -235,6 +255,8 @@ export class PublicStatsService {
           totalArticlesDonated,
           responseRate,
           totals,
+          donationsByStatus,
+          donationsAsDonatorByStatus,
           donations: donationStats,
           posts: postStats,
           monthlyActivity,
@@ -324,6 +346,33 @@ export class PublicStatsService {
     return distribution
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
+  }
+
+  /**
+   * Agrupar donaciones por estado
+   */
+  private groupDonationsByStatus(donations: any[]): DonationsByStatus[] {
+    const statusMap = new Map<string, any[]>();
+
+    donations.forEach((donation: any) => {
+      const status = donation.statusDonation?.status || donation.status || 'Desconocido';
+      if (!statusMap.has(status)) {
+        statusMap.set(status, []);
+      }
+      statusMap.get(status)!.push(donation);
+    });
+
+    const grouped: DonationsByStatus[] = [];
+    statusMap.forEach((donationsList, status) => {
+      grouped.push({
+        status,
+        count: donationsList.length,
+        donations: donationsList
+      });
+    });
+
+    // Ordenar por cantidad descendente
+    return grouped.sort((a, b) => b.count - a.count);
   }
 
   /**
