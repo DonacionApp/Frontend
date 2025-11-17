@@ -41,6 +41,10 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private previousMonthDonations = 0;
   private previousWeekUsers = 0;
   private currentWeekUsers = 0;
+  
+  // Métricas de rendimiento de API
+  private apiLoadStartTime = 0;
+  private apiLoadEndTime = 0;
 
   // Control de errores y estado de conexión API
   apiErrors: {
@@ -193,6 +197,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.isReconnecting = true;
     this.apiErrors = { users: false, posts: false, donations: false };
     this.hasAnyError = false;
+    
+    // Capturar tiempo de inicio para calcular respuesta
+    this.apiLoadStartTime = Date.now();
 
     // Realizar llamadas en paralelo a los endpoints con reintentos
     forkJoin({
@@ -221,6 +228,10 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           console.log('✅ Datos cargados exitosamente desde API');
+          
+          // Capturar tiempo de fin para calcular respuesta
+          this.apiLoadEndTime = Date.now();
+          
           this.isReconnecting = false;
           this.lastUpdateTime = new Date();
           this.processStatisticsData(data);
@@ -483,14 +494,14 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.secondaryKPIs[0].value = `${conversionRate}%`;
     this.secondaryKPIs[0].loading = false;
 
-    // Promedio de donaciones por usuario
+    // Promedio de donaciones por usuario (cantidad)
     const avgDonations = totalUsers > 0 ?
-      (this.totalDonationsCount / totalUsers).toFixed(1) : '0';
+      (this.totalDonationsCount / totalUsers).toFixed(2) : '0.00';
     this.secondaryKPIs[1].value = avgDonations;
     this.secondaryKPIs[1].loading = false;
 
-    // Tiempo de respuesta (simulado basado en estado de conexión)
-    const responseTime = this.hasAnyError ? '250ms' : '85ms';
+    // Tiempo de respuesta promedio (basado en tiempo de carga de APIs)
+    const responseTime = this.calculateAverageResponseTime();
     this.secondaryKPIs[2].value = responseTime;
     this.secondaryKPIs[2].loading = false;
 
@@ -498,6 +509,23 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const satisfaction = this.calculateSatisfactionIndex(users, posts);
     this.secondaryKPIs[3].value = `${satisfaction}%`;
     this.secondaryKPIs[3].loading = false;
+  }
+
+  /**
+   * Calcula el tiempo promedio de respuesta de las APIs
+   */
+  private calculateAverageResponseTime(): string {
+    if (this.apiLoadStartTime === 0 || this.apiLoadEndTime === 0) {
+      return 'Calculando...';
+    }
+    
+    const responseTimeMs = this.apiLoadEndTime - this.apiLoadStartTime;
+    
+    if (responseTimeMs < 1000) {
+      return `${responseTimeMs}ms`;
+    } else {
+      return `${(responseTimeMs / 1000).toFixed(2)}s`;
+    }
   }
 
   /**

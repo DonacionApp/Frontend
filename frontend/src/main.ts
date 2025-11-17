@@ -10,6 +10,35 @@ import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
 
+// Registrar Chart.js con todos los componentes necesarios
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+
+// Registrar componentes de Chart.js globalmente
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
 // Registrar el locale español
 registerLocaleData(localeEs);
 
