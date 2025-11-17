@@ -6,6 +6,7 @@ import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
 import { AdminGuard } from '../../core/guards/admin.guard';
 import { AuditoriaComponent } from './auditoria/auditoria.component';
 import { DataTableComponent } from '../../shared/components/data-table/data-table.component';
+import { MatDialogModule } from '@angular/material/dialog';
 
 const routes: Routes = [
   {
@@ -105,11 +106,7 @@ const routes: Routes = [
         canActivate: [AdminGuard]
       }
       ,
-      {
-        path: 'auditoria/user/:id',
-        loadComponent: () => import('./auditoria/auditoria-user.component').then(m => m.AuditoriaUserComponent),
-        canActivate: [AdminGuard]
-      }
+      // Route for per-user audit detail removed: dialog is used instead
     ]
   }
 ];
@@ -122,7 +119,9 @@ const routes: Routes = [
     CommonModule,
     RouterModule.forChild(routes),
     // Importar el componente standalone usado en la plantilla
-    DataTableComponent
+    DataTableComponent,
+    // Material dialog required for Auditoria dialog
+    MatDialogModule,
     // Los componentes standalone (AdminLayoutComponent, AdminDashboardComponent) 
     // se cargan directamente a través de las rutas, no necesitan estar en imports
   ],

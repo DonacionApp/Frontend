@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { AdminService, AdminUser, AuditAction } from '../../../core/services/admin/admin.service';
 import { TableColumn } from '../../../shared/components/data-table/data-table.component';
+import { MatDialog } from '@angular/material/dialog';
+import { AuditoriaDialogComponent } from './components/auditoria-dialog.component';
 
 @Component({
   selector: 'app-auditoria',
@@ -19,12 +21,11 @@ export class AuditoriaComponent implements OnInit {
     { key: 'people.residencia', label: 'Residencia' }
   ];
 
-  // Auditoría seleccionada
   selectedUser: AdminUser | null = null;
   auditActions: AuditAction[] = [];
   auditLoading = false;
 
-  constructor(private admin: AdminService) {}
+  constructor(private admin: AdminService, private dialog: MatDialog) {}
 
   ngOnInit(): void {
     this.loadUsers();
@@ -42,10 +43,11 @@ export class AuditoriaComponent implements OnInit {
   }
 
   onRowClick(row: AdminUser): void {
-    // Open audit detail in a new tab
-    const origin = window.location.origin;
-    const path = `/admin/auditoria/user/${row.id}`;
-    window.open(origin + path, '_blank');
+    this.dialog.open(AuditoriaDialogComponent, {
+      width: '800px',
+      maxHeight: '80vh',
+      data: { userId: row.id, username: row.username }
+    });
   }
 
   loadAuditForUser(userId: number): void {
