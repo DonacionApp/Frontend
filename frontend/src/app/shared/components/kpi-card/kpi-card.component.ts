@@ -24,8 +24,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-kpi-card',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './kpi-card.component.html',
-  styleUrls: ['./kpi-card.component.scss']
+  templateUrl: './kpi-card.component.html'
 })
 export class KpiCardComponent {
   /** Título principal de la tarjeta KPI */

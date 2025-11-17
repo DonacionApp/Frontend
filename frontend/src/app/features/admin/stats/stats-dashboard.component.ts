@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, retry } from 'rxjs/operators';
 import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.component';
+import { MonthlyDonationsChartComponent } from './monthly-donations-chart/monthly-donations-chart.component';
+import { PopularCategoriesChartComponent } from './popular-categories-chart/popular-categories-chart.component';
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
@@ -24,9 +26,8 @@ interface KPICard {
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, KpiCardComponent],
-  templateUrl: './stats-dashboard.component.html',
-  styleUrls: ['./stats-dashboard.component.scss']
+  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
+  templateUrl: './stats-dashboard.component.html'
 })
 export class StatsDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -41,6 +42,10 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private previousMonthDonations = 0;
   private previousWeekUsers = 0;
   private currentWeekUsers = 0;
+  
+  // Métricas de rendimiento de API
+  private apiLoadStartTime = 0;
+  private apiLoadEndTime = 0;
 
   // Control de errores y estado de conexión API
   apiErrors: {
@@ -61,6 +66,15 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   // Datos para Resumen Ejecutivo
   newUsersLast7Days = 0;
   newOrgsLast7Days = 0;
+
+  // Datos para el gráfico de donaciones mensuales
+  monthlyDonationsData: Array<{month: string, donations: number, amount?: number}> = [];
+
+  // Datos para el gráfico de categorías populares
+  popularCategoriesData: Array<{category: string, count: number, percentage?: number}> = [];
+  
+  // Total de categorías disponibles en la base de datos
+  totalCategoriesInDb: number = 0;
 
   // KPIs Principales (se actualizarán con datos reales y tendencias calculadas)
   mainKPIs: KPICard[] = [
@@ -193,6 +207,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.isReconnecting = true;
     this.apiErrors = { users: false, posts: false, donations: false };
     this.hasAnyError = false;
+    
+    // Capturar tiempo de inicio para calcular respuesta
+    this.apiLoadStartTime = Date.now();
 
     // Realizar llamadas en paralelo a los endpoints con reintentos
     forkJoin({
@@ -221,6 +238,10 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           console.log('✅ Datos cargados exitosamente desde API');
+          
+          // Capturar tiempo de fin para calcular respuesta
+          this.apiLoadEndTime = Date.now();
+          
           this.isReconnecting = false;
           this.lastUpdateTime = new Date();
           this.processStatisticsData(data);
@@ -273,12 +294,10 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[3].value = allPosts.length;
     this.mainKPIs[3].loading = false;
     this.calculatePostsTrend(allPosts);
+    this.calculatePopularCategories(allPosts);
 
     // Cargar donaciones (llamada separada por user)
-    this.loadDonations(allUsers);
-
-    // Actualizar KPIs secundarios
-    this.updateSecondaryKPIs(allUsers, organizations, allPosts);
+    this.loadDonations(allUsers, organizations, allPosts);
 
     // Actualizar indicadores de engagement
     this.updateEngagementKPIs(allUsers, allPosts);
@@ -295,7 +314,16 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Carga las donaciones para todos los usuarios
    * Incluye manejo de errores individual por usuario
    */
-  private loadDonations(users: any[]): void {
+  private loadDonations(users: any[], organizations: any[], posts: any[]): void {
+    console.log('🔄 Iniciando carga de donaciones para', users.length, 'usuarios');
+    
+    if (users.length === 0) {
+      console.warn('⚠️ No hay usuarios para cargar donaciones');
+      this.finalizeDonationMetrics(0, []);
+      return;
+    }
+
+    // Crear un array de requests para obtener donaciones de cada usuario
     const donationRequests = users.map(user => 
       this.donationService.getDonationsByUserId(user.id).pipe(
         retry(1),
@@ -306,20 +334,27 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       )
     );
 
-    if (donationRequests.length === 0) {
-      this.finalizeDonationMetrics(0, []);
-      return;
-    }
-
     forkJoin(donationRequests)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (donationsArrays) => {
+          console.log('📦 Respuestas de donaciones recibidas:', donationsArrays);
           const allDonations = donationsArrays.flat().filter(d => d);
-          this.totalDonationsCount = allDonations.length;
-          this.calculateDonationsToday(allDonations);
-          this.finalizeDonationMetrics(allDonations.length, allDonations);
-          console.log(`✅ ${allDonations.length} donaciones cargadas desde API`);
+          
+          // Eliminar duplicados por ID (una donación puede aparecer en donante y beneficiario)
+          const uniqueDonations = Array.from(
+            new Map(allDonations.map(d => [d.id, d])).values()
+          );
+          
+          console.log('📦 Total donaciones después de eliminar duplicados:', uniqueDonations);
+          this.totalDonationsCount = uniqueDonations.length;
+          this.calculateDonationsToday(uniqueDonations);
+          this.finalizeDonationMetrics(uniqueDonations.length, uniqueDonations);
+          
+          // IMPORTANTE: Actualizar KPIs secundarios DESPUÉS de cargar donaciones
+          this.updateSecondaryKPIs(users, organizations, posts);
+          
+          console.log(`✅ ${uniqueDonations.length} donaciones únicas cargadas desde API`);
         },
         error: (error) => {
           console.error('❌ Error cargando donaciones:', error);
@@ -338,6 +373,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[2].value = totalDonations;
     this.mainKPIs[2].loading = false;
     this.calculateDonationMetrics(totalDonations, allDonations);
+    this.calculateMonthlyDonations(allDonations);
   }
 
   /**
@@ -483,14 +519,14 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.secondaryKPIs[0].value = `${conversionRate}%`;
     this.secondaryKPIs[0].loading = false;
 
-    // Promedio de donaciones por usuario
+    // Promedio de donaciones por usuario (cantidad)
     const avgDonations = totalUsers > 0 ?
-      (this.totalDonationsCount / totalUsers).toFixed(1) : '0';
+      (this.totalDonationsCount / totalUsers).toFixed(2) : '0.00';
     this.secondaryKPIs[1].value = avgDonations;
     this.secondaryKPIs[1].loading = false;
 
-    // Tiempo de respuesta (simulado basado en estado de conexión)
-    const responseTime = this.hasAnyError ? '250ms' : '85ms';
+    // Tiempo de respuesta promedio (basado en tiempo de carga de APIs)
+    const responseTime = this.calculateAverageResponseTime();
     this.secondaryKPIs[2].value = responseTime;
     this.secondaryKPIs[2].loading = false;
 
@@ -498,6 +534,23 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const satisfaction = this.calculateSatisfactionIndex(users, posts);
     this.secondaryKPIs[3].value = `${satisfaction}%`;
     this.secondaryKPIs[3].loading = false;
+  }
+
+  /**
+   * Calcula el tiempo promedio de respuesta de las APIs
+   */
+  private calculateAverageResponseTime(): string {
+    if (this.apiLoadStartTime === 0 || this.apiLoadEndTime === 0) {
+      return 'Calculando...';
+    }
+    
+    const responseTimeMs = this.apiLoadEndTime - this.apiLoadStartTime;
+    
+    if (responseTimeMs < 1000) {
+      return `${responseTimeMs}ms`;
+    } else {
+      return `${(responseTimeMs / 1000).toFixed(2)}s`;
+    }
   }
 
   /**
@@ -717,64 +770,67 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const periodReadable = this.getReadablePeriod();
 
-    // Generar CSV estructurado con 7 secciones
+    // Generar CSV estructurado con 7 secciones usando punto y coma como separador
     const csvRows = [
       // SECCIÓN 1: Encabezado
       `Reporte de Estadísticas - ${periodReadable}`,
-      `Fecha de generación: ${new Date().toLocaleString('es-ES')}`,
-      `Última actualización: ${this.lastUpdateTime?.toLocaleString('es-ES') || 'N/A'}`,
-      `Estado del sistema: ${this.systemHealth.overall}`,
+      `Fecha de generación;${new Date().toLocaleString('es-ES')}`,
+      `Última actualización;${this.lastUpdateTime?.toLocaleString('es-ES') || 'N/A'}`,
+      `Estado del sistema;${this.systemHealth.overall}`,
       '',
 
       // SECCIÓN 2: Resumen Ejecutivo
       '=== RESUMEN EJECUTIVO ===',
-      `Total de Usuarios: ${this.totalUsersCount}`,
-      `Organizaciones Totales: ${this.totalOrganizationsCount}`,
-      `Donaciones Totales: ${this.totalDonationsCount}`,
-      `Donaciones Este Mes: ${this.donationsThisMonth}`,
-      `Promedio Diario de Donaciones: ${this.averageDailyDonations}`,
+      `Métrica;Valor`,
+      `Total de Usuarios;${this.totalUsersCount}`,
+      `Organizaciones Totales;${this.totalOrganizationsCount}`,
+      `Donaciones Totales;${this.totalDonationsCount}`,
+      `Donaciones Este Mes;${this.donationsThisMonth}`,
+      `Promedio Diario de Donaciones;${this.averageDailyDonations}`,
       '',
 
       // SECCIÓN 3: KPIs Principales
       '=== INDICADORES CLAVE (KPIs) ===',
-      'Título,Valor,Subtítulo,Tendencia,Dirección',
+      'Título;Valor;Subtítulo;Tendencia;Dirección',
       ...this.mainKPIs.map(kpi => 
-        `"${kpi.title}",${kpi.value},"${kpi.subtitle}","${kpi.trend?.value || 'N/A'}",${kpi.trend?.direction || 'neutral'}`
+        `${kpi.title};${kpi.value};${kpi.subtitle};${kpi.trend?.value || 'N/A'};${kpi.trend?.direction || 'neutral'}`
       ),
       '',
 
       // SECCIÓN 4: Métricas de Rendimiento
       '=== MÉTRICAS DE RENDIMIENTO ===',
-      'Título,Valor,Subtítulo,Tendencia',
+      'Título;Valor;Subtítulo;Tendencia',
       ...this.secondaryKPIs.map(kpi =>
-        `"${kpi.title}",${kpi.value},"${kpi.subtitle}","${kpi.trend?.value || 'N/A'}"`
+        `${kpi.title};${kpi.value};${kpi.subtitle};${kpi.trend?.value || 'N/A'}`
       ),
       '',
 
       // SECCIÓN 5: Indicadores de Engagement
       '=== INDICADORES DE ACTIVIDAD ===',
-      'Indicador,Valor Actual,Total,Porcentaje',
+      'Indicador;Valor Actual;Total;Porcentaje',
       ...this.engagementKPIs.map(kpi =>
-        `"${kpi.label}",${kpi.value},${kpi.total},${kpi.percentage.toFixed(1)}%`
+        `${kpi.label};${kpi.value};${kpi.total};${kpi.percentage.toFixed(1)}%`
       ),
       '',
 
       // SECCIÓN 6: Análisis Comparativo
       '=== ANÁLISIS COMPARATIVO ===',
-      `Usuarios - Semana Actual: ${this.currentWeekUsers}`,
-      `Usuarios - Semana Anterior: ${this.previousWeekUsers}`,
-      `Donaciones - Mes Actual: ${this.donationsThisMonth}`,
-      `Donaciones - Mes Anterior: ${this.previousMonthDonations}`,
-      `Ratio Usuarios/Organizaciones: ${this.totalOrganizationsCount > 0 ? (this.totalUsersCount / this.totalOrganizationsCount).toFixed(2) : 'N/A'}`,
-      `Ratio Donaciones/Usuarios: ${this.totalUsersCount > 0 ? (this.totalDonationsCount / this.totalUsersCount).toFixed(2) : 'N/A'}`,
+      'Métrica;Valor',
+      `Usuarios - Semana Actual;${this.currentWeekUsers}`,
+      `Usuarios - Semana Anterior;${this.previousWeekUsers}`,
+      `Donaciones - Mes Actual;${this.donationsThisMonth}`,
+      `Donaciones - Mes Anterior;${this.previousMonthDonations}`,
+      `Ratio Usuarios/Organizaciones;${this.totalOrganizationsCount > 0 ? (this.totalUsersCount / this.totalOrganizationsCount).toFixed(2) : 'N/A'}`,
+      `Ratio Donaciones/Usuarios;${this.totalUsersCount > 0 ? (this.totalDonationsCount / this.totalUsersCount).toFixed(2) : 'N/A'}`,
       '',
 
-      // SECCIÓN 7: Notas y Observaciones
+      // SECCIÓN 7: Estado del Sistema
       '=== ESTADO DEL SISTEMA ===',
-      `Estado General: ${this.systemHealth.overall}`,
-      `Errores de API - Usuarios: ${this.apiErrors.users ? 'SÍ' : 'NO'}`,
-      `Errores de API - Publicaciones: ${this.apiErrors.posts ? 'SÍ' : 'NO'}`,
-      `Errores de API - Donaciones: ${this.apiErrors.donations ? 'SÍ' : 'NO'}`,
+      'Componente;Estado',
+      `Estado General;${this.systemHealth.overall}`,
+      `API - Usuarios;${this.apiErrors.users ? 'ERROR' : 'OK'}`,
+      `API - Publicaciones;${this.apiErrors.posts ? 'ERROR' : 'OK'}`,
+      `API - Donaciones;${this.apiErrors.donations ? 'ERROR' : 'OK'}`,
       '',
       '=== FIN DEL REPORTE ==='
     ];
@@ -804,5 +860,78 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     if (trend === 'up') return 'Mejorando';
     if (trend === 'down') return 'Decreciendo';
     return 'Estable';
+  }
+
+  /**
+   * Calcula las donaciones agrupadas por mes para el gráfico
+   */
+  private calculateMonthlyDonations(allDonations: any[]): void {
+    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Obtener los últimos 6 meses
+    const today = new Date();
+    const last6Months: Array<{month: string, donations: number, amount?: number}> = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+
+      // Filtrar donaciones del mes
+      const monthDonations = allDonations.filter(donation => {
+        if (!donation.createdAt) return false;
+        const donationDate = new Date(donation.createdAt);
+        return donationDate >= monthStart && donationDate <= monthEnd;
+      });
+
+      // Solo contar la cantidad de donaciones (no hay campo "amount" en donaciones de artículos)
+      const count = monthDonations.length;
+
+      last6Months.push({
+        month: monthNames[date.getMonth()],
+        donations: count
+      });
+    }
+
+    this.monthlyDonationsData = last6Months;
+    console.log('📊 Datos mensuales calculados:', this.monthlyDonationsData);
+  }
+
+  /**
+   * Calcula las categorías más populares basándose en los posts
+   */
+  private calculatePopularCategories(allPosts: any[]): void {
+    // Contar posts por tipo (typePost)
+    const categoryCount = new Map<string, number>();
+    const allCategoryTypes = new Set<string>();
+    
+    allPosts.forEach(post => {
+      // Usar typePost.type como categoría
+      const categoryName = post.typePost?.type || 'Sin categoría';
+      categoryCount.set(categoryName, (categoryCount.get(categoryName) || 0) + 1);
+      if (post.typePost?.type) {
+        allCategoryTypes.add(post.typePost.type);
+      }
+    });
+
+    // Total de categorías disponibles en la BD (según tu tabla type_post)
+    this.totalCategoriesInDb = 5;
+
+    // Calcular total para porcentajes
+    const totalPosts = allPosts.length;
+
+    // Convertir a array y calcular porcentajes
+    const categoriesArray = Array.from(categoryCount.entries()).map(([category, count]) => ({
+      category,
+      count,
+      percentage: totalPosts > 0 ? (count / totalPosts) * 100 : 0
+    }));
+
+    this.popularCategoriesData = categoriesArray;
+    console.log('📊 Categorías populares calculadas:', this.popularCategoriesData);
   }
 }
