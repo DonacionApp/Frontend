@@ -1,0 +1,106 @@
+<div class="export-modal" *ngIf="visible" (click)="onClose()">
+  <div class="export-modal-content" (click)="$event.stopPropagation()">
+    <div class="export-modal-header">
+      <h2>Exportar Datos</h2>
+      <button class="close-button" (click)="onClose()" [disabled]="exporting">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="export-modal-body">
+      <div class="data-info">
+        <p><strong>Registros a exportar:</strong> {{ data.length }}</p>
+        <p *ngIf="filters" class="filters-info">
+          <strong>Filtros aplicados:</strong> Sí
+        </p>
+      </div>
+
+      <div class="format-selection">
+        <h3>Selecciona el formato:</h3>
+        <div class="format-options">
+          <label 
+            class="format-option" 
+            [class.selected]="selectedFormat === 'csv'"
+            [class.disabled]="exporting">
+            <input 
+              type="radio" 
+              name="format" 
+              value="csv" 
+              [checked]="selectedFormat === 'csv'"
+              (change)="onFormatSelect('csv')"
+              [disabled]="exporting">
+            <div class="format-info">
+              <span class="format-label">{{ getFormatLabel('csv') }}</span>
+              <span class="format-description">{{ getFormatDescription('csv') }}</span>
+            </div>
+          </label>
+
+          <label 
+            class="format-option" 
+            [class.selected]="selectedFormat === 'excel'"
+            [class.disabled]="exporting">
+            <input 
+              type="radio" 
+              name="format" 
+              value="excel" 
+              [checked]="selectedFormat === 'excel'"
+              (change)="onFormatSelect('excel')"
+              [disabled]="exporting">
+            <div class="format-info">
+              <span class="format-label">{{ getFormatLabel('excel') }}</span>
+              <span class="format-description">{{ getFormatDescription('excel') }}</span>
+            </div>
+          </label>
+
+          <label 
+            class="format-option" 
+            [class.selected]="selectedFormat === 'pdf'"
+            [class.disabled]="exporting">
+            <input 
+              type="radio" 
+              name="format" 
+              value="pdf" 
+              [checked]="selectedFormat === 'pdf'"
+              (change)="onFormatSelect('pdf')"
+              [disabled]="exporting">
+            <div class="format-info">
+              <span class="format-label">{{ getFormatLabel('pdf') }}</span>
+              <span class="format-description">{{ getFormatDescription('pdf') }}</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="progress-section" *ngIf="exporting">
+        <div class="progress-bar-container">
+          <div class="progress-bar" [style.width.%]="progress"></div>
+        </div>
+        <p class="progress-text">Exportando... {{ progress }}%</p>
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        <p>{{ errorMessage }}</p>
+      </div>
+    </div>
+
+    <div class="export-modal-footer">
+      <button 
+        class="btn btn-secondary" 
+        (click)="onClose()" 
+        [disabled]="exporting">
+        Cancelar
+      </button>
+      <button 
+        class="btn btn-primary" 
+        (click)="onExport()" 
+        [disabled]="exporting || data.length === 0">
+        <span *ngIf="!exporting">Exportar</span>
+        <span *ngIf="exporting">Exportando...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
