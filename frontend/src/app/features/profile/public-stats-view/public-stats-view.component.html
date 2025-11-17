@@ -1,0 +1,121 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header con información del usuario -->
+  <div class="bg-white shadow-sm border-b border-gray-200">
+    <div class="container mx-auto px-4 py-6">
+      <!-- Estado de carga del header -->
+      <div *ngIf="isLoading" class="flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="error && !isLoading" class="text-center py-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+          <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Perfil no encontrado</h2>
+        <p class="text-gray-600 mb-6">{{ error }}</p>
+        <button 
+          (click)="reload()"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-3">
+          Reintentar
+        </button>
+        <a 
+          routerLink="/"
+          class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors inline-block">
+          Volver al inicio
+        </a>
+      </div>
+
+      <!-- Información del usuario -->
+      <div *ngIf="userInfo && !isLoading" class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Avatar -->
+          <div class="relative">
+            <img 
+              [src]="userInfo.avatar || 'assets/images/default-avatar.png'" 
+              [alt]="userInfo.name"
+              class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
+            <!-- Badge de verificación -->
+            <div *ngIf="userInfo.verified" 
+                 class="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1"
+                 title="Perfil verificado">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ userInfo.name }}</h1>
+            <p class="text-gray-600 flex items-center space-x-2">
+              <span class="px-2 py-1 text-xs font-medium rounded-full"
+                    [ngClass]="userType === 'donor' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'">
+                {{ userType === 'donor' ? 'Donante' : 'Organización' }}
+              </span>
+              <span *ngIf="userInfo.createdAt" class="text-sm text-gray-500">
+                Miembro desde {{ userInfo.createdAt | date:'MMM yyyy' }}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Botón para ver perfil completo -->
+        <button 
+          (click)="goToProfile()"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+          <span>Ver Perfil Completo</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de estadísticas -->
+  <div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">Estadísticas de Impacto</h2>
+      <p class="text-gray-600">
+        Historial público de {{ userType === 'donor' ? 'donaciones realizadas' : 'donaciones recibidas' }} y actividad en la plataforma
+      </p>
+    </div>
+
+    <!-- Componente de estadísticas públicas -->
+    <div *ngIf="!isLoading && userInfo">
+      <app-public-stats
+        [data]="statsData"
+        [userType]="userType"
+        [showCharts]="true"
+        [showTrends]="true">
+      </app-public-stats>
+    </div>
+
+    <!-- Estado de carga -->
+    <div *ngIf="isLoading" class="flex items-center justify-center py-16">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando estadísticas...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer informativo -->
+  <div class="bg-white border-t border-gray-200 mt-12">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex items-center justify-between text-sm text-gray-600">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>Vista pública - Accesible sin iniciar sesión</span>
+        </div>
+        <a routerLink="/auth/login" class="text-blue-600 hover:text-blue-700 transition-colors">
+          Iniciar sesión para ver más detalles →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

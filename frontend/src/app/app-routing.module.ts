@@ -28,6 +28,12 @@ const routes: Routes = [
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
   },
   
+  // Ruta pública para ver estadísticas de un usuario (sin AuthGuard)
+  {
+    path: 'usuario/:id/stats',
+    loadComponent: () => import('./features/profile/public-stats-view/public-stats-view.component').then(m => m.PublicStatsViewComponent)
+  },
+  
   // Página de acceso denegado
   { path: 'access-denied', component: AccessDeniedComponent },
   
