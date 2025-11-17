@@ -5,6 +5,7 @@ import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, retry } from 'rxjs/operators';
 import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.component';
 import { MonthlyDonationsChartComponent } from './monthly-donations-chart/monthly-donations-chart.component';
+import { PopularCategoriesChartComponent } from './popular-categories-chart/popular-categories-chart.component';
 import { UserManagementService } from '../../../core/services/user-management.service';
 import { PostsService } from '../../../core/services/posts.service';
 import { DonationService } from '../../../core/services/donation.service';
@@ -25,7 +26,7 @@ interface KPICard {
 @Component({
   selector: 'app-stats-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent],
+  imports: [CommonModule, RouterModule, KpiCardComponent, MonthlyDonationsChartComponent, PopularCategoriesChartComponent],
   templateUrl: './stats-dashboard.component.html',
   styleUrls: ['./stats-dashboard.component.scss']
 })
@@ -69,6 +70,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
   // Datos para el gráfico de donaciones mensuales
   monthlyDonationsData: Array<{month: string, donations: number, amount?: number}> = [];
+
+  // Datos para el gráfico de categorías populares
+  popularCategoriesData: Array<{category: string, count: number, percentage?: number}> = [];
 
   // KPIs Principales (se actualizarán con datos reales y tendencias calculadas)
   mainKPIs: KPICard[] = [
@@ -288,6 +292,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[3].value = allPosts.length;
     this.mainKPIs[3].loading = false;
     this.calculatePostsTrend(allPosts);
+    this.calculatePopularCategories(allPosts);
 
     // Cargar donaciones (llamada separada por user)
     this.loadDonations(allUsers);
@@ -883,5 +888,32 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
     this.monthlyDonationsData = last6Months;
     console.log('📊 Datos mensuales calculados:', this.monthlyDonationsData);
+  }
+
+  /**
+   * Calcula las categorías más populares basándose en los posts
+   */
+  private calculatePopularCategories(allPosts: any[]): void {
+    // Contar posts por tipo (typePost)
+    const categoryCount = new Map<string, number>();
+    
+    allPosts.forEach(post => {
+      // Usar typePost.type como categoría
+      const categoryName = post.typePost?.type || 'Sin categoría';
+      categoryCount.set(categoryName, (categoryCount.get(categoryName) || 0) + 1);
+    });
+
+    // Calcular total para porcentajes
+    const totalPosts = allPosts.length;
+
+    // Convertir a array y calcular porcentajes
+    const categoriesArray = Array.from(categoryCount.entries()).map(([category, count]) => ({
+      category,
+      count,
+      percentage: totalPosts > 0 ? (count / totalPosts) * 100 : 0
+    }));
+
+    this.popularCategoriesData = categoriesArray;
+    console.log('📊 Categorías populares calculadas:', this.popularCategoriesData);
   }
 }

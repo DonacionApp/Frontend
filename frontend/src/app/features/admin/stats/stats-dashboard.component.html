@@ -141,6 +141,15 @@
     </app-monthly-donations-chart>
   </div>
 
+  <!-- Gráfico de Categorías Populares -->
+  <div class="mb-8">
+    <app-popular-categories-chart 
+      [data]="popularCategoriesData"
+      [maxCategories]="10"
+      chartHeight="400px">
+    </app-popular-categories-chart>
+  </div>
+
   <!-- Summary Cards -->
   <div class="mb-8">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Resumen Ejecutivo</h2>
