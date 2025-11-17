@@ -1,0 +1,205 @@
+<div class="min-h-screen flex flex-col bg-gradient-to-b from-[#f3faf6] via-white to-[#f3faf6]">
+  <main class="flex-1">
+    <section
+      class="relative overflow-hidden px-4 sm:px-8 lg:px-10 xl:px-16 pt-14 sm:pt-18 lg:pt-22 pb-16 sm:pb-20 lg:pb-24"
+      aria-labelledby="about-heading"
+    >
+      <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <!-- Ola superior con gradiente suave -->
+        <svg
+          aria-hidden="true"
+          class="absolute -top-20 left-1/2 h-[380px] w-full min-w-[1400px] max-w-[2000px] -translate-x-1/2"
+          preserveAspectRatio="xMidYMid slice"
+          viewBox="0 0 1440 320"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="wave-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#d1fae5;stop-opacity:0.5" />
+              <stop offset="50%" style="stop-color:#a7f3d0;stop-opacity:0.4" />
+              <stop offset="100%" style="stop-color:#6ee7b7;stop-opacity:0.3" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#wave-gradient-1)"
+            d="M0,96L48,112C96,128,192,160,288,165.3C384,171,480,149,576,128C672,107,768,85,864,90.7C960,96,1056,128,1152,138.7C1248,149,1344,139,1392,133.3L1440,128L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
+          ></path>
+        </svg>
+
+        <!-- Ola intermedia con opacidad reducida -->
+        <svg
+          aria-hidden="true"
+          class="absolute top-16 left-1/2 h-[320px] w-full min-w-[1400px] max-w-[2000px] -translate-x-1/2"
+          preserveAspectRatio="xMidYMid slice"
+          viewBox="0 0 1440 320"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="wave-gradient-2" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#ecfdf5;stop-opacity:0.6" />
+              <stop offset="50%" style="stop-color:#d1fae5;stop-opacity:0.5" />
+              <stop offset="100%" style="stop-color:#a7f3d0;stop-opacity:0.4" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#wave-gradient-2)"
+            d="M0,192L48,181.3C96,171,192,149,288,154.7C384,160,480,192,576,197.3C672,203,768,181,864,154.7C960,128,1056,96,1152,101.3C1248,107,1344,149,1392,170.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+          ></path>
+        </svg>
+
+        <!-- Esferas decorativas con blur -->
+        <div class="absolute -top-20 -left-16 h-64 w-64 rounded-full bg-emerald-200/40 blur-3xl"></div>
+        <div class="absolute top-1/4 -right-20 h-80 w-80 rounded-full bg-emerald-100/50 blur-3xl"></div>
+        <div class="absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-teal-100/30 blur-2xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-5xl text-center">
+        <h1
+          id="about-heading"
+          class="text-3xl font-semibold text-emerald-900 sm:text-4xl lg:text-5xl xl:text-6xl"
+        >
+          Acerca de DonacionApp
+        </h1>
+
+        <!-- Contenedor de contenido dinámico con estados de carga -->
+        <div class="mx-auto mt-6 max-w-3xl">
+          <!-- Estado de carga -->
+          <div *ngIf="isLoading" class="flex items-center justify-center py-8">
+            <div class="h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600"></div>
+            <span class="ml-3 text-sm text-gray-500">Cargando información...</span>
+          </div>
+
+          <!-- Estado de error (muestra contenido por defecto) -->
+          <p 
+            *ngIf="!isLoading && hasError" 
+            class="text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
+          >
+            Bienvenido a DonacionApp. Somos la plataforma que conecta de forma segura y transparente a personas solidarias con organizaciones que necesitan bienes materiales, agilizando cada entrega para generar impacto real y un futuro solidario.
+          </p>
+
+          <!-- Contenido dinámico del backend -->
+          <p 
+            *ngIf="!isLoading && !hasError" 
+            class="whitespace-pre-line text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
+          >
+            {{ aboutUsContent }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="relative px-4 sm:px-8 lg:px-10 xl:px-16 pb-16 sm:pb-20 lg:pb-24"
+      aria-labelledby="mission-vision-heading"
+    >
+      <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden">
+        <!-- Ola decorativa superior -->
+        <svg
+          aria-hidden="true"
+          class="absolute -top-24 h-72 w-full min-w-[1400px] max-w-[2000px]"
+          preserveAspectRatio="xMidYMid slice"
+          viewBox="0 0 1440 320"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="wave-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#f0fdf4;stop-opacity:0.7" />
+              <stop offset="50%" style="stop-color:#d1fae5;stop-opacity:0.6" />
+              <stop offset="100%" style="stop-color:#a7f3d0;stop-opacity:0.5" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#wave-gradient-3)"
+            d="M0,128L60,138.7C120,149,240,171,360,165.3C480,160,600,128,720,122.7C840,117,960,139,1080,154.7C1200,171,1320,181,1380,186.7L1440,192L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
+          ></path>
+        </svg>
+
+        <!-- Resplandor suave de fondo -->
+        <div class="absolute -top-10 left-1/2 h-96 w-full max-w-5xl -translate-x-1/2 rounded-full bg-gradient-to-b from-emerald-50/60 via-white/40 to-transparent blur-2xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-6xl">
+        <h2 id="mission-vision-heading" class="sr-only">Nuestra misión y visión</h2>
+        <div class="grid grid-cols-1 gap-10 md:grid-cols-2">
+          <article
+            class="group relative overflow-hidden rounded-[36px] border border-emerald-100 bg-white/90 p-10 shadow-[0_24px_56px_rgba(24,92,70,0.08)] transition-transform duration-300 ease-out focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-emerald-400 hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(24,92,70,0.12)]"
+            aria-labelledby="mission-heading"
+          >
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2 border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/80 shadow-lg">
+                <span class="sr-only">Icono representando la misión de DonacionApp</span>
+                <svg
+                  aria-hidden="true"
+                  class="h-16 w-16 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <!-- Manos abiertas sosteniendo un corazón -->
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  <path d="M8 14h.01M16 14h.01M8 10c.5 1 1.5 2 4 2s3.5-1 4-2"></path>
+                </svg>
+              </div>
+
+              <header class="mt-6">
+                <h3 id="mission-heading" class="text-2xl font-semibold text-emerald-900">
+                  Nuestra Misión
+                </h3>
+              </header>
+
+              <p class="mt-4 text-base leading-7 text-gray-600">
+                Conectar de manera eficiente a personas y organizaciones que necesitan ayuda con donantes dispuestos a ofrecer recursos, bienes y apoyo. Proporcionamos las herramientas necesarias para publicar artículos para donar, gestionar necesidades específicas y asegurar un proceso de donación transparente y seguro.
+              </p>
+            </div>
+          </article>
+
+          <article
+            class="group relative overflow-hidden rounded-[36px] border border-emerald-100 bg-white/90 p-10 shadow-[0_24px_56px_rgba(24,92,70,0.08)] transition-transform duration-300 ease-out focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-emerald-400 hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(24,92,70,0.12)]"
+            aria-labelledby="vision-heading"
+          >
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2 border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/80 shadow-lg">
+                <span class="sr-only">Icono representando la visión de DonacionApp</span>
+                <svg
+                  aria-hidden="true"
+                  class="h-16 w-16 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <!-- Globo terráqueo con personas conectadas -->
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M2 12h20"></path>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                  <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+                  <circle cx="6" cy="8" r="1.5" fill="currentColor"></circle>
+                  <circle cx="18" cy="16" r="1.5" fill="currentColor"></circle>
+                </svg>
+              </div>
+
+              <header class="mt-6">
+                <h3 id="vision-heading" class="text-2xl font-semibold text-emerald-900">
+                  Nuestra Visión
+                </h3>
+              </header>
+
+              <p class="mt-4 text-base leading-7 text-gray-600">
+                Ser el puente tecnológico que conecta de forma directa y ágil a quienes desean ayudar con las organizaciones que lo necesitan. Buscamos catalizar el cambio social , asegurando que cada acto de bondad se traduzca en una ayuda real y tangible, optimizando recursos y fomentando un ecosistema de confianza y corresponsabilidad comunitaria.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <app-footer></app-footer>
+</div>
