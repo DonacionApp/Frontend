@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout.component';
 import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
 import { AdminGuard } from '../../core/guards/admin.guard';
+import { AuditoriaComponent } from './auditoria/auditoria.component';
 
 const routes: Routes = [
   {
@@ -97,12 +98,19 @@ const routes: Routes = [
         loadComponent: () => import('./kpi-test/kpi-test.component').then(m => m.KpiTestComponent),
         canActivate: [AdminGuard]
       },
+      {
+        path: 'auditoria',
+        component:AuditoriaComponent,
+        canActivate: [AdminGuard]
+      }
     ]
   }
 ];
 
 @NgModule({
-  declarations: [],
+  declarations: [
+    AuditoriaComponent
+  ],
   imports: [
     CommonModule,
     RouterModule.forChild(routes)
