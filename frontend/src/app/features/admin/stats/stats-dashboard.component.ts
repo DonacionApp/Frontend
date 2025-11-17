@@ -45,6 +45,12 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private previousWeekUsers = 0;
   private currentWeekUsers = 0;
   
+  // Almacenar datos filtrados para cálculos secundarios
+  private filteredUsers: any[] = [];
+  private filteredOrganizations: any[] = [];
+  private filteredPosts: any[] = [];
+  private filteredDonations: any[] = [];
+  
   // Métricas de rendimiento de API
   private apiLoadStartTime = 0;
   private apiLoadEndTime = 0;
@@ -210,17 +216,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Suscribirse a cambios en los filtros
-    this.filterService.filters$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(filters => {
-        console.log('🔄 Filtros actualizados, recargando estadísticas:', filters);
-        // Solo recargar si no es la inicialización
-        if (this.lastUpdateTime) {
-          this.loadStatistics();
-        }
-      });
-
     // Cargar filtros actuales al componente
     const currentFilters = this.filterService.getCurrentFilters();
     this.dateFilters = currentFilters.dateRange;
@@ -228,6 +223,18 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
 
     // Carga inicial de estadísticas
     this.loadStatistics();
+
+    // Suscribirse a cambios en los filtros (después de la carga inicial)
+    this.filterService.filters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => {
+        console.log('🔄 Filtros actualizados, recargando estadísticas:', filters);
+        // Actualizar los filtros locales
+        this.dateFilters = filters.dateRange;
+        this.currentPreset = filters.preset || '';
+        // Recargar datos con los nuevos filtros
+        this.loadStatistics();
+      });
   }
 
   ngOnDestroy(): void {
@@ -246,6 +253,13 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     
     // Capturar tiempo de inicio para calcular respuesta
     this.apiLoadStartTime = Date.now();
+
+    // Obtener filtros actuales
+    const filters = this.filterService.getCurrentFilters();
+    const startDate = filters.dateRange?.startDate;
+    const endDate = filters.dateRange?.endDate;
+
+    console.log('📅 Cargando estadísticas con filtros:', { startDate, endDate });
 
     // Realizar llamadas en paralelo a los endpoints con reintentos
     forkJoin({
@@ -296,8 +310,19 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Procesa los datos recibidos de la API y actualiza los KPIs
    */
   private processStatisticsData(data: any): void {
-    // Procesar usuarios
-    const allUsers = Array.isArray(data.users) ? data.users : [];
+    // Procesar usuarios y aplicar filtros
+    let allUsers = Array.isArray(data.users) ? data.users : [];
+    
+    // Aplicar filtros de fecha si están activos
+    const filters = this.filterService.getCurrentFilters();
+    if (filters.dateRange) {
+      allUsers = this.filterService.filterDataByDateRange(allUsers);
+      console.log('✅ Usuarios después de aplicar filtros:', allUsers.length);
+    }
+    
+    // Guardar para cálculos secundarios
+    this.filteredUsers = allUsers;
+    
     const nonAdminUsers = allUsers.filter((user: any) => {
       const role = user.rol?.rol?.toLowerCase();
       return role !== 'admin';
@@ -311,6 +336,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const role = user.rol?.rol?.toLowerCase();
       return role === 'organizacion' || role === 'organization';
     });
+    
+    // Guardar para cálculos secundarios
+    this.filteredOrganizations = organizations;
 
     this.totalOrganizationsCount = organizations.length;
     const verifiedOrgs = organizations.filter((org: any) => org.verified).length;
@@ -325,8 +353,18 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.mainKPIs[1].loading = false;
     this.calculateOrganizationTrend(organizations);
 
-    // Procesar publicaciones
-    const allPosts = Array.isArray(data.posts) ? data.posts : [];
+    // Procesar publicaciones y aplicar filtros
+    let allPosts = Array.isArray(data.posts) ? data.posts : [];
+    
+    // Aplicar filtros de fecha si están activos
+    if (filters.dateRange) {
+      allPosts = this.filterService.filterDataByDateRange(allPosts);
+      console.log('✅ Publicaciones después de aplicar filtros:', allPosts.length);
+    }
+    
+    // Guardar para cálculos secundarios
+    this.filteredPosts = allPosts;
+    
     this.mainKPIs[3].value = allPosts.length;
     this.mainKPIs[3].loading = false;
     this.calculatePostsTrend(allPosts);
@@ -375,12 +413,22 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (donationsArrays) => {
           console.log('📦 Respuestas de donaciones recibidas:', donationsArrays);
-          const allDonations = donationsArrays.flat().filter(d => d);
+          let allDonations = donationsArrays.flat().filter(d => d);
           
           // Eliminar duplicados por ID (una donación puede aparecer en donante y beneficiario)
-          const uniqueDonations = Array.from(
+          let uniqueDonations = Array.from(
             new Map(allDonations.map(d => [d.id, d])).values()
           );
+          
+          // Aplicar filtros de fecha si están activos
+          const filters = this.filterService.getCurrentFilters();
+          if (filters.dateRange) {
+            uniqueDonations = this.filterService.filterDataByDateRange(uniqueDonations);
+            console.log('✅ Donaciones después de aplicar filtros:', uniqueDonations.length);
+          }
+          
+          // Guardar para cálculos secundarios
+          this.filteredDonations = uniqueDonations;
           
           console.log('📦 Total donaciones después de eliminar duplicados:', uniqueDonations);
           this.totalDonationsCount = uniqueDonations.length;
@@ -388,7 +436,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
           this.finalizeDonationMetrics(uniqueDonations.length, uniqueDonations);
           
           // IMPORTANTE: Actualizar KPIs secundarios DESPUÉS de cargar donaciones
-          this.updateSecondaryKPIs(users, organizations, posts);
+          // Usar los datos filtrados almacenados en las propiedades de la clase
+          this.updateSecondaryKPIs(this.filteredUsers, this.filteredOrganizations, this.filteredPosts);
           
           console.log(`✅ ${uniqueDonations.length} donaciones únicas cargadas desde API`);
         },
@@ -902,11 +951,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las donaciones agrupadas por mes para el gráfico
    */
   private calculateMonthlyDonations(allDonations: any[]): void {
-    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones');
-    
-    // Aplicar filtros de fecha si están activos
-    const filteredDonations = this.filterService.filterDataByDateRange(allDonations);
-    console.log('📊 Donaciones después de filtrar:', filteredDonations.length);
+    console.log('📊 Calculando donaciones mensuales con:', allDonations.length, 'donaciones (ya filtradas)');
     
     const monthNames = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -922,8 +967,8 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
 
-      // Filtrar donaciones del mes (usando ya los datos filtrados)
-      const monthDonations = filteredDonations.filter(donation => {
+      // Filtrar donaciones del mes
+      const monthDonations = allDonations.filter(donation => {
         if (!donation.createdAt) return false;
         const donationDate = new Date(donation.createdAt);
         return donationDate >= monthStart && donationDate <= monthEnd;
@@ -946,17 +991,13 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Calcula las categorías más populares basándose en los posts
    */
   private calculatePopularCategories(allPosts: any[]): void {
-    console.log('📊 Calculando categorías populares con:', allPosts.length, 'posts');
-    
-    // Aplicar filtros de fecha si están activos
-    const filteredPosts = this.filterService.filterDataByDateRange(allPosts);
-    console.log('📊 Posts después de filtrar:', filteredPosts.length);
+    console.log('📊 Calculando categorías populares con:', allPosts.length, 'posts (ya filtrados)');
     
     // Contar posts por tipo (typePost)
     const categoryCount = new Map<string, number>();
     const allCategoryTypes = new Set<string>();
     
-    filteredPosts.forEach(post => {
+    allPosts.forEach(post => {
       // Usar typePost.type como categoría
       const categoryName = post.typePost?.type || 'Sin categoría';
       categoryCount.set(categoryName, (categoryCount.get(categoryName) || 0) + 1);
@@ -969,7 +1010,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.totalCategoriesInDb = 5;
 
     // Calcular total para porcentajes
-    const totalPosts = filteredPosts.length;
+    const totalPosts = allPosts.length;
 
     // Convertir a array y calcular porcentajes
     const categoriesArray = Array.from(categoryCount.entries()).map(([category, count]) => ({
