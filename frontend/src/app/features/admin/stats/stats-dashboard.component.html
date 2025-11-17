@@ -5,6 +5,31 @@
       <div>
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Panel de Estadísticas</h1>
         <p class="text-gray-600">Visualiza y analiza las métricas clave de la plataforma</p>
+        
+        <!-- Loading Indicator -->
+        <div *ngIf="isReconnecting" class="flex items-center gap-2 mt-2 text-sm">
+          <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="text-blue-600 font-medium">Cargando datos desde la API...</span>
+        </div>
+        
+        <!-- Success Indicator -->
+        <div *ngIf="!isReconnecting && lastUpdateTime" class="flex items-center gap-2 mt-2 text-sm">
+          <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="text-green-600 font-medium">Actualizado: {{ lastUpdateTime | date:'short':'':'es' }}</span>
+        </div>
+        
+        <!-- Error Indicator -->
+        <div *ngIf="hasAnyError" class="flex items-center gap-2 mt-2 text-sm">
+          <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <span class="text-amber-600 font-medium">Algunos datos no están disponibles</span>
+        </div>
       </div>
       
       <!-- Period Selector -->
@@ -61,7 +86,27 @@
   <!-- Engagement KPIs -->
   <div class="mb-8">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Indicadores de Actividad</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    
+    <!-- Loading State -->
+    <div *ngIf="isReconnecting" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div *ngFor="let i of [1,2,3,4]" class="bg-white rounded-xl shadow-md p-6 animate-pulse">
+        <div class="flex items-center justify-between mb-4">
+          <div class="h-4 w-32 bg-gray-200 rounded"></div>
+          <div class="h-8 w-16 bg-gray-200 rounded"></div>
+        </div>
+        <div class="relative">
+          <div class="h-2 bg-gray-200 rounded-full"></div>
+          <div class="flex items-center justify-between mt-2">
+            <div class="h-3 w-8 bg-gray-200 rounded"></div>
+            <div class="h-3 w-12 bg-gray-200 rounded"></div>
+            <div class="h-3 w-8 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loaded State -->
+    <div *ngIf="!isReconnecting" class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div *ngFor="let kpi of engagementKPIs" class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-medium text-gray-700">{{ kpi.label }}</h3>
@@ -79,7 +124,7 @@
           </div>
           <div class="flex items-center justify-between mt-2">
             <span class="text-xs text-gray-500">0</span>
-            <span class="text-xs font-semibold text-gray-700">{{ kpi.percentage }}%</span>
+            <span class="text-xs font-semibold text-gray-700">{{ kpi.percentage.toFixed(1) }}%</span>
             <span class="text-xs text-gray-500">{{ kpi.total }}</span>
           </div>
         </div>
@@ -90,7 +135,81 @@
   <!-- Summary Cards -->
   <div class="mb-8">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Resumen Ejecutivo</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Loading State -->
+    <div *ngIf="isReconnecting" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Skeleton Card 1 -->
+      <div class="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl shadow-lg p-6 animate-pulse">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-3 bg-white bg-opacity-20 rounded-lg">
+            <div class="w-8 h-8 bg-white bg-opacity-30 rounded"></div>
+          </div>
+          <div class="text-right">
+            <div class="h-10 w-20 bg-white bg-opacity-20 rounded mb-2"></div>
+            <div class="h-4 w-24 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+        <div class="border-t border-white border-opacity-20 pt-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="h-4 w-16 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="h-4 w-20 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Skeleton Card 2 -->
+      <div class="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl shadow-lg p-6 animate-pulse">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-3 bg-white bg-opacity-20 rounded-lg">
+            <div class="w-8 h-8 bg-white bg-opacity-30 rounded"></div>
+          </div>
+          <div class="text-right">
+            <div class="h-10 w-20 bg-white bg-opacity-20 rounded mb-2"></div>
+            <div class="h-4 w-24 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+        <div class="border-t border-white border-opacity-20 pt-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="h-4 w-16 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="h-4 w-20 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Skeleton Card 3 -->
+      <div class="bg-gradient-to-br from-green-400 to-green-500 rounded-xl shadow-lg p-6 animate-pulse">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-3 bg-white bg-opacity-20 rounded-lg">
+            <div class="w-8 h-8 bg-white bg-opacity-30 rounded"></div>
+          </div>
+          <div class="text-right">
+            <div class="h-10 w-20 bg-white bg-opacity-20 rounded mb-2"></div>
+            <div class="h-4 w-24 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+        <div class="border-t border-white border-opacity-20 pt-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="h-4 w-16 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="h-4 w-20 bg-white bg-opacity-20 rounded"></div>
+            <div class="h-4 w-12 bg-white bg-opacity-20 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loaded State -->
+    <div *ngIf="!isReconnecting" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Total Donaciones Card -->
       <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-4">
@@ -136,7 +255,7 @@
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="opacity-90">Nuevos (7 días)</span>
-            <span class="font-semibold">{{ engagementKPIs[0].value }}</span>
+            <span class="font-semibold">{{ newUsersLast7Days }}</span>
           </div>
         </div>
       </div>
@@ -161,16 +280,16 @@
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="opacity-90">Nuevas (7 días)</span>
-            <span class="font-semibold">{{ engagementKPIs[1].value }}</span>
+            <span class="font-semibold">{{ newOrgsLast7Days }}</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <div class="bg-white rounded-xl shadow-md p-6">
     <!-- Quick Stats Summary -->
-    <div class="bg-white rounded-xl shadow-md p-6">
+    <div>
       <h2 class="text-xl font-semibold text-gray-900 mb-4">Resumen Rápido</h2>
       <div class="space-y-4">
         <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
@@ -185,7 +304,7 @@
               <p class="text-xs text-gray-500">Conectados en las últimas 24h</p>
             </div>
           </div>
-          <span class="text-2xl font-bold text-blue-600">342</span>
+          <span class="text-2xl font-bold text-blue-600">{{ activeUsersToday }}</span>
         </div>
 
         <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
@@ -200,7 +319,7 @@
               <p class="text-xs text-gray-500">Organizaciones esperando aprobación</p>
             </div>
           </div>
-          <span class="text-2xl font-bold text-green-600">12</span>
+          <span class="text-2xl font-bold text-green-600">{{ pendingVerifications }}</span>
         </div>
 
         <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
@@ -215,65 +334,7 @@
               <p class="text-xs text-gray-500">Completadas exitosamente</p>
             </div>
           </div>
-          <span class="text-2xl font-bold text-orange-600">87</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- System Health -->
-    <div class="bg-white rounded-xl shadow-md p-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">Estado del Sistema</h2>
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-gray-700">Servidor Principal</span>
-          </div>
-          <span class="text-sm text-green-600 font-semibold">Operativo</span>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-gray-700">Base de Datos</span>
-          </div>
-          <span class="text-sm text-green-600 font-semibold">Operativo</span>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-gray-700">Sistema de Pagos</span>
-          </div>
-          <span class="text-sm text-green-600 font-semibold">Operativo</span>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-gray-700">Servicio de Notificaciones</span>
-          </div>
-          <span class="text-sm text-yellow-600 font-semibold">Degradado</span>
-        </div>
-
-        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Uso de CPU</span>
-            <span class="text-sm font-bold text-gray-900">45%</span>
-          </div>
-          <div class="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
-            <div style="width: 45%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
-          </div>
-        </div>
-
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Uso de Memoria</span>
-            <span class="text-sm font-bold text-gray-900">68%</span>
-          </div>
-          <div class="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
-            <div style="width: 68%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
-          </div>
+          <span class="text-2xl font-bold text-orange-600">{{ donationsToday }}</span>
         </div>
       </div>
     </div>

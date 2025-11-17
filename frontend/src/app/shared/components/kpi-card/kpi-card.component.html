@@ -12,6 +12,7 @@
       <!-- Icon Container -->
       <div class="p-3 bg-white bg-opacity-20 rounded-lg backdrop-blur-sm">
         <svg 
+          *ngIf="!loading"
           class="w-6 h-6" 
           fill="none" 
           stroke="currentColor" 
@@ -24,6 +25,13 @@
             [attr.d]="iconPath">
           </path>
         </svg>
+        <!-- Icon Skeleton -->
+        <div 
+          *ngIf="loading"
+          class="w-6 h-6 bg-white bg-opacity-30 rounded animate-pulse"
+          role="status"
+          aria-label="Cargando icono...">
+        </div>
       </div>
       
       <!-- Trend Badge -->
@@ -46,10 +54,27 @@
         </svg>
         <span class="text-white">{{ trend }}</span>
       </div>
+      
+      <!-- Trend Badge Skeleton -->
+      <div 
+        *ngIf="loading"
+        class="h-6 w-16 bg-white bg-opacity-20 rounded-full animate-pulse"
+        role="status"
+        aria-label="Cargando tendencia...">
+      </div>
     </div>
     
     <!-- Title -->
-    <h3 class="text-sm font-medium mb-2 opacity-90">{{ title }}</h3>
+    <div *ngIf="!loading">
+      <h3 class="text-sm font-medium mb-2 opacity-90">{{ title }}</h3>
+    </div>
+    <div *ngIf="loading" class="mb-2">
+      <div 
+        class="h-4 w-3/4 bg-white bg-opacity-20 rounded animate-pulse"
+        role="status"
+        aria-label="Cargando título...">
+      </div>
+    </div>
     
     <!-- Value or Loading State -->
     <div *ngIf="!loading" class="mb-1">
@@ -60,14 +85,23 @@
     
     <div *ngIf="loading" class="mb-1">
       <div 
-        class="h-9 bg-white bg-opacity-20 rounded animate-pulse"
+        class="h-9 w-32 bg-white bg-opacity-30 rounded animate-pulse"
         role="status"
-        aria-label="Cargando...">
+        aria-label="Cargando valor...">
       </div>
     </div>
     
     <!-- Subtitle -->
-    <p *ngIf="subtitle" class="text-xs opacity-75">{{ subtitle }}</p>
+    <div *ngIf="!loading && subtitle">
+      <p class="text-xs opacity-75">{{ subtitle }}</p>
+    </div>
+    <div *ngIf="loading" class="mt-1">
+      <div 
+        class="h-3 w-1/2 bg-white bg-opacity-20 rounded animate-pulse"
+        role="status"
+        aria-label="Cargando subtítulo...">
+      </div>
+    </div>
     
     <!-- Custom Content Slot -->
     <div *ngIf="!loading" class="mt-3">

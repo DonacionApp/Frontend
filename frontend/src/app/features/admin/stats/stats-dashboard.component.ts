@@ -53,6 +53,15 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   lastUpdateTime?: Date;
   hasAnyError = false;
 
+  // Datos para Resumen Rápido
+  activeUsersToday = 0;
+  pendingVerifications = 0;
+  donationsToday = 0;
+  
+  // Datos para Resumen Ejecutivo
+  newUsersLast7Days = 0;
+  newOrgsLast7Days = 0;
+
   // KPIs Principales (se actualizarán con datos reales y tendencias calculadas)
   mainKPIs: KPICard[] = [
     {
@@ -269,10 +278,14 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.loadDonations(allUsers);
 
     // Actualizar KPIs secundarios
-    this.updateSecondaryKPIs(this.totalUsersCount, organizations.length, allPosts.length);
+    this.updateSecondaryKPIs(allUsers, organizations, allPosts);
 
     // Actualizar indicadores de engagement
     this.updateEngagementKPIs(allUsers, allPosts);
+
+    // Calcular datos para Resumen Rápido
+    this.calculateActiveUsersToday(allUsers);
+    this.calculatePendingVerifications(allUsers);
 
     // Actualizar estado del sistema
     this.updateSystemHealth();
@@ -304,6 +317,7 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
         next: (donationsArrays) => {
           const allDonations = donationsArrays.flat().filter(d => d);
           this.totalDonationsCount = allDonations.length;
+          this.calculateDonationsToday(allDonations);
           this.finalizeDonationMetrics(allDonations.length, allDonations);
           console.log(`✅ ${allDonations.length} donaciones cargadas desde API`);
         },
@@ -371,6 +385,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const createdDate = new Date(user.createdAt);
       return createdDate >= sevenDaysAgo;
     }).length;
+    
+    // Guardar para el Resumen Ejecutivo
+    this.newUsersLast7Days = this.currentWeekUsers;
 
     this.previousWeekUsers = users.filter(user => {
       if (!user.createdAt) return false;
@@ -394,6 +411,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       const createdDate = new Date(org.createdAt);
       return createdDate >= sevenDaysAgo;
     }).length;
+    
+    // Guardar para el Resumen Ejecutivo
+    this.newOrgsLast7Days = currentWeekOrgs;
 
     const previousWeekOrgs = organizations.filter(org => {
       if (!org.createdAt) return false;
@@ -454,7 +474,9 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   /**
    * Actualiza los KPIs secundarios con métricas calculadas
    */
-  private updateSecondaryKPIs(totalUsers: number, totalOrgs: number, totalPosts: number): void {
+  private updateSecondaryKPIs(users: any[], organizations: any[], posts: any[]): void {
+    const totalUsers = users.length;
+    
     // Tasa de conversión (donantes / usuarios)
     const conversionRate = totalUsers > 0 ? 
       ((this.totalDonationsCount / totalUsers) * 100).toFixed(1) : '0';
@@ -472,11 +494,98 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.secondaryKPIs[2].value = responseTime;
     this.secondaryKPIs[2].loading = false;
 
-    // Satisfacción (basado en tasa de verificación)
-    const satisfaction = this.totalUsersCount > 0 ?
-      ((this.verifiedUsersCount / this.totalUsersCount) * 100).toFixed(0) : '0';
+    // Índice de Satisfacción Compuesto
+    const satisfaction = this.calculateSatisfactionIndex(users, posts);
     this.secondaryKPIs[3].value = `${satisfaction}%`;
     this.secondaryKPIs[3].loading = false;
+  }
+
+  /**
+   * Calcula un índice de satisfacción compuesto basado en múltiples métricas:
+   * - 30% Tasa de usuarios activos (últimos 7 días)
+   * - 25% Tasa de verificación completada
+   * - 25% Tasa de interacción en posts
+   * - 20% Ausencia de bloqueos
+   */
+  private calculateSatisfactionIndex(users: any[], posts: any[]): number {
+    if (users.length === 0) return 0;
+
+    // 1. Tasa de usuarios activos (últimos 7 días) - Peso: 30%
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const activeUsers = users.filter(u => {
+      if (!u.lastLogin) return false;
+      return new Date(u.lastLogin) >= sevenDaysAgo;
+    }).length;
+    const activeRate = (activeUsers / users.length) * 100;
+
+    // 2. Tasa de verificación completada - Peso: 25%
+    const verifiedUsers = users.filter(u => u.verified || u.emailVerified).length;
+    const verificationRate = (verifiedUsers / users.length) * 100;
+
+    // 3. Tasa de interacción en posts - Peso: 25%
+    let interactionRate = 0;
+    if (posts.length > 0) {
+      const postsWithInteraction = posts.filter(p => 
+        (p.likesCount && p.likesCount > 0) || 
+        (p.commentsCount && p.commentsCount > 0) ||
+        (p.sharesCount && p.sharesCount > 0)
+      ).length;
+      interactionRate = (postsWithInteraction / posts.length) * 100;
+    }
+
+    // 4. Ausencia de bloqueos - Peso: 20%
+    const blockedUsers = users.filter(u => u.block === true).length;
+    const nonBlockedRate = ((users.length - blockedUsers) / users.length) * 100;
+
+    // Calcular índice compuesto
+    const satisfactionIndex = (
+      (activeRate * 0.30) +
+      (verificationRate * 0.25) +
+      (interactionRate * 0.25) +
+      (nonBlockedRate * 0.20)
+    );
+
+    return Math.round(satisfactionIndex);
+  }
+
+  /**
+   * Calcula usuarios activos en las últimas 24 horas
+   */
+  private calculateActiveUsersToday(users: any[]): void {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    this.activeUsersToday = users.filter((user: any) => {
+      if (!user.lastLogin) return false;
+      const lastActivity = new Date(user.lastLogin);
+      return lastActivity >= oneDayAgo;
+    }).length;
+  }
+
+  /**
+   * Calcula organizaciones pendientes de verificación
+   */
+  private calculatePendingVerifications(users: any[]): void {
+    const organizations = users.filter((user: any) => {
+      const role = user.rol?.rol?.toLowerCase();
+      return role === 'organizacion' || role === 'organization';
+    });
+    
+    this.pendingVerifications = organizations.filter((org: any) => !org.verified).length;
+  }
+
+  /**
+   * Calcula donaciones de hoy
+   */
+  private calculateDonationsToday(allDonations: any[]): void {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    this.donationsToday = allDonations.filter((donation: any) => {
+      if (!donation.createdAt) return false;
+      const donationDate = new Date(donation.createdAt);
+      return donationDate >= startOfDay;
+    }).length;
   }
 
   /**
@@ -485,24 +594,24 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
   private updateEngagementKPIs(users: any[], posts: any[]): void {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
-    // Usuarios activos en los últimos 7 días
+    // Usuarios activos en los últimos 7 días (basado en lastLogin)
     const activeUsers = users.filter(u => {
-      if (!u.updatedAt) return false;
-      return new Date(u.updatedAt) >= sevenDaysAgo;
+      if (!u.lastLogin) return false;
+      return new Date(u.lastLogin) >= sevenDaysAgo;
     }).length;
     
     this.engagementKPIs[0].value = activeUsers;
     this.engagementKPIs[0].total = this.totalUsersCount || 1;
     this.engagementKPIs[0].percentage = (activeUsers / (this.totalUsersCount || 1)) * 100;
 
-    // Organizaciones activas
+    // Organizaciones activas (basado en lastLogin)
     const orgs = users.filter(u => {
       const role = u.rol?.rol?.toLowerCase();
       return role === 'organizacion' || role === 'organization';
     });
     const activeOrgs = orgs.filter(o => {
-      if (!o.updatedAt) return false;
-      return new Date(o.updatedAt) >= sevenDaysAgo;
+      if (!o.lastLogin) return false;
+      return new Date(o.lastLogin) >= sevenDaysAgo;
     }).length;
     
     this.engagementKPIs[1].value = activeOrgs;
