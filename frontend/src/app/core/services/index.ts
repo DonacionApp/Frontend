@@ -17,3 +17,4 @@ export * from './user-management.service';
 export * from './rate-limit.service';
 export * from './retry.service';
 export * from './stats-filter.service';
+export * from './public-stats.service';

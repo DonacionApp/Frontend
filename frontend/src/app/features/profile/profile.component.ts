@@ -8,11 +8,13 @@ import { UserProfileService, UserMinimal } from '../../core/services/user-profil
 import { LocationMapComponent } from '../../shared/components/location-map/location-map.component';
 import { DonationService, DonationByUser } from '../../core/services/donation.service';
 import { ScrollRestorationService } from '../../core/services/scroll-restoration.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ProfileHeaderComponent } from '../../shared/components/profile-header/profile-header.component';
 import { ProfileTabsComponent, ProfileTab } from '../../shared/components/profile-tabs/profile-tabs.component';
 import { UserPostsListComponent } from '../../shared/components/user-posts-list/user-posts-list.component';
 import { UserDonationsListComponent } from '../../shared/components/user-donations-list/user-donations-list.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { PublicStatsViewComponent } from './public-stats-view/public-stats-view.component';
 
 @Component({
   selector: 'app-profile',
@@ -23,9 +25,9 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
     ProfileTabsComponent,
     UserPostsListComponent,
     UserDonationsListComponent,
-    SidebarComponent
-    ,
-    LocationMapComponent
+    SidebarComponent,
+    LocationMapComponent,
+    PublicStatsViewComponent
   ],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
@@ -47,13 +49,21 @@ export class ProfileComponent implements OnInit, OnDestroy {
   errorMessage = '';
   public env = environment;
 
+  get canViewStats(): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) return false;
+    // Admin puede ver las estadísticas de cualquiera, los usuarios normales solo las suyas
+    return currentUser.role === 'admin' || Number(currentUser.id) === this.userId;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private postsService: PostsService,
     private donationService: DonationService,
     private scrollService: ScrollRestorationService,
-    private userProfileService: UserProfileService
+    private userProfileService: UserProfileService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +84,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
                   this.loadUserDonations();
                 } else if (loaded === 'location') {
                   this.activeTab = 'location';
+                } else if (loaded === 'stats') {
+                  this.activeTab = 'stats';
                 } else {
                   this.activeTab = 'posts';
                   this.loadUserPosts();

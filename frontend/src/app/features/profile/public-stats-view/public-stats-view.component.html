@@ -1,0 +1,225 @@
+<div class="min-h-screen bg-gray-50">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Estado de carga -->
+    <div *ngIf="isLoading" class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error && !isLoading" class="text-center py-12">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Error al cargar estadísticas</h2>
+      <p class="text-gray-600 mb-6">{{ error }}</p>
+      <button 
+        (click)="reload()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        Reintentar
+      </button>
+    </div>
+
+    <!-- Contenido principal -->
+    <div *ngIf="!isLoading && userInfo">
+      <h2 class="text-xl font-bold text-gray-900 mb-6">Resumen de Actividad</h2>
+      <!-- Tarjetas de Totales / KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Donaciones Realizadas -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals?.totalDonationsAsDonator || 0 }}</p>
+            <p class="text-sm text-gray-600">Donaciones Realizadas</p>
+          </div>
+        </div>
+
+        <!-- Publicaciones Propias -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals?.totalPosts || 0 }}</p>
+            <p class="text-sm text-gray-600">Publicaciones Propias</p>
+          </div>
+        </div>
+
+        <!-- Interacciones/Chats -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals?.chatsCount || 0 }}</p>
+            <p class="text-sm text-gray-600">Interacciones/Chats</p>
+          </div>
+        </div>
+
+        <!-- "Me gusta" recibidos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="p-3 rounded-lg bg-gradient-to-br from-pink-500 to-pink-600">
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-2xl font-bold text-gray-900">{{ totals?.totalLikes || 0 }}</p>
+            <p class="text-sm text-gray-600">"Me gusta" recibidos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Título de estadísticas detalladas -->
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">Estadísticas Detalladas</h2>
+      <p class="text-gray-600">
+        Historial público de {{ userType === 'donor' ? 'donaciones realizadas' : 'donaciones recibidas' }} y actividad en la plataforma
+      </p>
+    </div>
+
+    <!-- Componente de estadísticas públicas -->
+    <div *ngIf="!isLoading && userInfo">
+      <app-public-stats
+        [data]="statsData"
+        [userType]="userType"
+        [showCharts]="true"
+        [showTrends]="true">
+      </app-public-stats>
+    </div>
+
+    <!-- Empty state cuando no hay actividad -->
+    <div *ngIf="!isLoading && userInfo && !totals?.totalDonationsAsDonator && !totals?.totalPosts && donatedArticles.length === 0 && receivedArticles.length === 0" 
+         class="mt-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-100 p-12">
+      <div class="text-center max-w-md mx-auto">
+        <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-white shadow-md flex items-center justify-center">
+          <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-3">
+          {{ userType === 'organization' ? '¡Comienza a publicar!' : '¡Comienza a donar!' }}
+        </h3>
+        <p class="text-gray-600 mb-6">
+          {{ userType === 'organization' 
+            ? 'Aún no tienes actividad registrada. Crea tu primera publicación para comenzar a recibir donaciones.' 
+            : 'Aún no tienes actividad registrada. Realiza tu primera donación para comenzar a ayudar.' }}
+        </p>
+        <button 
+          (click)="goToProfile()"
+          class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          Ver Perfil Completo
+        </button>
+      </div>
+    </div>
+
+    <!-- Gráficos de Dona por Estado -->
+    <div *ngIf="!isLoading && userInfo && ((donationsByStatus && donationsByStatus.length > 0) || (donationsAsDonatorByStatus && donationsAsDonatorByStatus.length > 0))" class="mt-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Distribución por Estado</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Estado de mis solicitudes (para organizaciones) -->
+        <div *ngIf="userType === 'organization' && donationsByStatus && donationsByStatus.length > 0" 
+             class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Estado de Mis Solicitudes
+          </h3>
+          <app-donation-status-donut-chart
+            [data]="donationsByStatus"
+            [chartType]="'requests'"
+            [chartHeight]="'350px'">
+          </app-donation-status-donut-chart>
+        </div>
+
+        <!-- Estado de mis aportes (para donantes) -->
+        <div *ngIf="donationsAsDonatorByStatus && donationsAsDonatorByStatus.length > 0" 
+             class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Estado de Mis Aportes
+          </h3>
+          <app-donation-status-donut-chart
+            [data]="donationsAsDonatorByStatus"
+            [chartType]="'contributions'"
+            [chartHeight]="'350px'">
+          </app-donation-status-donut-chart>
+        </div>
+      </div>
+    </div>
+
+    <!-- Listados de Artículos -->
+    <div *ngIf="!isLoading && userInfo && ((donatedArticles && donatedArticles.length > 0) || (receivedArticles && receivedArticles.length > 0))" class="mt-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Detalle de Artículos</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Artículos Donados -->
+        <app-articles-list
+          title="Artículos Donados"
+          [articles]="donatedArticles"
+          emptyMessage="No has donado artículos aún"
+          iconColor="orange">
+        </app-articles-list>
+
+        <!-- Artículos Recibidos -->
+        <app-articles-list
+          title="Artículos Recibidos"
+          [articles]="receivedArticles"
+          emptyMessage="No has recibido artículos aún"
+          iconColor="green">
+        </app-articles-list>
+      </div>
+    </div>
+
+    <!-- Estado de carga -->
+    <div *ngIf="isLoading" class="flex items-center justify-center py-16">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando estadísticas...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer informativo -->
+  <div class="bg-white border-t border-gray-200 mt-12">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex items-center justify-between text-sm text-gray-600">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>Vista pública - Accesible sin iniciar sesión</span>
+        </div>
+        <a routerLink="/auth/login" class="text-blue-600 hover:text-blue-700 transition-colors">
+          Iniciar sesión para ver más detalles →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+<div class="w-full">
+  <!-- Gráfico de dona -->
+  <div *ngIf="hasData" class="relative" [style.height]="chartHeight">
+    <canvas 
+      baseChart
+      [data]="doughnutChartData"
+      [type]="doughnutChartType"
+      [options]="doughnutChartOptions">
+    </canvas>
+    
+    <!-- Número total en el centro -->
+    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+      <p class="text-3xl font-bold text-gray-900">{{ totalCount }}</p>
+      <p class="text-sm text-gray-600">Total</p>
+    </div>
+  </div>
+
+  <!-- Desglose de estados -->
+  <div *ngIf="hasData" class="mt-6 space-y-2">
+    <div 
+      *ngFor="let item of statusBreakdown"
+      class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+      <div class="flex items-center space-x-3">
+        <span 
+          class="px-3 py-1 text-xs font-medium rounded-full"
+          [ngClass]="getColorForStatus(item.status)">
+          {{ item.status }}
+        </span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-sm font-semibold text-gray-900">{{ item.count }}</span>
+        <span class="text-sm text-gray-500 min-w-[50px] text-right">{{ item.percentage.toFixed(1) }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div *ngIf="!hasData" class="flex flex-col items-center justify-center py-12 px-4">
+    <div class="w-20 h-20 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+      <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+      </svg>
+    </div>
+    <p class="text-gray-700 font-medium text-center mb-2">
+      {{ chartType === 'requests' ? 'No hay solicitudes registradas' : 'No hay aportes registrados' }}
+    </p>
+    <p class="text-gray-500 text-sm text-center max-w-xs">
+      {{ chartType === 'requests' 
+        ? 'Cuando recibas donaciones, aquí verás el estado de tus solicitudes' 
+        : 'Cuando realices donaciones, aquí verás el estado de tus aportes' }}
+    </p>
+  </div>
+</div>

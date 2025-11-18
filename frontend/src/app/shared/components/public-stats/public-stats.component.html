@@ -1,0 +1,81 @@
+<div class="w-full">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+    <svg class="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  </div>
+
+  <!-- KPIs Grid -->
+  <div *ngIf="!isLoading" class="space-y-6">
+    <!-- Main KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <app-kpi-card
+        *ngFor="let kpi of mainKPIs"
+        [title]="kpi.title"
+        [value]="kpi.value"
+        [subtitle]="kpi.subtitle"
+        [iconPath]="kpi.icon"
+        [colorClass]="kpi.colorClass"
+        [trend]="kpi.trend"
+        [trendDirection]="kpi.trendDirection"
+        [loading]="kpi.loading"
+        (click)="onKPIClick(kpi)"
+        class="cursor-pointer transition-transform hover:scale-105">
+      </app-kpi-card>
+    </div>
+
+    <!-- Charts Section -->
+    <div *ngIf="showCharts && (monthlyDonationsData.length > 0 || popularCategoriesData.length > 0)" 
+         class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+      
+      <!-- Monthly Donations Chart -->
+      <div *ngIf="monthlyDonationsData.length > 0" 
+           class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          <svg class="inline-block w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+          {{ userType === 'donor' ? 'Donaciones Realizadas' : 'Donaciones Recibidas' }}
+        </h3>
+        <app-monthly-donations-chart 
+          [data]="monthlyDonationsData"
+          [showAmount]="false"
+          [chartHeight]="'280px'">
+        </app-monthly-donations-chart>
+      </div>
+
+      <!-- Popular Categories Chart -->
+      <div *ngIf="popularCategoriesData.length > 0" 
+           class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          <svg class="inline-block w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          Categorías Más Activas
+        </h3>
+        <app-popular-categories-chart 
+          [data]="popularCategoriesData"
+          [chartHeight]="'280px'"
+          [maxCategories]="5">
+        </app-popular-categories-chart>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="showCharts && monthlyDonationsData.length === 0 && popularCategoriesData.length === 0"
+         class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">Sin actividad reciente</h3>
+      <p class="mt-2 text-sm text-gray-500">
+        {{ userType === 'donor' 
+          ? 'Aún no has realizado donaciones. ¡Comienza a ayudar hoy!' 
+          : 'Aún no has recibido donaciones. Publica tus necesidades para comenzar.' 
+        }}
+      </p>
+    </div>
+  </div>
+</div>

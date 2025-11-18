@@ -284,6 +284,40 @@ export class DonationService {
   }
 
   /**
+   * Obtener donaciones realizadas por un donante específico (para vista pública)
+   */
+  getDonationsByDonor(userId: string | number): Observable<Donation[]> {
+    return this.http.get<any>(`${this.apiUrl}/users/${userId}`).pipe(
+      map(raw => {
+        const donations = this.normalizeGenericArray<DonationByUser>(raw);
+        // Filtrar solo las donaciones donde el usuario es el donador
+        return donations.filter(d => d.donator?.id === Number(userId));
+      }),
+      catchError(error => {
+        console.error('Error al obtener donaciones del donante:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener donaciones recibidas por una organización específica (para vista pública)
+   */
+  getDonationsByOrganization(userId: string | number): Observable<Donation[]> {
+    return this.http.get<any>(`${this.apiUrl}/users/${userId}`).pipe(
+      map(raw => {
+        const donations = this.normalizeGenericArray<DonationByUser>(raw);
+        // Filtrar solo las donaciones donde el usuario es el beneficiario
+        return donations.filter(d => d.beneficiary?.id === Number(userId));
+      }),
+      catchError(error => {
+        console.error('Error al obtener donaciones de la organización:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Actualizar una donación
    */
   updateDonation(id: number, updates: UpdateDonationDTO): Observable<Donation> {
