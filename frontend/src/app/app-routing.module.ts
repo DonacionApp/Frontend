@@ -37,7 +37,6 @@ const routes: Routes = [
   {
     path: 'usuario/:id/stats',
     loadComponent: () => import('./features/profile/public-stats-view/public-stats-view.component').then(m => m.PublicStatsViewComponent),
-    canActivate: [OwnStatsGuard]
   },
   
   // Ruta privada para ver las estadísticas propias (con AuthGuard)

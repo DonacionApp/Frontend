@@ -168,8 +168,6 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
       if (exportButton) {
         exportButton.style.display = 'none';
       }
-
-      // Esperar un momento para que el DOM se actualice
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Obtener el elemento contenedor completo (incluye todo el contenido)

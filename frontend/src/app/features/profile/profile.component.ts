@@ -218,7 +218,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
     
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { loaded: tab === 'donations' ? 'donations' : (tab === 'location' ? 'location' : null) },
+      queryParams: { 
+        loaded: tab === 'donations' ? 'donations' 
+          : (tab === 'location' ? 'location' 
+          : (tab === 'stats' ? 'stats' : null)) 
+      },
       queryParamsHandling: 'merge'
     });
 

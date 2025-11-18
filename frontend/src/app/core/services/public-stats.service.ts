@@ -1,39 +1,56 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError, forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-/**
- * Interface para los totales generales del usuario
- */
 export interface UserTotals {
   totalDonationsAsDonator: number;
   totalPosts: number;
   chatsCount: number;
   totalLikes: number;
+  totalDonationsAsOwner?: number;
+}
+export interface UserStatisticsResponse {
+  userId: number;
+  totals: {
+    totalPosts: number;
+    totalDonationsAsOwner: number;
+    totalDonationsAsDonator: number;
+    totalLikes: number;
+    chatsCount: number;
+  };
+  donationsByStatus: Array<{
+    name: string;
+    value: number;
+  }>;
+  donationsAsDonatorByStatus: Array<{
+    name: string;
+    value: number;
+  }>;
+  donatedArticles: Array<{
+    articleId: number;
+    name: string;
+    quantity: number;
+  }>;
+  receivedArticles: Array<{
+    articleId: number;
+    name: string;
+    quantity: number;
+  }>;
 }
 
-/**
- * Interface para resumen de artículos
- */
 export interface ArticleSummary {
   articleName: string;
   quantity: number;
 }
 
-/**
- * Interface para donaciones agrupadas por estado
- */
 export interface DonationsByStatus {
   status: string;
   count: number;
   donations: any[];
 }
 
-/**
- * Interface para las estadísticas públicas de un usuario
- */
 export interface UserPublicStats {
   userId: number;
   userType: 'donor' | 'organization';
@@ -58,9 +75,6 @@ export interface UserPublicStats {
   categoryDistribution: CategoryDistribution[];
 }
 
-/**
- * Interface para estadísticas de donación
- */
 export interface DonationStat {
   id: number;
   amount?: number;
@@ -71,9 +85,6 @@ export interface DonationStat {
   categoryId?: number;
 }
 
-/**
- * Interface para estadísticas de publicación
- */
 export interface PostStat {
   id: number;
   title: string;
@@ -84,9 +95,6 @@ export interface PostStat {
   status: string;
 }
 
-/**
- * Interface para actividad mensual
- */
 export interface MonthlyActivity {
   month: string;
   year: number;
@@ -120,20 +128,54 @@ export class PublicStatsService {
 
   /**
    * Obtener estadísticas públicas completas de un usuario
-   * Este método consume el endpoint /user/:id/public-stats si existe,
-   * o construye las estadísticas a partir de múltiples endpoints
+   * Este método intenta primero usar /statistics/user/:userId, luego /user/:id/public-stats,
+   * y finalmente construye las estadísticas a partir de múltiples endpoints
    * 
    * @param userId ID del usuario
    * @returns Observable con las estadísticas públicas
    */
   getUserPublicStats(userId: number | string): Observable<UserPublicStats> {
-    // Intentar obtener desde endpoint dedicado de estadísticas
-    return this.http.get<UserPublicStats>(`${this.apiUrl}/user/${userId}/public-stats`).pipe(
-      catchError((error) => {
-        // Si el endpoint no existe (404), construir estadísticas manualmente
-        if (error.status === 404 || error.status === 501) {
-          return this.buildUserStatsFromMultipleEndpoints(userId);
+    // Intentar primero el endpoint /statistics/user/:userId
+    return this.getUserStatistics(userId).pipe(
+      switchMap((statsResponse) => {
+        // Si tenemos respuesta del endpoint de estadísticas, usarla
+        if (statsResponse) {
+          return this.mergeStatisticsWithUserData(userId, statsResponse);
         }
+        // Si no, intentar endpoint /user/:id/public-stats
+        return this.http.get<UserPublicStats>(`${this.apiUrl}/user/${userId}/public-stats`).pipe(
+          catchError((error) => {
+            // Si el endpoint no existe (404), construir estadísticas manualmente
+            if (error.status === 404 || error.status === 501) {
+              return this.buildTraditionalStats(userId);
+            }
+            return throwError(() => error);
+          })
+        );
+      }),
+      catchError(() => {
+        // Si todo falla, usar método tradicional
+        return this.buildTraditionalStats(userId);
+      })
+    );
+  }
+
+  /**
+   * Obtener estadísticas del endpoint /statistics/user/:userId
+   * 
+   * @param userId ID del usuario
+   * @returns Observable con estadísticas del endpoint
+   */
+  private getUserStatistics(userId: number | string): Observable<UserStatisticsResponse | null> {
+    return this.http.get<UserStatisticsResponse>(`${this.apiUrl}/statistics/user/${userId}`).pipe(
+      catchError((error) => {
+        // Si el endpoint no existe, retornar null silenciosamente para usar método alternativo
+        // No loguear el error 404 ya que es esperado si el endpoint no existe
+        if (error.status === 404 || error.status === 501) {
+          return of(null);
+        }
+        // Solo loguear errores inesperados
+        console.error('Error inesperado al obtener estadísticas:', error);
         return throwError(() => error);
       })
     );
@@ -147,6 +189,48 @@ export class PublicStatsService {
    * @returns Observable con estadísticas construidas
    */
   private buildUserStatsFromMultipleEndpoints(userId: number | string): Observable<UserPublicStats> {
+    // Intentar obtener estadísticas del endpoint /statistics/user/:userId primero
+    return this.getUserStatistics(userId).pipe(
+      switchMap((statsResponse) => {
+        // Si tenemos respuesta del endpoint de estadísticas, usarla como base
+        if (statsResponse) {
+          return this.mergeStatisticsWithUserData(userId, statsResponse);
+        }
+        // Si no, usar el método tradicional
+        return this.buildTraditionalStats(userId);
+      }),
+      catchError(() => {
+        // Si falla, usar método tradicional
+        return this.buildTraditionalStats(userId);
+      })
+    );
+  }
+
+  /**
+   * Construir estadísticas usando el método tradicional (sin endpoint de estadísticas)
+   */
+  private buildTraditionalStats(userId: number | string): Observable<UserPublicStats> {
+    return forkJoin({
+      user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`).pipe(
+        catchError(() => of(null))
+      ),
+      donations: this.http.get<any[]>(`${this.apiUrl}/donation/users/${userId}`).pipe(
+        catchError(() => of([]))
+      ),
+      posts: this.http.get<any[]>(`${this.apiUrl}/post/user/${userId}`).pipe(
+        catchError(() => of([]))
+      )
+    }).pipe(
+      map(({ user, donations, posts }) => {
+        return this.buildStatsFromTraditionalEndpoints(user, donations, posts);
+      })
+    );
+  }
+
+  /**
+   * Fusionar estadísticas del endpoint /statistics/user con datos del usuario
+   */
+  private mergeStatisticsWithUserData(userId: number | string, statsResponse: UserStatisticsResponse): Observable<UserPublicStats> {
     return forkJoin({
       user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`).pipe(
         catchError(() => of(null))
@@ -163,7 +247,7 @@ export class PublicStatsService {
           throw new Error('Usuario no encontrado');
         }
 
-        // Determinar tipo de usuario basado en el rol
+        // Determinar tipo de usuario
         const userType: 'donor' | 'organization' = 
           user.rol?.toLowerCase().includes('organization') || 
           user.rol?.toLowerCase().includes('organizacion') 
@@ -221,39 +305,44 @@ export class PublicStatsService {
           status: p.status || 'active'
         }));
 
-        // Calcular actividad mensual (últimos 6 meses)
+        // Calcular actividad mensual
         const monthlyActivity = this.calculateMonthlyActivity(donations, posts);
 
         // Calcular distribución por categoría
         const categoryDistribution = this.calculateCategoryDistribution(posts);
 
-        // Calcular totales para KPIs
-        const totalLikes = posts.reduce((sum: number, p: any) => {
-          return sum + (p.likes?.length || p.likesCount || 0);
-        }, 0);
-
-        // Contar chats únicos del usuario
-        const chatsCount = user.countChats || user.chatsCount || 0;
-
+        // Usar totales del endpoint de estadísticas
         const totals: UserTotals = {
-          totalDonationsAsDonator: donations.length,
-          totalPosts: posts.length,
-          chatsCount,
-          totalLikes
+          totalDonationsAsDonator: statsResponse.totals.totalDonationsAsDonator,
+          totalPosts: statsResponse.totals.totalPosts,
+          chatsCount: statsResponse.totals.chatsCount,
+          totalLikes: statsResponse.totals.totalLikes,
+          totalDonationsAsOwner: statsResponse.totals.totalDonationsAsOwner
         };
 
-        // Calcular donaciones agrupadas por estado
-        const donationsByStatus = this.groupDonationsByStatus(donations);
-        
-        // Separar donaciones como donador vs como receptor (organización)
-        const donationsAsDonator = donations.filter((d: any) => 
-          d.donator?.id === user.id || d.userId === user.id
-        );
-        const donationsAsDonatorByStatus = this.groupDonationsByStatus(donationsAsDonator);
+        // Convertir donationsByStatus del formato del endpoint al formato esperado
+        const donationsByStatus: DonationsByStatus[] = statsResponse.donationsByStatus.map(item => ({
+          status: item.name,
+          count: item.value,
+          donations: [] // No tenemos los detalles completos aquí
+        }));
 
-        // Calcular artículos donados y recibidos
-        const donatedArticles = this.calculateDonatedArticles(donations, user.id);
-        const receivedArticles = this.calculateReceivedArticles(donations, posts, user.id);
+        const donationsAsDonatorByStatus: DonationsByStatus[] = statsResponse.donationsAsDonatorByStatus.map(item => ({
+          status: item.name,
+          count: item.value,
+          donations: []
+        }));
+
+        // Convertir artículos del formato del endpoint al formato esperado
+        const donatedArticles: ArticleSummary[] = statsResponse.donatedArticles.map(item => ({
+          articleName: item.name,
+          quantity: item.quantity
+        }));
+
+        const receivedArticles: ArticleSummary[] = statsResponse.receivedArticles.map(item => ({
+          articleName: item.name,
+          quantity: item.quantity
+        }));
 
         return {
           userId: user.id,
@@ -262,9 +351,9 @@ export class PublicStatsService {
           profilePhoto: user.profilePhoto,
           verified: user.verified || user.emailVerified || false,
           createdAt: user.createdAt,
-          totalDonations: donations.length,
+          totalDonations: statsResponse.totals.totalDonationsAsOwner || donations.length,
           donationsThisMonth,
-          totalPosts: posts.length,
+          totalPosts: statsResponse.totals.totalPosts,
           postsThisMonth,
           totalArticlesDonated,
           responseRate,
@@ -278,12 +367,133 @@ export class PublicStatsService {
           monthlyActivity,
           categoryDistribution
         };
-      }),
-      catchError(error => {
-        console.error('Error al construir estadísticas del usuario:', error);
-        return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Construir estadísticas desde endpoints tradicionales (método original)
+   */
+  private buildStatsFromTraditionalEndpoints(user: any, donations: any[], posts: any[]): UserPublicStats {
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Determinar tipo de usuario basado en el rol
+    const userType: 'donor' | 'organization' = 
+      user.rol?.toLowerCase().includes('organization') || 
+      user.rol?.toLowerCase().includes('organizacion') 
+        ? 'organization' 
+        : 'donor';
+
+    // Calcular métricas básicas
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const donationsThisMonth = donations.filter((d: any) => 
+      new Date(d.createdAt) >= firstDayOfMonth
+    ).length;
+
+    const postsThisMonth = posts.filter((p: any) => 
+      new Date(p.createdAt) >= firstDayOfMonth
+    ).length;
+
+    // Calcular artículos donados
+    const totalArticlesDonated = donations.reduce((sum: number, d: any) => {
+      const articlesCount = d.articles?.length || 0;
+      return sum + articlesCount;
+    }, 0);
+
+    // Calcular tasa de respuesta para organizaciones
+    let responseRate = 0;
+    if (userType === 'organization' && posts.length > 0) {
+      const postsWithDonations = posts.filter((p: any) => {
+        return donations.some((d: any) => d.postId === p.id || d.post?.id === p.id);
+      }).length;
+      responseRate = (postsWithDonations / posts.length) * 100;
+    }
+
+    // Mapear donaciones a estadísticas
+    const donationStats: DonationStat[] = donations.map((d: any) => ({
+      id: d.id,
+      amount: d.amount,
+      articlesCount: d.articles?.length || 0,
+      createdAt: d.createdAt,
+      status: d.statusDonation?.status || d.status || 'unknown',
+      postId: d.post?.id || d.postId,
+      categoryId: d.post?.categoryId || d.categoryId
+    }));
+
+    // Mapear publicaciones a estadísticas
+    const postStats: PostStat[] = posts.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      categoryId: p.category?.id || p.categoryId,
+      categoryName: p.category?.name || p.categoryName,
+      createdAt: p.createdAt,
+      donationsReceived: donations.filter((d: any) => 
+        d.postId === p.id || d.post?.id === p.id
+      ).length,
+      status: p.status || 'active'
+    }));
+
+    // Calcular actividad mensual (últimos 6 meses)
+    const monthlyActivity = this.calculateMonthlyActivity(donations, posts);
+
+    // Calcular distribución por categoría
+    const categoryDistribution = this.calculateCategoryDistribution(posts);
+
+    // Calcular totales para KPIs
+    const totalLikes = posts.reduce((sum: number, p: any) => {
+      return sum + (p.likes?.length || p.likesCount || 0);
+    }, 0);
+
+    // Contar chats únicos del usuario (intentar obtener del endpoint de estadísticas)
+    const chatsCount = user.countChats || user.chatsCount || 0;
+
+    const totals: UserTotals = {
+      totalDonationsAsDonator: donations.length,
+      totalPosts: posts.length,
+      chatsCount,
+      totalLikes
+    };
+
+    // Calcular donaciones agrupadas por estado
+    const donationsByStatus = this.groupDonationsByStatus(donations);
+    
+    // Separar donaciones como donador vs como receptor (organización)
+    const donationsAsDonator = donations.filter((d: any) => 
+      d.donator?.id === user.id || d.userId === user.id
+    );
+    const donationsAsDonatorByStatus = this.groupDonationsByStatus(donationsAsDonator);
+
+    // Calcular artículos donados y recibidos
+    const donatedArticles = this.calculateDonatedArticles(donations, user.id);
+    const receivedArticles = this.calculateReceivedArticles(donations, posts, user.id);
+
+    return {
+      userId: user.id,
+      userType,
+      username: user.username,
+      profilePhoto: user.profilePhoto,
+      verified: user.verified || user.emailVerified || false,
+      createdAt: user.createdAt,
+      totalDonations: donations.length,
+      donationsThisMonth,
+      totalPosts: posts.length,
+      postsThisMonth,
+      totalArticlesDonated,
+      responseRate,
+      totals,
+      donationsByStatus,
+      donationsAsDonatorByStatus,
+      donatedArticles,
+      receivedArticles,
+      donations: donationStats,
+      posts: postStats,
+      monthlyActivity,
+      categoryDistribution
+    };
   }
 
   /**

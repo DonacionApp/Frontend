@@ -108,7 +108,6 @@ export class MonthlyDonationsChartComponent implements OnInit, OnDestroy {
     this.filterService.filters$
       .pipe(takeUntil(this.destroy$))
       .subscribe(filters => {
-        console.log('📊 [MonthlyDonationsChart] Filtros actualizados', filters);
         this.updateActiveFiltersInfo(filters.dateRange?.startDate, filters.dateRange?.endDate);
       });
   }
