@@ -123,7 +123,6 @@ export class PopularCategoriesChartComponent implements OnInit, OnDestroy, OnCha
     this.filterService.filters$
       .pipe(takeUntil(this.destroy$))
       .subscribe(filters => {
-        console.log('📊 [PopularCategoriesChart] Filtros actualizados', filters);
         this.updateActiveFiltersInfo(filters.dateRange?.startDate, filters.dateRange?.endDate);
       });
   }

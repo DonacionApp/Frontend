@@ -22,7 +22,7 @@ const routes: Routes = [
   { path: 'donations/received', component: OrganizationReceivedDonationsComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/edit', component: EditDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/manage-articles', component: ManageDonationArticlesComponent, canActivate: [AuthGuard, OrganizationGuard] },
-  { path: 'donations/:id', component: DonationDetailComponent, canActivate: [AuthGuard, OrganizationGuard] },
+  { path: 'donations/:id', component: DonationDetailComponent, },
   { path: 'list', component: OrganizationListComponent },
 ];
 
