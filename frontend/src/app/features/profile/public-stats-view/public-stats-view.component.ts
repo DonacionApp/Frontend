@@ -163,47 +163,99 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
     this.toastService.success('Generando PDF', 'Por favor espera mientras se genera tu documento...');
 
     try {
-      // Obtener el elemento que contiene las estadísticas
-      const element = document.getElementById('stats-content');
+      // Ocultar el botón de exportar antes de capturar
+      const exportButton = document.getElementById('export-button');
+      if (exportButton) {
+        exportButton.style.display = 'none';
+      }
+
+      // Esperar un momento para que el DOM se actualice
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Obtener el elemento contenedor completo (incluye todo el contenido)
+      const element = document.getElementById('pdf-wrapper');
       if (!element) {
         throw new Error('No se encontró el contenido para exportar');
       }
 
-      // Capturar el contenido como canvas
-      const canvas = await html2canvas(element, {
-        scale: 2, // Mejor calidad
-        useCORS: true, // Permitir imágenes de otros dominios
-        logging: false,
-        backgroundColor: '#f9fafb' // Fondo gris claro
-      } as any);
+      // Guardar el scroll original
+      const originalScrollY = window.scrollY;
       
-      // Calcular dimensiones para el PDF
+      // Scroll al inicio para capturar desde arriba
+      window.scrollTo(0, 0);
+
+      // Capturar el contenido completo como canvas con alta calidad
+      const canvas = await html2canvas(element, {
+        scale: 2, // Resolución 2x para mejor calidad
+        useCORS: true, // Permitir imágenes de otros dominios
+        logging: false, // Desactivar logs en consola
+        backgroundColor: '#f9fafb', // Fondo gris claro matching del diseño
+        width: element.scrollWidth, // Ancho completo del contenido
+        height: element.scrollHeight, // Alto completo del contenido (importante para capturar todo)
+        x: 0,
+        y: 0,
+        scrollY: -window.scrollY, // Compensar el scroll
+        scrollX: -window.scrollX,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+        imageTimeout: 15000, // Timeout más largo para cargar gráficos
+        allowTaint: false, // Evitar problemas de seguridad con imágenes
+        removeContainer: false
+      } as any);
+
+      // Restaurar scroll original
+      window.scrollTo(0, originalScrollY);
+
+      // Mostrar el botón nuevamente
+      if (exportButton) {
+        exportButton.style.display = '';
+      }
+      
+      // Calcular dimensiones para el PDF (formato A4)
       const imgWidth = 210; // A4 width en mm
       const pageHeight = 297; // A4 height en mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Crear el PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
+      // Crear el PDF con orientación portrait
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true // Comprimir para reducir tamaño del archivo
+      });
+
+      // Agregar metadatos al PDF
+      const username = this.userInfo?.name || 'Usuario';
+      const date = new Date();
+      pdf.setProperties({
+        title: `Estadísticas de ${username}`,
+        subject: 'Estadísticas de Donaciones',
+        author: 'DonacionApp',
+        keywords: 'estadísticas, donaciones, impacto',
+        creator: 'DonacionApp - Sistema de Donaciones'
+      });
+
+      // Convertir canvas a imagen
+      const imgData = canvas.toDataURL('image/png', 1.0);
 
       // Agregar la primera página
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= pageHeight;
 
       // Si el contenido es más largo que una página, agregar más páginas
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= pageHeight;
       }
 
-      // Generar nombre del archivo con fecha
-      const username = this.userInfo?.name || 'usuario';
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `estadisticas-${username}-${date}.pdf`;
+      // Generar nombre del archivo con formato: estadisticas-usuario-YYYY-MM-DD.pdf
+      const dateStr = date.toISOString().split('T')[0];
+      const safeUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const filename = `estadisticas-${safeUsername}-${dateStr}.pdf`;
 
       // Descargar el PDF
       pdf.save(filename);
@@ -212,6 +264,12 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
     } catch (error) {
       console.error('Error al generar PDF:', error);
       this.toastService.error('Error', 'No se pudo generar el PDF. Por favor intenta de nuevo');
+      
+      // Asegurar que el botón se muestre en caso de error
+      const exportButton = document.getElementById('export-button');
+      if (exportButton) {
+        exportButton.style.display = '';
+      }
     } finally {
       this.isExporting = false;
     }
