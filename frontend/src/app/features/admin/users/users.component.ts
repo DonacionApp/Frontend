@@ -15,11 +15,13 @@ import { DetailsModalComponent, DetailItem } from '../../../shared/components/de
 import { ArticlesService, UserArticle, Article } from '../../../core/services/articles.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { CountriesService } from '../../../core/services/countries.service';
+import { ExportDataComponent } from '../../../shared/components/export-data/export-data.component';
+import { ExportMetadata } from '../../../core/services/export.service';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent, DetailsModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, ModalComponent, ConfirmModalComponent, MessageModalComponent, DetailsModalComponent, ExportDataComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -81,6 +83,10 @@ export class UsersComponent implements OnInit, OnDestroy {
   } | null = null;
   userDetails: DetailItem[] = [];
   selectedUserForAction: UserManagement | null = null;
+
+  // Exportación
+  showExportModal = false;
+  exportData: any[] = [];
 
   // Table configuration
   columns: TableColumn[] = [
@@ -1486,6 +1492,81 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   get createPeopleFormGroup() {
     return this.createUserForm.get('people') as FormGroup;
+  }
+
+  // Métodos de exportación
+  openExportModal(): void {
+    if (this.users.length === 0) {
+      this.toastService.show({
+        title: 'Sin datos',
+        message: 'No hay usuarios para exportar',
+        type: 'info'
+      });
+      return;
+    }
+    // Preparar los datos antes de abrir el modal
+    this.exportData = this.getExportData();
+    this.showExportModal = true;
+  }
+
+  closeExportModal(): void {
+    this.showExportModal = false;
+  }
+
+  onExportComplete(metadata: ExportMetadata): void {
+    console.log('Exportación completada:', metadata);
+  }
+
+  getExportData(): any[] {
+    // Preparar datos para exportación, aplanando objetos anidados
+    return this.users.map(user => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      rol: user.rol?.rol || 'N/A',
+      bloqueado: user.block ? 'Sí' : 'No',
+      verificado: user.verified ? 'Sí' : 'No',
+      emailVerificado: user.emailVerified ? 'Sí' : 'No',
+      nombre: user.people?.name || 'N/A',
+      apellido: user.people?.lastName || 'N/A',
+      dni: user.people?.dni || 'N/A',
+      tipoDni: user.people?.typeDni?.type || 'N/A',
+      telefono: user.people?.telefono || 'N/A',
+      residencia: user.people?.residencia || 'N/A',
+      fechaNacimiento: user.people?.birdthDate || 'N/A',
+      ubicacion: user.location || 'N/A',
+      ultimoLogin: user.lastLogin || 'N/A',
+      fechaCreacion: user.createdAt || 'N/A',
+      fechaActualizacion: user.updatedAt || 'N/A'
+    }));
+  }
+
+  getExportColumns(): string[] {
+    return [
+      'id',
+      'username',
+      'email',
+      'rol',
+      'bloqueado',
+      'verificado',
+      'emailVerificado',
+      'nombre',
+      'apellido',
+      'dni',
+      'tipoDni',
+      'telefono',
+      'residencia',
+      'fechaNacimiento',
+      'ubicacion',
+      'ultimoLogin',
+      'fechaCreacion',
+      'fechaActualizacion'
+    ];
+  }
+
+  getExportFilename(): string {
+    const today = new Date().toISOString().split('T')[0];
+    return `usuarios-${today}`;
   }
 }
 

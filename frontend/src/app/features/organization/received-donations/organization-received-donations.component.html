@@ -8,6 +8,10 @@
       </p>
     </div>
     <div class="actions">
+      <button type="button" class="btn ghost" (click)="openExportModal()" [disabled]="filteredDonations.length === 0">
+        <span class="icon export"></span>
+        Exportar
+      </button>
       <button type="button" class="btn ghost" (click)="refresh()">
         <span class="icon refresh"></span>
         Refrescar
@@ -141,5 +145,16 @@
       </article>
     </div>
   </div>
+
+  <!-- Modal de Exportación -->
+  <app-export-data
+    [visible]="showExportModal"
+    [data]="getExportData()"
+    [filename]="getExportFilename()"
+    [columns]="getExportColumns()"
+    [filters]="getExportFilters()"
+    (close)="closeExportModal()"
+    (exportComplete)="onExportComplete($event)"
+  ></app-export-data>
 </div>
 
