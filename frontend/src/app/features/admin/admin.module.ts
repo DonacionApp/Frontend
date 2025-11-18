@@ -4,6 +4,9 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout.component';
 import { AdminDashboardComponent } from './dashboard/admin-dashboard.component';
 import { AdminGuard } from '../../core/guards/admin.guard';
+import { AuditoriaComponent } from './auditoria/auditoria.component';
+import { DataTableComponent } from '../../shared/components/data-table/data-table.component';
+import { MatDialogModule } from '@angular/material/dialog';
 
 const routes: Routes = [
   {
@@ -97,15 +100,28 @@ const routes: Routes = [
         loadComponent: () => import('./kpi-test/kpi-test.component').then(m => m.KpiTestComponent),
         canActivate: [AdminGuard]
       },
+      {
+        path: 'auditoria',
+        component:AuditoriaComponent,
+        canActivate: [AdminGuard]
+      }
+      ,
+      // Route for per-user audit detail removed: dialog is used instead
     ]
   }
 ];
 
 @NgModule({
-  declarations: [],
+  declarations: [
+    AuditoriaComponent
+  ],
   imports: [
     CommonModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
+    // Importar el componente standalone usado en la plantilla
+    DataTableComponent,
+    // Material dialog required for Auditoria dialog
+    MatDialogModule,
     // Los componentes standalone (AdminLayoutComponent, AdminDashboardComponent) 
     // se cargan directamente a través de las rutas, no necesitan estar en imports
   ],

@@ -1,0 +1,32 @@
+<div class="space-y-6">
+	<div class="bg-white rounded shadow p-4" style="max-height: calc(100vh - 220px); overflow:auto;">
+		<app-data-table
+			[columns]="columns"
+			[data]="users"
+			[loading]="loading"
+			[pageSize]="10"
+			(rowClick)="onRowClick($event)">
+		</app-data-table>
+	</div>
+
+	<div *ngIf="selectedUser" class="bg-white shadow rounded p-4">
+		<h3 class="text-lg font-semibold">Auditoría — {{ selectedUser.username }} (ID: {{ selectedUser.id }})</h3>
+		<div *ngIf="auditLoading" class="text-sm text-gray-500 py-2">Cargando acciones...</div>
+		<div *ngIf="!auditLoading && auditActions.length === 0" class="text-sm text-gray-500 py-4">No se encontraron acciones.</div>
+
+		<ul *ngIf="!auditLoading && auditActions.length > 0" class="space-y-3 mt-4">
+			<li *ngFor="let a of auditActions" class="border rounded p-3">
+				<div class="flex items-center justify-between">
+					<div class="text-sm text-gray-700">Acción: <strong>{{ a.action }}</strong></div>
+					<div class="text-xs text-gray-500">{{ a.createdAt | date:'short' }}</div>
+				</div>
+				<div class="mt-2 text-sm text-gray-600">Estado: {{ a.status }}</div>
+				<div *ngIf="a.comment" class="mt-2 text-sm text-gray-700">
+					<div><strong>Mensaje:</strong> {{ a.comment.message }}</div>
+					<div *ngIf="a.comment.payload"><strong>Payload:</strong> <pre class="text-xs">{{ a.comment.payload | json }}</pre></div>
+					<div *ngIf="a.comment.response"><strong>Respuesta:</strong> <pre class="text-xs">{{ a.comment.response | json }}</pre></div>
+				</div>
+			</li>
+		</ul>
+	</div>
+</div>

@@ -392,3 +392,25 @@ body {
   font-size: 0.875rem;
   line-height: 1.25;
 }
+
+/* Dialog panel for auditoria — allow shrink-to-fit and no extra padding from mat container */
+.auditoria-dialog-panel .mat-dialog-container {
+  display: inline-block;
+  padding: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+}
+
+/* Auditoria dialog content constraints */
+.auditoria-dialog-panel .auditoria-content {
+  max-width: 680px; /* sensible maximum for readability */
+  width: auto;
+  box-sizing: border-box;
+}
+
+.auditoria-dialog-panel .auditoria-pre {
+  white-space: pre-wrap; /* allow wrapping long JSON */
+  word-break: break-word;
+  max-height: 40vh;
+  overflow: auto; /* scroll if too tall */
+}
+
