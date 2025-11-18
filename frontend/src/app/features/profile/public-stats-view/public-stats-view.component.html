@@ -1,4 +1,33 @@
 <div class="min-h-screen bg-gray-50">
+  <!-- Overlay de carga para generación de PDF -->
+  <div *ngIf="isExporting" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="z-index: 9999; pointer-events: all;">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm mx-4 text-center" style="pointer-events: auto;">
+      <!-- Spinner animado -->
+      <div class="relative w-24 h-24 mx-auto mb-6">
+        <svg class="animate-spin w-24 h-24 text-red-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <!-- Icono de PDF en el centro -->
+        <div class="absolute inset-0 flex items-center justify-center">
+          <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Texto de estado -->
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Generando PDF</h3>
+      <p class="text-gray-600 mb-1">Por favor espera...</p>
+      <p class="text-sm text-gray-500">Esto puede tomar unos segundos</p>
+      
+      <!-- Barra de progreso animada -->
+      <div class="mt-6 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="container mx-auto px-4 py-8" id="pdf-wrapper">
     <!-- Estado de carga -->
     <div *ngIf="isLoading" class="flex items-center justify-center py-12">
