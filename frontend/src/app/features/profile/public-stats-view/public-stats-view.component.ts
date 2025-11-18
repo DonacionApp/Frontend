@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
@@ -21,13 +21,12 @@ interface UserBasicInfo {
   selector: 'app-public-stats-view',
   standalone: true,
   imports: [CommonModule, PublicStatsComponent, DonationStatusDonutChartComponent, ArticlesListComponent, RouterModule],
-  templateUrl: './public-stats-view.component.html',
-  styleUrls: ['./public-stats-view.component.scss']
+  templateUrl: './public-stats-view.component.html'
 })
-export class PublicStatsViewComponent implements OnInit, OnDestroy {
+export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
   private destroy$ = new Subject<void>();
   
-  userId: string = '';
+  @Input() userId: string | number = '';
   userInfo: UserBasicInfo | null = null;
   statsData: any = {};
   totals: UserTotals | null = null;
@@ -48,19 +47,31 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Obtener el ID del usuario de la ruta
-    this.route.paramMap
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        const id = params.get('id');
-        if (id) {
-          this.userId = id;
-          this.loadUserData();
-        } else {
-          this.error = 'ID de usuario no proporcionado';
-          this.isLoading = false;
-        }
-      });
+    // Obtener el ID del usuario de la ruta o del Input
+    if (this.userId) {
+      // Si viene del Input (desde ProfileComponent)
+      this.loadUserData();
+    } else {
+      // Si viene de la ruta (standalone)
+      this.route.paramMap
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(params => {
+          const id = params.get('id');
+          if (id) {
+            this.userId = id;
+            this.loadUserData();
+          } else {
+            this.error = 'ID de usuario no proporcionado';
+            this.isLoading = false;
+          }
+        });
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['userId'] && !changes['userId'].firstChange && changes['userId'].currentValue) {
+      this.loadUserData();
+    }
   }
 
   ngOnDestroy(): void {

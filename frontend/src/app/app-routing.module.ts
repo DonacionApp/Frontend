@@ -8,6 +8,7 @@ import { DonorGuard } from './core/guards/donor.guard';
 import { OrganizationGuard } from './core/guards/organization.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { VerifiedGuard } from './core/guards/verified.guard';
+import { OwnStatsGuard } from './core/guards/own-stats.guard';
 import { NotificationsCenterComponent } from './features/notifications/notifications-center.component';
 import { ChatsComponent } from './shared/components/chats/chats.component';
 
@@ -28,10 +29,11 @@ const routes: Routes = [
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
   },
   
-  // Ruta pública para ver estadísticas de un usuario (sin AuthGuard)
+  // Ruta pública para ver estadísticas de un usuario (protegida con OwnStatsGuard)
   {
     path: 'usuario/:id/stats',
-    loadComponent: () => import('./features/profile/public-stats-view/public-stats-view.component').then(m => m.PublicStatsViewComponent)
+    loadComponent: () => import('./features/profile/public-stats-view/public-stats-view.component').then(m => m.PublicStatsViewComponent),
+    canActivate: [OwnStatsGuard]
   },
   
   // Ruta privada para ver las estadísticas propias (con AuthGuard)
