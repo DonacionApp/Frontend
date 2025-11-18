@@ -27,6 +27,25 @@ export class AuthInterceptor implements HttpInterceptor {
 
     const authService = this.injector.get(AuthService);
     const token = authService.getAccessToken();
+    const currentUser = authService.getCurrentUser();
+
+    // Validar que el token corresponde al usuario actual SOLO si ambos existen
+    // No validar si no hay usuario (puede estar restaurándose) o si no hay token
+    if (token && currentUser) {
+      const tokenPayload = this.decodeToken(token);
+      if (tokenPayload) {
+        const tokenUserId = tokenPayload.sub || tokenPayload.id || '';
+        const currentUserId = currentUser.id || '';
+        
+        // Solo validar si ambos IDs existen y son diferentes
+        // Si el token no tiene ID o el usuario no tiene ID, no validar (puede ser un token en proceso de actualización)
+        if (tokenUserId && currentUserId && tokenUserId !== currentUserId) {
+          console.error('🚨 CRÍTICO: El token corresponde a un usuario diferente. Token userId:', tokenUserId, 'Current userId:', currentUserId);
+          // NO limpiar automáticamente aquí - dejar que el backend rechace y maneje el 401
+          // Solo loguear el error para debugging
+        }
+      }
+    }
 
     if (this.isBackendRequest(req.url)) {
       const requestToSend = token ? this.addTokenHeader(req, token) : req;
@@ -148,6 +167,21 @@ export class AuthInterceptor implements HttpInterceptor {
 
     // Verificar que el nuevo token sea diferente al actual
     if (newToken && currentToken === newToken) return;
+
+    // CRÍTICO: Validar que el nuevo token corresponde al usuario actual
+    if (newToken) {
+      const currentTokenPayload = this.decodeToken(currentToken);
+      const newTokenPayload = this.decodeToken(newToken);
+      const currentUserId = currentTokenPayload?.sub || currentTokenPayload?.id || currentUser.id;
+      const newUserId = newTokenPayload?.sub || newTokenPayload?.id;
+      
+      // Si el nuevo token es de un usuario diferente, NO capturar
+      if (newUserId && currentUserId && newUserId !== currentUserId) {
+        console.error('🚨 CRÍTICO: [AuthInterceptor] El nuevo token es de un usuario diferente. No se actualizará.');
+        console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
+        return;
+      }
+    }
 
     const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
     if (debugFlag) {
