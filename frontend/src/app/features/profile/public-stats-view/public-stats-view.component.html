@@ -22,8 +22,28 @@
     </div>
 
     <!-- Contenido principal -->
-    <div *ngIf="!isLoading && userInfo">
-      <h2 class="text-xl font-bold text-gray-900 mb-6">Resumen de Actividad</h2>
+    <div *ngIf="!isLoading && userInfo" id="stats-content">
+      <!-- Header con título y botón de exportar -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 class="text-xl font-bold text-gray-900">Resumen de Actividad</h2>
+        
+        <!-- Botón Exportar a PDF -->
+        <button
+          (click)="exportToPDF()"
+          [disabled]="isExporting"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Descargar estadísticas en PDF">
+          <svg *ngIf="!isExporting" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <svg *ngIf="isExporting" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>{{ isExporting ? 'Generando PDF...' : 'Exportar a PDF' }}</span>
+        </button>
+      </div>
+      
       <!-- Tarjetas de Totales / KPIs -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Donaciones Realizadas -->

@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { PublicStatsComponent } from '../../../shared/components/public-stats/public-stats.component';
 import { DonationStatusDonutChartComponent } from '../../../shared/components/donation-status-donut-chart/donation-status-donut-chart.component';
 import { ArticlesListComponent } from '../../../shared/components/articles-list/articles-list.component';
@@ -37,6 +39,7 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
   userType: 'donor' | 'organization' = 'donor';
   
   isLoading = true;
+  isExporting = false;
   error: string | null = null;
 
   constructor(
@@ -148,5 +151,69 @@ export class PublicStatsViewComponent implements OnInit, OnDestroy, OnChanges {
    */
   reload(): void {
     this.loadUserData();
+  }
+
+  /**
+   * Exporta las estadísticas a PDF
+   */
+  async exportToPDF(): Promise<void> {
+    if (this.isExporting) return;
+
+    this.isExporting = true;
+    this.toastService.success('Generando PDF', 'Por favor espera mientras se genera tu documento...');
+
+    try {
+      // Obtener el elemento que contiene las estadísticas
+      const element = document.getElementById('stats-content');
+      if (!element) {
+        throw new Error('No se encontró el contenido para exportar');
+      }
+
+      // Capturar el contenido como canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Mejor calidad
+        useCORS: true, // Permitir imágenes de otros dominios
+        logging: false,
+        backgroundColor: '#f9fafb' // Fondo gris claro
+      } as any);
+      
+      // Calcular dimensiones para el PDF
+      const imgWidth = 210; // A4 width en mm
+      const pageHeight = 297; // A4 height en mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Crear el PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+
+      // Agregar la primera página
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Si el contenido es más largo que una página, agregar más páginas
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Generar nombre del archivo con fecha
+      const username = this.userInfo?.name || 'usuario';
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `estadisticas-${username}-${date}.pdf`;
+
+      // Descargar el PDF
+      pdf.save(filename);
+
+      this.toastService.success('PDF Generado', 'Tu documento ha sido descargado correctamente');
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      this.toastService.error('Error', 'No se pudo generar el PDF. Por favor intenta de nuevo');
+    } finally {
+      this.isExporting = false;
+    }
   }
 }
