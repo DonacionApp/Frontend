@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable, Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 
 export interface Notification {
   id: number;
@@ -45,7 +46,16 @@ export class WebsocketService {
   public notification$ = this.notificationSubject.asObservable();
   public connectionStatus$ = this.connectionStatus.asObservable();
 
-  constructor() {}
+  // Códigos de error que requieren logout según la documentación
+  private readonly LOGOUT_ERROR_CODES = [
+    'USER_BLOCKED',
+    'EMAIL_NOT_VERIFIED',
+    'INVALID_TOKEN',
+    'USER_NOT_FOUND',
+    'NO_TOKEN'
+  ];
+
+  constructor(private injector: Injector) {}
 
   /**
    * Conectar al servidor WebSocket con autenticación
@@ -206,6 +216,58 @@ export class WebsocketService {
       this.notificationSubject.next(notification);
     });
 
+    // Evento: Token refrescado automáticamente por el backend
+    this.socket.on('token-refreshed', (data: { token: string; expiresIn?: number }) => {
+      const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+      if (debugFlag) {
+        console.debug('[WebsocketService] token-refreshed recibido desde WebSocket');
+        console.debug('[WebsocketService] Nuevo token recibido, expiresIn:', data.expiresIn);
+      }
+
+      if (!data || !data.token) {
+        console.warn('[WebsocketService] token-refreshed recibido sin token válido');
+        return;
+      }
+
+      // Actualizar el token directamente (sin reconectar porque el socket ya está conectado)
+      try {
+        const authService = this.injector.get(AuthService);
+        const cleanToken = data.token.replace('Bearer ', '').trim();
+        
+        // Validar que el token corresponde al usuario actual
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          try {
+            const payload = JSON.parse(atob(cleanToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+            const newUserId = payload.sub || payload.id || '';
+            const currentUserId = currentUser.id || '';
+            
+            if (newUserId && currentUserId && newUserId !== currentUserId) {
+              console.error('🚨 CRÍTICO: [WebsocketService] El token refrescado es de un usuario diferente. No se actualizará.');
+              console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
+              return;
+            }
+          } catch (e) {
+            console.warn('[WebsocketService] No se pudo validar el payload del token:', e);
+          }
+        }
+        
+        // Actualizar el token en localStorage (sin reconectar porque ya está conectado)
+        authService.setAccessToken(cleanToken);
+        
+        // Actualizar el auth del socket para futuras reconexiones
+        if (this.socket) {
+          this.socket.auth = { token: cleanToken };
+        }
+
+        if (debugFlag) {
+          console.debug('[WebsocketService] Token actualizado exitosamente desde WebSocket (sin reconectar)');
+        }
+      } catch (error) {
+        console.error('[WebsocketService] Error al actualizar token desde WebSocket:', error);
+      }
+    });
+
     // Evento: Error (emitido por el backend cuando hay problemas de autenticación)
     this.socket.on('error', (error: any) => {
       console.error('❌ Error en WebSocket:', error);
@@ -213,6 +275,18 @@ export class WebsocketService {
       if (notificationTimeout) {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
+      }
+
+      // Manejar errores que requieren logout según la documentación
+      if (error && error.code && this.LOGOUT_ERROR_CODES.includes(error.code)) {
+        console.error(`🚨 Error crítico de autenticación (${error.code}):`, error.message);
+        try {
+          const authService = this.injector.get(AuthService);
+          // El AuthService manejará el logout y redirección
+          authService.logoutAndRedirect();
+        } catch (e) {
+          console.error('Error al hacer logout:', e);
+        }
       }
     });
   }
@@ -316,8 +390,72 @@ export class WebsocketService {
       if (payload && payload.chatId) this.chatReadSubject.next(payload);
     });
 
+    // Evento: Token refrescado automáticamente por el backend (para mensajes)
+    this.msgSocket.on('token-refreshed', (data: { token: string; expiresIn?: number }) => {
+      const debugFlag = (environment as any)['debugWs'] || (environment as any)['debug'] || false;
+      if (debugFlag) {
+        console.debug('[WebsocketService] token-refreshed recibido desde Message WebSocket');
+        console.debug('[WebsocketService] Nuevo token recibido, expiresIn:', data.expiresIn);
+      }
+
+      if (!data || !data.token) {
+        console.warn('[WebsocketService] token-refreshed recibido sin token válido en Message socket');
+        return;
+      }
+
+      // Actualizar el token directamente (sin reconectar porque el socket ya está conectado)
+      try {
+        const authService = this.injector.get(AuthService);
+        const cleanToken = data.token.replace('Bearer ', '').trim();
+        
+        // Validar que el token corresponde al usuario actual
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          try {
+            const payload = JSON.parse(atob(cleanToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+            const newUserId = payload.sub || payload.id || '';
+            const currentUserId = currentUser.id || '';
+            
+            if (newUserId && currentUserId && newUserId !== currentUserId) {
+              console.error('🚨 CRÍTICO: [WebsocketService] El token refrescado es de un usuario diferente. No se actualizará.');
+              console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
+              return;
+            }
+          } catch (e) {
+            console.warn('[WebsocketService] No se pudo validar el payload del token:', e);
+          }
+        }
+        
+        // Actualizar el token en localStorage (sin reconectar porque ya está conectado)
+        authService.setAccessToken(cleanToken);
+        
+        // Actualizar el auth del socket para futuras reconexiones
+        if (this.msgSocket) {
+          this.msgSocket.auth = { token: cleanToken };
+        }
+
+        if (debugFlag) {
+          console.debug('[WebsocketService] Token actualizado exitosamente desde Message WebSocket (sin reconectar)');
+        }
+      } catch (error) {
+        console.error('[WebsocketService] Error al actualizar token desde Message WebSocket:', error);
+      }
+    });
+
     this.msgSocket.on('error', (err: any) => {
       console.error('Message socket error', err);
+
+      // Manejar errores que requieren logout según la documentación
+      if (err && err.code && this.LOGOUT_ERROR_CODES.includes(err.code)) {
+        console.error(`🚨 Error crítico de autenticación en Message socket (${err.code}):`, err.message);
+        try {
+          const authService = this.injector.get(AuthService);
+          // El AuthService manejará el logout y redirección
+          authService.logoutAndRedirect();
+        } catch (e) {
+          console.error('Error al hacer logout:', e);
+        }
+      }
     });
   }
 
@@ -331,6 +469,7 @@ export class WebsocketService {
     this.socket.off('connect_error');
     this.socket.off('notification');
     this.socket.off('error');
+    this.socket.off('token-refreshed');
   }
 
   private removeMessageListeners(): void {
@@ -349,6 +488,7 @@ export class WebsocketService {
     this.msgSocket.off('chat:read');
     this.msgSocket.off('error');
     this.msgSocket.off('notification:unreadChats');
+    this.msgSocket.off('token-refreshed');
   }
 
   disconnect(): void {
