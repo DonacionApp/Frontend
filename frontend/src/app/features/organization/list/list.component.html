@@ -18,12 +18,13 @@
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Search Bar -->
-    <div class="mb-6">
-      <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6">
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+    <div class="mb-8">
+      <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
+        <!-- Unified Search Container -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-0 bg-gray-50 rounded-xl overflow-hidden shadow-inner border border-gray-200">
           <!-- Search Input -->
-          <div class="relative flex-1">
-            <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="relative flex-1 bg-white">
+            <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
             <input 
@@ -32,23 +33,23 @@
               (ngModelChange)="onSearchTerm($event)" 
               (keyup.enter)="onSearch()" 
               placeholder="Buscar organizaciones por nombre, ciudad o correo..." 
-              class="w-full pl-12 pr-4 py-3 border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 rounded-lg text-gray-900 placeholder-gray-400 transition-all duration-300 text-sm sm:text-base outline-none"
+              class="w-full pl-14 pr-4 py-4 border-0 bg-transparent text-gray-900 placeholder-gray-400 transition-all duration-300 text-sm sm:text-base outline-none focus:ring-0"
             />
           </div>
           
-          <!-- Search Button -->
+          <!-- Search Button - Integrated -->
           <button 
             (click)="onSearch()" 
-            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:scale-105 flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap">
+            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 sm:px-10 py-4 font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap border-l border-green-400/30 sm:border-l sm:border-t-0 border-t border-green-400/30">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
-            <span>Buscar</span>
+            <span class="hidden sm:inline">Buscar</span>
           </button>
         </div>
         
         <!-- Status Messages -->
-        <div class="mt-4 flex flex-wrap items-center gap-3">
+        <div class="mt-6 flex flex-wrap items-center gap-3">
           <!-- Loading State -->
           <div *ngIf="loading" class="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg animate-pulse">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -122,10 +123,10 @@
     </div>
     <button 
       (click)="closeSidebar()" 
-      aria-label="Cerrar" 
-      class="text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      aria-label="Cerrar panel" 
+      class="text-white hover:bg-white/30 bg-white/10 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg border-2 border-white/30">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
       </svg>
     </button>
   </div>
@@ -134,11 +135,11 @@
   <div class="p-6 overflow-auto h-full pb-24">
     <ng-container *ngIf="selectedOrg; else none">
       <!-- Profile Card -->
-      <div class="bg-gradient-to-br from-green-50 to-white rounded-2xl p-6 shadow-md border border-green-100 mb-6">
+      <div class="bg-gradient-to-br from-green-50 to-white rounded-2xl p-8 shadow-md border border-green-100 mb-6">
         <div class="flex flex-col items-center text-center">
-          <!-- Avatar -->
-          <div class="relative mb-4">
-            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 p-1 shadow-xl">
+          <!-- Avatar - Más grande -->
+          <div class="relative mb-5">
+            <div class="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 p-1.5 shadow-2xl">
               <img 
                 *ngIf="selectedOrg.profilePhoto" 
                 [src]="selectedOrg.profilePhoto" 
@@ -148,21 +149,21 @@
               <div 
                 *ngIf="!selectedOrg.profilePhoto" 
                 class="w-full h-full rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-                <svg class="w-12 h-12 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-16 h-16 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                 </svg>
               </div>
             </div>
             <!-- Verified Badge -->
-            <div class="absolute -bottom-1 -right-1 bg-green-500 w-7 h-7 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div class="absolute -bottom-1 -right-1 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+              <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
               </svg>
             </div>
           </div>
           
-          <!-- Name & Email -->
-          <h4 class="font-bold text-xl text-gray-900 mb-1">{{ selectedOrg.username }}</h4>
+          <!-- Name & Email - Nombre más destacado -->
+          <h4 class="font-bold text-2xl text-gray-900 mb-2">{{ selectedOrg.username }}</h4>
           <p class="text-sm text-gray-600">{{ selectedOrg.email }}</p>
         </div>
       </div>
@@ -202,22 +203,16 @@
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-xs font-medium text-gray-500 mb-1">Miembro desde</p>
-              <p class="text-sm font-semibold text-gray-900">{{ selectedOrg.createdAt | date:'longDate' }}</p>
+              <p class="text-sm font-semibold text-gray-900">{{ selectedOrg.createdAt | date:'d MMM y' }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Coordinates Card -->
-        <div *ngIf="selectedOrg.location" class="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-200">
-          <div class="flex items-start gap-3">
-            <div class="bg-purple-100 p-2.5 rounded-lg flex-shrink-0">
-              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-              </svg>
-            </div>
+        <!-- Coordinates Card - Oculto o muy pequeño -->
+        <div *ngIf="selectedOrg.location" class="bg-white rounded-lg p-2 shadow-sm border border-gray-100">
+          <div class="flex items-center gap-2">
             <div class="flex-1 min-w-0">
-              <p class="text-xs font-medium text-gray-500 mb-1">Coordenadas</p>
-              <p class="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded break-all">{{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</p>
+              <p class="text-[10px] font-mono text-gray-400 leading-tight">{{ selectedOrg.location.lat }}, {{ selectedOrg.location.lng }}</p>
             </div>
           </div>
         </div>
@@ -227,9 +222,10 @@
       <div class="mt-6">
         <button 
           (click)="goToProfile(selectedOrg.id)" 
-          class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2.5 shadow-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
           </svg>
           <span>Ver Perfil Completo</span>
         </button>

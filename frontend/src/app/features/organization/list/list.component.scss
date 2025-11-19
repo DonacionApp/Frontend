@@ -80,15 +80,55 @@
   }
 }
 
+// ==================== SEARCH BAR CONTAINER ====================
+
+.bg-white.rounded-2xl {
+  // Enhanced shadow for search container
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+              0 2px 4px -1px rgba(0, 0, 0, 0.06),
+              0 0 0 1px rgba(0, 0, 0, 0.05);
+  
+  // Smooth transition on hover
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                0 4px 6px -2px rgba(0, 0, 0, 0.05),
+                0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+}
+
+// ==================== UNIFIED SEARCH CONTAINER ====================
+
+.bg-gray-50.rounded-xl {
+  // Soft inner shadow for depth
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  // Smooth border transition
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  
+  &:focus-within {
+    border-color: #10b981;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06),
+                0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+}
+
 // ==================== INPUTS ====================
 
 input[type="text"] {
   &:focus {
     outline: none;
+    background-color: #ffffff;
   }
   
   &::placeholder {
     color: #9CA3AF;
+    transition: opacity 0.2s ease;
+  }
+  
+  &:focus::placeholder {
+    opacity: 0.6;
   }
 }
 
