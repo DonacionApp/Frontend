@@ -1,0 +1,46 @@
+<!-- Métricas de Impacto -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 lg:gap-12">
+  <!-- Métrica 1: Donaciones realizadas -->
+  <div class="text-center hover-scale" [class.animate-stagger-1]="showAnimation">
+    <div class="stat-number text-white mb-2 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold count-up-number">
+      <ng-container *ngIf="!isLoading">{{ animatedDonations | number:'1.0-0' }}+</ng-container>
+      <ng-container *ngIf="isLoading">...</ng-container>
+    </div>
+    <div class="stat-label text-white/90 text-sm sm:text-base md:text-lg font-medium">
+      Donaciones<br>realizadas
+    </div>
+  </div>
+
+  <!-- Métrica 2: Organizaciones registradas -->
+  <div class="text-center hover-scale" [class.animate-stagger-2]="showAnimation">
+    <div class="stat-number text-white mb-2 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold count-up-number">
+      <ng-container *ngIf="!isLoading">{{ animatedOrganizations | number:'1.0-0' }}+</ng-container>
+      <ng-container *ngIf="isLoading">...</ng-container>
+    </div>
+    <div class="stat-label text-white/90 text-sm sm:text-base md:text-lg font-medium">
+      Organizaciones<br>registradas
+    </div>
+  </div>
+
+  <!-- Métrica 3: Ciudades cubiertas -->
+  <div class="text-center hover-scale" [class.animate-stagger-3]="showAnimation">
+    <div class="stat-number text-white mb-2 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold count-up-number">
+      <ng-container *ngIf="!isLoading">{{ animatedCities | number:'1.0-0' }}+</ng-container>
+      <ng-container *ngIf="isLoading">...</ng-container>
+    </div>
+    <div class="stat-label text-white/90 text-sm sm:text-base md:text-lg font-medium">
+      Ciudades<br>cubiertas
+    </div>
+  </div>
+
+  <!-- Métrica 4: Satisfacción de usuarios -->
+  <div class="text-center hover-scale" [class.animate-stagger-4]="showAnimation">
+    <div class="stat-number text-white mb-2 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold count-up-number">
+      <ng-container *ngIf="!isLoading">{{ animatedSatisfaction | number:'1.0-0' }}%</ng-container>
+      <ng-container *ngIf="isLoading">...</ng-container>
+    </div>
+    <div class="stat-label text-white/90 text-sm sm:text-base md:text-lg font-medium">
+      Satisfacción de<br>usuarios
+    </div>
+  </div>
+</div>

@@ -124,34 +124,21 @@
   </section>
 
   <!-- Sección Nuestro Impacto -->
-  <section id="impacto" class="impact-section py-20 sm:py-24 md:py-28 lg:py-32 xl:py-36 2xl:py-40 px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20 2xl:px-24">
-    <div class="max-w-7xl xl:max-w-8xl 2xl:max-w-9xl mx-auto relative z-10">
+  <section id="impacto" class="impact-section py-20 sm:py-24 md:py-28 lg:py-32 xl:py-36 2xl:py-40 px-4 sm:px-6 md:px-10 lg:px-14 xl:px-20 2xl:px-24 bg-gradient-to-br from-green-500 to-green-600">
+    <div class="max-w-7xl xl:max-w-8xl 2xl:max-w-9xl mx-auto">
       <div class="text-center mb-16 sm:mb-20 md:mb-24">
         <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-white mb-4 sm:mb-6 animate-slide-in-top">Nuestro Impacto</h2>
         <p class="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-white/90 max-w-4xl mx-auto animate-fade-in-up">
           Juntos hemos logrado crear un impacto positivo en miles de vidas
         </p>
       </div>
-      
+
       <!-- Métricas -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-10 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24">
-        <div class="text-center hover-scale animate-stagger-1">
-          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">1,200+</div>
-          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Donaciones<br>realizadas</div>
-        </div>
-        <div class="text-center hover-scale animate-stagger-2">
-          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">150+</div>
-          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Organizaciones<br>registradas</div>
-        </div>
-        <div class="text-center hover-scale animate-stagger-3">
-          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">50+</div>
-          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Ciudades<br>cubiertas</div>
-        </div>
-        <div class="text-center hover-scale animate-stagger-4">
-          <div class="stat-number text-white mb-1 sm:mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl">98%</div>
-          <div class="stat-label text-white text-xs sm:text-sm md:text-base lg:text-lg">Satisfacción de<br>usuarios</div>
-        </div>
-      </div>
+      <app-impact-metrics
+        [stats]="impactStats"
+        [isLoading]="isLoadingStats"
+        [showAnimation]="true">
+      </app-impact-metrics>
     </div>
   </section>
 
@@ -364,6 +351,7 @@
       </div>
     </div>
   </app-modal>
+
 
 </div>
 
