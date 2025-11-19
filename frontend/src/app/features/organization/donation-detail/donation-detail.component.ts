@@ -8,11 +8,13 @@ import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
+import { AcknowledgmentFormComponent } from '../../../shared/components/acknowledgment-form/acknowledgment-form.component';
+import { AcknowledgmentListComponent } from '../../../shared/components/acknowledgment-list/acknowledgment-list.component';
 
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, AcknowledgmentFormComponent, AcknowledgmentListComponent],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -27,10 +29,6 @@ export class DonationDetailComponent implements OnInit {
   isDonator = false;
   // Note: chat list is shown in the global Sidebar component; donation-detail
   // only keeps the Create/Open chat actions.
-
-  newReviewText = '';
-  submittingReview = false;
-  reviewError = '';
 
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
@@ -65,86 +63,6 @@ export class DonationDetailComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al cargar estados:', error);
-      }
-    });
-  }
-
-  canAddReview(): boolean {
-    if (!this.donation) return false;
-    if (!this.isBeneficiary) return false;
-    const currentUser = this.authService.currentUserValue;
-    if (!currentUser) return false;
-
-    const reviews = (this.donation.reviews || []);
-    const already = reviews.some(r => String(r.user?.id) === String(currentUser.id));
-    return !already;
-  }
-
-  addReview(): void {
-    if (!this.donation) return;
-    if (!this.canAddReview()) {
-      this.reviewError = 'No puedes añadir otra valoración.';
-      setTimeout(() => this.reviewError = '', 3000);
-      return;
-    }
-
-    const text = (this.newReviewText || '').trim();
-    if (!text) {
-      this.reviewError = 'El comentario no puede estar vacío.';
-      setTimeout(() => this.reviewError = '', 3000);
-      return;
-    }
-
-    this.submittingReview = true;
-    this.reviewError = '';
-
-    const url = `${environment.apiBackendUrl}/donationreview/create`;
-    const payload = {
-      review: text,
-      donationId: this.donation.id
-    };
-
-    this.http.post<any>(url, payload).subscribe({
-      next: (created) => {
-        const createdReview = created?.data ?? created?.review ?? created;
-
-        if (!this.donation) return;
-        if (!this.donation.reviews) this.donation.reviews = [];
-
-        const currentUser = this.authService.currentUserValue;
-        if (createdReview && createdReview.user && currentUser && String(createdReview.user.id) === String(currentUser.id)) {
-          createdReview.user = {
-            ...createdReview.user,
-            username: createdReview.user.username || (currentUser as any).username
-          } as Partial<any>;
-        }
-
-        this.donation.reviews = [...this.donation.reviews, createdReview];
-        this.newReviewText = '';
-        this.submittingReview = false;
-        this.donationService.getDonationById(this.donation.id).subscribe({
-          next: (fresh) => {
-            this.donation = fresh;
-            this.checkPermissions();
-          },
-          error: (err) => {
-            console.warn('No se pudo refrescar la donación tras crear review:', err);
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Error al crear review:', err);
-        this.submittingReview = false;
-        if (err?.status === 403) {
-          this.reviewError = 'No tienes permiso para agregar una valoración.';
-        } else if (err?.status === 409) {
-          this.reviewError = 'Ya existe una valoración desde este usuario.';
-        } else if (err?.status === 0) {
-          this.reviewError = 'Error de conexión. Verifica tu internet.';
-        } else {
-          this.reviewError = err?.error?.message || 'No se pudo agregar la valoración.';
-        }
-        setTimeout(() => this.reviewError = '', 4000);
       }
     });
   }
@@ -209,6 +127,12 @@ export class DonationDetailComponent implements OnInit {
     this.canDeleteDonation = isDonator;
 
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
+  }
+
+  loadAcknowledgments(): void {
+    // Este método se llama cuando se crea un nuevo agradecimiento
+    // El componente AcknowledgmentListComponent se recargará automáticamente
+    // No necesitamos hacer nada aquí ya que el componente maneja su propia carga
   }
 
   onEdit(): void {

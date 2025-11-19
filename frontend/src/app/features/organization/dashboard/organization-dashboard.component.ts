@@ -624,4 +624,5 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     
     return `${articleNames} (${totalItems} artículos)`;
   }
+
 }
