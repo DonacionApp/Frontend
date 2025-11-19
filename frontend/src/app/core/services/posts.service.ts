@@ -148,7 +148,12 @@ export class PostsService {
       httpParams = httpParams.set('cursor', params.cursor.toString());
     }
 
-    return this.http.get<any>(`${this.postEndpoint}/all`, { params: httpParams }).pipe(
+    return this.http.get<any>(`${this.postEndpoint}/all`, { 
+      params: httpParams,
+      headers: {
+        'X-Cache-TTL': '300000' // Cache por 5 minutos
+      }
+    }).pipe(
       map(raw => this.normalizeArrayResponse(raw))
     );
   }
