@@ -44,44 +44,62 @@ export class AuthService {
     const refreshToken = localStorage.getItem('refreshToken');
     const currentUser = this.getCurrentUser();
 
-    // IMPORTANTE: SOLO cargar usuario si hay un token JWT válido
-    // Esto previene auto-login de usuarios con datos falsos o sin credenciales reales
+    // IMPORTANTE: El backend puede refrescar tokens automáticamente mediante RefreshTokenMiddleware
+    // No limpiar tokens expirados que pueden ser refrescados - solo limpiar tokens completamente inválidos
 
-    if (token && this.isTokenValid(token)) {
-      // Token válido - cargar usuario normalmente
-      this.setAccessToken(token);
+    if (token) {
+      // Intentar decodificar el token para verificar si es válido estructuralmente
       const payload = this.decodeToken(token);
-      if (payload) {
-        const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-        const normalizedRole = this.normalizeRole(rawRole);
+      
+      if (payload && payload.sub) {
+        // Token es decodificable y tiene información de usuario
+        // Mantener el token (aunque esté expirado) - el backend lo refrescará automáticamente
+        this.setAccessToken(token);
+        
+        if (this.isTokenValid(token)) {
+          // Token válido y no expirado - cargar usuario normalmente
+          const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+          const normalizedRole = this.normalizeRole(rawRole);
 
-        const user: User = {
-          id: payload.sub || payload.id || '',
-          email: payload.email || '',
-          role: normalizedRole,
-          name: payload.name || '',
-          verified: payload.verified || false
-        };
-        this.setCurrentUser(user);
-      }
-    } else if (token && refreshToken) {
-      // Token expirado pero hay refreshToken - mantener sesión SOLO si hay usuario guardado
-      // Esto indica que el usuario ya estaba autenticado antes
-      if (currentUser) {
-        // Usuario ya existía, mantener la sesión para que se refresque en la próxima petición
+          const user: User = {
+            id: payload.sub || payload.id || '',
+            email: payload.email || '',
+            role: normalizedRole,
+            name: payload.name || '',
+            verified: payload.verified || false
+          };
+          this.setCurrentUser(user);
+        } else {
+          // Token expirado pero decodificable - mantener para que el backend lo refresque
+          // Si hay usuario guardado, mantenerlo; si no, intentar restaurarlo del token
+          if (!currentUser && payload.sub) {
+            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+            const normalizedRole = this.normalizeRole(rawRole);
+
+            const user: User = {
+              id: payload.sub || payload.id || '',
+              email: payload.email || '',
+              role: normalizedRole,
+              name: payload.name || '',
+              verified: payload.verified || false
+            };
+            this.setCurrentUser(user);
+          }
+        }
       } else {
-        // Sin usuario guardado y token inválido - limpiar para forzar re-login
-        this.clearAuthData();
+        // Token no es decodificable o no tiene información válida
+        // Solo limpiar si no hay refreshToken (el backend no puede refrescar tokens inválidos)
+        if (!refreshToken) {
+          this.clearAuthData();
+        }
+        // Si hay refreshToken, mantenerlo por si el backend puede restaurar la sesión
       }
-    } else if (token && !refreshToken) {
-      // Token sin refreshToken - LIMPIAR
-      // Un token sin refresh token no es una sesión válida
-      this.clearAuthData();
     } else if (!token && currentUser) {
       // NO hay token pero HAY usuario en memoria - LIMPIAR
       // Esto previene auto-login de usuarios falsos guardados sin token real
       this.clearAuthData();
     }
+    // Si no hay token ni usuario, no hacer nada (usuario no autenticado)
   }
   public getCurrentUser(): User | null {
     try {

@@ -53,18 +53,43 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(requestToSend).pipe(
         tap((event: HttpEvent<any>) => {
           if (event.type === 4) {
+            // Capturar nuevo token del header X-New-Token si el backend lo refrescó automáticamente
             this.captureNewToken(event);
           }
         }),
         catchError((error: HttpErrorResponse) => {
-          // Si es un error 401 (Unauthorized), intentar refrescar el token
-          if (error.status === 401 && !this.isAuthRequest(req.url)) {
-            return this.handle401Error(req, next, authService);
+          // El backend maneja el refresh automático mediante RefreshTokenMiddleware
+          // El middleware refresca tokens expirados automáticamente y devuelve X-New-Token
+          // Si hay un 401, significa que el refresh automático falló o el usuario no es válido
+          
+          if (error.status === 401) {
+            // Verificar si el backend refrescó el token y lo envió en los headers del error
+            const newToken = error.headers?.get('X-New-Token') || error.headers?.get('x-new-token');
+            if (newToken) {
+              // El backend refrescó el token - capturarlo y reintentar la petición
+              this.captureNewToken({ headers: error.headers });
+              const retryRequest = this.addTokenHeader(req, newToken);
+              return next.handle(retryRequest);
+            }
+            
+            // Si no hay nuevo token en el header, el refresh automático falló
+            // Solo intentar refresh manual si hay refreshToken disponible
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (refreshToken && !this.isAuthRequest(req.url)) {
+              // Hay refreshToken - intentar refresh manual como fallback
+              return this.handle401Error(req, next, authService);
+            }
+            
+            // No hay refreshToken o es una petición de auth - solo propagar el error
+            // El componente puede manejar el error y redirigir a login si es necesario
+            return throwError(() => error);
           }
+          
           // Si es un error 429 (Too Many Requests), manejar rate limiting
           if (error.status === 429) {
             return this.handle429Error(error);
           }
+          
           return throwError(() => error);
         })
       );
@@ -79,10 +104,9 @@ export class AuthInterceptor implements HttpInterceptor {
     authService: AuthService
   ): Observable<HttpEvent<any>> {
     const refreshToken = localStorage.getItem('refreshToken');
-    const currentUser = authService.getCurrentUser();
 
-    // Si no hay refreshToken o usuario, no intentar refrescar
-    if (!refreshToken || !currentUser) {
+    // Si no hay refreshToken, no intentar refrescar
+    if (!refreshToken) {
       // No cerrar sesión automáticamente - dejar que el backend maneje
       return throwError(() => new HttpErrorResponse({
         error: 'No hay refresh token disponible',

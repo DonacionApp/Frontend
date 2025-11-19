@@ -21,6 +21,7 @@ export interface Acknowledgment {
   updatedAt: string;
   isReported?: boolean;
   reportCount?: number;
+  rating?: number; // Calificación con estrellas (1-5)
 }
 
 /**

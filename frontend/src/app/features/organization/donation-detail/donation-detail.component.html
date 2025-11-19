@@ -212,6 +212,7 @@
                   <div *ngIf="isDonator && donation">
                     <app-acknowledgment-list 
                       [donationId]="donation.id"
+                      [reviews]="donation.reviews"
                       [showReportButton]="true">
                     </app-acknowledgment-list>
                   </div>

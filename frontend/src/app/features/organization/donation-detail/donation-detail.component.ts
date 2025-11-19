@@ -131,8 +131,10 @@ export class DonationDetailComponent implements OnInit {
 
   loadAcknowledgments(): void {
     // Este método se llama cuando se crea un nuevo agradecimiento
-    // El componente AcknowledgmentListComponent se recargará automáticamente
-    // No necesitamos hacer nada aquí ya que el componente maneja su propia carga
+    // Recargar la donación completa para obtener los reviews actualizados
+    if (this.donation?.id) {
+      this.loadDonation(this.donation.id);
+    }
   }
 
   onEdit(): void {
