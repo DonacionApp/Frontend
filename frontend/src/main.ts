@@ -5,6 +5,7 @@ import { importProvidersFrom, LOCALE_ID } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AppRoutingModule } from './app/app-routing.module';
+import { CacheInterceptor } from './app/core/interceptors/cache.interceptor';
 import { RetryInterceptor } from './app/core/interceptors/retry.interceptor';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { registerLocaleData } from '@angular/common';
@@ -57,7 +58,15 @@ bootstrapApplication(AppComponent, {
       AppRoutingModule
     ),
     { provide: LOCALE_ID, useValue: 'es' },
-    // Los interceptores se ejecutan en orden: primero RetryInterceptor, luego AuthInterceptor
+    // Los interceptores se ejecutan en orden: CacheInterceptor → RetryInterceptor → AuthInterceptor
+    // 1. CacheInterceptor: Verifica caché antes de hacer petición real
+    // 2. RetryInterceptor: Reintenta en caso de errores de red
+    // 3. AuthInterceptor: Agrega token y maneja autenticación
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: CacheInterceptor,
+      multi: true
+    },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: RetryInterceptor,
