@@ -1,12 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { StatsFilterService } from './stats-filter.service';
+import { CacheService } from './cache.service';
 
 describe('StatsFilterService', () => {
   let service: StatsFilterService;
+  let cacheService: CacheService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [CacheService]
+    });
     service = TestBed.inject(StatsFilterService);
+    cacheService = TestBed.inject(CacheService);
     // Limpiar localStorage antes de cada test
     localStorage.clear();
   });
@@ -76,10 +81,59 @@ describe('StatsFilterService', () => {
     service.setDateRange('2025-01-01', '2025-01-31');
     
     // Crear nueva instancia del servicio (simula recarga de página)
-    const newService = new StatsFilterService();
+    const newService = new StatsFilterService(cacheService);
     const filters = newService.getCurrentFilters();
     
     expect(filters.dateRange.startDate).toBe('2025-01-01');
     expect(filters.dateRange.endDate).toBe('2025-01-31');
+  });
+
+  describe('Cache Invalidation', () => {
+    it('should invalidate cache when setting date range', () => {
+      spyOn(cacheService, 'invalidatePattern');
+      
+      service.setDateRange('2025-01-01', '2025-01-31');
+      
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/statistics');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/user/.*/public-stats');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/user/minimal');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/donation');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/post');
+    });
+
+    it('should invalidate cache when applying date preset', () => {
+      spyOn(cacheService, 'invalidatePattern');
+      
+      service.applyDatePreset('today');
+      
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/statistics');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/user/.*/public-stats');
+    });
+
+    it('should invalidate cache when clearing filters', () => {
+      spyOn(cacheService, 'invalidatePattern');
+      
+      service.setDateRange('2025-01-01', '2025-01-31');
+      // Limpiar el spy después del setDateRange
+      (cacheService.invalidatePattern as jasmine.Spy).calls.reset();
+      
+      service.clearFilters();
+      
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/statistics');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/user/.*/public-stats');
+    });
+
+    it('should invalidate cache when removing date filter', () => {
+      spyOn(cacheService, 'invalidatePattern');
+      
+      service.setDateRange('2025-01-01', '2025-01-31');
+      // Limpiar el spy después del setDateRange
+      (cacheService.invalidatePattern as jasmine.Spy).calls.reset();
+      
+      service.removeDateFilter('start');
+      
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/statistics');
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('/user/.*/public-stats');
+    });
   });
 });
