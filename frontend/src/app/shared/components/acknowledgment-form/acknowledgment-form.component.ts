@@ -36,7 +36,6 @@ export class AcknowledgmentFormComponent implements OnInit {
     this.remainingChars = this.maxLength - this.message.length;
     this.error = '';
     
-    // Validar contenido en tiempo real
     if (this.message.trim().length > 0) {
       const validation = this.acknowledgmentService.validateContent(this.message);
       if (!validation.isValid && validation.reason) {
@@ -56,7 +55,6 @@ export class AcknowledgmentFormComponent implements OnInit {
       return;
     }
 
-    // Validar contenido inapropiado
     const validation = this.acknowledgmentService.validateContent(this.message);
     if (!validation.isValid) {
       this.error = validation.reason || 'El contenido contiene palabras inapropiadas';
@@ -72,31 +70,47 @@ export class AcknowledgmentFormComponent implements OnInit {
       return;
     }
 
-    const data: CreateAcknowledgmentDTO = {
-      message: this.message.trim(),
-      ...(this.donationId && { donationId: this.donationId }),
-      ...(this.postId && { postId: this.postId })
-    };
+    if (this.donationId) {
+      this.acknowledgmentService.createDonationReview(this.donationId, this.message).subscribe({
+        next: () => {
+          this.message = '';
+          this.remainingChars = this.maxLength;
+          this.submitting = false;
+          this.toastService.success('Éxito', 'Agradecimiento enviado exitosamente');
+          this.acknowledgmentCreated.emit();
+        },
+        error: (err) => {
+          this.submitting = false;
+          const errorMsg = err?.error?.message || err?.message || 'Error al enviar el agradecimiento';
+          this.error = errorMsg;
+          this.toastService.error('Error', errorMsg);
+        }
+      });
+    } else {
+      const data: CreateAcknowledgmentDTO = {
+        message: this.message.trim(),
+        ...(this.postId && { postId: this.postId })
+      };
 
-    this.acknowledgmentService.createAcknowledgment(data).subscribe({
-      next: () => {
-        this.message = '';
-        this.remainingChars = this.maxLength;
-        this.submitting = false;
-        this.toastService.success('Éxito', 'Agradecimiento enviado exitosamente');
-        this.acknowledgmentCreated.emit();
-      },
-      error: (err) => {
-        this.submitting = false;
-        const errorMsg = err?.error?.message || err?.message || 'Error al enviar el agradecimiento';
-        this.error = errorMsg;
-        this.toastService.error('Error', errorMsg);
-      }
-    });
+      this.acknowledgmentService.createAcknowledgment(data).subscribe({
+        next: () => {
+          this.message = '';
+          this.remainingChars = this.maxLength;
+          this.submitting = false;
+          this.toastService.success('Éxito', 'Agradecimiento enviado exitosamente');
+          this.acknowledgmentCreated.emit();
+        },
+        error: (err) => {
+          this.submitting = false;
+          const errorMsg = err?.error?.message || err?.message || 'Error al enviar el agradecimiento';
+          this.error = errorMsg;
+          this.toastService.error('Error', errorMsg);
+        }
+      });
+    }
   }
 
   onKeyDown(event: KeyboardEvent): void {
-    // Permitir Ctrl+Enter para enviar
     if (event.ctrlKey && event.key === 'Enter') {
       this.onSubmit();
     }

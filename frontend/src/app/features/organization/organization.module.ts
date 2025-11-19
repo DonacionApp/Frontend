@@ -18,7 +18,7 @@ const routes: Routes = [
   { path: 'register', component: OrganizationRegisterComponent, canActivate: [GuestGuard] },
   { path: '', component: OrganizationDashboardComponent, canActivate: [AuthGuard, ] },
   { path: 'profile', component: OrganizationProfileComponent, canActivate: [AuthGuard, OrganizationGuard] },
-  { path: 'donations/create', component: CreateDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
+  { path: 'donations/create', component: CreateDonationComponent, canActivate: [AuthGuard] },
   { path: 'donations/received', component: OrganizationReceivedDonationsComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/edit', component: EditDonationComponent, canActivate: [AuthGuard, OrganizationGuard] },
   { path: 'donations/:id/manage-articles', component: ManageDonationArticlesComponent, canActivate: [AuthGuard, OrganizationGuard] },

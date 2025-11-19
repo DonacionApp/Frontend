@@ -21,6 +21,7 @@ export interface Acknowledgment {
   updatedAt: string;
   isReported?: boolean;
   reportCount?: number;
+  rating?: number; // Calificación con estrellas (1-5)
 }
 
 /**
@@ -54,6 +55,17 @@ export class AcknowledgmentService {
    */
   createAcknowledgment(data: CreateAcknowledgmentDTO): Observable<Acknowledgment> {
     return this.http.post<Acknowledgment>(`${this.apiUrl}/create`, data);
+  }
+
+  /**
+   * Crear una review para una donación (endpoint específico)
+   */
+  createDonationReview(donationId: number, review: string): Observable<any> {
+    const reviewUrl = `${environment.apiBackendUrl}/donationreview/create`;
+    return this.http.post<any>(reviewUrl, {
+      review: review.trim(),
+      donationId: donationId
+    });
   }
 
   /**

@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AcknowledgmentService, Acknowledgment, ReportAcknowledgmentDTO } from '../../../core/services/acknowledgment.service';
 import { ReportService } from '../../../core/services/report.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { Review } from '../../../core/services/donation.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -14,10 +15,11 @@ import { Subject, takeUntil } from 'rxjs';
   templateUrl: './acknowledgment-list.component.html',
   styleUrls: ['./acknowledgment-list.component.scss']
 })
-export class AcknowledgmentListComponent implements OnInit, OnDestroy {
+export class AcknowledgmentListComponent implements OnInit, OnDestroy, OnChanges {
   @Input() donationId?: number;
   @Input() postId?: number;
   @Input() donorId?: number;
+  @Input() reviews?: Review[]; // Reviews directamente desde la donación
   @Input() showReportButton: boolean = true;
   @Output() acknowledgmentReported = new EventEmitter<number>();
 
@@ -52,7 +54,43 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy {
         this.currentUserRole = user?.role || null;
       });
 
-    this.loadAcknowledgments();
+    // Si hay reviews pasados directamente, usarlos; si no, cargar desde API
+    if (this.reviews && this.reviews.length > 0) {
+      this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
+    } else {
+      this.loadAcknowledgments();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Si cambian los reviews, actualizar la lista
+    if (changes['reviews'] && this.reviews && this.reviews.length > 0) {
+      this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
+      this.loading = false;
+      this.error = '';
+    }
+  }
+
+  /**
+   * Convierte reviews del formato del backend al formato de Acknowledgment
+   */
+  private convertReviewsToAcknowledgments(reviews: Review[]): Acknowledgment[] {
+    return reviews.map(review => ({
+      id: review.id,
+      message: review.review,
+      donationId: this.donationId,
+      organizationId: review.user?.id || 0,
+      organization: review.user ? {
+        id: review.user.id || 0,
+        username: review.user.username || '',
+        profilePhoto: review.user.profilePhoto
+      } : undefined,
+      createdAt: review.createdAt || new Date().toISOString(),
+      updatedAt: review.createdAt || new Date().toISOString(),
+      isReported: false,
+      reportCount: 0,
+      rating: review.raiting || 0 // Mapear raiting (typo del backend)
+    }));
   }
 
   ngOnDestroy(): void {
@@ -61,6 +99,13 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy {
   }
 
   loadAcknowledgments(): void {
+    // Si ya tenemos reviews pasados directamente, no hacer petición HTTP
+    if (this.reviews && this.reviews.length > 0) {
+      this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
+      this.loading = false;
+      return;
+    }
+
     this.loading = true;
     this.error = '';
 
