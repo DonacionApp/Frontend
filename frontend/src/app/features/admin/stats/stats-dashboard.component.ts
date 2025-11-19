@@ -228,7 +228,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     this.filterService.filters$
       .pipe(takeUntil(this.destroy$))
       .subscribe(filters => {
-        console.log('🔄 Filtros actualizados, recargando estadísticas:', filters);
         // Actualizar los filtros locales
         this.dateFilters = filters.dateRange;
         this.currentPreset = filters.preset || '';
@@ -259,8 +258,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const startDate = filters.dateRange?.startDate;
     const endDate = filters.dateRange?.endDate;
 
-    console.log('📅 Cargando estadísticas con filtros:', { startDate, endDate });
-
     // Realizar llamadas en paralelo a los endpoints con reintentos
     forkJoin({
       users: this.userService.getAllUsers().pipe(
@@ -287,8 +284,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
-          console.log('✅ Datos cargados exitosamente desde API');
-          
           // Capturar tiempo de fin para calcular respuesta
           this.apiLoadEndTime = Date.now();
           
@@ -317,7 +312,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     const filters = this.filterService.getCurrentFilters();
     if (filters.dateRange) {
       allUsers = this.filterService.filterDataByDateRange(allUsers);
-      console.log('✅ Usuarios después de aplicar filtros:', allUsers.length);
     }
     
     // Guardar para cálculos secundarios
@@ -359,7 +353,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
     // Aplicar filtros de fecha si están activos
     if (filters.dateRange) {
       allPosts = this.filterService.filterDataByDateRange(allPosts);
-      console.log('✅ Publicaciones después de aplicar filtros:', allPosts.length);
     }
     
     // Guardar para cálculos secundarios
@@ -1047,8 +1040,6 @@ export class StatsDashboardComponent implements OnInit, OnDestroy {
    * Aplica los filtros seleccionados y recarga las estadísticas
    */
   applyFilters(): void {
-    console.log('🔍 Aplicando filtros:', this.dateFilters);
-    
     // Validar que la fecha de inicio no sea mayor que la fecha fin
     if (this.dateFilters.startDate && this.dateFilters.endDate) {
       if (new Date(this.dateFilters.startDate) > new Date(this.dateFilters.endDate)) {

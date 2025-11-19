@@ -59,8 +59,6 @@ export class StatsFilterService {
     
     // Invalidar caché de estadísticas cuando cambien los filtros
     this.invalidateStatsCache();
-    
-    console.log('🔍 Filtros actualizados:', newFilters);
   }
 
   /**
@@ -105,8 +103,6 @@ export class StatsFilterService {
     
     // Invalidar caché de estadísticas cuando cambien los filtros
     this.invalidateStatsCache();
-    
-    console.log('🔍 Preset aplicado:', preset, newFilters);
   }
 
   /**
@@ -118,8 +114,6 @@ export class StatsFilterService {
     
     // Invalidar caché de estadísticas cuando se limpien los filtros
     this.invalidateStatsCache();
-    
-    console.log('🧹 Filtros limpiados');
   }
 
   /**
@@ -145,8 +139,6 @@ export class StatsFilterService {
     
     // Invalidar caché de estadísticas cuando se remuevan filtros
     this.invalidateStatsCache();
-    
-    console.log('🗑️ Filtro removido:', type);
   }
 
   /**
@@ -220,7 +212,6 @@ export class StatsFilterService {
       if (saved) {
         const filters = JSON.parse(saved) as StatsFilters;
         this.filtersSubject.next(filters);
-        console.log('📂 Filtros cargados desde localStorage:', filters);
       }
     } catch (error) {
       console.warn('⚠️ No se pudieron cargar los filtros desde localStorage:', error);
