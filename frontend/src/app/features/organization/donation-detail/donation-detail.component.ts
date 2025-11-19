@@ -8,13 +8,10 @@ import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
-import { AcknowledgmentFormComponent } from '../../../shared/components/acknowledgment-form/acknowledgment-form.component';
-import { AcknowledgmentListComponent } from '../../../shared/components/acknowledgment-list/acknowledgment-list.component';
-
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, AcknowledgmentFormComponent, AcknowledgmentListComponent],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -129,10 +126,66 @@ export class DonationDetailComponent implements OnInit {
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
   }
 
-  loadAcknowledgments(): void {
-    // Este método se llama cuando se crea un nuevo agradecimiento
-    // El componente AcknowledgmentListComponent se recargará automáticamente
-    // No necesitamos hacer nada aquí ya que el componente maneja su propia carga
+  newReviewText = '';
+  submittingReview = false;
+  reviewError = '';
+
+  canAddReview(): boolean {
+    if (!this.donation || !this.authService.currentUserValue) {
+      return false;
+    }
+    // Beneficiario puede agregar review si aún no ha agregado una
+    if (!this.isBeneficiary) {
+      return false;
+    }
+    const currentUserId = String(this.authService.currentUserValue.id);
+    const alreadyReviewed = (this.donation.reviews || []).some((r: any) => {
+      return String(r.user?.id) === currentUserId;
+    });
+    return !alreadyReviewed;
+  }
+
+  addReview(): void {
+    if (!this.donation || !this.newReviewText.trim()) {
+      this.reviewError = 'Por favor escribe tu valoración.';
+      setTimeout(() => this.reviewError = '', 3000);
+      return;
+    }
+
+    if (!this.canAddReview()) {
+      this.reviewError = 'No puedes agregar una valoración.';
+      setTimeout(() => this.reviewError = '', 3000);
+      return;
+    }
+
+    this.submittingReview = true;
+    this.reviewError = '';
+
+    const payload = {
+      review: this.newReviewText.trim(),
+      raiting: 5 // valor por defecto
+    };
+
+    const url = `${environment.apiBackendUrl}/donation/${this.donation.id}/reviews`;
+    this.http.post<Donation>(url, payload).subscribe({
+      next: (updatedDonation) => {
+        this.donation = updatedDonation;
+        this.newReviewText = '';
+        this.submittingReview = false;
+      },
+      error: (error) => {
+        this.submittingReview = false;
+        console.error('Error al agregar valoración:', error);
+        if (error.status === 403) {
+          this.reviewError = 'Solo el beneficiario puede agregar una valoración.';
+        } else if (error.status === 409) {
+          this.reviewError = 'Ya has agregado una valoración para esta donación.';
+        } else {
+          this.reviewError = 'Error al agregar valoración. Intenta nuevamente.';
+        }
+        setTimeout(() => this.reviewError = '', 4000);
+      }
+    });
   }
 
   onEdit(): void {
