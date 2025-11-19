@@ -208,18 +208,20 @@
                     </app-acknowledgment-form>
                   </div>
 
-                  <!-- Lista de agradecimientos para donantes ver -->
-                  <div *ngIf="isDonator && donation">
+                  <!-- Lista de agradecimientos - visible para todos si hay reviews -->
+                  <div *ngIf="donation && donation.reviews && donation.reviews.length > 0">
                     <app-acknowledgment-list 
                       [donationId]="donation.id"
                       [reviews]="donation.reviews"
-                      [showReportButton]="true">
+                      [showReportButton]="isDonator">
                     </app-acknowledgment-list>
                   </div>
 
-                  <!-- Mensaje si no es ni beneficiario ni donante -->
-                  <div *ngIf="!isBeneficiary && !isDonator" class="text-gray-500 italic text-center py-4">
-                    <p>Los agradecimientos solo son visibles para organizaciones y donantes relacionados con esta donación.</p>
+                  <!-- Mensaje si no hay reviews -->
+                  <div *ngIf="donation && (!donation.reviews || donation.reviews.length === 0)" class="text-gray-500 italic text-center py-4">
+                    <p *ngIf="!isBeneficiary && !isDonator">Aún no hay agradecimientos para esta donación.</p>
+                    <p *ngIf="isBeneficiary">Aún no has dejado un agradecimiento para esta donación.</p>
+                    <p *ngIf="isDonator && !isBeneficiary">Aún no hay agradecimientos para esta donación.</p>
                   </div>
                 </div>
               </div>

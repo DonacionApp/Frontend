@@ -27,8 +27,6 @@ export class DonationDetailComponent implements OnInit {
   canEditStatus = false;
   isBeneficiary = false;
   isDonator = false;
-  // Note: chat list is shown in the global Sidebar component; donation-detail
-  // only keeps the Create/Open chat actions.
 
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
@@ -298,12 +296,8 @@ export class DonationDetailComponent implements OnInit {
   formatDate(dateString: string): string {
     if (!dateString) return 'No especificado';
 
-    // Si la fecha viene solo como "YYYY-MM-DD" (sin hora), formatearla directamente
-    // para evitar problemas de zona horaria
     if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Formato solo fecha (YYYY-MM-DD), extraer componentes directamente
       const [year, month, day] = dateString.split('-').map(Number);
-      // Usar Intl.DateTimeFormat con UTC para evitar cambios de zona horaria
       const date = new Date(Date.UTC(year, month - 1, day));
       return new Intl.DateTimeFormat('es-ES', {
         year: 'numeric',
@@ -312,7 +306,6 @@ export class DonationDetailComponent implements OnInit {
         timeZone: 'UTC'
       }).format(date);
     } else {
-      // Formato ISO completo, usar directamente
       const date = new Date(dateString);
       return date.toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -322,32 +315,27 @@ export class DonationDetailComponent implements OnInit {
     }
   }
 
-  // Calcular días restantes
   getDaysRemaining(): number {
     if (!this.donation?.fechaMaximaEntrega) return 0;
 
-    // Manejar correctamente las fechas que vienen del backend
     let maxDate: Date;
     const fechaString = this.donation.fechaMaximaEntrega;
 
     if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Formato solo fecha (YYYY-MM-DD), crear en UTC para evitar cambios de fecha
       const [year, month, day] = fechaString.split('-').map(Number);
       maxDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
     } else {
-      // Formato ISO completo, usar directamente
       maxDate = new Date(fechaString);
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
-    maxDate.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
+    today.setHours(0, 0, 0, 0); 
+    maxDate.setHours(0, 0, 0, 0); 
 
     const diff = maxDate.getTime() - today.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
-  // Obtener clase de estado
   getStatusClass(): string {
     const days = this.getDaysRemaining();
     if (days < 0) return 'expired';
