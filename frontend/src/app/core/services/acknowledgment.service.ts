@@ -58,6 +58,17 @@ export class AcknowledgmentService {
   }
 
   /**
+   * Crear una review para una donación (endpoint específico)
+   */
+  createDonationReview(donationId: number, review: string): Observable<any> {
+    const reviewUrl = `${environment.apiBackendUrl}/donationreview/create`;
+    return this.http.post<any>(reviewUrl, {
+      review: review.trim(),
+      donationId: donationId
+    });
+  }
+
+  /**
    * Obtener agradecimientos de una donación
    */
   getAcknowledgmentByDonation(donationId: number): Observable<Acknowledgment[]> {

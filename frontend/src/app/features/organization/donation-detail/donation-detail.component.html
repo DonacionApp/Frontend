@@ -201,7 +201,8 @@
                   <h3 class="text-lg font-semibold text-gray-900 mb-4">Agradecimientos</h3>
                   
                   <!-- Formulario para organizaciones (beneficiarios) dejar agradecimiento -->
-                  <div *ngIf="isBeneficiary && donation" class="mb-6">
+                  <!-- Solo se muestra si el estado es "entregada" o "completada" -->
+                  <div *ngIf="isBeneficiary && donation && canLeaveAcknowledgment()" class="mb-6">
                     <app-acknowledgment-form 
                       [donationId]="donation.id"
                       (acknowledgmentCreated)="loadAcknowledgments()">

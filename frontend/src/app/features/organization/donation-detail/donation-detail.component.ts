@@ -353,6 +353,37 @@ export class DonationDetailComponent implements OnInit {
     return [];
   }
 
+  // Verificar si el estado permite dejar agradecimiento
+  canLeaveAcknowledgment(): boolean {
+    if (!this.donation?.statusDonation?.status) return false;
+    const status = this.donation.statusDonation.status.toLowerCase().trim();
+    const statusAllowed = status === 'entregada' || status === 'completada';
+    
+    if (!statusAllowed) return false;
+    
+    // Verificar si el beneficiario ya dejó un agradecimiento
+    if (!this.isBeneficiary) return false;
+    
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+    
+    const currentUserId = String(currentUser.id);
+    
+    // Si ya existe una review del beneficiario actual, no permitir crear otra
+    if (this.donation.reviews && this.donation.reviews.length > 0) {
+      const hasReviewFromBeneficiary = this.donation.reviews.some(review => {
+        const reviewUserId = String(review.user?.id || '');
+        return reviewUserId === currentUserId;
+      });
+      
+      if (hasReviewFromBeneficiary) {
+        return false; // Ya tiene un agradecimiento, no mostrar formulario
+      }
+    }
+    
+    return true;
+  }
+
   onStatusChange(): void {
     if (!this.donation || this.updatingStatus || !this.canEditStatus) return;
 
