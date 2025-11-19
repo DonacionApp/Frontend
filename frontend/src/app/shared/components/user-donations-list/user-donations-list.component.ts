@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DonationByUser } from '../../../core/services/donation.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { AlertService } from '../../services/alert.service';
 
 interface FilterOptions {
   status: string;
@@ -47,7 +48,8 @@ export class UserDonationsListComponent implements OnChanges {
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertService: AlertService
   ) {
     const currentUser = this.authService.currentUserValue;
     this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
@@ -178,11 +180,19 @@ export class UserDonationsListComponent implements OnChanges {
   }
 
   viewDonationDetails(donationId: number): void {
+    if (!this.authService.isAuthenticated()) {
+      this.alertService.showAlert('Debes iniciar sesión para ver los detalles de la donación', 'warning');
+      return;
+    }
     this.router.navigate(['/organization/donations', donationId]);
   }
 
   viewPostDetails(postId: number, event: Event): void {
     event.stopPropagation();
+    if (!this.authService.isAuthenticated()) {
+      this.alertService.showAlert('Debes iniciar sesión para ver los detalles del post', 'warning');
+      return;
+    }
     this.router.navigate(['/post', postId]);
   }
 
