@@ -163,13 +163,14 @@ export class DonationDetailComponent implements OnInit {
 
     const payload = {
       review: this.newReviewText.trim(),
-      raiting: 5 // valor por defecto
+      donationId: this.donation.id
     };
 
-    const url = `${environment.apiBackendUrl}/donation/${this.donation.id}/reviews`;
-    this.http.post<Donation>(url, payload).subscribe({
-      next: (updatedDonation) => {
-        this.donation = updatedDonation;
+    const url = `${environment.apiBackendUrl}/donationreview/create`;
+    this.http.post<any>(url, payload).subscribe({
+      next: (response) => {
+        // Recargar la donación completa para obtener la review actualizada
+        this.loadDonation(this.donation!.id);
         this.newReviewText = '';
         this.submittingReview = false;
       },
