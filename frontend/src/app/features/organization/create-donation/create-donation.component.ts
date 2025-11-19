@@ -143,13 +143,14 @@ export class CreateDonationComponent implements OnInit {
   private initializeArticlesSelection(): void {
     // Crear un FormGroup por cada artículo disponible
     this.availableArticles.forEach(postArticle => {
-      const maxQ = parseInt(postArticle.quantity) || 1;
+      const maxQ = parseInt(postArticle.quantity) || 0;
+      const isDisabled = maxQ === 0;
       this.articles.push(this.fb.group({
         articlePostId: [postArticle.id],
         articleName: [postArticle.article.name],
         articleDescription: [postArticle.article.descripcion],
         maxQuantity: [maxQ],
-        selected: [false],
+        selected: [{ value: false, disabled: isDisabled }],
         // quantity con validadores dinámicos incluyendo max
         quantity: [{ value: 1, disabled: true }, [Validators.required, Validators.min(1), Validators.max(maxQ)]]
       }));
@@ -161,9 +162,19 @@ export class CreateDonationComponent implements OnInit {
    */
   onArticleSelectionChange(index: number): void {
     const articleGroup = this.articles.at(index) as FormGroup;
-    const selected = articleGroup.get('selected')?.value;
+    const selectedControl = articleGroup.get('selected');
+    const selected = selectedControl?.value;
     const quantityControl = articleGroup.get('quantity');
-    const maxQ = articleGroup.get('maxQuantity')?.value || 1;
+    const maxQ = articleGroup.get('maxQuantity')?.value || 0;
+
+    // Si la cantidad disponible es 0, no permitir seleccionar
+    if (maxQ === 0) {
+      selectedControl?.setValue(false);
+      selectedControl?.disable();
+      quantityControl?.setValue(1);
+      quantityControl?.disable();
+      return;
+    }
 
     if (selected && maxQ > 1) {
       // habilitar edición solo si hay más de 1 disponible

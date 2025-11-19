@@ -118,6 +118,7 @@
             class="flex gap-4 items-start bg-gray-50 p-4 rounded-md border"
             [class.border-green-500]="article.get('selected')?.value"
             [class.bg-green-50]="article.get('selected')?.value"
+            [class.opacity-50]="getArticleQuantity(i) === 0"
           >
             <!-- Checkbox para seleccionar -->
             <div class="flex items-center pt-1">
@@ -126,7 +127,8 @@
                 [id]="'articleCheckbox' + i"
                 formControlName="selected"
                 (change)="onArticleSelectionChange(i)"
-                class="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                [disabled]="getArticleQuantity(i) === 0"
+                class="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -138,8 +140,9 @@
               <p *ngIf="getArticleDescripcion(i)" class="text-sm text-gray-600 mt-1">
                 {{ getArticleDescripcion(i) }}
               </p>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs mt-1" [class.text-gray-500]="getArticleQuantity(i) > 0" [class.text-red-500]="getArticleQuantity(i) === 0">
                 Cantidad disponible: <span class="font-semibold">{{ getArticleQuantity(i) || 0 }}</span>
+                <span *ngIf="getArticleQuantity(i) === 0" class="ml-1">(Agotado)</span>
               </p>
             </div>
 
