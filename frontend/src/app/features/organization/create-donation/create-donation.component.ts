@@ -57,10 +57,8 @@ export class CreateDonationComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Obtener el postId tanto de parámetros de ruta como de query params (ej: ?post=5)
     this.route.params.subscribe(params => {
       let idFromParams = params['id'];
-      // Si no viene en params, intentar en query params (por ejemplo ?post=5)
       if (!idFromParams) {
         idFromParams = this.route.snapshot.queryParamMap.get('post');
       }
@@ -75,9 +73,6 @@ export class CreateDonationComponent implements OnInit {
     });
   }
 
-  /**
-   * Cargar datos del post con sus artículos
-   */
   private loadPost(): void {
     this.loadingPost = true;
     this.postsService.getPostById(this.postId).subscribe({
@@ -120,15 +115,12 @@ export class CreateDonationComponent implements OnInit {
       comments: this.fb.array([this.createCommentFormGroup()])
     });
 
-    // Establecer fecha mínima (hoy)
     const today = new Date().toISOString().split('T')[0];
     this.donationForm.get('fechaMaximaEntrega')?.setValue(today);
     
-    // Agregar artículos disponibles como checkboxes
     this.initializeArticlesSelection();
   }
 
-  // FormArrays getters
   get articles(): FormArray {
     return this.donationForm.get('articles') as FormArray;
   }
@@ -137,9 +129,6 @@ export class CreateDonationComponent implements OnInit {
     return this.donationForm.get('comments') as FormArray;
   }
 
-  /**
-   * Inicializar selección de artículos del post
-   */
   private initializeArticlesSelection(): void {
     // Crear un FormGroup por cada artículo disponible
     this.availableArticles.forEach(postArticle => {
@@ -151,15 +140,11 @@ export class CreateDonationComponent implements OnInit {
         articleDescription: [postArticle.article.descripcion],
         maxQuantity: [maxQ],
         selected: [{ value: false, disabled: isDisabled }],
-        // quantity con validadores dinámicos incluyendo max
         quantity: [{ value: 1, disabled: true }, [Validators.required, Validators.min(1), Validators.max(maxQ)]]
       }));
     });
   }
 
-  /**
-   * Manejar cambio en checkbox de artículo
-   */
   onArticleSelectionChange(index: number): void {
     const articleGroup = this.articles.at(index) as FormGroup;
     const selectedControl = articleGroup.get('selected');
@@ -291,6 +276,39 @@ export class CreateDonationComponent implements OnInit {
     if (!a) return 0;
     const q = a.quantity;
     return typeof q === 'number' ? q : parseInt(String(q || '0')) || 0;
+  }
+
+  /**
+   * Verifica si el post es de tipo "solicitud de donacion"
+   */
+  isSolicitudDonacion(): boolean {
+    return this.post?.typePost?.type?.toLowerCase().trim() === 'solicitud de donacion';
+  }
+
+  /**
+   * Obtiene el título según el tipo de post
+   */
+  getPageTitle(): string {
+    return this.isSolicitudDonacion() ? 'Crear Donación' : 'Solicitar Donación';
+  }
+
+  /**
+   * Obtiene la descripción según el tipo de post
+   */
+  getPageDescription(): string {
+    return this.isSolicitudDonacion() 
+      ? 'Completa el formulario para crear una donación respondiendo a esta solicitud'
+      : 'Completa el formulario para solicitar los artículos de este post';
+  }
+
+  /**
+   * Obtiene el texto del botón según el tipo de post
+   */
+  getSubmitButtonText(): string {
+    if (this.loading) {
+      return this.isSolicitudDonacion() ? 'Creando Donación...' : 'Creando Solicitud...';
+    }
+    return this.isSolicitudDonacion() ? 'Crear Donación' : 'Solicitar Donación';
   }
 
   // Enviar formulario

@@ -2,23 +2,26 @@
   <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Solicitar Donación</h1>
+      <h1 class="text-3xl font-bold text-gray-900">{{ getPageTitle() }}</h1>
       <p class="mt-2 text-sm text-gray-600">
-        Completa el formulario para solicitar los artículos de este post
+        {{ getPageDescription() }}
       </p>
     </div>
 
     <!-- Loading state -->
-    <div *ngIf="loading && !post" class="flex justify-center items-center py-12">
-      <svg class="animate-spin h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span class="ml-3 text-gray-600">Cargando información del post...</span>
+    <div *ngIf="loadingPost" class="flex flex-col justify-center items-center py-20">
+      <div class="relative">
+        <svg class="animate-spin h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <p class="mt-6 text-lg font-medium text-gray-700">Cargando información del post...</p>
+      <p class="mt-2 text-sm text-gray-500">Por favor espera un momento</p>
     </div>
 
     <!-- Información del Post -->
-    <div *ngIf="post && !loading" class="mb-6 bg-white shadow-sm rounded-lg p-6">
+    <div *ngIf="post && !loadingPost" class="mb-6 bg-white shadow-sm rounded-lg p-6">
       <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ post.title }}</h2>
       <p class="text-gray-600 whitespace-pre-line">{{ post.message }}</p>
     </div>
@@ -43,7 +46,7 @@
     </div>
 
     <!-- Formulario -->
-    <form *ngIf="post && !loading" [formGroup]="donationForm" (ngSubmit)="onSubmit()" class="bg-white shadow-sm rounded-lg p-6 space-y-6">
+    <form *ngIf="post && !loadingPost && donationForm" [formGroup]="donationForm" (ngSubmit)="onSubmit()" class="bg-white shadow-sm rounded-lg p-6 space-y-6">
       
       <!-- Información General -->
       <div class="space-y-4">
@@ -107,8 +110,12 @@
       <!-- Artículos Disponibles -->
       <div class="space-y-4">
         <div class="border-b pb-2">
-          <h2 class="text-lg font-semibold text-gray-900">Selecciona los Artículos que Necesitas</h2>
-          <p class="text-sm text-gray-600 mt-1">Marca los artículos que deseas solicitar e indica la cantidad</p>
+          <h2 class="text-lg font-semibold text-gray-900">
+            {{ isSolicitudDonacion() ? 'Selecciona los Artículos que Donarás' : 'Selecciona los Artículos que Necesitas' }}
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">
+            {{ isSolicitudDonacion() ? 'Marca los artículos que deseas donar e indica la cantidad' : 'Marca los artículos que deseas solicitar e indica la cantidad' }}
+          </p>
         </div>
 
         <div formArrayName="articles" class="space-y-3">
@@ -253,7 +260,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {{ loading ? 'Creando Solicitud...' : 'Solicitar Donación' }}
+          {{ getSubmitButtonText() }}
         </button>
       </div>
     </form>
