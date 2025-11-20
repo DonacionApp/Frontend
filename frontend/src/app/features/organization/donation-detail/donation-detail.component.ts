@@ -8,11 +8,13 @@ import { MessageService } from '../../../core/services/message.service';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
+import { AcknowledgmentFormComponent } from '../../../shared/components/acknowledgment-form/acknowledgment-form.component';
+import { AcknowledgmentListComponent } from '../../../shared/components/acknowledgment-list/acknowledgment-list.component';
 
 @Component({
   selector: 'app-donation-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, AcknowledgmentFormComponent, AcknowledgmentListComponent],
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
@@ -25,12 +27,6 @@ export class DonationDetailComponent implements OnInit {
   canEditStatus = false;
   isBeneficiary = false;
   isDonator = false;
-  // Note: chat list is shown in the global Sidebar component; donation-detail
-  // only keeps the Create/Open chat actions.
-
-  newReviewText = '';
-  submittingReview = false;
-  reviewError = '';
 
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
@@ -65,86 +61,6 @@ export class DonationDetailComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al cargar estados:', error);
-      }
-    });
-  }
-
-  canAddReview(): boolean {
-    if (!this.donation) return false;
-    if (!this.isBeneficiary) return false;
-    const currentUser = this.authService.currentUserValue;
-    if (!currentUser) return false;
-
-    const reviews = (this.donation.reviews || []);
-    const already = reviews.some(r => String(r.user?.id) === String(currentUser.id));
-    return !already;
-  }
-
-  addReview(): void {
-    if (!this.donation) return;
-    if (!this.canAddReview()) {
-      this.reviewError = 'No puedes añadir otra valoración.';
-      setTimeout(() => this.reviewError = '', 3000);
-      return;
-    }
-
-    const text = (this.newReviewText || '').trim();
-    if (!text) {
-      this.reviewError = 'El comentario no puede estar vacío.';
-      setTimeout(() => this.reviewError = '', 3000);
-      return;
-    }
-
-    this.submittingReview = true;
-    this.reviewError = '';
-
-    const url = `${environment.apiBackendUrl}/donationreview/create`;
-    const payload = {
-      review: text,
-      donationId: this.donation.id
-    };
-
-    this.http.post<any>(url, payload).subscribe({
-      next: (created) => {
-        const createdReview = created?.data ?? created?.review ?? created;
-
-        if (!this.donation) return;
-        if (!this.donation.reviews) this.donation.reviews = [];
-
-        const currentUser = this.authService.currentUserValue;
-        if (createdReview && createdReview.user && currentUser && String(createdReview.user.id) === String(currentUser.id)) {
-          createdReview.user = {
-            ...createdReview.user,
-            username: createdReview.user.username || (currentUser as any).username
-          } as Partial<any>;
-        }
-
-        this.donation.reviews = [...this.donation.reviews, createdReview];
-        this.newReviewText = '';
-        this.submittingReview = false;
-        this.donationService.getDonationById(this.donation.id).subscribe({
-          next: (fresh) => {
-            this.donation = fresh;
-            this.checkPermissions();
-          },
-          error: (err) => {
-            console.warn('No se pudo refrescar la donación tras crear review:', err);
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Error al crear review:', err);
-        this.submittingReview = false;
-        if (err?.status === 403) {
-          this.reviewError = 'No tienes permiso para agregar una valoración.';
-        } else if (err?.status === 409) {
-          this.reviewError = 'Ya existe una valoración desde este usuario.';
-        } else if (err?.status === 0) {
-          this.reviewError = 'Error de conexión. Verifica tu internet.';
-        } else {
-          this.reviewError = err?.error?.message || 'No se pudo agregar la valoración.';
-        }
-        setTimeout(() => this.reviewError = '', 4000);
       }
     });
   }
@@ -209,6 +125,14 @@ export class DonationDetailComponent implements OnInit {
     this.canDeleteDonation = isDonator;
 
     this.canEditStatus = (isDonator || isOwner) && !isBeneficiary && !isFinalStatus;
+  }
+
+  loadAcknowledgments(): void {
+    // Este método se llama cuando se crea un nuevo agradecimiento
+    // Recargar la donación completa para obtener los reviews actualizados
+    if (this.donation?.id) {
+      this.loadDonation(this.donation.id);
+    }
   }
 
   onEdit(): void {
@@ -372,12 +296,8 @@ export class DonationDetailComponent implements OnInit {
   formatDate(dateString: string): string {
     if (!dateString) return 'No especificado';
 
-    // Si la fecha viene solo como "YYYY-MM-DD" (sin hora), formatearla directamente
-    // para evitar problemas de zona horaria
     if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Formato solo fecha (YYYY-MM-DD), extraer componentes directamente
       const [year, month, day] = dateString.split('-').map(Number);
-      // Usar Intl.DateTimeFormat con UTC para evitar cambios de zona horaria
       const date = new Date(Date.UTC(year, month - 1, day));
       return new Intl.DateTimeFormat('es-ES', {
         year: 'numeric',
@@ -386,7 +306,6 @@ export class DonationDetailComponent implements OnInit {
         timeZone: 'UTC'
       }).format(date);
     } else {
-      // Formato ISO completo, usar directamente
       const date = new Date(dateString);
       return date.toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -396,32 +315,27 @@ export class DonationDetailComponent implements OnInit {
     }
   }
 
-  // Calcular días restantes
   getDaysRemaining(): number {
     if (!this.donation?.fechaMaximaEntrega) return 0;
 
-    // Manejar correctamente las fechas que vienen del backend
     let maxDate: Date;
     const fechaString = this.donation.fechaMaximaEntrega;
 
     if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Formato solo fecha (YYYY-MM-DD), crear en UTC para evitar cambios de fecha
       const [year, month, day] = fechaString.split('-').map(Number);
       maxDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
     } else {
-      // Formato ISO completo, usar directamente
       maxDate = new Date(fechaString);
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
-    maxDate.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fecha
+    today.setHours(0, 0, 0, 0); 
+    maxDate.setHours(0, 0, 0, 0); 
 
     const diff = maxDate.getTime() - today.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
-  // Obtener clase de estado
   getStatusClass(): string {
     const days = this.getDaysRemaining();
     if (days < 0) return 'expired';
@@ -430,13 +344,39 @@ export class DonationDetailComponent implements OnInit {
     return 'normal';
   }
 
-  // Obtener comentarios como array
   getCommentsArray(): Comment[] {
     if (!this.donation?.comments) return [];
     if (Array.isArray(this.donation.comments)) {
       return this.donation.comments;
     }
     return [];
+  }
+  canLeaveAcknowledgment(): boolean {
+    if (!this.donation?.statusDonation?.status) return false;
+    const status = this.donation.statusDonation.status.toLowerCase().trim();
+    const statusAllowed = status === 'entregada' || status === 'completada';
+    
+    if (!statusAllowed) return false;
+    
+    if (!this.isBeneficiary) return false;
+    
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+    
+    const currentUserId = String(currentUser.id);
+    
+    if (this.donation.reviews && this.donation.reviews.length > 0) {
+      const hasReviewFromBeneficiary = this.donation.reviews.some(review => {
+        const reviewUserId = String(review.user?.id || '');
+        return reviewUserId === currentUserId;
+      });
+      
+      if (hasReviewFromBeneficiary) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
   onStatusChange(): void {

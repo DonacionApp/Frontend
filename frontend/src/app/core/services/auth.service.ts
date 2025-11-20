@@ -22,12 +22,10 @@ export interface User {
   providedIn: 'root'
 })
 export class AuthService {
-  // Usar localStorage como única fuente de verdad
-  // El Subject solo se usa como señal de cambio, NO almacena el valor (siempre se lee de localStorage)
   private userChangeSignal = new Subject<void>();
   public currentUser$ = this.userChangeSignal.pipe(
     startWith(void 0),
-    map(() => this.getCurrentUser()) // Siempre lee de localStorage, nunca del Subject
+    map(() => this.getCurrentUser()) 
   );
   private readonly TOKEN_STORAGE_KEY = 'token';
   private baseUrl = environment.apiBaseUrl;
@@ -35,81 +33,56 @@ export class AuthService {
   private router: Router | null = null;
 
   constructor(
-    private http: HttpClient, 
+    private http: HttpClient,
     private websocketService: WebsocketService,
     private notificationService: NotificationService,
     private injector: Injector
   ) {
     const token = localStorage.getItem(this.TOKEN_STORAGE_KEY);
     const refreshToken = localStorage.getItem('refreshToken');
-    const storedUser = this.getCurrentUser();
-    
-    if (token && this.isTokenValid(token)) {
-      // Token válido - validar que corresponde al usuario guardado
+    const currentUser = this.getCurrentUser();
+
+    if (token) {
+      
       const payload = this.decodeToken(token);
-      if (payload) {
-        const tokenUserId = payload.sub || payload.id || '';
-        const storedUserId = storedUser?.id || '';
-        
-        // CRÍTICO: Si hay un usuario guardado, verificar que el token corresponde a ese usuario
-        if (storedUser && tokenUserId && storedUserId && tokenUserId !== storedUserId) {
-          console.error('🚨 CRÍTICO: Token válido corresponde a un usuario diferente al guardado. Limpiando sesión.');
-          console.error('🚨 Usuario guardado:', storedUserId, 'Usuario del token:', tokenUserId);
-          this.clearAuthData();
-          return;
-        }
-        
-        // Si no hay usuario guardado o el token corresponde, restaurar normalmente
-        const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-        const normalizedRole = this.normalizeRole(rawRole);
-        
-        const user: User = {
-          id: tokenUserId || storedUserId,
-          email: payload.email || '',
-          role: normalizedRole,
-          name: payload.name || '',
-          verified: payload.verified || false
-        };
+      
+      if (payload && payload.sub) {
         this.setAccessToken(token);
-        this.setCurrentUser(user);
-      }
-    } else if (token && refreshToken) {
-      // Token expirado pero hay refreshToken - validar que correspondan al mismo usuario
-      const payload = this.decodeToken(token);
-      if (payload) {
-        const tokenUserId = payload.sub || payload.id || '';
-        const storedUserId = storedUser?.id || '';
         
-        // CRÍTICO: Si hay un usuario guardado, verificar que el token corresponde a ese usuario
-        if (storedUser && tokenUserId && storedUserId && tokenUserId !== storedUserId) {
-          console.error('🚨 CRÍTICO: Token expirado corresponde a un usuario diferente al guardado. Limpiando sesión.');
-          console.error('🚨 Usuario guardado:', storedUserId, 'Usuario del token:', tokenUserId);
-          this.clearAuthData();
-          return;
-        }
-        
-        // Solo restaurar si no hay usuario guardado o si corresponden
-        if (!storedUser) {
+        if (this.isTokenValid(token)) {
           const rawRole = payload.role || payload.roles || payload.rol || 'donor';
           const normalizedRole = this.normalizeRole(rawRole);
-          
+
           const user: User = {
-            id: tokenUserId,
+            id: payload.sub || payload.id || '',
             email: payload.email || '',
             role: normalizedRole,
             name: payload.name || '',
             verified: payload.verified || false
           };
           this.setCurrentUser(user);
+        } else {
+          if (!currentUser && payload.sub) {
+            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
+            const normalizedRole = this.normalizeRole(rawRole);
+
+            const user: User = {
+              id: payload.sub || payload.id || '',
+              email: payload.email || '',
+              role: normalizedRole,
+              name: payload.name || '',
+              verified: payload.verified || false
+            };
+            this.setCurrentUser(user);
+          }
+        }
+      } else {
+        if (!refreshToken) {
+          this.clearAuthData();
         }
       }
-      // NO limpiar la sesión - el token se refrescará automáticamente en la próxima petición
-    } else if (token && !refreshToken) {
-      // Solo limpiar si hay token pero NO hay refreshToken Y NO hay usuario guardado
-      const currentUser = this.getCurrentUser();
-      if (!currentUser) {
-        this.clearAuthData();
-      }
+    } else if (!token && currentUser) {
+      this.clearAuthData();
     }
   }
   public getCurrentUser(): User | null {
@@ -241,10 +214,6 @@ export class AuthService {
     const url = `${this.baseUrl}/login`;
     return this.http.post<any>(url, { email, password }).pipe(
       tap(res => {
-        // CRÍTICO: Limpiar TODOS los datos de autenticación anteriores ANTES de establecer los nuevos
-        // Esto previene que se restaure un usuario anterior si había un refreshToken antiguo
-        this.clearAuthData();
-        
         const token = res.access_token || res.accessToken || res.token;
         const refresh = res.refresh_token || res.refreshToken;
         if (token) {
@@ -284,34 +253,35 @@ export class AuthService {
 
   updateTokenSilently(newToken: string): void {
     try {
-      const payload = this.decodeToken(newToken);
-      if (!payload) return;
-      
-      // CRÍTICO: Validar que el nuevo token corresponde al usuario actual ANTES de actualizar
-      const currentUser = this.getCurrentUser();
-      const newUserId = payload.sub || payload.id || '';
-      const currentUserId = currentUser?.id || '';
-      
-      // Si hay un usuario actual, verificar que el nuevo token corresponde a ese usuario
-      if (currentUser && newUserId && currentUserId && newUserId !== currentUserId) {
-        console.error('🚨 CRÍTICO: [AuthService] updateTokenSilently - El token es de un usuario diferente. No se actualizará.');
-        console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
-        return;
-      }
-      
-      // Solo actualizar si corresponde al usuario actual o no hay usuario actual
       this.setAccessToken(newToken);
-      
+      const payload = this.decodeToken(newToken);
       if ((environment as any)['debugWs'] || (environment as any)['debug']) {
         try { console.debug('[AuthService] updateTokenSilently - newToken payload:', payload); } catch (e) {}
       }
-      
-      if (currentUser && currentUser.id === newUserId) {
-        if (this.websocketService) {
-          if ((environment as any)['debugWs'] || (environment as any)['debug']) {
-            try { console.debug('[AuthService] updateTokenSilently - reconnecting websockets with refreshed token'); } catch (e) {}
+      if (payload) {
+        const currentUser = this.getCurrentUser();
+        if (currentUser && currentUser.id === (payload.sub || payload.id)) {
+          const rawRole = payload.role || payload.roles || payload.rol;
+          if (currentUser.role === 'admin' && rawRole && this.normalizeRole(rawRole) !== 'admin') {
+            console.warn('[AuthService] updateTokenSilently - Token tiene rol diferente, preservando rol admin del usuario actual');
+
+          } else if (rawRole) {
+            const normalizedRole = this.normalizeRole(rawRole);
+            if (normalizedRole !== currentUser.role) {
+              const updatedUser: User = {
+                ...currentUser,
+                role: normalizedRole
+              };
+              this.setCurrentUser(updatedUser);
+            }
           }
-          this.websocketService.reconnectWithNewToken(newToken);
+          
+          if (this.websocketService) {
+            if ((environment as any)['debugWs'] || (environment as any)['debug']) {
+              try { console.debug('[AuthService] updateTokenSilently - reconnecting websockets with refreshed token'); } catch (e) {}
+            }
+            this.websocketService.reconnectWithNewToken(newToken);
+          }
         }
       }
     } catch (error) {
@@ -323,7 +293,7 @@ export class AuthService {
     try {
       if (!newRefreshToken) return;
       const current = localStorage.getItem('refreshToken');
-      if (current === newRefreshToken) return; // no hay cambio
+      if (current === newRefreshToken) return;
 
       if ((environment as any)['debugWs'] || (environment as any)['debug']) {
         try { console.debug('[AuthService] updateRefreshTokenSilently - oldRefresh:', !!current, 'newRefresh:', !!newRefreshToken); } catch (e) {}
@@ -350,7 +320,7 @@ export class AuthService {
     }
   }
 
-  public clearAuthData(): void {
+  private clearAuthData(): void {
     localStorage.removeItem('currentUser');
     this.clearAccessToken();
     localStorage.removeItem('refreshToken');
@@ -363,8 +333,6 @@ export class AuthService {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    // Forzar que la app "olvide" al usuario en memoria sin recargar
     try {
       this.setCurrentUser(null);
     } catch (e) {
@@ -376,10 +344,6 @@ export class AuthService {
     } catch (e) {}
   }
 
-  /**
-   * Forzar olvido del usuario: limpia `localStorage.currentUser` y el BehaviorSubject
-   * Útil para cuando quieres que la app deje de tener usuario en memoria sin recargar.
-   */
   public forgetCurrentUser(): void {
     try { this.setCurrentUser(null); } catch (e) { console.warn('forgetCurrentUser error', e); }
   }
@@ -441,8 +405,6 @@ export class AuthService {
     
     if (!refreshToken) {
       console.warn('⚠️ No hay refresh token disponible');
-      // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
-      // en la próxima petición exitosa
       return throwError(() => new Error('No hay refresh token disponible'));
     }
     const url = `${this.baseUrl}/refresh`;
@@ -487,43 +449,46 @@ export class AuthService {
             } catch (e) {}
           }
           
-          // CRÍTICO: Validar que el nuevo token corresponde al usuario actual ANTES de actualizar
-          const payload = this.decodeToken(newToken);
-          if (payload) {
-            const newUserId = payload.sub || payload.id || '';
-            const currentUser = this.getCurrentUser();
-            const currentUserId = currentUser?.id || '';
-            
-            // Si hay un usuario actual, verificar que el nuevo token corresponde a ese usuario
-            if (currentUser && newUserId && currentUserId && newUserId !== currentUserId) {
-              console.error('🚨 CRÍTICO: El token refrescado corresponde a un usuario diferente. Limpiando sesión.');
-              console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
-              this.clearAuthData();
-              return throwError(() => new Error('El token refrescado corresponde a un usuario diferente'));
-            }
-            
-            // Si corresponde o no hay usuario actual, actualizar normalmente
-            const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-            const normalizedRole = this.normalizeRole(rawRole);
-            
-            const user: User = {
-              id: newUserId || currentUserId,
-              email: payload.email || '',
-              role: normalizedRole,
-              name: payload.name || '',
-              verified: payload.verified || false
-            };
-            
-            // Actualizar usuario primero
-            this.setCurrentUser(user);
-          }
-          
-          // Luego actualizar el token
           this.setAccessToken(newToken);
           
-          // Actualizar refreshToken si es diferente
+          
           if (newRefreshToken && newRefreshToken !== refreshToken) {
             localStorage.setItem('refreshToken', newRefreshToken);
+          }
+          
+          
+          const payload = this.decodeToken(newToken);
+          if (payload) {
+            const currentUser = this.getCurrentUser();
+            const rawRole = payload.role || payload.roles || payload.rol;
+            
+            console.log('[AuthService] refreshToken - Token payload:', {
+              rawRole,
+              currentUserRole: currentUser?.role,
+              payload: payload
+            });
+            let normalizedRole: 'donor' | 'organization' | 'admin';
+            
+            if (currentUser?.role === 'admin') {
+              normalizedRole = 'admin';
+              console.log('[AuthService] refreshToken - Preservando rol admin del usuario actual');
+            } else if (rawRole) {
+              normalizedRole = this.normalizeRole(rawRole);
+            } else {
+              normalizedRole = currentUser?.role || 'donor';
+              console.warn('[AuthService] refreshToken - No se encontró rol en el token, usando rol del usuario actual:', normalizedRole);
+            }
+            
+            const user: User = {
+              id: payload.sub || payload.id || currentUser?.id || '',
+              email: payload.email || currentUser?.email || '',
+              role: normalizedRole,
+              name: payload.name || currentUser?.name || '',
+              verified: payload.verified !== undefined ? payload.verified : (currentUser?.verified || false)
+            };
+            
+            console.log('[AuthService] refreshToken - Usuario actualizado:', { id: user.id, email: user.email, role: user.role });
+            this.setCurrentUser(user);
           }
           
           
@@ -558,39 +523,41 @@ export class AuthService {
                             headers.get('access-token');
               
               if (newToken) {
-                // CRÍTICO: Validar que el nuevo token corresponde al usuario actual ANTES de actualizar
+          this.setAccessToken(newToken);
                 const payload = this.decodeToken(newToken);
                 if (payload) {
-                  const newUserId = payload.sub || payload.id || '';
                   const currentUser = this.getCurrentUser();
-                  const currentUserId = currentUser?.id || '';
+                  const rawRole = payload.role || payload.roles || payload.rol;
                   
-                  // Si hay un usuario actual, verificar que el nuevo token corresponde a ese usuario
-                  if (currentUser && newUserId && currentUserId && newUserId !== currentUserId) {
-                    console.error('🚨 CRÍTICO: El token refrescado (fallback) corresponde a un usuario diferente. Limpiando sesión.');
-                    console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
-                    this.clearAuthData();
-                    return throwError(() => new Error('El token refrescado corresponde a un usuario diferente'));
+                  console.log('[AuthService] refreshToken (fallback) - Token payload:', {
+                    rawRole,
+                    currentUserRole: currentUser?.role,
+                    payload: payload
+                  });
+                  
+                  let normalizedRole: 'donor' | 'organization' | 'admin';
+                  
+                  if (currentUser?.role === 'admin') {
+                    normalizedRole = 'admin';
+                    console.log('[AuthService] refreshToken (fallback) - Preservando rol admin del usuario actual');
+                  } else if (rawRole) {
+                    normalizedRole = this.normalizeRole(rawRole);
+                  } else {
+                    normalizedRole = currentUser?.role || 'donor';
+                    console.warn('[AuthService] refreshToken (fallback) - No se encontró rol en el token, usando rol del usuario actual:', normalizedRole);
                   }
                   
-                  // Si corresponde o no hay usuario actual, actualizar normalmente
-                  const rawRole = payload.role || payload.roles || payload.rol || 'donor';
-                  const normalizedRole = this.normalizeRole(rawRole);
-                  
                   const user: User = {
-                    id: newUserId || currentUserId,
-                    email: payload.email || '',
+                    id: payload.sub || payload.id || currentUser?.id || '',
+                    email: payload.email || currentUser?.email || '',
                     role: normalizedRole,
-                    name: payload.name || '',
-                    verified: payload.verified || false
+                    name: payload.name || currentUser?.name || '',
+                    verified: payload.verified !== undefined ? payload.verified : (currentUser?.verified || false)
                   };
                   
-                  // Actualizar usuario primero
+                  console.log('[AuthService] refreshToken (fallback) - Usuario actualizado:', { id: user.id, email: user.email, role: user.role });
                   this.setCurrentUser(user);
                 }
-                
-                // Luego actualizar el token
-                this.setAccessToken(newToken);
                 
                 this.websocketService.connect(newToken);
                 
@@ -604,16 +571,12 @@ export class AuthService {
             }),
             catchError(finalErr => {
               console.error('Error al refrescar token (intento con headers):', finalErr);
-              // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
-              // en la próxima petición exitosa
               return throwError(() => finalErr);
             })
           );
         }
         
         console.error('Error al refrescar token:', err);
-        // NO cerrar sesión automáticamente - el backend puede retornar un refresh token
-        // en la próxima petición exitosa
         return throwError(() => err);
       })
     );
@@ -642,9 +605,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Verifica si un token JWT es válido (no expirado)
-   */
   public isTokenValid(token: string): boolean {
     if (!token) return false;
     
@@ -652,11 +612,9 @@ export class AuthService {
       const payload = this.decodeToken(token);
       if (!payload) return false;
       
-      // Verificar expiración
       const exp = payload.exp;
       if (!exp) return false;
       
-      // exp está en segundos, Date.now() está en milisegundos
       const currentTime = Math.floor(Date.now() / 1000);
       return exp > currentTime;
     } catch (e) {
@@ -664,10 +622,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Conecta WebSocket si hay un token válido
-   * Debe llamarse después de login o cuando se valide el token
-   */
   public connectWebSocketIfAuthenticated(): void {
     const token = this.getAccessToken();
     if (token && this.isTokenValid(token)) {

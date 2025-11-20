@@ -10,6 +10,9 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertService } from '../../../shared/services/alert.service';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
+import { FormsModule } from '@angular/forms';
+import { ReportService } from '../../../core/services/report.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -21,7 +24,16 @@ export class SafeUrlPipe implements PipeTransform {
 
 @Component({
   selector: 'app-list',
-  imports: [CommonModule, RouterModule, ButtonComponent, SidebarComponent, SafeUrlPipe, SpinnerComponent],
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    ButtonComponent,
+    SidebarComponent,
+    SafeUrlPipe,
+    SpinnerComponent,
+    FormsModule
+  ],
   templateUrl: './list.component.html',
   styleUrl: './list.component.scss'
 })
@@ -57,6 +69,7 @@ export class ListComponent implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
   isAuthenticated = false;
+  currentUserRole: string | null = null;
   
   selectedTypeId: number | null = null;
   searchTerm = '';
@@ -72,10 +85,28 @@ export class ListComponent implements OnInit, OnDestroy {
 
   showDropdownId: number | null = null;
   currentUserId: number | null = null;
+  reportedPostIds = new Set<number>();
 
   showLikesModal = false;
   usersWhoLiked: PostLiked[] = [];
   loadingLikes = false;
+
+  showReportModal = false;
+  showReportConfirmModal = false;
+  showReportSuccessModal = false;
+  selectedPostForReport: Post | null = null;
+  reportReason = '';
+  reportExtraComments = '';
+  reportError = '';
+  isReporting = false;
+  reportReasonOptions = [
+    { value: 'inappropriate', label: 'Contenido inapropiado' },
+    { value: 'spam', label: 'Spam o publicidad' },
+    { value: 'fraud', label: 'Estafa o fraude' },
+    { value: 'harassment', label: 'Acoso o discurso de odio' },
+    { value: 'fake', label: 'Información falsa' },
+    { value: 'other', label: 'Otro' }
+  ];
 
   // Cache de permisos
   private _canLike: boolean | null = null;
@@ -90,7 +121,9 @@ export class ListComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private route: ActivatedRoute,
     private viewportScroller: ViewportScroller,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private reportService: ReportService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -126,12 +159,14 @@ export class ListComponent implements OnInit, OnDestroy {
     
     const currentUser = this.authService.currentUserValue;
     this.currentUserId = currentUser?.id ? Number(currentUser.id) : null;
+    this.currentUserRole = currentUser?.role || null;
     
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe((user) => {
         this.isAuthenticated = this.authService.isAuthenticated();
         this.currentUserId = user?.id ? Number(user.id) : null;
+        this.currentUserRole = user?.role || null;
         // Invalidar cache de permisos cuando cambia el usuario
         this._canLike = null;
         this._canRequestDonation = null;
@@ -436,7 +471,26 @@ export class ListComponent implements OnInit, OnDestroy {
 
   isPostOwner(post: Post): boolean {
     if (!post || !this.currentUserId) return false;
-    return post.user.id === this.currentUserId;
+    // Asegurar que ambos sean números para la comparación
+    const postOwnerId = Number(post.user?.id);
+    const currentId = Number(this.currentUserId);
+    return postOwnerId === currentId && !isNaN(postOwnerId) && !isNaN(currentId);
+  }
+
+  isOrganization(): boolean {
+    if (!this.isAuthenticated) return false;
+    
+    // Intentar obtener el rol de diferentes fuentes
+    let roleStr = this.currentUserRole;
+    if (!roleStr) {
+      const currentUser = this.authService.currentUserValue;
+      roleStr = currentUser?.role || null;
+    }
+    
+    if (!roleStr) return false;
+    
+    const role = String(roleStr).toLowerCase().trim();
+    return role === 'organization' || role === 'organizacion' || role.includes('organizacion');
   }
 
   editPost(post: Post): void {
@@ -546,6 +600,213 @@ export class ListComponent implements OnInit, OnDestroy {
           error: (err) => console.error('Error adding like:', err)
         });
     }
+  }
+
+  canReport(post: Post): boolean {
+    if (!post || !this.isAuthenticated) return false;
+    
+    // Obtener el rol del usuario actual
+    let roleStr = this.currentUserRole;
+    if (!roleStr) {
+      const currentUser = this.authService.currentUserValue;
+      roleStr = currentUser?.role || null;
+    }
+    
+    if (!roleStr) return false;
+    
+    const role = String(roleStr).toLowerCase().trim();
+    const isDonor = role === 'donor' || role === 'donante' || role === 'user';
+    const isOrganization = role === 'organization' || role === 'organizacion' || role.includes('organizacion');
+    
+    // Permite reportar a donantes y organizaciones, pero no pueden reportar sus propias publicaciones
+    return (isDonor || isOrganization) && !this.isPostOwner(post) && !this.isPostReported(post);
+  }
+
+  isPostReported(post: Post): boolean {
+    return this.reportedPostIds.has(post.id) || Boolean((post as any)?.isReported);
+  }
+
+  openReportModal(post: Post): void {
+    if (!this.isAuthenticated) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    if (!this.canReport(post)) {
+      this.toastService.warning('No permitido', 'No puedes reportar esta publicación. Solo puedes reportar publicaciones de otros usuarios.');
+      return;
+    }
+
+    this.selectedPostForReport = post;
+    this.reportReason = '';
+    this.reportExtraComments = '';
+    this.reportError = '';
+    this.showReportModal = true;
+    this.showReportConfirmModal = false;
+  }
+
+  closeReportModal(): void {
+    this.showReportModal = false;
+    this.showReportConfirmModal = false;
+    this.reportReason = '';
+    this.reportExtraComments = '';
+    this.reportError = '';
+    this.selectedPostForReport = null;
+  }
+
+  submitReport(): void {
+    if (!this.selectedPostForReport) {
+      this.reportError = 'No se encontró la publicación seleccionada';
+      return;
+    }
+
+    if (!this.reportReason.trim()) {
+      this.reportError = 'Selecciona un motivo para el reporte';
+      return;
+    }
+
+    this.reportError = '';
+    this.showReportConfirmModal = true;
+  }
+
+  cancelReportConfirmation(): void {
+    this.showReportConfirmModal = false;
+  }
+
+  confirmReport(): void {
+    if (!this.selectedPostForReport || !this.reportReason.trim()) {
+      console.error('Cannot report: missing post or reason', {
+        post: this.selectedPostForReport,
+        reason: this.reportReason
+      });
+      return;
+    }
+
+    // Asegurarse de tener el currentUserId primero
+    let userId = this.currentUserId;
+    if (!userId) {
+      const currentUser = this.authService.currentUserValue;
+      userId = currentUser?.id ? Number(currentUser.id) : null;
+      
+      // Si aún no tenemos el userId, intentar obtenerlo del token
+      if (!userId) {
+        const token = this.authService.getAccessToken();
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userId = payload.sub || payload.id || null;
+          } catch (e) {
+            console.error('Error decoding token:', e);
+          }
+        }
+      }
+    }
+
+    if (!userId) {
+      console.error('Cannot report: user ID not available');
+      this.toastService.error('Error', 'No se pudo identificar tu usuario. Por favor, inicia sesión nuevamente.');
+      this.isReporting = false;
+      return;
+    }
+
+    // Validar que no es el dueño del post (comparación directa de IDs)
+    const postOwnerId = Number(this.selectedPostForReport?.user?.id);
+    const currentId = Number(userId);
+    
+    console.log('Validating report permissions:', {
+      postOwnerId,
+      currentId,
+      postId: this.selectedPostForReport?.id,
+      postTitle: this.selectedPostForReport?.title,
+      isPostOwner: this.isPostOwner(this.selectedPostForReport),
+      canReport: this.canReport(this.selectedPostForReport)
+    });
+
+    if (postOwnerId === currentId && !isNaN(postOwnerId) && !isNaN(currentId)) {
+      console.error('Cannot report: user is the owner of the post', {
+        postOwnerId,
+        currentId,
+        post: this.selectedPostForReport
+      });
+      this.toastService.warning('No permitido', 'No puedes reportar tu propia publicación.');
+      this.isReporting = false;
+      this.showReportConfirmModal = false;
+      return;
+    }
+
+    // Validar que el usuario puede reportar este post
+    if (!this.canReport(this.selectedPostForReport)) {
+      console.error('Cannot report: user cannot report this post', {
+        canReport: this.canReport(this.selectedPostForReport),
+        isPostOwner: this.isPostOwner(this.selectedPostForReport),
+        isPostReported: this.isPostReported(this.selectedPostForReport)
+      });
+      this.toastService.warning('No permitido', 'No puedes reportar esta publicación. Solo puedes reportar publicaciones de otros usuarios.');
+      this.isReporting = false;
+      this.showReportConfirmModal = false;
+      return;
+    }
+
+    this.isReporting = true;
+
+    // idUser debe ser el ID del usuario REPORTADO (dueño del post), NO el usuario que reporta
+    const reportedUserId = Number(this.selectedPostForReport?.user?.id);
+    
+    const payload = {
+      report: this.reportReason,
+      extraComments: this.reportExtraComments?.trim() || undefined,
+      postReport: this.buildPostReportSummary(this.selectedPostForReport),
+      postId: this.selectedPostForReport.id,
+      idUser: reportedUserId  // Usuario REPORTADO (dueño del post)
+    };
+
+    console.log('Sending report payload:', payload);
+    console.log('Current user ID (who reports):', userId);
+    console.log('Reported user ID (post owner):', reportedUserId);
+    console.log('Selected post:', this.selectedPostForReport);
+
+    this.reportService.createReport(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('Report created successfully:', response);
+          if (this.selectedPostForReport) {
+            this.reportedPostIds.add(this.selectedPostForReport.id);
+          }
+
+          this.toastService.success('Reporte enviado', 'Gracias por ayudarnos a mantener la comunidad segura.');
+          this.isReporting = false;
+          this.showReportConfirmModal = false;
+          this.showReportModal = false;
+          this.showReportSuccessModal = true;
+          this.selectedPostForReport = null;
+          this.reportReason = '';
+          this.reportExtraComments = '';
+        },
+        error: (err) => {
+          console.error('Error creating report:', err);
+          console.error('Error details:', {
+            status: err?.status,
+            statusText: err?.statusText,
+            error: err?.error,
+            message: err?.message,
+            url: err?.url
+          });
+          const message = err?.error?.message || err?.message || 'No se pudo enviar el reporte. Intenta nuevamente';
+          this.toastService.error('Error al reportar', message);
+          this.isReporting = false;
+          this.showReportConfirmModal = false;
+        }
+      });
+  }
+
+  closeReportSuccessModal(): void {
+    this.showReportSuccessModal = false;
+  }
+
+  private buildPostReportSummary(post: Post): string {
+    const author = post?.user?.username || 'Usuario desconocido';
+    return `POST #${post.id} - "${post.title}" de ${author}`;
   }
 
   handleCreatePost(): void {

@@ -28,21 +28,15 @@ export class AuthInterceptor implements HttpInterceptor {
     const authService = this.injector.get(AuthService);
     const token = authService.getAccessToken();
     const currentUser = authService.getCurrentUser();
-
-    // Validar que el token corresponde al usuario actual SOLO si ambos existen
-    // No validar si no hay usuario (puede estar restaurándose) o si no hay token
     if (token && currentUser) {
       const tokenPayload = this.decodeToken(token);
       if (tokenPayload) {
         const tokenUserId = tokenPayload.sub || tokenPayload.id || '';
         const currentUserId = currentUser.id || '';
         
-        // Solo validar si ambos IDs existen y son diferentes
-        // Si el token no tiene ID o el usuario no tiene ID, no validar (puede ser un token en proceso de actualización)
         if (tokenUserId && currentUserId && tokenUserId !== currentUserId) {
           console.error('🚨 CRÍTICO: El token corresponde a un usuario diferente. Token userId:', tokenUserId, 'Current userId:', currentUserId);
-          // NO limpiar automáticamente aquí - dejar que el backend rechace y maneje el 401
-          // Solo loguear el error para debugging
+
         }
       }
     }
@@ -53,18 +47,32 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(requestToSend).pipe(
         tap((event: HttpEvent<any>) => {
           if (event.type === 4) {
+            // Capturar nuevo token del header X-New-Token si el backend lo refrescó automáticamente
             this.captureNewToken(event);
           }
         }),
         catchError((error: HttpErrorResponse) => {
-          // Si es un error 401 (Unauthorized), intentar refrescar el token
-          if (error.status === 401 && !this.isAuthRequest(req.url)) {
-            return this.handle401Error(req, next, authService);
+          
+          if (error.status === 401) {
+            const newToken = error.headers?.get('X-New-Token') || error.headers?.get('x-new-token');
+            if (newToken) {
+              this.captureNewToken({ headers: error.headers });
+              const retryRequest = this.addTokenHeader(req, newToken);
+              return next.handle(retryRequest);
+            }
+            
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (refreshToken && !this.isAuthRequest(req.url)) {
+              return this.handle401Error(req, next, authService);
+            }
+            
+            return throwError(() => error);
           }
-          // Si es un error 429 (Too Many Requests), manejar rate limiting
+          
           if (error.status === 429) {
             return this.handle429Error(error);
           }
+          
           return throwError(() => error);
         })
       );
@@ -79,11 +87,8 @@ export class AuthInterceptor implements HttpInterceptor {
     authService: AuthService
   ): Observable<HttpEvent<any>> {
     const refreshToken = localStorage.getItem('refreshToken');
-    const currentUser = authService.getCurrentUser();
 
-    // Si no hay refreshToken o usuario, no intentar refrescar
-    if (!refreshToken || !currentUser) {
-      // No cerrar sesión automáticamente - dejar que el backend maneje
+    if (!refreshToken) {
       return throwError(() => new HttpErrorResponse({
         error: 'No hay refresh token disponible',
         status: 401,
@@ -91,7 +96,6 @@ export class AuthInterceptor implements HttpInterceptor {
       }));
     }
 
-    // Si ya hay un refresh en progreso, esperar a que termine
     if (this.isRefreshing && this.refreshTokenSubject) {
       return this.refreshTokenSubject.pipe(
         switchMap(() => {
@@ -102,7 +106,6 @@ export class AuthInterceptor implements HttpInterceptor {
       );
     }
 
-    // Iniciar el refresh
     this.isRefreshing = true;
     this.refreshTokenSubject = authService.refreshToken().pipe(
       switchMap((response) => {
@@ -115,7 +118,6 @@ export class AuthInterceptor implements HttpInterceptor {
           return throwError(() => new Error('No se pudo obtener el nuevo token después del refresh'));
         }
 
-        // Reintentar la petición original con el nuevo token
         const newRequest = this.addTokenHeader(request, newToken);
         return next.handle(newRequest);
       }),
@@ -123,13 +125,10 @@ export class AuthInterceptor implements HttpInterceptor {
         this.isRefreshing = false;
         this.refreshTokenSubject = null;
         
-        // Si el refresh token falla, mostrar modal de problema de sesión
         if (err.status === 401 || err.status === 403) {
           this.handleSessionProblem(err);
         }
         
-        // No cerrar sesión automáticamente - dejar que el componente maneje el error
-        // El backend puede retornar un refresh token en la próxima petición exitosa
         return throwError(() => err);
       })
     );
@@ -142,12 +141,9 @@ export class AuthInterceptor implements HttpInterceptor {
 
     const authServiceInstance = this.injector.get(AuthService);
     
-    // SOLO capturar tokens si ya hay un usuario autenticado
-    // Esto previene que se guarden tokens automáticamente sin que el usuario haya iniciado sesión
     const currentToken = authServiceInstance.getAccessToken();
     const currentUser = authServiceInstance.getCurrentUser();
     
-    // Si no hay token ni usuario actual, NO capturar tokens automáticamente
     if (!currentToken || !currentUser) {
       return;
     }
@@ -165,17 +161,13 @@ export class AuthInterceptor implements HttpInterceptor {
 
     if (!newToken && !newRefreshToken) return;
 
-    // Verificar que el nuevo token sea diferente al actual
     if (newToken && currentToken === newToken) return;
 
-    // CRÍTICO: Validar que el nuevo token corresponde al usuario actual
     if (newToken) {
       const currentTokenPayload = this.decodeToken(currentToken);
       const newTokenPayload = this.decodeToken(newToken);
       const currentUserId = currentTokenPayload?.sub || currentTokenPayload?.id || currentUser.id;
       const newUserId = newTokenPayload?.sub || newTokenPayload?.id;
-      
-      // Si el nuevo token es de un usuario diferente, NO capturar
       if (newUserId && currentUserId && newUserId !== currentUserId) {
         console.error('🚨 CRÍTICO: [AuthInterceptor] El nuevo token es de un usuario diferente. No se actualizará.');
         console.error('🚨 Usuario actual:', currentUserId, 'Usuario del nuevo token:', newUserId);
@@ -276,19 +268,13 @@ export class AuthInterceptor implements HttpInterceptor {
     });
   }
 
-  /**
-   * Maneja errores 429 (Too Many Requests / Rate Limiting)
-   */
   private handle429Error(error: HttpErrorResponse): Observable<never> {
-    // Extraer Retry-After del header si está presente
     const retryAfterHeader = error.headers?.get('Retry-After') || 
                             error.headers?.get('retry-after') ||
                             undefined;
     
-    // Bloquear peticiones según el tiempo indicado
     this.rateLimitService.setBlock(retryAfterHeader || undefined, 60);
     
-    // Mostrar notificación al usuario
     const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : 60;
     const minutes = Math.ceil(retryAfter / 60);
     
@@ -300,20 +286,15 @@ export class AuthInterceptor implements HttpInterceptor {
     return throwError(() => error);
   }
 
-  /**
-   * Maneja problemas de sesión cuando el refresh token falla
-   */
   private handleSessionProblem(error: HttpErrorResponse): void {
     const authService = this.injector.get(AuthService);
     const message = error.error?.message || error.message || 'Tu sesión ha expirado o no es válida.';
     
-    // Mostrar notificación
     this.toastService.error(
       'Problema de sesión',
       message + ' Por favor, inicia sesión nuevamente.'
     );
     
-    // Redirigir a login después de un breve delay
     setTimeout(() => {
       authService.logoutAndRedirect();
     }, 2000);
