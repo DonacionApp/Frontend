@@ -72,6 +72,31 @@ export class OrganizationRegisterComponent implements OnInit {
     return `${d}-${m}-${y}`;
   }
 
+  goToDonorRegister(): void {
+    try {
+      // Limpiar el formulario antes de navegar
+      if (this.orgForm) {
+        this.orgForm.reset();
+        this.orgForm.patchValue({
+          tipodDni: 1,
+          acceptTerms: false,
+          acceptPrivacyPolicy: false
+        });
+      }
+      // Limpiar mensajes y estados
+      this.message = null;
+      this.success = false;
+      this.isSubmitting = false;
+      this.step = 1;
+      this.states = [];
+      this.cities = [];
+      // Navegar
+      this.router.navigate(['/register/donor']);
+    } catch (err) {
+      console.warn('Navigation to donor register failed', err);
+    }
+  }
+
   ngOnInit(): void {
     this.loadCountries();
   }
