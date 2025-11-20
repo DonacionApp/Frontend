@@ -54,7 +54,7 @@ export class OrganizationRegisterComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]],
-      description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(20)]], // Descripción requerida (máx 20 chars para que el JSON no exceda 50)
+      description: ['', [Validators.required, Validators.minLength(10)]], // Descripción requerida
       countryIso: [''],
       stateIso: [''],
       cityName: [''],
@@ -325,17 +325,6 @@ export class OrganizationRegisterComponent implements OnInit {
       return;
     }
 
-    // Validar que la descripción, cuando se serialice a JSON, no exceda los 50 caracteres del campo lastName
-    const description = (this.orgForm.value.description || '').substring(0, 20); // Limitar a 20 caracteres
-    const jsonString = JSON.stringify({ description: description, networks: [] });
-    
-    if (jsonString.length > 50) {
-      this.message = 'La descripción es demasiado larga. Por favor, usa una descripción más corta (máximo 20 caracteres).';
-      this.success = false;
-      this.orgForm.get('description')?.markAsTouched();
-      return;
-    }
-
     const payload = {
       username: this.orgForm.value.organizationName,
       email: this.orgForm.value.email,
@@ -345,8 +334,8 @@ export class OrganizationRegisterComponent implements OnInit {
       profilePhoto: '',
       people: {
         name: this.orgForm.value.organizationName,
-        // Serializamos la descripción en lastName para enviarla al backend (máx 50 caracteres)
-        lastName: jsonString,
+        // Serializamos la descripción en lastName para enviarla al backend
+        lastName: JSON.stringify({ description: this.orgForm.value.description || '', networks: [] }),
         birdthDate: creationDate || '', // Fecha de creación/constitución de la organización
         tipodDni: tipod,
         dni: this.orgForm.value.dni || '',

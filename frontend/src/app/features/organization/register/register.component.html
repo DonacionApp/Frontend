@@ -143,19 +143,16 @@
 
 										<div>
 											<label class="block text-sm font-medium text-gray-700">Descripción de la Organización *</label>
-											<textarea 
-												formControlName="description" 
-												rows="3" 
-												maxlength="20"
-												placeholder="Describe la misión y actividades de la organización (máx. 20 caracteres)..." 
+											<textarea
+												formControlName="description"
+												rows="3"
+												placeholder="Describe la misión y actividades de la organización..."
 												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
 											></textarea>
 											<div *ngIf="orgForm.get('description')?.touched && orgForm.get('description')?.invalid" class="text-xs text-red-500 mt-1">
 												<span *ngIf="orgForm.get('description')?.hasError('required')">La descripción es obligatoria</span>
 												<span *ngIf="orgForm.get('description')?.hasError('minlength')">La descripción debe tener al menos 10 caracteres</span>
-												<span *ngIf="orgForm.get('description')?.hasError('maxlength')">La descripción no puede tener más de 20 caracteres</span>
 											</div>
-											<div class="text-xs text-gray-500 mt-1">{{ orgForm.get('description')?.value?.length || 0 }}/20 caracteres</div>
 										</div>
 
 										<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
