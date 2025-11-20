@@ -125,6 +125,37 @@ export interface CategoryDistribution {
 }
 
 /**
+ * Interface para estadísticas públicas globales del backend
+ * Respuesta del endpoint /statistics/public
+ * Nota: El backend devuelve los nombres en español
+ */
+export interface GlobalPublicStatsResponse {
+  totalDonations: number;
+  totalOrganizaciones: number;  // Backend usa español
+  totalUsers: number;
+  totalCities: number;
+  satisfaction: {
+    percentage: number;
+    averageRating: number;
+    totalReviews: number;
+  };
+  totalChats: number;
+  totalPostLikes: number;
+  totalArticles: number;
+  topDonor?: {
+    userId: number;
+    username: string;
+    totalDonations: number;
+  };
+  citiesData?: Array<{ 
+    name: string; 
+    lat?: number; 
+    lng?: number; 
+    count: number 
+  }>;
+}
+
+/**
  * Servicio para obtener estadísticas públicas de usuarios y organizaciones
  * Este servicio consume los endpoints del backend para mostrar información
  * pública de impacto y reputación sin necesidad de autenticación
@@ -715,8 +746,8 @@ export class PublicStatsService {
    * Obtener estadísticas globales de impacto de la plataforma con información de ciudades
    * Para el Landing Page "Nuestro Impacto"
    * 
-   * Usa el endpoint público /user/minimal/all/organizations para obtener
-   * datos reales sin necesidad de autenticación
+   * Intenta primero usar el endpoint dedicado /statistics/public del backend.
+   * Si no está disponible, usa el método tradicional como fallback.
    */
   getGlobalImpactStats(): Observable<{
     totalDonations: number;
@@ -725,35 +756,186 @@ export class PublicStatsService {
     satisfactionRate: number;
     citiesData?: Array<{ name: string; lat?: number; lng?: number; count: number }>;
   }> {
-    console.log('🔍 Consultando endpoint público:', `${this.apiUrl}/user/minimal/all/organizations`);
+    // Intentar primero el nuevo endpoint dedicado de estadísticas públicas
+    console.log('🔍 [getGlobalImpactStats] Intentando endpoint /statistics/public:', `${this.apiUrl}/statistics/public`);
+    
+    return this.http.get<GlobalPublicStatsResponse>(`${this.apiUrl}/statistics/public`).pipe(
+      map((response) => {
+        console.log('✅ [getGlobalImpactStats] Estadísticas recibidas del endpoint /statistics/public:', response);
+        
+        // Usar directamente los valores del endpoint /statistics/public
+        let citiesData = response?.citiesData || [];
+        let totalCities = response?.totalCities ?? 0;
+        
+        // Mapear la respuesta del backend (español) a la estructura esperada por el frontend
+        const stats = {
+          totalDonations: response?.totalDonations ?? 0,  // Usar el valor real del backend
+          totalOrganizations: response?.totalOrganizaciones ?? 0,  // Backend usa "totalOrganizaciones"
+          totalCities: citiesData.length > 0 ? citiesData.length : totalCities,  // Preferir citiesData si existe, sino usar totalCities del backend
+          satisfactionRate: response?.satisfaction?.percentage ?? 0,  // Backend usa "satisfaction.percentage"
+          citiesData: citiesData
+        };
+        
+        console.log('📊 [getGlobalImpactStats] Datos parseados del backend:', {
+          totalDonations: response?.totalDonations,
+          totalOrganizaciones: response?.totalOrganizaciones,
+          totalCities: response?.totalCities,
+          citiesDataCount: citiesData.length,
+          satisfactionPercentage: response?.satisfaction?.percentage,
+          totalUsers: response?.totalUsers,
+          totalChats: response?.totalChats,
+          totalPostLikes: response?.totalPostLikes,
+          totalArticles: response?.totalArticles,
+          topDonor: response?.topDonor
+        });
+        
+        console.log('✅ [getGlobalImpactStats] Estadísticas finales mapeadas a retornar:', stats);
+        return stats;
+      }),
+      catchError((error) => {
+        // Si el endpoint no existe (404/501) o hay otro error, usar método tradicional
+        console.warn('❌ [getGlobalImpactStats] Error al obtener estadísticas del endpoint /statistics/public:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        
+        // Verificar si es un error de conexión o el endpoint no existe
+        if (error.status === 0) {
+          console.error('🚨 [getGlobalImpactStats] Error de conexión con el backend. El servidor no está disponible.');
+          console.log('⚠️ [getGlobalImpactStats] Usando método tradicional como fallback');
+        } else if (error.status === 404 || error.status === 501) {
+          console.log('⚠️ [getGlobalImpactStats] Endpoint /statistics/public no disponible (404/501), usando método tradicional');
+        } else if (error.status >= 500) {
+          console.error('🚨 [getGlobalImpactStats] Error del servidor (5xx), usando método tradicional como fallback');
+        } else {
+          console.log('⚠️ [getGlobalImpactStats] Error inesperado, usando método tradicional como fallback');
+        }
+        
+        // Usar método tradicional que obtiene datos desde organizaciones
+        return this.getGlobalImpactStatsFromOrganizations();
+      })
+    );
+  }
+
+  /**
+   * Método tradicional para obtener estadísticas globales desde organizaciones
+   * Usado como fallback cuando el endpoint /statistics/public no está disponible
+   * 
+   * Usa el endpoint público /user/minimal/all/organizations para obtener
+   * datos reales sin necesidad de autenticación
+   */
+  private getGlobalImpactStatsFromOrganizations(): Observable<{
+    totalDonations: number;
+    totalOrganizations: number;
+    totalCities: number;
+    satisfactionRate: number;
+    citiesData?: Array<{ name: string; lat?: number; lng?: number; count: number }>;
+  }> {
+    const endpointUrl = `${this.apiUrl}/user/minimal/all/organizations?limit=1000`;
+    console.log('🔍 [getGlobalImpactStatsFromOrganizations] Consultando endpoint público (método tradicional):', endpointUrl);
     
     // Usar endpoint público de organizaciones
-    return this.http.get<any>(`${this.apiUrl}/user/minimal/all/organizations?limit=1000`).pipe(
+    return this.http.get<any>(endpointUrl).pipe(
       map((response: any) => {
-        // El endpoint puede devolver un array directo o un objeto con data
-        const organizations = Array.isArray(response) ? response : (response.data || response.organizations || []);
+        console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta completa del backend:', response);
+        console.log('📥 [getGlobalImpactStatsFromOrganizations] Tipo de respuesta:', Array.isArray(response) ? 'Array' : typeof response);
         
-        console.log('📥 Organizaciones recibidas del backend:', organizations.length);
+        // El endpoint puede devolver un array directo o un objeto con data
+        let organizations: any[] = [];
+        
+        if (Array.isArray(response)) {
+          organizations = response;
+          console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta es un array directo');
+        } else if (response && typeof response === 'object') {
+          organizations = response.data || response.organizations || response.results || [];
+          console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta es un objeto, buscando en:', {
+            hasData: !!response.data,
+            hasOrganizations: !!response.organizations,
+            hasResults: !!response.results,
+            keys: Object.keys(response)
+          });
+        }
+        
+        // Filtrar solo organizaciones (verificar rol)
+        const filteredOrgs = organizations.filter((org: any) => {
+          const rol = org.rol?.toLowerCase() || org.role?.toLowerCase() || '';
+          return rol.includes('organization') || rol.includes('organizacion');
+        });
+        
+        console.log('📥 [getGlobalImpactStatsFromOrganizations] Total de usuarios recibidos:', organizations.length);
+        console.log('📥 [getGlobalImpactStatsFromOrganizations] Organizaciones filtradas (con rol organization):', filteredOrgs.length);
+        
+        if (filteredOrgs.length === 0 && organizations.length > 0) {
+          console.warn('⚠️ [getGlobalImpactStatsFromOrganizations] Se recibieron usuarios pero ninguno tiene rol de organización');
+          console.log('📋 [getGlobalImpactStatsFromOrganizations] Primeros 3 roles encontrados:', 
+            organizations.slice(0, 3).map((org: any) => ({
+              id: org.id,
+              username: org.username,
+              rol: org.rol || org.role
+            }))
+          );
+        }
+        
+        // Usar las organizaciones filtradas
+        organizations = filteredOrgs;
+        
+        if (organizations.length === 0) {
+          console.warn('⚠️ [getGlobalImpactStatsFromOrganizations] No se encontraron organizaciones en la respuesta');
+          if (response && typeof response === 'object' && !Array.isArray(response)) {
+            console.log('📋 [getGlobalImpactStatsFromOrganizations] Estructura completa de la respuesta:', JSON.stringify(response, null, 2));
+          }
+        }
         
         // Extraer ciudades únicas con conteo y coordenadas
         const citiesMap = new Map<string, { count: number; lat?: number; lng?: number }>();
-        organizations.forEach((org: any) => {
+        let orgsWithoutCity = 0;
+        
+        organizations.forEach((org: any, index: number) => {
           const city = org.people?.city || 
                        org.city || 
                        org.people?.municipio?.city?.name ||
-                       org.municipio?.name;
-          if (city && typeof city === 'string') {
+                       org.municipio?.name ||
+                       org.people?.municipio?.name ||
+                       org.location?.city;
+          
+          if (city && typeof city === 'string' && city.trim() !== '') {
             const existing = citiesMap.get(city);
             if (existing) {
               existing.count++;
             } else {
               // Intentar obtener coordenadas si están disponibles
-              const lat = org.people?.municipio?.city?.latitude || org.municipio?.latitude;
-              const lng = org.people?.municipio?.city?.longitude || org.municipio?.longitude;
+              const lat = org.people?.municipio?.city?.latitude || 
+                         org.municipio?.latitude ||
+                         org.location?.lat ||
+                         org.locationJson?.lat;
+              const lng = org.people?.municipio?.city?.longitude || 
+                         org.municipio?.longitude ||
+                         org.location?.lng ||
+                         org.locationJson?.lng;
               citiesMap.set(city, { count: 1, lat, lng });
+            }
+          } else {
+            orgsWithoutCity++;
+            if (index < 3) { // Log solo las primeras 3 para no saturar
+              console.log(`⚠️ [getGlobalImpactStatsFromOrganizations] Org ${index} sin ciudad:`, {
+                id: org.id,
+                username: org.username,
+                estructura: {
+                  'org.people?.city': org.people?.city,
+                  'org.city': org.city,
+                  'org.people?.municipio?.city?.name': org.people?.municipio?.city?.name,
+                  'org.municipio?.name': org.municipio?.name
+                }
+              });
             }
           }
         });
+        
+        if (orgsWithoutCity > 0) {
+          console.log(`⚠️ [getGlobalImpactStatsFromOrganizations] ${orgsWithoutCity} organizaciones sin ciudad definida`);
+        }
         
         const citiesData = Array.from(citiesMap.entries()).map(([name, data]) => ({
           name,
@@ -762,15 +944,15 @@ export class PublicStatsService {
           lng: data.lng
         }));
         
-        console.log('🌆 Ciudades únicas encontradas:', citiesMap.size);
-        console.log('📍 Ciudades con datos:', citiesData);
+        console.log('🌆 [getGlobalImpactStatsFromOrganizations] Ciudades únicas encontradas:', citiesMap.size);
+        console.log('📍 [getGlobalImpactStatsFromOrganizations] Ciudades con datos:', citiesData);
 
-        // Calcular donaciones estimadas (promedio de 8 donaciones por organización)
-        const avgDonationsPerOrg = 8;
-        const totalDonationsEstimate = organizations.length > 0 
-          ? organizations.length * avgDonationsPerOrg 
-          : 0;
-        console.log('💝 Donaciones estimadas:', totalDonationsEstimate);
+        // NO estimar donaciones - esto debe venir del backend
+        // Si estamos usando el método fallback, no tenemos datos reales de donaciones
+        // Usar 0 o intentar obtener desde otro endpoint si es necesario
+        // Por ahora, dejamos en 0 para no mostrar datos incorrectos
+        const totalDonationsEstimate = 0;
+        console.log('💝 [getGlobalImpactStatsFromOrganizations] No se pueden calcular donaciones desde organizaciones. Usar endpoint /statistics/public para datos reales.');
 
         // Calcular satisfacción basada en organizaciones verificadas
         const verifiedOrgs = organizations.filter((org: any) => 
@@ -780,8 +962,8 @@ export class PublicStatsService {
           ? Math.round((verifiedOrgs / organizations.length) * 100) 
           : 95; // Valor por defecto si no hay datos
         
-        console.log('⭐ Organizaciones verificadas:', verifiedOrgs, 'de', organizations.length);
-        console.log('😊 Satisfacción calculada:', satisfactionRate + '%');
+        console.log('⭐ [getGlobalImpactStatsFromOrganizations] Organizaciones verificadas:', verifiedOrgs, 'de', organizations.length);
+        console.log('😊 [getGlobalImpactStatsFromOrganizations] Satisfacción calculada:', satisfactionRate + '%');
 
         const stats = {
           totalDonations: totalDonationsEstimate,
@@ -791,14 +973,23 @@ export class PublicStatsService {
           citiesData: citiesData
         };
         
-        console.log('✅ Estadísticas calculadas:', stats);
+        console.log('✅ [getGlobalImpactStatsFromOrganizations] Estadísticas finales calculadas:', stats);
         return stats;
       }),
       catchError((error) => {
         // Si falla la API, usar valores mínimos base presentables
-        console.warn('❌ Error al obtener estadísticas del backend:', error);
-        console.log('⚠️ Usando valores mínimos base (modo offline/fallback)');
-        console.log('📊 Estadísticas base:', FALLBACK_STATS);
+        console.warn('❌ [getGlobalImpactStatsFromOrganizations] Error al obtener estadísticas del backend:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message
+        });
+        
+        if (error.status === 0) {
+          console.error('🚨 [getGlobalImpactStatsFromOrganizations] Error de conexión. El servidor no está disponible.');
+        }
+        
+        console.log('⚠️ [getGlobalImpactStatsFromOrganizations] Usando valores mínimos base (modo offline/fallback)');
+        console.log('📊 [getGlobalImpactStatsFromOrganizations] Estadísticas base:', FALLBACK_STATS);
         
         return of(FALLBACK_STATS);
       })
