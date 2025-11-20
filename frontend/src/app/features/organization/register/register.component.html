@@ -401,7 +401,7 @@
         </button>
 
         <div class="action-right">
-          <a routerLink="/auth/login" class="link-text">Ya tengo cuenta</a>
+          <button type="button" (click)="goToLogin($event)" class="link-text cursor-pointer" style="background: none; border: none; padding: 0; text-decoration: underline;">Ya tengo cuenta</button>
           <button 
             type="button" 
             class="btn btn-primary" 

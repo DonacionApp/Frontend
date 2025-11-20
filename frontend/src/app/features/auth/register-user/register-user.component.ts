@@ -91,6 +91,25 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     }
   }
 
+  goToLogin(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    try {
+      // Intentar navegación con router primero
+      this.router.navigate(['/auth/login']).catch((err) => {
+        console.warn('Router navigation failed, using window.location:', err);
+        // Fallback a window.location si el router falla
+        window.location.href = '/auth/login';
+      });
+    } catch (err) {
+      console.error('Navigation error:', err);
+      // Fallback directo
+      window.location.href = '/auth/login';
+    }
+  }
+
   ngOnInit(): void {
     // Limpiar estados previos al inicializar
     this.successMessage = '';
