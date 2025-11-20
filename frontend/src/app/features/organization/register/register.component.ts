@@ -21,6 +21,7 @@ export class OrganizationRegisterComponent implements OnInit {
   countries: Array<any> = [];
   states: Array<any> = [];
   cities: Array<any> = [];
+  private countriesWithoutStates = new Set<string>();
 
   // Se removió el manejo de archivos; el registro enviará siempre JSON al backend
 
@@ -59,6 +60,8 @@ export class OrganizationRegisterComponent implements OnInit {
       acceptTerms: [false, [Validators.requiredTrue]],
       acceptPrivacyPolicy: [false, [Validators.requiredTrue]]
     });
+    this.orgForm.get('stateIso')?.disable();
+    this.orgForm.get('cityName')?.disable();
   }
 
   private formatDateToDdMmYyyy(dateStr: string | null | undefined): string {
@@ -68,6 +71,33 @@ export class OrganizationRegisterComponent implements OnInit {
     if (parts.length !== 3) return dateStr;
     const [y, m, d] = parts;
     return `${d}-${m}-${y}`;
+  }
+
+  goToDonorRegister(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    try {
+      if (this.orgForm) {
+        this.orgForm.reset();
+        this.orgForm.patchValue({
+          tipodDni: 1,
+          acceptTerms: false,
+          acceptPrivacyPolicy: false
+        });
+      }
+      this.message = null;
+      this.success = false;
+      this.isSubmitting = false;
+      this.step = 1;
+      this.states = [];
+      this.cities = [];
+      this.orgForm.get('stateIso')?.disable();
+      this.orgForm.get('cityName')?.disable();
+      this.router.navigate(['/register/donor']);
+    } catch (err) {
+      console.warn('Navigation to donor register failed', err);
+    }
   }
 
   ngOnInit(): void {
@@ -83,12 +113,41 @@ export class OrganizationRegisterComponent implements OnInit {
 
   onCountryChange(iso: string): void {
     this.orgForm.patchValue({ countryIso: iso, stateIso: '', cityName: '' });
-    if (iso) {
-      this.regService.getStates(iso).subscribe({ next: (s: any[]) => this.states = s || [], error: () => this.states = [] });
-    } else {
-      this.states = [];
-      this.cities = [];
+    this.states = [];
+    this.cities = [];
+
+    if (!iso) {
+      this.orgForm.get('stateIso')?.disable();
+      this.orgForm.get('cityName')?.disable();
+      return;
     }
+
+    if (this.countriesWithoutStates.has(iso)) {
+      this.orgForm.get('stateIso')?.disable();
+      this.orgForm.get('cityName')?.disable();
+      return;
+    }
+
+    this.regService.getStates(iso).subscribe({
+      next: (s: any[]) => {
+        this.states = s || [];
+        if (this.states.length > 0) {
+          this.orgForm.get('stateIso')?.enable();
+          this.orgForm.get('cityName')?.disable();
+        } else {
+          this.orgForm.get('stateIso')?.disable();
+          this.orgForm.get('cityName')?.disable();
+          this.countriesWithoutStates.add(iso);
+        }
+      },
+      error: () => {
+        this.states = [];
+        this.cities = [];
+        this.orgForm.get('stateIso')?.disable();
+        this.orgForm.get('cityName')?.disable();
+        this.countriesWithoutStates.add(iso);
+      }
+    });
   }
 
   onStateChange(isoState: string): void {
