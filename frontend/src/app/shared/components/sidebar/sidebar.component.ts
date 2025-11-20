@@ -66,7 +66,6 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   quickActions: QuickAction[] = [
     { icon: 'document', label: 'Publicaciones', color: 'text-blue-500' },
     { icon: 'heart', label: 'Mis donaciones', count: 12, color: 'text-red-500' },
-    { icon: 'gift', label: 'Donar Artículo', color: 'text-green-500' },
     { icon: 'users', label: 'Organizaciones', color: 'text-purple-500' },
     { icon: 'message', label: 'Mensajes', color: 'text-indigo-500' },
     { icon: 'bell', label: 'Notificaciones', count: 3, color: 'text-yellow-500' },
