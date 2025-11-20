@@ -7,6 +7,8 @@ import { RegistrationStateService } from '../../../core/services/registration-st
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
 import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
+
+
 @Component({
   selector: 'app-organization-register',
   standalone: true,
@@ -21,7 +23,6 @@ export class OrganizationRegisterComponent implements OnInit {
   countries: Array<any> = [];
   states: Array<any> = [];
   cities: Array<any> = [];
-  private countriesWithoutStates = new Set<string>();
 
   // Se removió el manejo de archivos; el registro enviará siempre JSON al backend
 
@@ -60,55 +61,18 @@ export class OrganizationRegisterComponent implements OnInit {
       acceptTerms: [false, [Validators.requiredTrue]],
       acceptPrivacyPolicy: [false, [Validators.requiredTrue]]
     });
-    this.orgForm.get('stateIso')?.disable();
-    this.orgForm.get('cityName')?.disable();
   }
 
   private formatDateToDdMmYyyy(dateStr: string | null | undefined): string {
-    if (!dateStr || dateStr.trim() === '') return '';
+    if (!dateStr) return '';
     // dateStr expected in 'YYYY-MM-DD' from <input type="date">; convert to 'DD-MM-YYYY'
     const parts = dateStr.split('-');
-    if (parts.length !== 3) return '';
+    if (parts.length !== 3) return dateStr;
     const [y, m, d] = parts;
-    // Validar que sean números válidos
-    if (isNaN(Number(y)) || isNaN(Number(m)) || isNaN(Number(d))) return '';
-    // Asegurar formato DD-MM-YYYY con ceros a la izquierda si es necesario
-    const day = d.padStart(2, '0');
-    const month = m.padStart(2, '0');
-    return `${day}-${month}-${y}`;
-  }
-
-  goToDonorRegister(event?: Event): void {
-    if (event) {
-      event.preventDefault();
-    }
-    try {
-      if (this.orgForm) {
-        this.orgForm.reset();
-        this.orgForm.patchValue({
-          tipodDni: 1,
-          acceptTerms: false,
-          acceptPrivacyPolicy: false
-        });
-      }
-      this.message = null;
-      this.success = false;
-      this.isSubmitting = false;
-      this.step = 1;
-      this.states = [];
-      this.cities = [];
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
-      this.router.navigate(['/register/donor']);
-    } catch (err) {
-      console.warn('Navigation to donor register failed', err);
-    }
+    return `${d}-${m}-${y}`;
   }
 
   ngOnInit(): void {
-    // Inicializar campos deshabilitados
-    this.orgForm.get('stateIso')?.disable();
-    this.orgForm.get('cityName')?.disable();
     this.loadCountries();
   }
 
@@ -121,64 +85,21 @@ export class OrganizationRegisterComponent implements OnInit {
 
   onCountryChange(iso: string): void {
     this.orgForm.patchValue({ countryIso: iso, stateIso: '', cityName: '' });
-    this.states = [];
-    this.cities = [];
-
-    if (!iso) {
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
-      return;
+    if (iso) {
+      this.regService.getStates(iso).subscribe({ next: (s: any[]) => this.states = s || [], error: () => this.states = [] });
+    } else {
+      this.states = [];
+      this.cities = [];
     }
-
-    if (this.countriesWithoutStates.has(iso)) {
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
-      return;
-    }
-
-    this.regService.getStates(iso).subscribe({
-      next: (s: any[]) => {
-        this.states = s || [];
-        if (this.states.length > 0) {
-          this.orgForm.get('stateIso')?.enable();
-          this.orgForm.get('cityName')?.disable();
-        } else {
-          this.orgForm.get('stateIso')?.disable();
-          this.orgForm.get('cityName')?.disable();
-          this.countriesWithoutStates.add(iso);
-        }
-      },
-      error: () => {
-        this.states = [];
-        this.cities = [];
-        this.orgForm.get('stateIso')?.disable();
-        this.orgForm.get('cityName')?.disable();
-        this.countriesWithoutStates.add(iso);
-      }
-    });
   }
 
   onStateChange(isoState: string): void {
     const isoCountry = this.orgForm.value.countryIso;
     this.orgForm.patchValue({ stateIso: isoState, cityName: '' });
     if (isoCountry && isoState) {
-      this.regService.getCities(isoCountry, isoState).subscribe({ 
-        next: (c: any[]) => {
-          this.cities = c || [];
-          if (this.cities.length > 0) {
-            this.orgForm.get('cityName')?.enable();
-          } else {
-            this.orgForm.get('cityName')?.disable();
-          }
-        }, 
-        error: () => {
-          this.cities = [];
-          this.orgForm.get('cityName')?.disable();
-        }
-      });
+      this.regService.getCities(isoCountry, isoState).subscribe({ next: (c: any[]) => this.cities = c || [], error: () => this.cities = [] });
     } else {
       this.cities = [];
-      this.orgForm.get('cityName')?.disable();
     }
   }
 
@@ -235,25 +156,9 @@ export class OrganizationRegisterComponent implements OnInit {
       return;
     }
 
-    // Validar fecha de creación/constitución
-    if (!this.orgForm.value.birdthDate) {
-      this.message = 'La fecha de creación es obligatoria';
-      this.success = false;
-      this.orgForm.get('birdthDate')?.markAsTouched();
-      return;
-    }
-
     // Coerce/format fields to match backend expectations
     const tipod = Number(this.orgForm.value.tipodDni) || 1;
     const birdth = this.formatDateToDdMmYyyy(this.orgForm.value.birdthDate);
-    
-    // Validar que el formato de fecha sea válido
-    if (!birdth || birdth === '') {
-      this.message = 'La fecha de creación no es válida. Por favor, selecciona una fecha válida.';
-      this.success = false;
-      this.orgForm.get('birdthDate')?.markAsTouched();
-      return;
-    }
 
     const payload = {
       username: this.orgForm.value.organizationName,
