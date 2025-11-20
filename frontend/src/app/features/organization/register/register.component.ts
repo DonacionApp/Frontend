@@ -101,6 +101,9 @@ export class OrganizationRegisterComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Inicializar campos deshabilitados
+    this.orgForm.get('stateIso')?.disable();
+    this.orgForm.get('cityName')?.disable();
     this.loadCountries();
   }
 
@@ -154,9 +157,23 @@ export class OrganizationRegisterComponent implements OnInit {
     const isoCountry = this.orgForm.value.countryIso;
     this.orgForm.patchValue({ stateIso: isoState, cityName: '' });
     if (isoCountry && isoState) {
-      this.regService.getCities(isoCountry, isoState).subscribe({ next: (c: any[]) => this.cities = c || [], error: () => this.cities = [] });
+      this.regService.getCities(isoCountry, isoState).subscribe({ 
+        next: (c: any[]) => {
+          this.cities = c || [];
+          if (this.cities.length > 0) {
+            this.orgForm.get('cityName')?.enable();
+          } else {
+            this.orgForm.get('cityName')?.disable();
+          }
+        }, 
+        error: () => {
+          this.cities = [];
+          this.orgForm.get('cityName')?.disable();
+        }
+      });
     } else {
       this.cities = [];
+      this.orgForm.get('cityName')?.disable();
     }
   }
 
