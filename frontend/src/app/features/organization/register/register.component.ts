@@ -7,15 +7,10 @@ import { RegistrationStateService } from '../../../core/services/registration-st
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
 import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
-import { RegistrationTypeSelectorComponent } from '../../../shared/components/registration-type-selector/registration-type-selector.component';
-import { ButtonComponent } from '../../../shared/components/button/button.component';
-import { FooterComponent } from '../../../shared/components/footer/footer.component';
-
-
 @Component({
   selector: 'app-organization-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, MatDialogModule, RegistrationTypeSelectorComponent, ButtonComponent, FooterComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, MatDialogModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
@@ -54,12 +49,12 @@ export class OrganizationRegisterComponent implements OnInit {
       countryIso: [''],
       stateIso: [''],
       cityName: [''],
-      address: ['', [Validators.required, Validators.maxLength(50)]],
-      phone: ['', [Validators.required, Validators.maxLength(20)]],
-      // Fecha de creación/constitución de la organización (el backend espera birdthDate)
+      address: ['', Validators.required],
+      phone: ['', Validators.required],
+      // Campos requeridos por el backend (dni ahora opcional)
       birdthDate: ['', Validators.required],
       tipodDni: [1, Validators.required],
-      dni: ['', Validators.maxLength(20)],
+      dni: [''],
       // Términos y Políticas
       acceptTerms: [false, [Validators.requiredTrue]],
       acceptPrivacyPolicy: [false, [Validators.requiredTrue]]
@@ -75,66 +70,7 @@ export class OrganizationRegisterComponent implements OnInit {
     return `${d}-${m}-${y}`;
   }
 
-  goToDonorRegister(): void {
-    try {
-      // Limpiar el formulario antes de navegar
-      if (this.orgForm) {
-        this.orgForm.reset();
-        // Restablecer valores por defecto
-        this.orgForm.patchValue({
-          tipodDni: 1,
-          acceptTerms: false,
-          acceptPrivacyPolicy: false
-        });
-      }
-      // Limpiar mensajes y estados
-      this.message = null;
-      this.success = false;
-      this.isSubmitting = false;
-      // Resetear paso del formulario
-      this.step = 1;
-      // Limpiar opciones de ubicación
-      this.states = [];
-      this.cities = [];
-      // Deshabilitar campos de ubicación
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
-      // Limpiar estado del servicio si está disponible
-      if (this.state) {
-        this.state.clearMessages();
-        this.state.resetForm();
-      }
-      // Navegar
-      this.router.navigate(['/register/donor']);
-    } catch (err) {
-      console.warn('Navigation to donor register failed', err);
-    }
-  }
-
   ngOnInit(): void {
-    // Limpiar estados previos al inicializar
-    this.message = null;
-    this.success = false;
-    this.isSubmitting = false;
-    this.step = 1;
-    this.states = [];
-    this.cities = [];
-    // Limpiar formulario si ya existe
-    if (this.orgForm) {
-      this.orgForm.reset();
-      this.orgForm.patchValue({
-        tipodDni: 1,
-        acceptTerms: false,
-        acceptPrivacyPolicy: false
-      });
-      // Deshabilitar campos de estado y ciudad inicialmente
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
-    }
-    // Limpiar estado del servicio si está disponible
-    if (this.state) {
-      this.state.clearMessages();
-    }
     this.loadCountries();
   }
 
@@ -148,29 +84,10 @@ export class OrganizationRegisterComponent implements OnInit {
   onCountryChange(iso: string): void {
     this.orgForm.patchValue({ countryIso: iso, stateIso: '', cityName: '' });
     if (iso) {
-      this.regService.getStates(iso).subscribe({ 
-        next: (s: any[]) => {
-          this.states = s || [];
-          // Habilitar campo de estado si hay estados disponibles
-          if (this.states.length > 0) {
-            this.orgForm.get('stateIso')?.enable();
-          } else {
-            this.orgForm.get('stateIso')?.disable();
-          }
-        }, 
-        error: () => {
-          this.states = [];
-          this.orgForm.get('stateIso')?.disable();
-        }
-      });
-      // Deshabilitar ciudad hasta que se seleccione un estado
-      this.orgForm.get('cityName')?.disable();
-      this.cities = [];
+      this.regService.getStates(iso).subscribe({ next: (s: any[]) => this.states = s || [], error: () => this.states = [] });
     } else {
       this.states = [];
       this.cities = [];
-      this.orgForm.get('stateIso')?.disable();
-      this.orgForm.get('cityName')?.disable();
     }
   }
 
@@ -178,24 +95,9 @@ export class OrganizationRegisterComponent implements OnInit {
     const isoCountry = this.orgForm.value.countryIso;
     this.orgForm.patchValue({ stateIso: isoState, cityName: '' });
     if (isoCountry && isoState) {
-      this.regService.getCities(isoCountry, isoState).subscribe({ 
-        next: (c: any[]) => {
-          this.cities = c || [];
-          // Habilitar campo de ciudad si hay ciudades disponibles
-          if (this.cities.length > 0) {
-            this.orgForm.get('cityName')?.enable();
-          } else {
-            this.orgForm.get('cityName')?.disable();
-          }
-        }, 
-        error: () => {
-          this.cities = [];
-          this.orgForm.get('cityName')?.disable();
-        }
-      });
+      this.regService.getCities(isoCountry, isoState).subscribe({ next: (c: any[]) => this.cities = c || [], error: () => this.cities = [] });
     } else {
       this.cities = [];
-      this.orgForm.get('cityName')?.disable();
     }
   }
 
@@ -203,16 +105,11 @@ export class OrganizationRegisterComponent implements OnInit {
 
   canProceed(): boolean {
     if (this.step === 1) {
-      const password = this.orgForm.get('password')?.value;
-      const confirmPassword = this.orgForm.get('confirmPassword')?.value;
-      const passwordsMatch = password === confirmPassword && password !== '';
-      
       return !!(this.orgForm.get('organizationName')?.valid && 
                 this.orgForm.get('email')?.valid && 
                 this.orgForm.get('password')?.valid && 
                 this.orgForm.get('confirmPassword')?.valid &&
-                this.orgForm.get('description')?.valid &&
-                passwordsMatch);
+                this.orgForm.get('description')?.valid); // Validar descripción
     }
     if (this.step === 2) {
       return !!(this.orgForm.get('countryIso')?.value && 
@@ -224,24 +121,7 @@ export class OrganizationRegisterComponent implements OnInit {
   }
 
   next(): void {
-    // Marcar todos los campos del paso actual como touched para mostrar errores
-    if (this.step === 1) {
-      this.orgForm.get('organizationName')?.markAsTouched();
-      this.orgForm.get('email')?.markAsTouched();
-      this.orgForm.get('password')?.markAsTouched();
-      this.orgForm.get('confirmPassword')?.markAsTouched();
-      this.orgForm.get('description')?.markAsTouched();
-    }
-    if (this.step === 2) {
-      this.orgForm.get('countryIso')?.markAsTouched();
-      this.orgForm.get('stateIso')?.markAsTouched();
-      this.orgForm.get('cityName')?.markAsTouched();
-      this.orgForm.get('address')?.markAsTouched();
-    }
-    
-    if (this.canProceed()) {
-      this.step++;
-    }
+    if (this.canProceed()) this.step++;
   }
 
   prev(): void {

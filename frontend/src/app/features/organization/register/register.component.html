@@ -1,384 +1,444 @@
-<main class="min-h-[70vh] bg-gray-50 py-12">
-	<div class="max-w-3xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md overflow-hidden">
-			<div class="p-8">
-				<h1 class="text-2xl font-bold text-center">Crear Cuenta</h1>
-				<p class="text-center text-gray-500 mt-2">Únete a nuestra comunidad de donantes y organizaciones</p>
-				
-				<!-- Selector de tipo de registro -->
-				<app-registration-type-selector [currentType]="'organization'"></app-registration-type-selector>
+<div class="registration-container">
+  <div class="registration-card">
+    <!-- Header -->
+    <div class="card-header">
+      <div class="logo-section">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">DonacionApp</span>
+      </div>
+      <h1 class="main-title">Crear Cuenta</h1>
+      <p class="subtitle">Únete a nuestra comunidad de donantes y organizaciones</p>
+    </div>
 
-				<!-- Indicador de pasos -->
-				<div class="mt-6 mb-6">
-					<div class="flex items-center justify-center">
-						<div class="flex items-center space-x-2">
-							<div class="flex items-center">
-								<div [class]="step >= 1 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'" 
-								     class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
-									<span *ngIf="step <= 1">1</span>
-									<svg *ngIf="step > 1" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-									</svg>
-								</div>
-								<span [class]="step >= 1 ? 'text-green-600 font-semibold' : 'text-gray-500'" class="ml-2 text-sm">Datos</span>
-							</div>
-							<div [class]="step >= 2 ? 'bg-green-500' : 'bg-gray-200'" class="h-1 w-12 mx-2 rounded"></div>
-							<div class="flex items-center">
-								<div [class]="step >= 2 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'" 
-								     class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
-									<span *ngIf="step <= 2">2</span>
-									<svg *ngIf="step > 2" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-									</svg>
-								</div>
-								<span [class]="step >= 2 ? 'text-green-600 font-semibold' : 'text-gray-500'" class="ml-2 text-sm">Ubicación</span>
-							</div>
-							<div [class]="step >= 3 ? 'bg-green-500' : 'bg-gray-200'" class="h-1 w-12 mx-2 rounded"></div>
-							<div class="flex items-center">
-								<div [class]="step >= 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'" 
-								     class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
-									<span>3</span>
-								</div>
-								<span [class]="step >= 3 ? 'text-green-600 font-semibold' : 'text-gray-500'" class="ml-2 text-sm">Contacto</span>
-							</div>
-						</div>
-					</div>
-				</div>
+    <!-- Steps Indicator -->
+    <div class="steps-container">
+      <div class="step-wrapper">
+        <div class="step-item" [class.active]="step >= 1" [class.completed]="step > 1">
+          <div class="step-circle">
+            <span *ngIf="step <= 1">1</span>
+            <svg *ngIf="step > 1" class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="step-label">Datos de la Organización</span>
+        </div>
+        <div class="step-divider" [class.active]="step >= 2"></div>
+        <div class="step-item" [class.active]="step >= 2" [class.completed]="step > 2">
+          <div class="step-circle">
+            <span *ngIf="step <= 2">2</span>
+            <svg *ngIf="step > 2" class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="step-label">Ubicación</span>
+        </div>
+        <div class="step-divider" [class.active]="step >= 3"></div>
+        <div class="step-item" [class.active]="step >= 3">
+          <div class="step-circle">
+            <span>3</span>
+          </div>
+          <span class="step-label">Contacto y Documentos</span>
+        </div>
+      </div>
+    </div>
 
-				<div class="mt-6 grid grid-cols-1 gap-6">
-					<!-- Card -->
-					<div class="border border-gray-200 rounded-lg p-6">
-						<div class="md:flex md:gap-6">
-							<!-- Left info box -->
-							<div class="md:w-1/3 bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm text-gray-600">
-								<p class="font-semibold text-gray-700 mb-2">Como Organización Podrás:</p>
-								<ul class="list-disc pl-5 space-y-1">
-									<li>Buscar donaciones disponibles</li>
-									<li>Publicar artículos específicos</li>
-									<li>Publicar necesidades de la organización</li>
-									<li>Comunicarte con donantes</li>
-								</ul>
-							</div>
+    <!-- Form Content -->
+    <form [formGroup]="orgForm" (ngSubmit)="onSubmit()" class="form-content">
+      <!-- Step 1: Datos de la Organización -->
+      <div class="form-section" *ngIf="step === 1">
+        <div class="info-box">
+          <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <div>
+            <p class="info-title">Como Organización Podrás:</p>
+            <ul class="info-list">
+              <li>Buscar donaciones disponibles</li>
+              <li>Publicar artículos específicos</li>
+              <li>Publicar necesidades de la organización</li>
+              <li>Comunicarte con donantes</li>
+            </ul>
+          </div>
+        </div>
 
-							<!-- Form area -->
-							<div class="md:flex-1 mt-4 md:mt-0">
-								<form [formGroup]="orgForm" (ngSubmit)="onSubmit()" class="space-y-4">
-									<!-- Step 1: Datos de la Organización -->
-									<div *ngIf="step === 1" class="space-y-4">
-										<div>
-											<label class="block text-sm font-medium text-gray-700">Nombre de la Organización *</label>
-											<input 
-												formControlName="organizationName" 
-												type="text" 
-												placeholder="Nombre oficial de la organización" 
-												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-											/>
-											<div *ngIf="orgForm.get('organizationName')?.touched && orgForm.get('organizationName')?.invalid" class="text-xs text-red-500 mt-1">El nombre es obligatorio (mínimo 3 caracteres)</div>
-										</div>
+        <div class="form-field">
+          <label class="field-label" for="organizationName">Nombre de la Organización *</label>
+          <input 
+            id="organizationName"
+            type="text" 
+            formControlName="organizationName" 
+            class="field-input"
+            placeholder="Nombre oficial de la organización"
+            [class.error]="orgForm.get('organizationName')?.touched && orgForm.get('organizationName')?.invalid"
+          />
+        </div>
 
-										<div>
-											<label class="block text-sm font-medium text-gray-700">Correo Electrónico *</label>
-											<input 
-												formControlName="email" 
-												type="email" 
-												placeholder="contacto@organizacion.org" 
-												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-											/>
-											<div *ngIf="orgForm.get('email')?.touched && orgForm.get('email')?.invalid" class="text-xs text-red-500 mt-1">Correo electrónico inválido</div>
-										</div>
+        <div class="form-field">
+          <label class="field-label" for="email">Correo Electrónico *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+            <input 
+              id="email"
+              type="email" 
+              formControlName="email" 
+              class="field-input with-icon"
+              placeholder="contacto@organizacion.org"
+              [class.error]="orgForm.get('email')?.touched && orgForm.get('email')?.invalid"
+            />
+          </div>
+        </div>
 
-										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Contraseña *</label>
-												<div class="relative">
-													<input 
-														formControlName="password" 
-														[type]="showPassword ? 'text' : 'password'" 
-														placeholder="Mínimo 8 caracteres" 
-														class="mt-1 block w-full rounded-md border border-gray-200 p-2 pr-10 text-sm bg-white" 
-													/>
-													<span 
-														(click)="togglePasswordVisibility()" 
-														class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700"
-														style="margin-top: 4px;"
-													>
-														<svg *ngIf="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-														</svg>
-														<svg *ngIf="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-														</svg>
-													</span>
-												</div>
-												<div *ngIf="orgForm.get('password')?.touched && orgForm.get('password')?.invalid" class="text-xs text-red-500 mt-1">La contraseña es requerida (mínimo 6 caracteres)</div>
-											</div>
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Confirmar Contraseña *</label>
-												<div class="relative">
-													<input 
-														formControlName="confirmPassword" 
-														[type]="showConfirmPassword ? 'text' : 'password'" 
-														placeholder="Confirma tu contraseña" 
-														class="mt-1 block w-full rounded-md border border-gray-200 p-2 pr-10 text-sm bg-white" 
-													/>
-													<span 
-														(click)="toggleConfirmPasswordVisibility()" 
-														class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700"
-														style="margin-top: 4px;"
-													>
-														<svg *ngIf="!showConfirmPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-														</svg>
-														<svg *ngIf="showConfirmPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-														</svg>
-													</span>
-												</div>
-												<div *ngIf="orgForm.get('confirmPassword')?.touched && orgForm.get('confirmPassword')?.invalid" class="text-xs text-red-500 mt-1">Confirma la contraseña</div>
-												<div *ngIf="orgForm.get('password')?.touched && orgForm.get('confirmPassword')?.touched && orgForm.get('password')?.value && orgForm.get('confirmPassword')?.value && orgForm.get('password')?.value !== orgForm.get('confirmPassword')?.value" class="text-xs text-red-500 mt-1">Las contraseñas no coinciden</div>
-											</div>
-										</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label" for="password">Contraseña *</label>
+            <div class="input-with-icon" style="position: relative;">
+              <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input 
+                id="password"
+                [type]="showPassword ? 'text' : 'password'" 
+                formControlName="password" 
+                class="field-input with-icon"
+                style="padding-right: 40px;"
+                placeholder="Mínimo 8 caracteres"
+                [class.error]="orgForm.get('password')?.touched && orgForm.get('password')?.invalid"
+              />
+              <span 
+                (click)="togglePasswordVisibility()" 
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700"
+                style="margin-top: 4px; right: 12px;"
+              >
+                <svg *ngIf="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg *ngIf="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                </svg>
+              </span>
+            </div>
+          </div>
 
-										<div>
-											<label class="block text-sm font-medium text-gray-700">Descripción de la Organización *</label>
-											<textarea
-												formControlName="description"
-												rows="3"
-												placeholder="Describe la misión y actividades de la organización..."
-												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-											></textarea>
-											<div *ngIf="orgForm.get('description')?.touched && orgForm.get('description')?.invalid" class="text-xs text-red-500 mt-1">
-												<span *ngIf="orgForm.get('description')?.hasError('required')">La descripción es obligatoria</span>
-												<span *ngIf="orgForm.get('description')?.hasError('minlength')">La descripción debe tener al menos 10 caracteres</span>
-											</div>
-										</div>
+          <div class="form-field">
+            <label class="field-label" for="confirmPassword">Confirmar Contraseña *</label>
+            <div class="input-with-icon" style="position: relative;">
+              <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+              </svg>
+              <input 
+                id="confirmPassword"
+                [type]="showConfirmPassword ? 'text' : 'password'" 
+                formControlName="confirmPassword" 
+                class="field-input with-icon"
+                style="padding-right: 40px;"
+                placeholder="Confirma tu contraseña"
+                [class.error]="orgForm.get('confirmPassword')?.touched && orgForm.get('confirmPassword')?.invalid"
+              />
+              <span 
+                (click)="toggleConfirmPasswordVisibility()" 
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700"
+                style="margin-top: 4px; right: 12px;"
+              >
+                <svg *ngIf="!showConfirmPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg *ngIf="showConfirmPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
 
-										<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Fecha de Creación *</label>
-												<input 
-													formControlName="birdthDate" 
-													type="date" 
-													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-												/>
-												<div *ngIf="orgForm.get('birdthDate')?.touched && orgForm.get('birdthDate')?.invalid" class="text-xs text-red-500 mt-1">La fecha de creación es obligatoria</div>
-												<div class="text-xs text-gray-500 mt-1">Fecha en la que se creó la organización</div>
-											</div>
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Tipo de Documento</label>
-												<select formControlName="tipodDni" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
-													<option [value]="1">NIT</option>
-													<option [value]="2">Cédula</option>
-													<option [value]="3">Pasaporte</option>
-												</select>
-											</div>
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Documento (opcional)</label>
-												<input 
-													formControlName="dni" 
-													type="text" 
-													maxlength="20"
-													placeholder="Número de identificación" 
-													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-												/>
-												<div *ngIf="orgForm.get('dni')?.touched && orgForm.get('dni')?.hasError('maxlength')" class="text-xs text-red-500 mt-1">El documento no puede tener más de 20 caracteres</div>
-											</div>
-										</div>
-									</div>
+        <div class="form-field">
+          <label class="field-label" for="description">Descripción de la Organización *</label>
+          <textarea 
+            id="description"
+            formControlName="description" 
+            rows="3" 
+            class="field-textarea"
+            placeholder="Describe la misión y actividades de la organización..."
+            [class.error]="orgForm.get('description')?.touched && orgForm.get('description')?.invalid"
+          ></textarea>
+        </div>
 
-									<!-- Step 2: Ubicación -->
-									<div *ngIf="step === 2" class="space-y-4">
-										<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-											<div>
-												<label class="block text-sm font-medium text-gray-700">País *</label>
-												<select 
-													formControlName="countryIso" 
-													(change)="onCountryChange($any($event.target).value)" 
-													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-												>
-													<option value="">Seleccione un país</option>
-													<option *ngFor="let c of countries" [value]="c.iso2">{{ c.name }}</option>
-												</select>
-											</div>
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Estado / Departamento *</label>
-												<select 
-													formControlName="stateIso" 
-													(change)="onStateChange($any($event.target).value)" 
-													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-												>
-													<option value="">Seleccione un estado</option>
-													<option *ngFor="let s of states" [value]="s.iso2">{{ s.name }}</option>
-												</select>
-											</div>
-											<div>
-												<label class="block text-sm font-medium text-gray-700">Ciudad *</label>
-												<select 
-													formControlName="cityName" 
-													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-												>
-													<option value="">Seleccione una ciudad</option>
-													<option *ngFor="let city of cities" [value]="city.name">{{ city.name }}</option>
-												</select>
-											</div>
-										</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label" for="birdthDate">Fecha de Constitución / Nacimiento</label>
+            <input 
+              id="birdthDate"
+              type="date" 
+              formControlName="birdthDate" 
+              class="field-input"
+            />
+          </div>
 
-										<div>
-											<label class="block text-sm font-medium text-gray-700">Dirección *</label>
-											<input 
-												formControlName="address" 
-												type="text" 
-												maxlength="50"
-												placeholder="Dirección completa de la organización (máx. 50 caracteres)" 
-												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-											/>
-											<div *ngIf="orgForm.get('address')?.touched && orgForm.get('address')?.hasError('required')" class="text-xs text-red-500 mt-1">La dirección es obligatoria</div>
-											<div *ngIf="orgForm.get('address')?.touched && orgForm.get('address')?.hasError('maxlength')" class="text-xs text-red-500 mt-1">La dirección no puede tener más de 50 caracteres</div>
-										</div>
-									</div>
+          <div class="form-field">
+            <label class="field-label" for="tipodDni">Tipo de Documento</label>
+            <select id="tipodDni" formControlName="tipodDni" class="field-select">
+              <option [value]="1">NIT</option>
+              <option [value]="2">Cédula</option>
+              <option [value]="3">Pasaporte</option>
+            </select>
+          </div>
+        </div>
 
-									<!-- Step 3: Contacto y Documentos -->
-									<div *ngIf="step === 3" class="space-y-4">
-										<div>
-											<label class="block text-sm font-medium text-gray-700">Teléfono de Contacto *</label>
-											<input 
-												formControlName="phone" 
-												type="tel" 
-												maxlength="20"
-												placeholder="Teléfono principal" 
-												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
-											/>
-											<div *ngIf="orgForm.get('phone')?.touched && orgForm.get('phone')?.hasError('required')" class="text-xs text-red-500 mt-1">El teléfono es obligatorio</div>
-											<div *ngIf="orgForm.get('phone')?.touched && orgForm.get('phone')?.hasError('maxlength')" class="text-xs text-red-500 mt-1">El teléfono no puede tener más de 20 caracteres</div>
-										</div>
+        <div class="form-field">
+          <label class="field-label" for="dni">Documento (DNI / NIT) (opcional)</label>
+          <input 
+            id="dni"
+            type="text" 
+            formControlName="dni" 
+            class="field-input"
+            placeholder="Número de identificación"
+          />
+        </div>
+      </div>
 
-										<!-- Info box de verificación -->
-										<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-											<div class="flex gap-2">
-												<svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-												</svg>
-												<div>
-													<p class="font-semibold text-yellow-800 text-sm mb-1">Proceso de Verificación:</p>
-													<p class="text-xs text-yellow-800">Tu organización será revisada por nuestro equipo antes de ser aprobada. Este proceso puede tomar de 1 a 3 días hábiles.</p>
-												</div>
-											</div>
-										</div>
+      <!-- Step 2: Ubicación -->
+      <div class="form-section" *ngIf="step === 2">
+        <div class="form-field">
+          <label class="field-label" for="countryIso">País *</label>
+          <select 
+            id="countryIso"
+            formControlName="countryIso" 
+            (change)="onCountryChange($any($event.target).value)" 
+            class="field-select"
+            [class.error]="orgForm.get('countryIso')?.touched && !orgForm.get('countryIso')?.value"
+          >
+            <option value="">Seleccione un país</option>
+            <option *ngFor="let c of countries" [value]="c.iso2">{{ c.name }}</option>
+          </select>
+        </div>
 
-										<!-- Términos y Condiciones y Políticas de Privacidad -->
-										<div class="space-y-3">
-											<!-- Términos y Condiciones -->
-											<div class="flex items-start">
-												<div class="flex items-center h-5">
-													<input
-														id="acceptTerms"
-														type="checkbox"
-														formControlName="acceptTerms"
-														class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
-												</div>
-												<div class="ml-3 text-sm">
-													<label for="acceptTerms" class="font-medium text-gray-700">
-														He leído y acepto los
-														<a
-															(click)="openTermsModal($event)"
-															class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold">
-															Términos y Condiciones
-														</a>
-													</label>
-													<p *ngIf="orgForm.get('acceptTerms')?.invalid && orgForm.get('acceptTerms')?.touched"
-														class="mt-1 text-sm text-red-600">
-														Debes aceptar los términos y condiciones
-													</p>
-												</div>
-											</div>
+        <div class="form-field">
+          <label class="field-label" for="stateIso">Estado / Departamento *</label>
+          <select 
+            id="stateIso"
+            formControlName="stateIso" 
+            (change)="onStateChange($any($event.target).value)" 
+            class="field-select"
+            [class.error]="orgForm.get('stateIso')?.touched && !orgForm.get('stateIso')?.value"
+            [disabled]="!states.length"
+          >
+            <option value="">Seleccione un estado</option>
+            <option *ngFor="let s of states" [value]="s.iso2">{{ s.name }}</option>
+          </select>
+        </div>
 
-											<!-- Políticas de Privacidad -->
-											<div class="flex items-start">
-												<div class="flex items-center h-5">
-													<input
-														id="acceptPrivacyPolicy"
-														type="checkbox"
-														formControlName="acceptPrivacyPolicy"
-														class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
-												</div>
-												<div class="ml-3 text-sm">
-													<label for="acceptPrivacyPolicy" class="font-medium text-gray-700">
-														He leído y acepto la
-														<a
-															(click)="openPrivacyPolicyModal($event)"
-															class="text-blue-600 hover:text-blue-800 underline cursor-pointer font-semibold">
-															Política de Privacidad
-														</a>
-													</label>
-													<p *ngIf="orgForm.get('acceptPrivacyPolicy')?.invalid && orgForm.get('acceptPrivacyPolicy')?.touched"
-														class="mt-1 text-sm text-red-600">
-														Debes aceptar la política de privacidad
-													</p>
-												</div>
-											</div>
-										</div>
-									</div>
+        <div class="form-field">
+          <label class="field-label" for="cityName">Ciudad *</label>
+          <select 
+            id="cityName"
+            formControlName="cityName" 
+            class="field-select"
+            [class.error]="orgForm.get('cityName')?.touched && !orgForm.get('cityName')?.value"
+            [disabled]="!cities.length"
+          >
+            <option value="">Seleccione una ciudad</option>
+            <option *ngFor="let city of cities" [value]="city.name">{{ city.name }}</option>
+          </select>
+        </div>
 
-									<!-- Success / Error / Loader messages -->
-									<div class="mt-2">
-										<div *ngIf="message && success" class="text-sm text-green-600">{{ message }}</div>
-										<div *ngIf="message && !success" class="text-sm text-red-600">{{ message }}</div>
-										<div *ngIf="isSubmitting" class="text-sm text-gray-600">Registrando...</div>
-									</div>
+        <div class="form-field">
+          <label class="field-label" for="address">Dirección *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+            </svg>
+            <input 
+              id="address"
+              type="text" 
+              formControlName="address" 
+              class="field-input with-icon"
+              placeholder="Dirección completa de la organización"
+              [class.error]="orgForm.get('address')?.touched && orgForm.get('address')?.invalid"
+            />
+          </div>
+        </div>
+      </div>
 
-									<!-- Link to donor registration -->
-									<div class="mt-4 text-center">
-										<a 
-											(click)="goToDonorRegister()" 
-											class="text-blue-600 hover:text-blue-800 underline cursor-pointer text-sm font-medium">
-											¿Eres un donante? Regístrate aquí
-										</a>
-									</div>
+      <!-- Step 3: Contacto y Documentos -->
+      <div class="form-section" *ngIf="step === 3">
+        <div class="form-field">
+          <label class="field-label" for="phone">Teléfono de Contacto *</label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+            </svg>
+            <input 
+              id="phone"
+              type="tel" 
+              formControlName="phone" 
+              class="field-input with-icon"
+              placeholder="Teléfono principal"
+              [class.error]="orgForm.get('phone')?.touched && orgForm.get('phone')?.invalid"
+            />
+          </div>
+        </div>
 
-									<!-- Buttons -->
-									<div class="flex gap-3 justify-between mt-4 items-center">
-										<app-button 
-											*ngIf="step > 1"
-											variant="secondary" 
-											size="md" 
-											type="button"
-											(btnClick)="prev()"
-											[disabled]="isSubmitting">
-											Anterior
-										</app-button>
-										<div *ngIf="step === 1" class="flex-1"></div>
-										
-										<div class="flex gap-3 items-center">
-											<app-button variant="ghost" size="md" type="button" routerLink="/auth/login">Ya tengo cuenta</app-button>
-											<app-button 
-												*ngIf="step < 3"
-												variant="primary" 
-												size="md" 
-												type="button"
-												(btnClick)="next()"
-												[disabled]="!canProceed() || isSubmitting">
-												Siguiente
-											</app-button>
-											<app-button 
-												*ngIf="step === 3"
-												variant="primary" 
-												size="md" 
-												type="submit"
-												[disabled]="orgForm.invalid || isSubmitting">
-												Registrar Organización
-											</app-button>
-										</div>
-									</div>
-								</form>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</main>
+        <!-- Documentos de soporte removidos por requerimiento - el registro seguirá enviando datos en JSON al backend -->
 
-<app-footer></app-footer>
+        <div class="info-box warning">
+          <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <div>
+            <p class="info-title">Proceso de Verificación:</p>
+            <p class="info-text">Tu organización será revisada por nuestro equipo antes de ser aprobada. Este proceso puede tomar de 1 a 3 días hábiles.</p>
+          </div>
+        </div>
+
+        <!-- Términos y Condiciones y Políticas de Privacidad -->
+        <div class="space-y-4 mt-6">
+          <!-- Términos y Condiciones -->
+          <div class="relative bg-gradient-to-r from-blue-50 to-blue-100/50 p-4 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+            <div class="flex items-start gap-3">
+              <div class="flex items-center h-5 mt-0.5">
+                <input
+                  id="acceptTerms"
+                  type="checkbox"
+                  formControlName="acceptTerms"
+                  class="h-5 w-5 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-2 border-blue-300 rounded cursor-pointer transition-all duration-200 hover:border-blue-500">
+              </div>
+              <div class="flex-1">
+                <label for="acceptTerms" class="flex items-start gap-2 cursor-pointer">
+                  <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-gray-800 leading-relaxed">
+                    He leído y acepto los
+                    <a
+                      (click)="openTermsModal($event)"
+                      class="text-blue-600 hover:text-blue-800 underline decoration-2 underline-offset-2 cursor-pointer font-bold inline-flex items-center gap-1 transition-colors">
+                      Términos y Condiciones
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </a>
+                  </span>
+                </label>
+                <p *ngIf="orgForm.get('acceptTerms')?.invalid && orgForm.get('acceptTerms')?.touched"
+                  class="mt-2 text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-md">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Debes aceptar los términos y condiciones para continuar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Políticas de Privacidad -->
+          <div class="relative bg-gradient-to-r from-orange-50 to-orange-100/50 p-4 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all duration-200 hover:shadow-md">
+            <div class="flex items-start gap-3">
+              <div class="flex items-center h-5 mt-0.5">
+                <input
+                  id="acceptPrivacyPolicy"
+                  type="checkbox"
+                  formControlName="acceptPrivacyPolicy"
+                  class="h-5 w-5 text-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 border-2 border-orange-300 rounded cursor-pointer transition-all duration-200 hover:border-orange-500">
+              </div>
+              <div class="flex-1">
+                <label for="acceptPrivacyPolicy" class="flex items-start gap-2 cursor-pointer">
+                  <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                  </svg>
+                  <span class="text-sm font-medium text-gray-800 leading-relaxed">
+                    He leído y acepto la
+                    <a
+                      (click)="openPrivacyPolicyModal($event)"
+                      class="text-orange-600 hover:text-orange-800 underline decoration-2 underline-offset-2 cursor-pointer font-bold inline-flex items-center gap-1 transition-colors">
+                      Política de Privacidad
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </a>
+                  </span>
+                </label>
+                <p *ngIf="orgForm.get('acceptPrivacyPolicy')?.invalid && orgForm.get('acceptPrivacyPolicy')?.touched"
+                  class="mt-2 text-xs text-red-600 flex items-center gap-1 bg-red-50 p-2 rounded-md">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Debes aceptar la política de privacidad para continuar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nota informativa -->
+          <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg mt-4">
+            <div class="flex gap-2">
+              <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-xs text-yellow-800">
+                Al registrarte, aceptas nuestros términos legales según la legislación colombiana (Ley 1581 de 2012).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          (click)="prev()" 
+          *ngIf="step > 1"
+          [disabled]="isSubmitting"
+        >
+          Anterior
+        </button>
+
+        <div class="action-right">
+          <a routerLink="/auth/login" class="link-text">Ya tengo cuenta</a>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="next()" 
+            *ngIf="step < 3"
+            [disabled]="!canProceed()"
+          >
+            Siguiente
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-submit" 
+            *ngIf="step === 3"
+            [disabled]="isSubmitting || !orgForm.valid"
+          >
+            <span *ngIf="!isSubmitting">Registrar Organización</span>
+            <span *ngIf="isSubmitting">
+              <svg class="spinner-icon" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Registrando...
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Message Display -->
+      <div *ngIf="message" class="message-box" [class.success]="success" [class.error]="!success">
+        <svg *ngIf="success" class="message-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <svg *ngIf="!success" class="message-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ message }}</span>
+      </div>
+    </form>
+  </div>
+</div>
