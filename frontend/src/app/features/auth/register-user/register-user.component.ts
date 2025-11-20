@@ -63,6 +63,29 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   goToOrganizationRegister(): void {
     try {
+      // Limpiar el formulario antes de navegar
+      if (this.registerForm) {
+        this.registerForm.reset();
+        // Restablecer valores por defecto
+        this.registerForm.patchValue({
+          acceptTerms: false,
+          acceptPrivacyPolicy: false
+        });
+        // Restablecer estados de campos deshabilitados
+        this.registerForm.get('people.municipio.state.iso2')?.disable();
+        this.registerForm.get('people.municipio.city.name')?.disable();
+      }
+      // Limpiar mensajes y estados
+      this.successMessage = '';
+      this.errorMessage = '';
+      this.loadingRegister = false;
+      this.lastPayload = null;
+      // Limpiar opciones de ubicación
+      this.statesOptions = [];
+      this.citiesOptions = [];
+      this.loadStates = false;
+      this.loadCities = false;
+      // Navegar
       this.router.navigate(['/register/organization']);
     } catch (err) {
       console.warn('Navigation to organization register failed', err);
@@ -70,6 +93,16 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Limpiar estados previos al inicializar
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.loadingRegister = false;
+    this.lastPayload = null;
+    this.statesOptions = [];
+    this.citiesOptions = [];
+    this.loadStates = false;
+    this.loadCities = false;
+    
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],

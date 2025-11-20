@@ -223,6 +223,15 @@
 										<div *ngIf="loadingRegister" class="text-sm text-gray-600">Cargando...</div>
 									</div>
 
+									<!-- Link to organization registration -->
+									<div class="mt-4 text-center">
+										<a 
+											(click)="goToOrganizationRegister()" 
+											class="text-blue-600 hover:text-blue-800 underline cursor-pointer text-sm font-medium">
+											¿Eres una organización? Regístrate aquí
+										</a>
+									</div>
+
 									<!-- Buttons -->
 									<div class="flex gap-3 justify-end mt-2 items-center">
 										<app-button variant="ghost" size="md" type="button">Ya tengo cuenta</app-button>

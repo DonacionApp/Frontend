@@ -146,20 +146,28 @@
 											<textarea 
 												formControlName="description" 
 												rows="3" 
-												placeholder="Describe la misión y actividades de la organización..." 
+												maxlength="20"
+												placeholder="Describe la misión y actividades de la organización (máx. 20 caracteres)..." 
 												class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
 											></textarea>
-											<div *ngIf="orgForm.get('description')?.touched && orgForm.get('description')?.invalid" class="text-xs text-red-500 mt-1">La descripción es obligatoria (mínimo 10 caracteres)</div>
+											<div *ngIf="orgForm.get('description')?.touched && orgForm.get('description')?.invalid" class="text-xs text-red-500 mt-1">
+												<span *ngIf="orgForm.get('description')?.hasError('required')">La descripción es obligatoria</span>
+												<span *ngIf="orgForm.get('description')?.hasError('minlength')">La descripción debe tener al menos 10 caracteres</span>
+												<span *ngIf="orgForm.get('description')?.hasError('maxlength')">La descripción no puede tener más de 20 caracteres</span>
+											</div>
+											<div class="text-xs text-gray-500 mt-1">{{ orgForm.get('description')?.value?.length || 0 }}/20 caracteres</div>
 										</div>
 
 										<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 											<div>
-												<label class="block text-sm font-medium text-gray-700">Fecha de Constitución</label>
+												<label class="block text-sm font-medium text-gray-700">Fecha de Creación *</label>
 												<input 
 													formControlName="birdthDate" 
 													type="date" 
 													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" 
 												/>
+												<div *ngIf="orgForm.get('birdthDate')?.touched && orgForm.get('birdthDate')?.invalid" class="text-xs text-red-500 mt-1">La fecha de creación es obligatoria</div>
+												<div class="text-xs text-gray-500 mt-1">Fecha en la que se creó la organización</div>
 											</div>
 											<div>
 												<label class="block text-sm font-medium text-gray-700">Tipo de Documento</label>
@@ -203,7 +211,6 @@
 													formControlName="stateIso" 
 													(change)="onStateChange($any($event.target).value)" 
 													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-													[disabled]="!states.length"
 												>
 													<option value="">Seleccione un estado</option>
 													<option *ngFor="let s of states" [value]="s.iso2">{{ s.name }}</option>
@@ -214,7 +221,6 @@
 												<select 
 													formControlName="cityName" 
 													class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white"
-													[disabled]="!cities.length"
 												>
 													<option value="">Seleccione una ciudad</option>
 													<option *ngFor="let city of cities" [value]="city.name">{{ city.name }}</option>
@@ -323,6 +329,15 @@
 										<div *ngIf="message && success" class="text-sm text-green-600">{{ message }}</div>
 										<div *ngIf="message && !success" class="text-sm text-red-600">{{ message }}</div>
 										<div *ngIf="isSubmitting" class="text-sm text-gray-600">Registrando...</div>
+									</div>
+
+									<!-- Link to donor registration -->
+									<div class="mt-4 text-center">
+										<a 
+											(click)="goToDonorRegister()" 
+											class="text-blue-600 hover:text-blue-800 underline cursor-pointer text-sm font-medium">
+											¿Eres un donante? Regístrate aquí
+										</a>
 									</div>
 
 									<!-- Buttons -->
