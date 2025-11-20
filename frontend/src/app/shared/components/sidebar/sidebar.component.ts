@@ -578,7 +578,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.user?.role === 'organization') {
       this.router.navigate(['/organization']);
     } else if (this.user?.role === 'donor') {
-      this.router.navigate(['/donor/profile']);
+      this.router.navigate(['/organization']);
     } else {
       this.router.navigate(['/post']);
     }
@@ -590,13 +590,11 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onOrganizationsClick(): void {
-    // Funcionalidad próximamente
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/organization/list']);
   }
 
   onMessagesClick(): void {
-    // Funcionalidad próximamente
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/chat']);
   }
 
   onNotificationsClick(): void {
@@ -604,8 +602,7 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStatisticsClick(): void {
-    // Funcionalidad próximamente
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
+    this.router.navigate(['/dashboard/estadisticas']);
   }
 
   onProfileClick(): void {
