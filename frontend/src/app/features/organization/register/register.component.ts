@@ -72,6 +72,50 @@ export class OrganizationRegisterComponent implements OnInit {
     return `${d}-${m}-${y}`;
   }
 
+  goToDonorRegister(): void {
+    try {
+      // Limpiar el formulario antes de navegar
+      if (this.orgForm) {
+        this.orgForm.reset();
+        this.orgForm.patchValue({
+          tipodDni: 1,
+          acceptTerms: false,
+          acceptPrivacyPolicy: false
+        });
+      }
+      // Limpiar mensajes y estados
+      this.message = null;
+      this.success = false;
+      this.isSubmitting = false;
+      this.step = 1;
+      this.states = [];
+      this.cities = [];
+      // Navegar
+      this.router.navigate(['/register/donor']);
+    } catch (err) {
+      console.warn('Navigation to donor register failed', err);
+    }
+  }
+
+  goToLogin(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    try {
+      // Intentar navegación con router primero
+      this.router.navigate(['/auth/login']).catch((err) => {
+        console.warn('Router navigation failed, using window.location:', err);
+        // Fallback a window.location si el router falla
+        window.location.href = '/auth/login';
+      });
+    } catch (err) {
+      console.error('Navigation error:', err);
+      // Fallback directo
+      window.location.href = '/auth/login';
+    }
+  }
+
   ngOnInit(): void {
     this.loadCountries();
   }

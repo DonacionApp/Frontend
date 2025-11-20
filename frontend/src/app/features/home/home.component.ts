@@ -26,7 +26,7 @@ export class HomeComponent {
   }
 
   onDonorRegisterClick(): void {
-    this.router.navigate(['/donor/register']);
+    this.router.navigate(['/register/donor']);
   }
 
   onOrganizationRegisterClick(): void {
