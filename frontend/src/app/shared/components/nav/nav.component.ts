@@ -230,11 +230,6 @@ export class NavComponent implements OnInit, OnDestroy {
     }
   }
 
-  onDonateClick(): void {
-    this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
-  }
-
   onOrganizationsClick(): void {
     this.closeMobileMenu();
     this.router.navigate(['/organization/list']);
