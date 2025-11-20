@@ -65,12 +65,17 @@ export class OrganizationRegisterComponent implements OnInit {
   }
 
   private formatDateToDdMmYyyy(dateStr: string | null | undefined): string {
-    if (!dateStr) return '';
+    if (!dateStr || dateStr.trim() === '') return '';
     // dateStr expected in 'YYYY-MM-DD' from <input type="date">; convert to 'DD-MM-YYYY'
     const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
+    if (parts.length !== 3) return '';
     const [y, m, d] = parts;
-    return `${d}-${m}-${y}`;
+    // Validar que sean números válidos
+    if (isNaN(Number(y)) || isNaN(Number(m)) || isNaN(Number(d))) return '';
+    // Asegurar formato DD-MM-YYYY con ceros a la izquierda si es necesario
+    const day = d.padStart(2, '0');
+    const month = m.padStart(2, '0');
+    return `${day}-${month}-${y}`;
   }
 
   goToDonorRegister(event?: Event): void {
@@ -230,9 +235,25 @@ export class OrganizationRegisterComponent implements OnInit {
       return;
     }
 
+    // Validar fecha de creación/constitución
+    if (!this.orgForm.value.birdthDate) {
+      this.message = 'La fecha de creación es obligatoria';
+      this.success = false;
+      this.orgForm.get('birdthDate')?.markAsTouched();
+      return;
+    }
+
     // Coerce/format fields to match backend expectations
     const tipod = Number(this.orgForm.value.tipodDni) || 1;
     const birdth = this.formatDateToDdMmYyyy(this.orgForm.value.birdthDate);
+    
+    // Validar que el formato de fecha sea válido
+    if (!birdth || birdth === '') {
+      this.message = 'La fecha de creación no es válida. Por favor, selecciona una fecha válida.';
+      this.success = false;
+      this.orgForm.get('birdthDate')?.markAsTouched();
+      return;
+    }
 
     const payload = {
       username: this.orgForm.value.organizationName,
