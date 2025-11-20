@@ -7,12 +7,15 @@ import { RegistrationStateService } from '../../../core/services/registration-st
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TermsModalComponent } from '../../../shared/components/terms-modal/terms-modal.component';
 import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-policy-modal/privacy-policy-modal.component';
+import { RegistrationTypeSelectorComponent } from '../../../shared/components/registration-type-selector/registration-type-selector.component';
+import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { FooterComponent } from '../../../shared/components/footer/footer.component';
 
 
 @Component({
   selector: 'app-organization-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, MatDialogModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, MatDialogModule, RegistrationTypeSelectorComponent, ButtonComponent, FooterComponent],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
@@ -51,12 +54,12 @@ export class OrganizationRegisterComponent implements OnInit {
       countryIso: [''],
       stateIso: [''],
       cityName: [''],
-      address: ['', Validators.required],
-      phone: ['', Validators.required],
+      address: ['', [Validators.required, Validators.maxLength(50)]],
+      phone: ['', [Validators.required, Validators.maxLength(20)]],
       // Campos requeridos por el backend (dni ahora opcional)
       birdthDate: ['', Validators.required],
       tipodDni: [1, Validators.required],
-      dni: [''],
+      dni: ['', Validators.maxLength(20)],
       // Términos y Políticas
       acceptTerms: [false, [Validators.requiredTrue]],
       acceptPrivacyPolicy: [false, [Validators.requiredTrue]]
@@ -107,11 +110,17 @@ export class OrganizationRegisterComponent implements OnInit {
 
   canProceed(): boolean {
     if (this.step === 1) {
+      const password = this.orgForm.get('password')?.value;
+      const confirmPassword = this.orgForm.get('confirmPassword')?.value;
+      const passwordsMatch = password === confirmPassword && password !== '';
+      
       return !!(this.orgForm.get('organizationName')?.valid && 
                 this.orgForm.get('email')?.valid && 
                 this.orgForm.get('password')?.valid && 
                 this.orgForm.get('confirmPassword')?.valid &&
-                this.orgForm.get('description')?.valid); // Validar descripción
+                this.orgForm.get('description')?.valid &&
+                this.orgForm.get('birdthDate')?.valid &&
+                passwordsMatch);
     }
     if (this.step === 2) {
       return !!(this.orgForm.get('countryIso')?.value && 
@@ -123,7 +132,25 @@ export class OrganizationRegisterComponent implements OnInit {
   }
 
   next(): void {
-    if (this.canProceed()) this.step++;
+    // Marcar todos los campos del paso actual como touched para mostrar errores
+    if (this.step === 1) {
+      this.orgForm.get('organizationName')?.markAsTouched();
+      this.orgForm.get('email')?.markAsTouched();
+      this.orgForm.get('password')?.markAsTouched();
+      this.orgForm.get('confirmPassword')?.markAsTouched();
+      this.orgForm.get('description')?.markAsTouched();
+      this.orgForm.get('birdthDate')?.markAsTouched();
+    }
+    if (this.step === 2) {
+      this.orgForm.get('countryIso')?.markAsTouched();
+      this.orgForm.get('stateIso')?.markAsTouched();
+      this.orgForm.get('cityName')?.markAsTouched();
+      this.orgForm.get('address')?.markAsTouched();
+    }
+    
+    if (this.canProceed()) {
+      this.step++;
+    }
   }
 
   prev(): void {

@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { CountriesService } from '../../../core/services/countries.service';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { RegistrationTypeSelectorComponent } from '../../../shared/components/registration-type-selector/registration-type-selector.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, throwError, finalize } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
@@ -18,7 +19,7 @@ import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-
 @Component({
   selector: 'app-register-user',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent, MatDialogModule],
+  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent, MatDialogModule, RegistrationTypeSelectorComponent],
   templateUrl: './register-user.component.html',
   styleUrls: ['./register-user.component.scss']
 })
@@ -62,7 +63,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   goToOrganizationRegister(): void {
     try {
-      this.router.navigate(['/organization/register']);
+      this.router.navigate(['/register/organization']);
     } catch (err) {
       console.warn('Navigation to organization register failed', err);
     }
@@ -241,11 +242,38 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         this.registerForm.get(['people', 'municipio', 'state', 'display'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue('');
-        this.registerForm.get('people.municipio.state.iso2')?.enable();
+        
+        // If country has states, enable and require state field
+        if (this.statesOptions.length > 0) {
+          this.registerForm.get('people.municipio.state.iso2')?.enable();
+          this.registerForm.get('people.municipio.state.iso2')?.setValidators([Validators.required]);
+        } else {
+          // If country has no states, disable and clear validators
+          this.registerForm.get('people.municipio.state.iso2')?.disable();
+          this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+          this.registerForm.get('people.municipio.state.iso2')?.setValue('');
+          // Also handle city field - make it optional when no states
+          this.registerForm.get('people.municipio.city.name')?.disable();
+          this.registerForm.get('people.municipio.city.name')?.clearValidators();
+          this.registerForm.get('people.municipio.city.name')?.setValue('');
+          this.registerForm.get('people.municipio.city.name')?.updateValueAndValidity();
+        }
+        this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
         this.loadStates = false;
       },
-      error: () => {
+      error: (err) => {
+        // Silently handle countries without states (e.g., CX, CC)
         this.statesOptions = [];
+        this.registerForm.get('people.municipio.state.iso2')?.disable();
+        this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+        this.registerForm.get('people.municipio.state.iso2')?.setValue('');
+        this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
+        // Also handle city field - make it optional when no states
+        this.registerForm.get('people.municipio.city.name')?.disable();
+        this.registerForm.get('people.municipio.city.name')?.clearValidators();
+        this.registerForm.get('people.municipio.city.name')?.setValue('');
+        this.registerForm.get('people.municipio.city.name')?.updateValueAndValidity();
+        this.citiesOptions = [];
         this.loadStates = false;
       }
     });
@@ -256,6 +284,8 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!iso2) {
       this.registerForm.get('people.municipio.city.name')?.disable();
       this.registerForm.get('people.municipio.state.iso2')?.disable();
+      this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+      this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
       this.statesOptions = [];
       this.citiesOptions = [];
       this.loadStates = false;

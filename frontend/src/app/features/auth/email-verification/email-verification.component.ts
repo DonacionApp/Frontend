@@ -242,7 +242,7 @@ export class EmailVerificationComponent implements OnInit {
       if (!this.userEmail) {
         this.message = 'Error: No se encontró el correo electrónico';
         this.messageType = 'error';
-        setTimeout(() => this.router.navigate(['/donor/register']), 3000);
+        setTimeout(() => this.router.navigate(['/register/donor']), 3000);
         return;
       }
 
@@ -290,7 +290,7 @@ export class EmailVerificationComponent implements OnInit {
 
         // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
-          this.router.navigate(['/donor/register'], {
+          this.router.navigate(['/register/donor'], {
             queryParams: {
               verified: 'true',
               email: this.userEmail,
@@ -335,7 +335,7 @@ export class EmailVerificationComponent implements OnInit {
 
         // Redirigir de vuelta a la página de registro con estado verificado
         setTimeout(() => {
-          this.router.navigate(['/donor/register'], {
+          this.router.navigate(['/register/donor'], {
             queryParams: {
               verified: 'true',
               email: this.userEmail,

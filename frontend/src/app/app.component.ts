@@ -190,7 +190,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onRegisterClick(): void {
-    this.router.navigate(['/donor/register']);
+    this.router.navigate(['/register/donor']);
   }
 
   onOrganizationRegisterClick(): void {
