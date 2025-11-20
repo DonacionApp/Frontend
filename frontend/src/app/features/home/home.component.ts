@@ -42,7 +42,6 @@ export class HomeComponent implements OnInit {
     this.publicStatsService.getGlobalImpactStats().subscribe({
       next: (stats) => {
         // El servicio siempre devuelve datos (reales o fallback)
-        console.log('📊 Estadísticas recibidas:', stats);
         this.impactStats = {
           totalDonations: stats.totalDonations,
           totalOrganizations: stats.totalOrganizations,
@@ -53,8 +52,6 @@ export class HomeComponent implements OnInit {
       },
       error: (error) => {
         // Este bloque solo se ejecuta si hay un error catastrófico
-        console.error('❌ Error crítico al cargar estadísticas:', error);
-        console.log('⚠️ Manteniendo valores mínimos base iniciales');
         this.isLoadingStats = false;
         // Mantiene los valores mínimos base definidos en impactStats
       }

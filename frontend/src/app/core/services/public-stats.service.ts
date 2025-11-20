@@ -216,8 +216,7 @@ export class PublicStatsService {
         if (error.status === 404 || error.status === 501) {
           return of(null);
         }
-        // Solo loguear errores inesperados
-        console.error('Error inesperado al obtener estadísticas:', error);
+        // Solo retornar error sin loguear
         return throwError(() => error);
       })
     );
@@ -731,7 +730,6 @@ export class PublicStatsService {
         verified: stats.verified
       })),
       catchError(error => {
-        console.error('Error al obtener estadísticas básicas:', error);
         return of({
           totalDonations: 0,
           donationsThisMonth: 0,
@@ -757,12 +755,8 @@ export class PublicStatsService {
     citiesData?: Array<{ name: string; lat?: number; lng?: number; count: number }>;
   }> {
     // Intentar primero el nuevo endpoint dedicado de estadísticas públicas
-    console.log('🔍 [getGlobalImpactStats] Intentando endpoint /statistics/public:', `${this.apiUrl}/statistics/public`);
-    
     return this.http.get<GlobalPublicStatsResponse>(`${this.apiUrl}/statistics/public`).pipe(
       map((response) => {
-        console.log('✅ [getGlobalImpactStats] Estadísticas recibidas del endpoint /statistics/public:', response);
-        
         // Usar directamente los valores del endpoint /statistics/public
         let citiesData = response?.citiesData || [];
         let totalCities = response?.totalCities ?? 0;
@@ -776,43 +770,10 @@ export class PublicStatsService {
           citiesData: citiesData
         };
         
-        console.log('📊 [getGlobalImpactStats] Datos parseados del backend:', {
-          totalDonations: response?.totalDonations,
-          totalOrganizaciones: response?.totalOrganizaciones,
-          totalCities: response?.totalCities,
-          citiesDataCount: citiesData.length,
-          satisfactionPercentage: response?.satisfaction?.percentage,
-          totalUsers: response?.totalUsers,
-          totalChats: response?.totalChats,
-          totalPostLikes: response?.totalPostLikes,
-          totalArticles: response?.totalArticles,
-          topDonor: response?.topDonor
-        });
-        
-        console.log('✅ [getGlobalImpactStats] Estadísticas finales mapeadas a retornar:', stats);
         return stats;
       }),
       catchError((error) => {
         // Si el endpoint no existe (404/501) o hay otro error, usar método tradicional
-        console.warn('❌ [getGlobalImpactStats] Error al obtener estadísticas del endpoint /statistics/public:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          error: error.error
-        });
-        
-        // Verificar si es un error de conexión o el endpoint no existe
-        if (error.status === 0) {
-          console.error('🚨 [getGlobalImpactStats] Error de conexión con el backend. El servidor no está disponible.');
-          console.log('⚠️ [getGlobalImpactStats] Usando método tradicional como fallback');
-        } else if (error.status === 404 || error.status === 501) {
-          console.log('⚠️ [getGlobalImpactStats] Endpoint /statistics/public no disponible (404/501), usando método tradicional');
-        } else if (error.status >= 500) {
-          console.error('🚨 [getGlobalImpactStats] Error del servidor (5xx), usando método tradicional como fallback');
-        } else {
-          console.log('⚠️ [getGlobalImpactStats] Error inesperado, usando método tradicional como fallback');
-        }
-        
         // Usar método tradicional que obtiene datos desde organizaciones
         return this.getGlobalImpactStatsFromOrganizations();
       })
@@ -834,28 +795,17 @@ export class PublicStatsService {
     citiesData?: Array<{ name: string; lat?: number; lng?: number; count: number }>;
   }> {
     const endpointUrl = `${this.apiUrl}/user/minimal/all/organizations?limit=1000`;
-    console.log('🔍 [getGlobalImpactStatsFromOrganizations] Consultando endpoint público (método tradicional):', endpointUrl);
     
     // Usar endpoint público de organizaciones
     return this.http.get<any>(endpointUrl).pipe(
       map((response: any) => {
-        console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta completa del backend:', response);
-        console.log('📥 [getGlobalImpactStatsFromOrganizations] Tipo de respuesta:', Array.isArray(response) ? 'Array' : typeof response);
-        
         // El endpoint puede devolver un array directo o un objeto con data
         let organizations: any[] = [];
         
         if (Array.isArray(response)) {
           organizations = response;
-          console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta es un array directo');
         } else if (response && typeof response === 'object') {
           organizations = response.data || response.organizations || response.results || [];
-          console.log('📥 [getGlobalImpactStatsFromOrganizations] Respuesta es un objeto, buscando en:', {
-            hasData: !!response.data,
-            hasOrganizations: !!response.organizations,
-            hasResults: !!response.results,
-            keys: Object.keys(response)
-          });
         }
         
         // Filtrar solo organizaciones (verificar rol)
@@ -864,29 +814,8 @@ export class PublicStatsService {
           return rol.includes('organization') || rol.includes('organizacion');
         });
         
-        console.log('📥 [getGlobalImpactStatsFromOrganizations] Total de usuarios recibidos:', organizations.length);
-        console.log('📥 [getGlobalImpactStatsFromOrganizations] Organizaciones filtradas (con rol organization):', filteredOrgs.length);
-        
-        if (filteredOrgs.length === 0 && organizations.length > 0) {
-          console.warn('⚠️ [getGlobalImpactStatsFromOrganizations] Se recibieron usuarios pero ninguno tiene rol de organización');
-          console.log('📋 [getGlobalImpactStatsFromOrganizations] Primeros 3 roles encontrados:', 
-            organizations.slice(0, 3).map((org: any) => ({
-              id: org.id,
-              username: org.username,
-              rol: org.rol || org.role
-            }))
-          );
-        }
-        
         // Usar las organizaciones filtradas
         organizations = filteredOrgs;
-        
-        if (organizations.length === 0) {
-          console.warn('⚠️ [getGlobalImpactStatsFromOrganizations] No se encontraron organizaciones en la respuesta');
-          if (response && typeof response === 'object' && !Array.isArray(response)) {
-            console.log('📋 [getGlobalImpactStatsFromOrganizations] Estructura completa de la respuesta:', JSON.stringify(response, null, 2));
-          }
-        }
         
         // Extraer ciudades únicas con conteo y coordenadas
         const citiesMap = new Map<string, { count: number; lat?: number; lng?: number }>();
@@ -918,24 +847,8 @@ export class PublicStatsService {
             }
           } else {
             orgsWithoutCity++;
-            if (index < 3) { // Log solo las primeras 3 para no saturar
-              console.log(`⚠️ [getGlobalImpactStatsFromOrganizations] Org ${index} sin ciudad:`, {
-                id: org.id,
-                username: org.username,
-                estructura: {
-                  'org.people?.city': org.people?.city,
-                  'org.city': org.city,
-                  'org.people?.municipio?.city?.name': org.people?.municipio?.city?.name,
-                  'org.municipio?.name': org.municipio?.name
-                }
-              });
-            }
           }
         });
-        
-        if (orgsWithoutCity > 0) {
-          console.log(`⚠️ [getGlobalImpactStatsFromOrganizations] ${orgsWithoutCity} organizaciones sin ciudad definida`);
-        }
         
         const citiesData = Array.from(citiesMap.entries()).map(([name, data]) => ({
           name,
@@ -943,16 +856,12 @@ export class PublicStatsService {
           lat: data.lat,
           lng: data.lng
         }));
-        
-        console.log('🌆 [getGlobalImpactStatsFromOrganizations] Ciudades únicas encontradas:', citiesMap.size);
-        console.log('📍 [getGlobalImpactStatsFromOrganizations] Ciudades con datos:', citiesData);
 
         // NO estimar donaciones - esto debe venir del backend
         // Si estamos usando el método fallback, no tenemos datos reales de donaciones
         // Usar 0 o intentar obtener desde otro endpoint si es necesario
         // Por ahora, dejamos en 0 para no mostrar datos incorrectos
         const totalDonationsEstimate = 0;
-        console.log('💝 [getGlobalImpactStatsFromOrganizations] No se pueden calcular donaciones desde organizaciones. Usar endpoint /statistics/public para datos reales.');
 
         // Calcular satisfacción basada en organizaciones verificadas
         const verifiedOrgs = organizations.filter((org: any) => 
@@ -961,9 +870,6 @@ export class PublicStatsService {
         const satisfactionRate = organizations.length > 0 
           ? Math.round((verifiedOrgs / organizations.length) * 100) 
           : 95; // Valor por defecto si no hay datos
-        
-        console.log('⭐ [getGlobalImpactStatsFromOrganizations] Organizaciones verificadas:', verifiedOrgs, 'de', organizations.length);
-        console.log('😊 [getGlobalImpactStatsFromOrganizations] Satisfacción calculada:', satisfactionRate + '%');
 
         const stats = {
           totalDonations: totalDonationsEstimate,
@@ -973,24 +879,10 @@ export class PublicStatsService {
           citiesData: citiesData
         };
         
-        console.log('✅ [getGlobalImpactStatsFromOrganizations] Estadísticas finales calculadas:', stats);
         return stats;
       }),
       catchError((error) => {
         // Si falla la API, usar valores mínimos base presentables
-        console.warn('❌ [getGlobalImpactStatsFromOrganizations] Error al obtener estadísticas del backend:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message
-        });
-        
-        if (error.status === 0) {
-          console.error('🚨 [getGlobalImpactStatsFromOrganizations] Error de conexión. El servidor no está disponible.');
-        }
-        
-        console.log('⚠️ [getGlobalImpactStatsFromOrganizations] Usando valores mínimos base (modo offline/fallback)');
-        console.log('📊 [getGlobalImpactStatsFromOrganizations] Estadísticas base:', FALLBACK_STATS);
-        
         return of(FALLBACK_STATS);
       })
     );
