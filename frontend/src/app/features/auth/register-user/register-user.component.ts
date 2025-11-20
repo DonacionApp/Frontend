@@ -4,7 +4,6 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { CountriesService } from '../../../core/services/countries.service';
 import { FooterComponent } from '../../../shared/components/footer/footer.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
-import { RegistrationTypeSelectorComponent } from '../../../shared/components/registration-type-selector/registration-type-selector.component';
 import { Countris, StatesbyCountrySelect, CitiesByStateSelect } from '../../../shared/model/countries.model';
 import { Observable, Subject, debounceTime, distinctUntilChanged, takeUntil, throwError, finalize } from 'rxjs';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
@@ -19,7 +18,7 @@ import { PrivacyPolicyModalComponent } from '../../../shared/components/privacy-
 @Component({
   selector: 'app-register-user',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent, MatDialogModule, RegistrationTypeSelectorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FooterComponent, ButtonComponent, MatDialogModule],
   templateUrl: './register-user.component.html',
   styleUrls: ['./register-user.component.scss']
 })
