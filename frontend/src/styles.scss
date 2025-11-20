@@ -1,6 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 
-/* Angular Material Theme */
+/* Angular Material Theme - MUST BE FIRST */
 @use '@angular/material' as mat;
 
 @include mat.core();
@@ -16,6 +16,9 @@ $my-theme: mat.m2-define-light-theme((
 ));
 
 @include mat.all-component-themes($my-theme);
+
+/* Font Awesome */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
 
 /* Tailwind CSS */
 @tailwind base;
@@ -342,7 +345,8 @@ body {
   right: 0;
   bottom: 0;
   background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+              radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+              linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, transparent 100%);
   pointer-events: none;
 }
 
@@ -412,5 +416,57 @@ body {
   word-break: break-word;
   max-height: 40vh;
   overflow: auto; /* scroll if too tall */
+}
+
+/* Carousel Indicators */
+.carousel-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
+
+  /* Cuando el fondo es blanco/claro */
+  .impact-section:has(.carousel-indicator:nth-child(3)) &,
+  .impact-section[style*="rgb(245, 245, 245)"] &,
+  .impact-section[style*="rgb(255, 255, 255)"] & {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.5);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.5);
+      transform: scale(1.1);
+    }
+
+    &.active {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(1.1);
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Impact section background transition */
+.impact-section {
+  transition: background 1s ease-in-out;
 }
 

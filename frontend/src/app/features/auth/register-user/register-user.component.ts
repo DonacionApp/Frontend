@@ -87,7 +87,7 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
       // Navegar
       this.router.navigate(['/register/organization']);
     } catch (err) {
-      console.warn('Navigation to organization register failed', err);
+      // Navigation failed
     }
   }
 
@@ -194,7 +194,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!this.registerForm) { return; }
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-      console.warn('Formulario inválido');
       return;
     }
 
@@ -257,12 +256,10 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
             const emailTo = payload?.email || this.registerForm.get('email')?.value || '';
             this.router.navigate(['/auth/email-verification'], { queryParams: { email: emailTo } });
           } catch (err) {
-            // ignore navigation errors but log
-            console.warn('Navigation to email-verification failed', err);
+            // ignore navigation errors
           }
         },
         error: (err) => {
-          console.error('Error al registrar usuario', err);
           this.errorMessage = err?.error?.message || err?.message || 'Error al crear la cuenta';
         }
       });
@@ -422,15 +419,13 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   openTermsModal(event: Event): void {
     event.preventDefault();
-    console.log('Opening terms modal...');
-    const dialogRef = this.dialog.open(TermsModalComponent, {
+    this.dialog.open(TermsModalComponent, {
       width: '800px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       autoFocus: false,
       panelClass: 'terms-modal-container'
     });
-    console.log('Dialog ref:', dialogRef);
   }
 
   openPrivacyPolicyModal(event: Event): void {

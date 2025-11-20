@@ -21,7 +21,8 @@ export class AuthInterceptor implements HttpInterceptor {
   ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    if (this.isAuthRequest(req.url)) {
+    // Permitir peticiones de autenticación y endpoints públicos sin token
+    if (this.isAuthRequest(req.url) || this.isPublicRequest(req.url)) {
       return next.handle(req);
     }
 
@@ -258,6 +259,12 @@ export class AuthInterceptor implements HttpInterceptor {
 
   private isAuthRequest(url: string): boolean {
     return url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register');
+  }
+
+  private isPublicRequest(url: string): boolean {
+    // Endpoints públicos que no requieren autenticación
+    return url.includes('/statistics/public') || 
+           url.includes('/user/minimal/all/organizations');
   }
 
   private addTokenHeader(request: HttpRequest<any>, token: string): HttpRequest<any> {

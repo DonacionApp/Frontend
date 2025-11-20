@@ -43,5 +43,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideAnimations(),
     importProvidersFrom(BrowserModule)
+    // Nota: Usa locale por defecto 'en-US' que formatea números como: 1,200 (miles con coma)
   ]
 };
