@@ -19,7 +19,7 @@ import { CacheService } from '../services/cache.service';
  * - 'X-Cache-Invalidate': Patrón regex para invalidar entradas (ej: '/posts/')
  * 
  * URLs excluidas del caché:
- * - /auth/* (login, register, refresh)
+ * - /auth/* (todas las rutas de autenticación)
  * - /websocket/*
  * - URLs con 'no-cache' en query params
  * 
@@ -55,10 +55,10 @@ export class CacheInterceptor implements HttpInterceptor {
    * URLs que NUNCA deben ser cacheadas
    */
   private readonly EXCLUDED_URLS = [
-    '/auth/login',
-    '/auth/register',
-    '/auth/refresh',
-    '/auth/logout',
+    '/auth/',           // Todas las rutas de autenticación
+    '/user/notify',     // Notificaciones del usuario
+    '/my-notifications', // Notificaciones del usuario actual
+    '/me/',             // Recursos propios del usuario
     '/websocket'
   ];
 

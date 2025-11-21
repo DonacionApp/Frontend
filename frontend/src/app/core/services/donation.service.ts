@@ -243,11 +243,7 @@ export class DonationService {
    */
   getMyDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<any>(`${this.apiUrl}/me/all`, {
-      headers: {
-        'X-Cache-TTL': '300000' // Cache por 5 minutos
-      }
-    }).pipe(
+    return this.http.get<any>(`${this.apiUrl}/me/all`).pipe(
       map(raw => this.normalizeGenericArray<Donation>(raw)),
       tap(donations => {
         this.donationsSubject.next(donations);
