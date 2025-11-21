@@ -105,7 +105,11 @@ export class UserManagementService {
   constructor(private http: HttpClient) {}
 
   getAllUsers(): Observable<UserManagement[]> {
-    return this.http.get<UserManagement[]>(this.apiUrl).pipe(
+    return this.http.get<UserManagement[]>(this.apiUrl, {
+      headers: {
+        'X-Cache-TTL': '300000' // Cache por 5 minutos
+      }
+    }).pipe(
       catchError((error) => {
         console.error('Error fetching users:', error);
         return throwError(() => error);

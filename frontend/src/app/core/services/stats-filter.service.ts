@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { CacheService } from './cache.service';
 
 export interface DateFilters {
   startDate: string;
@@ -30,7 +31,7 @@ export class StatsFilterService {
   // Observable público para que los componentes se suscriban
   public filters$: Observable<StatsFilters> = this.filtersSubject.asObservable();
 
-  constructor() {
+  constructor(private cacheService: CacheService) {
     // Intentar cargar filtros guardados del localStorage al iniciar
     this.loadFiltersFromStorage();
   }
@@ -56,7 +57,8 @@ export class StatsFilterService {
     this.filtersSubject.next(newFilters);
     this.saveFiltersToStorage(newFilters);
     
-    console.log('🔍 Filtros actualizados:', newFilters);
+    // Invalidar caché de estadísticas cuando cambien los filtros
+    this.invalidateStatsCache();
   }
 
   /**
@@ -99,7 +101,8 @@ export class StatsFilterService {
     this.filtersSubject.next(newFilters);
     this.saveFiltersToStorage(newFilters);
     
-    console.log('🔍 Preset aplicado:', preset, newFilters);
+    // Invalidar caché de estadísticas cuando cambien los filtros
+    this.invalidateStatsCache();
   }
 
   /**
@@ -109,7 +112,8 @@ export class StatsFilterService {
     this.filtersSubject.next(this.initialFilters);
     this.clearFiltersFromStorage();
     
-    console.log('🧹 Filtros limpiados');
+    // Invalidar caché de estadísticas cuando se limpien los filtros
+    this.invalidateStatsCache();
   }
 
   /**
@@ -133,7 +137,8 @@ export class StatsFilterService {
     this.filtersSubject.next(newFilters);
     this.saveFiltersToStorage(newFilters);
     
-    console.log('🗑️ Filtro removido:', type);
+    // Invalidar caché de estadísticas cuando se remuevan filtros
+    this.invalidateStatsCache();
   }
 
   /**
@@ -168,6 +173,21 @@ export class StatsFilterService {
     });
   }
 
+  /**
+   * Invalida el caché de estadísticas
+   * Se llama automáticamente cuando se cambian los filtros
+   */
+  private invalidateStatsCache(): void {
+    // Invalidar endpoints de estadísticas relacionados con filtros
+    this.cacheService.invalidatePattern('/statistics');
+    this.cacheService.invalidatePattern('/user/.*/public-stats');
+    this.cacheService.invalidatePattern('/user/minimal');
+    this.cacheService.invalidatePattern('/donation');
+    this.cacheService.invalidatePattern('/post');
+    
+    console.log('🗑️ Caché de estadísticas invalidado debido a cambio en filtros');
+  }
+
   // ============= PRIVATE METHODS - LocalStorage =============
 
   private readonly STORAGE_KEY = 'stats_filters';
@@ -192,7 +212,6 @@ export class StatsFilterService {
       if (saved) {
         const filters = JSON.parse(saved) as StatsFilters;
         this.filtersSubject.next(filters);
-        console.log('📂 Filtros cargados desde localStorage:', filters);
       }
     } catch (error) {
       console.warn('⚠️ No se pudieron cargar los filtros desde localStorage:', error);

@@ -185,7 +185,11 @@ export class PublicStatsService {
           return this.mergeStatisticsWithUserData(userId, statsResponse);
         }
         // Si no, intentar endpoint /user/:id/public-stats
-        return this.http.get<UserPublicStats>(`${this.apiUrl}/user/${userId}/public-stats`).pipe(
+        return this.http.get<UserPublicStats>(`${this.apiUrl}/user/${userId}/public-stats`, {
+          headers: {
+            'X-Cache-TTL': '300000' // Cache por 5 minutos
+          }
+        }).pipe(
           catchError((error) => {
             // Si el endpoint no existe (404), construir estadísticas manualmente
             if (error.status === 404 || error.status === 501) {
@@ -209,7 +213,11 @@ export class PublicStatsService {
    * @returns Observable con estadísticas del endpoint
    */
   private getUserStatistics(userId: number | string): Observable<UserStatisticsResponse | null> {
-    return this.http.get<UserStatisticsResponse>(`${this.apiUrl}/statistics/user/${userId}`).pipe(
+    return this.http.get<UserStatisticsResponse>(`${this.apiUrl}/statistics/user/${userId}`, {
+      headers: {
+        'X-Cache-TTL': '300000' // Cache por 5 minutos (300,000 ms)
+      }
+    }).pipe(
       catchError((error) => {
         // Si el endpoint no existe, retornar null silenciosamente para usar método alternativo
         // No loguear el error 404 ya que es esperado si el endpoint no existe
@@ -251,14 +259,16 @@ export class PublicStatsService {
    * Construir estadísticas usando el método tradicional (sin endpoint de estadísticas)
    */
   private buildTraditionalStats(userId: number | string): Observable<UserPublicStats> {
+    const cacheHeaders = { headers: { 'X-Cache-TTL': '300000' } }; // Cache por 5 minutos
+    
     return forkJoin({
-      user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`).pipe(
+      user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`, cacheHeaders).pipe(
         catchError(() => of(null))
       ),
-      donations: this.http.get<any[]>(`${this.apiUrl}/donation/users/${userId}`).pipe(
+      donations: this.http.get<any[]>(`${this.apiUrl}/donation/users/${userId}`, cacheHeaders).pipe(
         catchError(() => of([]))
       ),
-      posts: this.http.get<any[]>(`${this.apiUrl}/post/user/${userId}`).pipe(
+      posts: this.http.get<any[]>(`${this.apiUrl}/post/user/${userId}`, cacheHeaders).pipe(
         catchError(() => of([]))
       )
     }).pipe(
@@ -272,14 +282,16 @@ export class PublicStatsService {
    * Fusionar estadísticas del endpoint /statistics/user con datos del usuario
    */
   private mergeStatisticsWithUserData(userId: number | string, statsResponse: UserStatisticsResponse): Observable<UserPublicStats> {
+    const cacheHeaders = { headers: { 'X-Cache-TTL': '300000' } }; // Cache por 5 minutos
+    
     return forkJoin({
-      user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`).pipe(
+      user: this.http.get<any>(`${this.apiUrl}/user/minimal/${userId}`, cacheHeaders).pipe(
         catchError(() => of(null))
       ),
-      donations: this.http.get<any[]>(`${this.apiUrl}/donation/users/${userId}`).pipe(
+      donations: this.http.get<any[]>(`${this.apiUrl}/donation/users/${userId}`, cacheHeaders).pipe(
         catchError(() => of([]))
       ),
-      posts: this.http.get<any[]>(`${this.apiUrl}/post/user/${userId}`).pipe(
+      posts: this.http.get<any[]>(`${this.apiUrl}/post/user/${userId}`, cacheHeaders).pipe(
         catchError(() => of([]))
       )
     }).pipe(

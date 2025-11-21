@@ -6,6 +6,7 @@ import { Observable, throwError, Subject } from 'rxjs';
 import { tap, catchError, switchMap, map, startWith } from 'rxjs/operators';
 import { WebsocketService } from './websocket.service';
 import { NotificationService } from './notification.service';
+import { CacheService } from './cache.service';
 
 export interface User {
   id: string;
@@ -36,7 +37,8 @@ export class AuthService {
     private http: HttpClient,
     private websocketService: WebsocketService,
     private notificationService: NotificationService,
-    private injector: Injector
+    private injector: Injector,
+    private cacheService: CacheService
   ) {
     const token = localStorage.getItem(this.TOKEN_STORAGE_KEY);
     const refreshToken = localStorage.getItem('refreshToken');
@@ -238,6 +240,20 @@ export class AuthService {
             isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
             verified: payload?.verified || res.verified || false
           };
+          
+          // Limpiar caché si es un usuario diferente al anterior
+          try {
+            const lastUserId = sessionStorage.getItem('lastUserId');
+            if (lastUserId && lastUserId !== user.id.toString()) {
+              // Usuario diferente, limpiar caché
+              this.cacheService.clear();
+              console.log('🧹 Caché limpiado debido a cambio de usuario');
+            }
+            sessionStorage.setItem('lastUserId', user.id.toString());
+          } catch (e) {
+            console.warn('Error al verificar cambio de usuario:', e);
+          }
+          
           this.setCurrentUser(user);
         }
       }),
@@ -248,6 +264,14 @@ export class AuthService {
   }
 
   logout(): void {
+    // Limpiar caché solo cuando cambia de usuario (no en cada logout)
+    const currentUser = this.getCurrentUser();
+    if (currentUser) {
+      // Guardar el ID del último usuario
+      try {
+        sessionStorage.setItem('lastUserId', currentUser.id.toString());
+      } catch (e) {}
+    }
     this.clearAuthData();
   }
 
@@ -342,6 +366,10 @@ export class AuthService {
     try {
       this.websocketService.disconnect();
     } catch (e) {}
+    
+    // Limpiar el caché cuando se cierra sesión
+    this.cacheService.clear();
+    console.log('🧹 [AuthService] Caché limpiado al cerrar sesión');
   }
 
   public forgetCurrentUser(): void {
