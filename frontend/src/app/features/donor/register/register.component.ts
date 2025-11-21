@@ -53,7 +53,12 @@ type AccountType = 'user' | 'organization' | null;
           <!-- Botones de acción -->
           <div class="space-y-4">
             <app-button variant="ghost" size="md" (btnClick)="goHome()" class="w-full">Volver al Inicio</app-button>
-            <app-button variant="secondary" size="md" (btnClick)="goToLogin()" class="w-full">Iniciar Sesión</app-button>
+            <button
+              type="button"
+              (click)="goToLogin()"
+              class="w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-300 bg-green-100 hover:bg-green-500 text-green-700 hover:text-white border-2 border-green-200 hover:border-green-500 shadow-sm hover:shadow-md">
+              Iniciar Sesión
+            </button>
           </div>
         </div>
       </div>
@@ -81,12 +86,12 @@ export class DonorRegisterComponent {
     
     if (type === 'user') {
       return isActive
-        ? 'bg-green-600 text-white border-2 border-green-600'
-        : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-green-500';
+        ? 'bg-green-500 hover:bg-green-600 text-white border-2 border-green-500 hover:border-green-600'
+        : 'bg-green-100 hover:bg-green-500 text-green-700 hover:text-white border-2 border-green-200 hover:border-green-500';
     } else {
       return isActive
-        ? 'bg-green-600 text-white border-2 border-green-600'
-        : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-green-500';
+        ? 'bg-green-500 hover:bg-green-600 text-white border-2 border-green-500 hover:border-green-600'
+        : 'bg-green-100 hover:bg-green-500 text-green-700 hover:text-white border-2 border-green-200 hover:border-green-500';
     }
   }
 
