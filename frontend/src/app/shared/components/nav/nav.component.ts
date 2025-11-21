@@ -186,7 +186,7 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onRegisterClick(): void {
     this.closeMobileMenu();
-    this.router.navigate(['/register/donor']);
+    this.router.navigate(['/register']);
   }
 
   onOrganizationRegisterClick(): void {
