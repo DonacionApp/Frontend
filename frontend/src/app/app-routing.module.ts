@@ -64,7 +64,14 @@ const routes: Routes = [
     loadComponent: () => import('./features/privacy-policy/privacy-policy.component').then(m => m.PrivacyPolicyComponent)
   },
   
-  // Ruta de registro de donante (redirige al formulario de registro)
+  // Ruta principal de registro (selección de tipo de cuenta)
+  { 
+    path: 'register', 
+    loadComponent: () => import('./features/donor/register/register.component').then(m => m.DonorRegisterComponent),
+    canActivate: [GuestGuard]
+  },
+  
+  // Ruta de registro de donante (formulario de registro)
   { 
     path: 'register/donor', 
     loadComponent: () => import('./features/auth/register-user/register-user.component').then(m => m.RegisterUserComponent),
