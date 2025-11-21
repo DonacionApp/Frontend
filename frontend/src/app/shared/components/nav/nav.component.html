@@ -23,6 +23,12 @@
           </button>
           
           <button 
+            (click)="onOrganizationsClick()"
+            class="text-gray-700 hover:text-green-600 px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-all duration-300 hover:scale-105 whitespace-nowrap">
+            Organizaciones
+          </button>
+          
+          <button 
             (click)="onAboutClick()"
             class="text-gray-700 hover:text-green-600 px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-all duration-300 hover:scale-105 whitespace-nowrap">
             Acerca de
@@ -73,16 +79,7 @@
             <span class="ml-1 hidden xl:inline whitespace-nowrap">Artículos Recibidos</span>
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Recibidos</span>
           </button>
-          <button 
-            (click)="onDonateClick()"
-            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
-            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-            <span class="ml-1 hidden xl:inline whitespace-nowrap">Donar Artículo</span>
-            <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Donar</span>
-          </button>
-          <button 
+          <button
             (click)="onOrganizationsClick()"
             class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,6 +224,15 @@
           </button>
           
           <button 
+            (click)="onOrganizationsClick()"
+            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 block px-3 py-2.5 text-sm font-medium w-full text-left transition-all duration-200 rounded-md">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            Organizaciones
+          </button>
+          
+          <button 
             (click)="onAboutClick()"
             class="text-gray-700 hover:text-green-600 hover:bg-gray-50 block px-3 py-2.5 text-sm font-medium w-full text-left transition-all duration-200 rounded-md">
             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -341,14 +347,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
             </svg>
             <span>Artículos Recibidos</span>
-          </button>
-          <button 
-            (click)="onDonateClick()"
-            class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-            <span>Donar Artículo</span>
           </button>
           <button 
             (click)="onOrganizationsClick()"

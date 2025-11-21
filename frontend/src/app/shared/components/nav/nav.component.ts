@@ -186,7 +186,7 @@ export class NavComponent implements OnInit, OnDestroy {
 
   onRegisterClick(): void {
     this.closeMobileMenu();
-    this.router.navigate(['/donor/register']);
+    this.router.navigate(['/register/donor']);
   }
 
   onOrganizationRegisterClick(): void {
@@ -228,11 +228,6 @@ export class NavComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate(['/post']);
     }
-  }
-
-  onDonateClick(): void {
-    this.closeMobileMenu();
-    this.alertService.showAlert('Esta funcionalidad estará disponible próximamente.', 'info');
   }
 
   onOrganizationsClick(): void {

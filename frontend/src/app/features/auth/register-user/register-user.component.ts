@@ -62,13 +62,65 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   goToOrganizationRegister(): void {
     try {
-      this.router.navigate(['/organization/register']);
+      // Limpiar el formulario antes de navegar
+      if (this.registerForm) {
+        this.registerForm.reset();
+        // Restablecer valores por defecto
+        this.registerForm.patchValue({
+          acceptTerms: false,
+          acceptPrivacyPolicy: false
+        });
+        // Restablecer estados de campos deshabilitados
+        this.registerForm.get('people.municipio.state.iso2')?.disable();
+        this.registerForm.get('people.municipio.city.name')?.disable();
+      }
+      // Limpiar mensajes y estados
+      this.successMessage = '';
+      this.errorMessage = '';
+      this.loadingRegister = false;
+      this.lastPayload = null;
+      // Limpiar opciones de ubicación
+      this.statesOptions = [];
+      this.citiesOptions = [];
+      this.loadStates = false;
+      this.loadCities = false;
+      // Navegar
+      this.router.navigate(['/register/organization']);
     } catch (err) {
-      console.warn('Navigation to organization register failed', err);
+      // Navigation failed
+    }
+  }
+
+  goToLogin(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    try {
+      // Intentar navegación con router primero
+      this.router.navigate(['/auth/login']).catch((err) => {
+        console.warn('Router navigation failed, using window.location:', err);
+        // Fallback a window.location si el router falla
+        window.location.href = '/auth/login';
+      });
+    } catch (err) {
+      console.error('Navigation error:', err);
+      // Fallback directo
+      window.location.href = '/auth/login';
     }
   }
 
   ngOnInit(): void {
+    // Limpiar estados previos al inicializar
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.loadingRegister = false;
+    this.lastPayload = null;
+    this.statesOptions = [];
+    this.citiesOptions = [];
+    this.loadStates = false;
+    this.loadCities = false;
+    
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
@@ -142,7 +194,6 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!this.registerForm) { return; }
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
-      console.warn('Formulario inválido');
       return;
     }
 
@@ -205,12 +256,10 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
             const emailTo = payload?.email || this.registerForm.get('email')?.value || '';
             this.router.navigate(['/auth/email-verification'], { queryParams: { email: emailTo } });
           } catch (err) {
-            // ignore navigation errors but log
-            console.warn('Navigation to email-verification failed', err);
+            // ignore navigation errors
           }
         },
         error: (err) => {
-          console.error('Error al registrar usuario', err);
           this.errorMessage = err?.error?.message || err?.message || 'Error al crear la cuenta';
         }
       });
@@ -241,11 +290,38 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
         this.registerForm.get(['people', 'municipio', 'state', 'display'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'name'])?.setValue('');
         this.registerForm.get(['people', 'municipio', 'city', 'display'])?.setValue('');
-        this.registerForm.get('people.municipio.state.iso2')?.enable();
+        
+        // If country has states, enable and require state field
+        if (this.statesOptions.length > 0) {
+          this.registerForm.get('people.municipio.state.iso2')?.enable();
+          this.registerForm.get('people.municipio.state.iso2')?.setValidators([Validators.required]);
+        } else {
+          // If country has no states, disable and clear validators
+          this.registerForm.get('people.municipio.state.iso2')?.disable();
+          this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+          this.registerForm.get('people.municipio.state.iso2')?.setValue('');
+          // Also handle city field - make it optional when no states
+          this.registerForm.get('people.municipio.city.name')?.disable();
+          this.registerForm.get('people.municipio.city.name')?.clearValidators();
+          this.registerForm.get('people.municipio.city.name')?.setValue('');
+          this.registerForm.get('people.municipio.city.name')?.updateValueAndValidity();
+        }
+        this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
         this.loadStates = false;
       },
-      error: () => {
+      error: (err) => {
+        // Silently handle countries without states (e.g., CX, CC)
         this.statesOptions = [];
+        this.registerForm.get('people.municipio.state.iso2')?.disable();
+        this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+        this.registerForm.get('people.municipio.state.iso2')?.setValue('');
+        this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
+        // Also handle city field - make it optional when no states
+        this.registerForm.get('people.municipio.city.name')?.disable();
+        this.registerForm.get('people.municipio.city.name')?.clearValidators();
+        this.registerForm.get('people.municipio.city.name')?.setValue('');
+        this.registerForm.get('people.municipio.city.name')?.updateValueAndValidity();
+        this.citiesOptions = [];
         this.loadStates = false;
       }
     });
@@ -256,6 +332,8 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
     if (!iso2) {
       this.registerForm.get('people.municipio.city.name')?.disable();
       this.registerForm.get('people.municipio.state.iso2')?.disable();
+      this.registerForm.get('people.municipio.state.iso2')?.clearValidators();
+      this.registerForm.get('people.municipio.state.iso2')?.updateValueAndValidity();
       this.statesOptions = [];
       this.citiesOptions = [];
       this.loadStates = false;
@@ -341,15 +419,13 @@ export class RegisterUserComponent implements OnInit, OnDestroy {
 
   openTermsModal(event: Event): void {
     event.preventDefault();
-    console.log('Opening terms modal...');
-    const dialogRef = this.dialog.open(TermsModalComponent, {
+    this.dialog.open(TermsModalComponent, {
       width: '800px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       autoFocus: false,
       panelClass: 'terms-modal-container'
     });
-    console.log('Dialog ref:', dialogRef);
   }
 
   openPrivacyPolicyModal(event: Event): void {

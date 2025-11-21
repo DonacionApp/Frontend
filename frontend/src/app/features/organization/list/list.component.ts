@@ -16,6 +16,22 @@ export interface OrgMinimal {
   locationJson?: { lat: number; lng: number } | null;
   residencia?: string;
   createdAt?: string;
+  // Estructura anidada del backend
+  people?: {
+    city?: string;
+    municipio?: {
+      name?: string;
+      city?: {
+        name?: string;
+      };
+    };
+  };
+  municipio?: {
+    name?: string;
+    city?: {
+      name?: string;
+    };
+  };
 }
 
 @Component({
@@ -234,11 +250,43 @@ export class OrganizationListComponent implements OnInit {
     }
   }
 
+  /**
+   * Extrae el nombre de la ciudad de la estructura anidada del backend
+   */
+  private extractCityName(org: any): string | null {
+    // Intentar múltiples rutas para encontrar la ciudad (en orden de prioridad)
+    const city = org.people?.municipio?.city?.name || 
+                 org.municipio?.city?.name ||
+                 org.people?.city || 
+                 org.city || 
+                 org.people?.municipio?.name ||
+                 org.municipio?.name ||
+                 org.residencia;
+    
+    // Si encontramos algo, devolverlo (sin validaciones complejas)
+    if (city && typeof city === 'string' && city.trim().length > 0) {
+      return city.trim();
+    }
+    
+    return null;
+  }
+
   openSidebar(org: OrgMinimal, loc?: { lat: number; lng: number }) {
     this.selectedOrg = { ...org } as OrgMinimal;
+    
+    // Extraer ciudad correctamente de la estructura anidada
+    const cityName = this.extractCityName(org);
+    if (cityName) {
+      (this.selectedOrg as any).residencia = cityName;
+    } else {
+      // Si no hay ciudad válida, ocultar el campo
+      (this.selectedOrg as any).residencia = null;
+    }
+    
     if (loc) {
       (this.selectedOrg as any).location = loc;
     }
+    
     this.sidebarOpen = true;
     this.attachOutsideClickListener();
   }

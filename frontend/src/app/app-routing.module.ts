@@ -9,6 +9,7 @@ import { OrganizationGuard } from './core/guards/organization.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { VerifiedGuard } from './core/guards/verified.guard';
 import { OwnStatsGuard } from './core/guards/own-stats.guard';
+import { GuestGuard } from './core/guards/guest.guard';
 import { NotificationsCenterComponent } from './features/notifications/notifications-center.component';
 import { ChatsComponent } from './shared/components/chats/chats.component';
 
@@ -61,6 +62,20 @@ const routes: Routes = [
   { 
     path: 'privacy-policy', 
     loadComponent: () => import('./features/privacy-policy/privacy-policy.component').then(m => m.PrivacyPolicyComponent)
+  },
+  
+  // Ruta de registro de donante (redirige al formulario de registro)
+  { 
+    path: 'register/donor', 
+    loadComponent: () => import('./features/auth/register-user/register-user.component').then(m => m.RegisterUserComponent),
+    canActivate: [GuestGuard]
+  },
+  
+  // Ruta de registro de organización
+  { 
+    path: 'register/organization', 
+    loadComponent: () => import('./features/organization/register/register.component').then(m => m.OrganizationRegisterComponent),
+    canActivate: [GuestGuard]
   },
   
   // Lazy loading para cada módulo de feature
