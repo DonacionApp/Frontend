@@ -1,309 +1,188 @@
-// Terms Modal Styles
+// Variables
+$font-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+$primary-orange: #f97316;
+$dark-orange: #ea580c;
+$darker-orange: #c2410c;
+
+// Mixin para ocultar scrollbar
+@mixin hide-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+  }
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 ::ng-deep .terms-modal-container {
-  .mat-mdc-dialog-container {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
     padding: 0 !important;
     border-radius: 16px !important;
     overflow: hidden !important;
   }
-  
-  .mat-mdc-dialog-surface {
-    border-radius: 16px !important;
-    overflow: hidden !important;
-  }
 
-  // Ocultar scrollbar externo del modal
   .mat-mdc-dialog-container,
   .mat-mdc-dialog-surface,
   .cdk-overlay-pane {
-    &::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-    }
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
+    @include hide-scrollbar;
   }
-}
-
-.close-button {
-  position: relative;
-  z-index: 10;
 }
 
 :host {
-  // Aplicar fuente oficial de la aplicación a todo el modal
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-family: $font-stack;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  // Asegurar que todos los elementos de texto usen la fuente oficial
-  * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
-  }
-
-  // Excepciones para código y elementos monospace
-  code, pre, kbd, samp {
-    font-family: 'Courier New', Courier, monospace !important;
-  }
+  * { font-family: inherit; }
+  code, pre, kbd, samp { font-family: 'Courier New', monospace !important; }
 
   .markdown-content {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
     line-height: 1.8;
     color: #374151;
 
     ::ng-deep {
-      h1, h2, h3, h4, h5, h6 { font-weight: 700; margin: 1.5rem 0 0.75rem; color: #1f2937; }
+      h1, h2, h3, h4, h5, h6 { 
+        font-weight: 700; 
+        margin: 1.5rem 0 0.75rem; 
+        color: #1f2937; 
+      }
       h1 { font-size: 2rem; border-bottom: 2px solid #1c7a42; padding-bottom: 0.5rem; }
-      h2 { font-size: 1.75rem; color: #ea580c; border-left: 4px solid #f97316; padding-left: 1rem; }
-      h3 { font-size: 1.25rem; color: #000000; }
-      h4, h5, h6 { font-size: 1rem; }
-      p { 
-        margin: 1rem 0; 
-        text-align: justify; 
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
-      }
+      h2 { font-size: 1.75rem; color: $dark-orange; border-left: 4px solid $primary-orange; padding-left: 1rem; }
+      h3 { font-size: 1.25rem; color: #000; }
+      
+      p { margin: 1rem 0; text-align: justify; }
+      
       a { 
-        color: #f97316 !important; 
-        text-decoration: underline !important;
-        text-decoration-thickness: 2.5px !important;
-        text-decoration-color: #f97316 !important;
-        text-decoration-style: solid !important;
-        text-underline-offset: 4px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease-in-out !important;
-        cursor: pointer !important;
-        display: inline !important;
-        background-color: transparent !important;
-        border-bottom: 2px solid #f97316 !important;
-        padding-bottom: 1px !important;
+        color: $primary-orange;
+        text-decoration: underline;
+        text-decoration-thickness: 2.5px;
+        text-underline-offset: 4px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border-bottom: 2px solid $primary-orange;
+        padding-bottom: 1px;
+        
+        &:hover { 
+          color: $dark-orange;
+          background: rgba(249, 115, 22, 0.1);
+          padding: 2px 4px;
+          border-radius: 3px;
+          margin: -2px -4px;
+        }
+        &:active { color: $darker-orange; }
+        &:visited { color: #fb923c; }
       }
-      a:hover { 
-        color: #ea580c !important; 
-        text-decoration-color: #ea580c !important;
-        text-decoration-thickness: 3px !important;
-        text-underline-offset: 3px !important;
-        transform: translateY(-1px) !important;
-        background-color: rgba(249, 115, 22, 0.1) !important;
-        padding: 2px 4px !important;
-        border-radius: 3px !important;
-        margin: -2px -4px !important;
-      }
-      a:active {
-        color: #c2410c !important;
-        text-decoration-color: #c2410c !important;
-      }
-      a:focus {
-        outline: 2px solid #f97316 !important;
-        outline-offset: 2px !important;
-        border-radius: 3px !important;
-        background-color: rgba(249, 115, 22, 0.1) !important;
-      }
-      a:visited {
-        color: #fb923c !important;
-        text-decoration-color: #fb923c !important;
-      }
-      strong, b { font-weight: 700; color: #c2410c; }
+
+      strong, b { font-weight: 700; color: $darker-orange; }
       em, i { font-style: italic; color: #6b7280; }
 
-      ul {
+      ul, ol {
         margin: 1.5rem 0;
         padding-left: 0;
         list-style: none;
+        
+        li {
+          margin-bottom: 0.75rem;
+          padding-left: 2.5rem;
+          position: relative;
+          color: #4b5563;
+          line-height: 1.8;
+        }
       }
-      ul li {
-        margin-bottom: 0.75rem;
-        padding-left: 2.5rem;
-        position: relative;
-        color: #4b5563;
-        font-weight: 500;
-        line-height: 1.8;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
-      }
+
       ul li::before {
         content: '●';
         position: absolute;
         left: 0;
-        color: #f97316;
+        color: $primary-orange;
         font-size: 1.5rem;
-        font-weight: 700;
       }
-      ul li:nth-child(2)::before { color: #ea580c; }
-      ul li:nth-child(3)::before { color: #c2410c; }
-      ul li:nth-child(4)::before { color: #fb923c; }
-      ul li:nth-child(5)::before { color: #fdba74; }
-      ul li:nth-child(n+6)::before { color: #fed7aa; }
-      ul ul { margin: 0.5rem 0; }
-      ul ul li { padding-left: 2rem; font-size: 0.95rem; color: #6b7280; }
 
       ol {
-        margin: 1.5rem 0;
-        padding-left: 0;
-        list-style: none;
         counter-reset: item;
-      }
-      ol li {
-        margin-bottom: 0.75rem;
-        padding-left: 3rem;
-        position: relative;
-        color: #4b5563;
-        font-weight: 500;
-        line-height: 1.8;
-        counter-increment: item;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
-      }
-      ol li::before {
-        content: counter(item);
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 2.5rem;
-        height: 2.5rem;
-        background: #cdcdcd;
-        color: white;
-        font-weight: 700;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      ol li:nth-child(2)::before { background: #ea580c; }
-      ol li:nth-child(3)::before { background: #c2410c; }
-      ol li:nth-child(4)::before { background: #fb923c; }
-      ol li:nth-child(5)::before { background: #fdba74; }
-      ol li:nth-child(n+6)::before { background: #fed7aa; color: #c2410c; }
-      ol ol { margin: 0.5rem 0; counter-reset: item; }
-      ol ol li { padding-left: 2.5rem; font-size: 0.95rem; color: #6b7280; }
-
-      blockquote { border-left: 4px solid #f97316; margin: 1.5rem 0; padding: 1rem 1.5rem; background: #ffedd5; border-radius: 8px; color: #4b5563; font-style: italic; }
-      code { background: #f3f4f6; color: #c2410c; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid #e5e7eb; }
-      pre { background: #1f2937; color: #e5e7eb; padding: 1.25rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid #374151; }
-      pre code { background: transparent; color: #e5e7eb; padding: 0; border: none; }
-      table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
-      table th { background: #f97316; color: white; padding: 0.75rem; font-weight: 700; text-align: left; border: 1px solid #e5e7eb; }
-      table td { padding: 0.75rem; border: 1px solid #e5e7eb; }
-      table tr:nth-child(even) { background: #f8fafc; }
-      hr { border: none; height: 2px; background: #b7aba2; margin: 2rem 0; }
-    }
-  }
-  
-  .modal-content {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
-    
-    section {
-      scroll-margin-top: 20px;
-      transition: background-color 0.2s ease;
-      padding: 16px;
-      border-radius: 8px;
-      
-      &:hover {
-        background-color: rgba(16, 185, 129, 0.03);
-      }
-    }
-    
-    h3 {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      &::before {
-        content: '';
-        display: inline-block;
-        width: 4px;
-        height: 28px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-    }
-    
-    ul {
-      padding-left: 1.5rem;
-      
-      li {
-        margin-bottom: 0.75rem;
-        padding-left: 0.5rem;
-        line-height: 1.7;
         
-        &::marker {
-          color: #10b981;
-          font-size: 1.2em;
+        li {
+          counter-increment: item;
+          padding-left: 3rem;
+          
+          &::before {
+            content: counter(item);
+            position: absolute;
+            left: 0;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: #cdcdcd;
+            color: white;
+            font-weight: 700;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
         }
       }
-    }
-    
-    p {
-      line-height: 1.8;
-    }
-    
-    strong {
-      color: #047857;
-      font-weight: 600;
-    }
-  }
-  
-  // Scrollbar personalizado - discreto pero visible
-  .modal-scroll {
-    // Scrollbar visible pero delgado y discreto
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: transparent;
-      border-radius: 3px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 3px;
+
+      blockquote { 
+        border-left: 4px solid $primary-orange; 
+        margin: 1.5rem 0; 
+        padding: 1rem 1.5rem; 
+        background: #ffedd5; 
+        border-radius: 8px; 
+      }
       
-      &:hover {
-        background: rgba(0, 0, 0, 0.3);
+      code { 
+        background: #f3f4f6; 
+        color: $darker-orange; 
+        padding: 0.25rem 0.5rem; 
+        border-radius: 4px; 
+      }
+      
+      pre { 
+        background: #1f2937; 
+        color: #e5e7eb; 
+        padding: 1.25rem; 
+        border-radius: 8px; 
+        overflow-x: auto; 
+      }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.5rem 0;
+        
+        th { 
+          background: $primary-orange; 
+          color: white; 
+          padding: 0.75rem; 
+        }
+        td { padding: 0.75rem; border: 1px solid #e5e7eb; }
+        tr:nth-child(even) { background: #f8fafc; }
       }
     }
-    
-    // Para Firefox - scrollbar delgado
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   }
 
-  // Estilos para botones de acción - GARANTIZAR VISIBILIDAD
-  // Excluir el botón de cerrar (close-button)
+  .modal-scroll {
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-thumb { 
+      background: rgba(0, 0, 0, 0.2); 
+      border-radius: 3px;
+      &:hover { background: rgba(0, 0, 0, 0.3); }
+    }
+    scrollbar-width: thin;
+  }
+
   button[type="button"]:not(.close-button) {
-    background-color: #f97316 !important;
+    background-color: $primary-orange !important;
     color: white !important;
     font-weight: 600 !important;
     padding: 8px 20px !important;
     border-radius: 8px !important;
-    border: none !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     transition: all 0.2s !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 1001 !important;
-    position: relative !important;
-    min-width: 100px !important;
-    margin: 0 !important;
-    font-size: 14px !important;
 
     &:hover {
-      background-color: #ea580c !important;
+      background-color: $dark-orange !important;
       transform: scale(1.05) !important;
-      box-shadow: 0 6px 12px rgba(249, 115, 22, 0.3) !important;
     }
-
-    &:active {
-      transform: scale(0.98) !important;
-    }
-  }
-
-  // Asegurar que el footer siempre sea visible
-  .bg-gray-50 {
-    position: relative !important;
-    z-index: 1000 !important;
-    background-color: #f9fafb !important;
-    min-height: 70px !important;
-    overflow: visible !important;
   }
 }
