@@ -1,31 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HttpClient } from '@angular/common/http';
+import { SystemService } from '../../../core/services/system.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
-import { catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
-
-interface TermsResponse {
-  content?: string;
-  text?: string;
-  terms?: string;
-  data?: string;
-  markdown?: string;
-}
 
 @Component({
   selector: 'app-terms-modal',
   standalone: true,
-  imports: [
-    CommonModule, 
-    MatDialogModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [CommonModule, MatDialogModule],
   templateUrl: './terms-modal.component.html',
   styleUrls: ['./terms-modal.component.scss']
 })
@@ -37,215 +20,104 @@ export class TermsModalComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<TermsModalComponent>,
-    private http: HttpClient,
+    private systemService: SystemService,
     private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
-    this.configureMarked();
     this.loadTerms();
   }
 
-  /**
-   * Configura marked con opciones optimizadas para mejor renderizado
-   */
-  private configureMarked(): void {
-    // Configuración avanzada de marked
-    marked.setOptions({
-      gfm: true,              // GitHub Flavored Markdown
-      breaks: true            // Convertir saltos de línea en <br>
-    });
-
-    // Personalizar el renderer para mejor control
-    const renderer = new marked.Renderer();
-
-    // Personalizar enlaces para abrir en nueva pestaña
-    renderer.link = ({ href, title, text }) => {
-      const titleAttr = title ? `title="${title}"` : '';
-      return `<a href="${href}" ${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
-    };
-
-    // Personalizar encabezados para agregar anclas
-    const originalHeading = renderer.heading.bind(renderer);
-    renderer.heading = ({ tokens, depth }) => {
-      const text = this.parseInline(tokens);
-      const id = text.toLowerCase().replace(/[^\w]+/g, '-');
-      return `<h${depth} id="${id}">${text}</h${depth}>`;
-    };
-
-    // Personalizar listas de tareas
-    renderer.listitem = ({ text, task, checked }) => {
-      if (task) {
-        const checkbox = checked 
-          ? '<input type="checkbox" checked disabled class="task-checkbox">'
-          : '<input type="checkbox" disabled class="task-checkbox">';
-        return `<li class="task-item">${checkbox} ${text}</li>`;
-      }
-      return `<li>${text}</li>`;
-    };
-
-    marked.setOptions({ renderer });
-  }
-
-  /**
-   * Parsea tokens inline a texto
-   */
-  private parseInline(tokens: any[]): string {
-    return tokens.map(token => {
-      if (token.type === 'text') return token.text;
-      if (token.type === 'strong') return token.text;
-      if (token.type === 'em') return token.text;
-      return token.raw || '';
-    }).join('');
-  }
-
-  /**
-   * Carga los términos desde el backend con fallback a términos por defecto
-   */
   async loadTerms(): Promise<void> {
-    this.loading = true;
-    this.error = '';
+    // Configurar opciones de marked para mejor renderizado
+    marked.setOptions({
+      breaks: true,      // Convierte \n en <br>
+      gfm: true          // GitHub Flavored Markdown
+    });
+    
+    console.log('🔧 Marked configurado para Terms');
 
     try {
-      // Intentar cargar desde el backend con timeout de 3 segundos
-      const response = await this.http
-        .get<TermsResponse>('http://localhost:5000/system/terms')
-        .pipe(
-          timeout(3000),
-          catchError(err => {
-            console.warn('⚠️ Error al cargar términos del backend:', err.message);
-            return of(null);
-          })
-        )
-        .toPromise();
-
-      console.log('📥 Respuesta del backend:', response);
-
-      // Extraer el contenido de markdown
-      const markdownContent = this.extractMarkdownContent(response);
-
-      if (this.isValidMarkdown(markdownContent)) {
-        console.log('✅ Markdown válido recibido del backend');
-        await this.renderMarkdown(markdownContent);
-      } else {
-        console.log('⚠️ Markdown inválido, usando términos por defecto');
-        await this.renderMarkdown(this.getDefaultTerms());
+      const response = await this.systemService.getTerms().toPromise();
+      
+      if (!response || !response.terms) {
+        throw new Error('No se recibió contenido');
       }
 
+      const termsText = response.terms;
+
+      // Validar que el contenido tenga markdown real
+      const hasMarkdown = termsText.includes('#') || 
+                         termsText.includes('**') || 
+                         termsText.includes('-') || 
+                         termsText.includes('*') ||
+                         termsText.includes('`');
+
+      if (!termsText || termsText.trim().length < 50) {
+        throw new Error('Contenido inválido o vacío');
+      }
+
+      // Convertir markdown a HTML
+      const html = await marked.parse(termsText) as string;
+      
+      // Sanitizar el HTML para prevenir XSS
+      this.termsContent = this.sanitizer.bypassSecurityTrustHtml(html);
+      this.lastUpdated = this.formatDate(new Date());
+      this.loading = false;
+    } catch (err: any) {
+      console.error('Error loading terms:', err);
+      this.loadDefaultTerms();
+    }
+  }
+
+  private async loadDefaultTerms(): Promise<void> {
+    try {
+      const defaultHtml = await marked.parse(this.getDefaultTerms());
+      this.termsContent = this.sanitizer.bypassSecurityTrustHtml(defaultHtml);
+      this.lastUpdated = this.formatDate(new Date());
+      this.loading = false;
     } catch (err) {
-      console.error('❌ Error inesperado:', err);
-      this.error = 'Error al cargar los términos. Mostrando versión por defecto.';
-      await this.renderMarkdown(this.getDefaultTerms());
-    } finally {
+      this.error = 'Error al cargar los términos y condiciones';
       this.loading = false;
     }
   }
 
   /**
-   * Extrae el contenido de markdown de diferentes formatos de respuesta
+   * Formatea una fecha en español
    */
-  private extractMarkdownContent(response: TermsResponse | null | undefined): string {
-    if (!response) return '';
-
-    // Intentar diferentes campos comunes
-    const possibleFields = [
-      'markdown',
-      'content',
-      'text',
-      'terms',
-      'data',
-      'body'
-    ];
-
-    for (const field of possibleFields) {
-      const value = (response as any)[field];
-      if (value && typeof value === 'string' && value.trim().length > 0) {
-        console.log(`✅ Contenido encontrado en campo: ${field}`);
-        return value;
-      }
-    }
-
-    // Si la respuesta es directamente un string
-    if (typeof response === 'string') {
-      return response;
-    }
-
-    // Si no se encontró nada, intentar JSON.stringify para debugging
-    console.log('⚠️ No se encontró campo de markdown. Estructura recibida:', Object.keys(response));
-    return '';
+  private formatDate(date: Date): string {
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   }
 
   /**
-   * Valida que el contenido sea markdown válido y tenga contenido real
+   * Recarga los términos manualmente
    */
-  private isValidMarkdown(content: string): boolean {
-    if (!content || typeof content !== 'string') {
-      console.log('❌ Contenido vacío o no es string');
-      return false;
-    }
-
-    // Debe tener al menos 100 caracteres
-    if (content.trim().length < 100) {
-      console.log('❌ Contenido muy corto:', content.length, 'caracteres');
-      return false;
-    }
-
-    // Debe contener al menos algún elemento markdown común
-    const markdownPatterns = [
-      /#\s/,           // Encabezados
-      /\*\*/,          // Negrita
-      /\*/,            // Cursiva o listas
-      /-\s/,           // Listas
-      /\d+\.\s/,       // Listas numeradas
-      /\[.+\]\(.+\)/,  // Enlaces
-      /```/,           // Bloques de código
-    ];
-
-    const hasMarkdownSyntax = markdownPatterns.some(pattern => pattern.test(content));
-    
-    if (!hasMarkdownSyntax) {
-      console.log('❌ No se detectó sintaxis Markdown');
-    }
-
-    return hasMarkdownSyntax;
+  reload(): void {
+    this.loadTerms();
   }
 
-  /**
-   * Renderiza el markdown a HTML y lo sanitiza
-   */
-  private async renderMarkdown(markdownText: string): Promise<void> {
-    try {
-      console.log('🔄 Renderizando markdown...', markdownText.substring(0, 100));
-
-      // Procesar el markdown a HTML
-      const html = await marked.parse(markdownText);
-      
-      console.log('✅ HTML generado:', html.substring(0, 200));
-
-      // Sanitizar y marcar como seguro
-      this.termsContent = this.sanitizer.bypassSecurityTrustHtml(html);
-
-      // Actualizar fecha (si viene del backend, podrías recibirla)
-      this.lastUpdated = new Date().toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-
-    } catch (err) {
-      console.error('❌ Error al renderizar markdown:', err);
-      this.error = 'Error al procesar el contenido';
-      throw err;
-    }
+  close(): void {
+    this.dialogRef.close();
   }
+
+  // ============================================
+  // TÉRMINOS POR DEFECTO
+  // ============================================
 
   /**
    * Retorna los términos por defecto en formato Markdown
    */
   private getDefaultTerms(): string {
+    const currentYear = new Date().getFullYear();
+    const currentDate = this.formatDate(new Date());
+
     return `# Términos y Condiciones de Uso
 
-*Última actualización: ${new Date().toLocaleDateString('es-ES')}*
+*Última actualización: ${currentDate}*
 
 ---
 
@@ -288,7 +160,7 @@ El usuario asume **toda la responsabilidad** por:
 
 ### 3.1 Límite de Responsabilidad
 
-> **IMPORTANTE**: En la máxima medida permitida por la ley aplicable, [Nombre de la Plataforma] **no será responsable**, bajo ninguna circunstancia, por daños directos, indirectos, incidentales, consecuentes, especiales o ejemplares.
+> **IMPORTANTE**: En la máxima medida permitida por la ley aplicable, la Plataforma **no será responsable**, bajo ninguna circunstancia, por daños directos, indirectos, incidentales, consecuentes, especiales o ejemplares.
 
 Esto incluye, pero no se limita a:
 
@@ -352,19 +224,21 @@ Los datos se utilizan para:
 3. Mejorar la Plataforma
 4. Cumplir con obligaciones legales
 
+Para más información, consulte nuestra [Política de Privacidad](#privacidad).
+
 ---
 
 ## 6. Propiedad Intelectual
 
 Todo el contenido de la Plataforma, incluyendo:
 
-- Diseño
-- Logotipos
-- Textos
+- Diseño y marca
+- Logotipos e imágenes
+- Textos y documentación
 - Código fuente
 - Bases de datos
 
-Es propiedad exclusiva de [Nombre de la Plataforma] o de sus licenciantes.
+Es propiedad exclusiva de la Plataforma o de sus licenciantes y está protegido por leyes de propiedad intelectual.
 
 ---
 
@@ -372,7 +246,7 @@ Es propiedad exclusiva de [Nombre de la Plataforma] o de sus licenciantes.
 
 Nos reservamos el derecho de modificar estos T&C en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en la Plataforma.
 
-### 7.1 Notificación
+### 7.1 Notificación de Cambios
 
 Los usuarios serán notificados de cambios significativos mediante:
 
@@ -380,73 +254,58 @@ Los usuarios serán notificados de cambios significativos mediante:
 - 🔔 Notificaciones en la Plataforma
 - 📱 Mensajes push (app móvil)
 
+Es responsabilidad del usuario revisar periódicamente estos términos.
+
 ---
 
 ## 8. Ley Aplicable y Jurisdicción
 
-Estos T&C se rigen por las leyes de [País/Jurisdicción]. Cualquier disputa será resuelta en los tribunales de [Ciudad/Jurisdicción].
+Estos T&C se rigen por las leyes de [País/Jurisdicción]. Cualquier disputa será resuelta en los tribunales competentes de [Ciudad/Jurisdicción].
 
 ---
 
-## 9. Contacto
+## 9. Resolución de Disputas
+
+### 9.1 Mediación
+
+Antes de iniciar cualquier acción legal, las partes se comprometen a intentar resolver la disputa mediante mediación.
+
+### 9.2 Arbitraje
+
+Si la mediación falla, las partes acuerdan someter la disputa a arbitraje vinculante.
+
+---
+
+## 10. Contacto
 
 Para preguntas sobre estos Términos y Condiciones:
 
 - **Email**: legal@plataforma.com
 - **Teléfono**: +1 (555) 123-4567
 - **Dirección**: Calle Principal #123, Ciudad, País
+- **Horario**: Lunes a Viernes, 9:00 AM - 6:00 PM
 
 ---
 
-## 10. Aceptación
+## 11. Divisibilidad
+
+Si alguna disposición de estos T&C se considera inválida o inaplicable, las disposiciones restantes seguirán en pleno vigor y efecto.
+
+---
+
+## 12. Aceptación
 
 Al hacer clic en "Aceptar" o al continuar usando la Plataforma, usted confirma que:
 
-- ✅ Ha leído estos Términos y Condiciones
+- ✅ Ha leído estos Términos y Condiciones en su totalidad
 - ✅ Los comprende completamente
 - ✅ Acepta estar legalmente vinculado por ellos
+- ✅ Tiene la capacidad legal para aceptar estos términos
 
 ---
 
-*© ${new Date().getFullYear()} [Nombre de la Plataforma]. Todos los derechos reservados.*`;
-  }
+*© ${currentYear} Plataforma de Donaciones. Todos los derechos reservados.*
 
-  /**
-   * Recargar los términos manualmente
-   */
-  reload(): void {
-    this.loadTerms();
-  }
-
-  /**
-   * Cerrar el modal
-   */
-  close(): void {
-    this.dialogRef.close();
-  }
-
-  /**
-   * Imprimir los términos
-   */
-  print(): void {
-    window.print();
-  }
-
-  /**
-   * Descargar los términos como texto
-   */
-  downloadAsText(): void {
-    // Extraer el texto del HTML renderizado
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = this.termsContent as string;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `terminos-y-condiciones-${Date.now()}.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+*Este documento fue generado automáticamente y puede estar sujeto a cambios sin previo aviso.*`;
   }
 }
