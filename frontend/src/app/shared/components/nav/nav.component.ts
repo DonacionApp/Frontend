@@ -19,15 +19,16 @@ export class NavComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   isMobileMenuOpen = false;
   private isLoadingProfile = false;
-  
+
   isAuthenticated = false;
   user: User | null = null;
   userProfileImage: string | null = null;
   userFullName: string = '';
   isOnProfilePage = false;
+  isOnPostsPage = false;
   isDocumentVerified = false;
   unreadNotificationsCount = 0;
-  
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -35,7 +36,7 @@ export class NavComponent implements OnInit, OnDestroy {
     private organizationProfileService: OrganizationProfileService,
     private notificationService: NotificationService,
     private alertService: AlertService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.authService.currentUser$
@@ -46,7 +47,7 @@ export class NavComponent implements OnInit, OnDestroy {
         this.isAuthenticated = !!user;
         this.userFullName = user?.name || 'Usuario';
         this.isDocumentVerified = user?.isDocumentVerified || false;
-        
+
         if (user && previousUserId !== user.id && !this.isLoadingProfile) {
           this.loadUserProfile();
           this.loadNotifications();
@@ -56,13 +57,13 @@ export class NavComponent implements OnInit, OnDestroy {
           this.unreadNotificationsCount = 0;
         }
       });
-    
+
     this.notificationService.unreadCount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(count => {
         this.unreadNotificationsCount = count;
       });
-    
+
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
@@ -70,10 +71,12 @@ export class NavComponent implements OnInit, OnDestroy {
       )
       .subscribe((event: any) => {
         this.isOnProfilePage = event.url.includes('/profile');
+        this.isOnPostsPage = event.url.includes('/post');
       });
-    
+
     this.isOnProfilePage = this.router.url.includes('/profile');
-    
+    this.isOnPostsPage = this.router.url.includes('/post');
+
     this.profileService.profile$
       .pipe(takeUntil(this.destroy$))
       .subscribe(profile => {
@@ -82,7 +85,7 @@ export class NavComponent implements OnInit, OnDestroy {
           this.userFullName = profile.name || this.user?.name || 'Usuario';
         }
       });
-    
+
     this.organizationProfileService.profile$
       .pipe(takeUntil(this.destroy$))
       .subscribe(orgProfile => {
@@ -91,14 +94,14 @@ export class NavComponent implements OnInit, OnDestroy {
         }
       });
   }
-  
+
   private loadUserProfile(): void {
     if (this.isLoadingProfile) {
       return;
     }
-    
+
     this.isLoadingProfile = true;
-    
+
     if (this.user?.role === 'donor') {
       this.profileService.getMyProfile().subscribe({
         next: (profile) => {
@@ -146,11 +149,11 @@ export class NavComponent implements OnInit, OnDestroy {
   }
 
 
-  
+
   get displayName(): string {
     return this.userFullName || this.user?.name || 'Usuario';
   }
-  
+
   get userInitial(): string {
     const name = this.displayName;
     return name ? name.charAt(0).toUpperCase() : 'U';
@@ -273,10 +276,10 @@ export class NavComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLElement;
     const mobileMenu = document.querySelector('.mobile-menu');
     const mobileMenuButton = document.querySelector('.mobile-menu-button');
-    
-    if (this.isMobileMenuOpen && 
-        !mobileMenu?.contains(target) && 
-        !mobileMenuButton?.contains(target)) {
+
+    if (this.isMobileMenuOpen &&
+      !mobileMenu?.contains(target) &&
+      !mobileMenuButton?.contains(target)) {
       this.closeMobileMenu();
     }
   }
