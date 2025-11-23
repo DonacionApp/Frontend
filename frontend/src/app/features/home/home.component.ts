@@ -4,11 +4,12 @@ import { Router } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { AdsenseBlockComponent } from '../../shared/adsense-block/adsense-block.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, FooterComponent, ModalComponent],
+  imports: [CommonModule, ButtonComponent, FooterComponent, ModalComponent, AdsenseBlockComponent],
   templateUrl: './home.component.html'
 })
 export class HomeComponent {

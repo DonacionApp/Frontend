@@ -1,0 +1,16 @@
+<div class="adsense-container">
+  <ins class="adsbygoogle"
+       style="display:block; text-align:center;"
+       data-ad-client="ca-pub-TU_ID_DE_EDITOR" 
+       [attr.data-ad-slot]="adSlot"
+       data-ad-format="auto"
+       data-full-width-responsive="true"
+       
+       [attr.data-adtest]="isInDevelopmentMode ? 'on' : null" 
+       >
+  </ins>
+  
+  <div *ngIf="isInDevelopmentMode" style="padding: 10px; background-color: #f0f0f0; color: #555; text-align: center;">
+    ANUNCIO DE PRUEBA LOCAL (AdSense) - No genera ingresos
+  </div>
+</div>
