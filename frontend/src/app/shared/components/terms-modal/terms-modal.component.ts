@@ -35,7 +35,7 @@ export class TermsModalComponent implements OnInit {
       gfm: true          // GitHub Flavored Markdown
     });
     
-    console.log('🔧 Marked configurado para Terms');
+  
 
     try {
       const response = await this.systemService.getTerms().toPromise();
@@ -164,12 +164,12 @@ El usuario asume **toda la responsabilidad** por:
 
 Esto incluye, pero no se limita a:
 
-- ❌ El uso o la imposibilidad de usar la Plataforma
-- ❌ Transacciones o comunicaciones fallidas o fraudulentas entre usuarios
-- ❌ El manejo o uso de los bienes donados o los fondos recaudados
-- ❌ Fallas en la seguridad o fugas de datos derivadas de ataques externos
-- ❌ Pérdida de datos o información
-- ❌ Interrupciones del servicio
+- El uso o la imposibilidad de usar la Plataforma
+- Transacciones o comunicaciones fallidas o fraudulentas entre usuarios
+- manejo o uso de los bienes donados o los fondos recaudados
+- Fallas en la seguridad o fugas de datos derivadas de ataques externos
+- Pérdida de datos o información
+- Interrupciones del servicio
 
 ### 3.2 Exención de Garantías
 
@@ -183,10 +183,10 @@ La Plataforma se proporciona **"TAL CUAL"** y **"SEGÚN DISPONIBILIDAD"**, sin g
 
 El usuario otorga **consentimiento expreso e irrevocable** para:
 
-- 📊 El monitoreo de toda su actividad en la Plataforma
-- 💬 El registro de sus comunicaciones
-- 🔍 La auditoría de sus transacciones
-- 📝 El almacenamiento de logs de actividad
+- El monitoreo de toda su actividad en la Plataforma
+- El registro de sus comunicaciones
+- La auditoría de sus transacciones
+- El almacenamiento de logs de actividad
 
 ### 4.2 Derecho de Bloqueo
 
@@ -250,9 +250,9 @@ Nos reservamos el derecho de modificar estos T&C en cualquier momento. Los cambi
 
 Los usuarios serán notificados de cambios significativos mediante:
 
-- ✉️ Correo electrónico
-- 🔔 Notificaciones en la Plataforma
-- 📱 Mensajes push (app móvil)
+- Correo electrónico
+- Notificaciones en la Plataforma
+- Mensajes push (app móvil)
 
 Es responsabilidad del usuario revisar periódicamente estos términos.
 
@@ -297,10 +297,10 @@ Si alguna disposición de estos T&C se considera inválida o inaplicable, las di
 
 Al hacer clic en "Aceptar" o al continuar usando la Plataforma, usted confirma que:
 
-- ✅ Ha leído estos Términos y Condiciones en su totalidad
-- ✅ Los comprende completamente
-- ✅ Acepta estar legalmente vinculado por ellos
-- ✅ Tiene la capacidad legal para aceptar estos términos
+- Ha leído estos Términos y Condiciones en su totalidad
+- Los comprende completamente
+- Acepta estar legalmente vinculado por ellos
+- Tiene la capacidad legal para aceptar estos términos
 
 ---
 

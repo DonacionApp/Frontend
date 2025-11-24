@@ -37,7 +37,7 @@ export class PrivacyPolicyModalComponent implements OnInit {
       gfm: true          // GitHub Flavored Markdown
     });
     
-    console.log('🔧 Marked configurado para Privacy Policy');
+    
 
     try {
       const response = await this.systemService.getPolicies().toPromise();
