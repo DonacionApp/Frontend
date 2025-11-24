@@ -4,6 +4,7 @@ import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { SystemService } from '../../../core/services/system.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-terms-modal',
@@ -38,13 +39,42 @@ export class TermsModalComponent implements OnInit {
   
 
     try {
-      const response = await this.systemService.getTerms().toPromise();
-      
-      if (!response || !response.terms) {
-        throw new Error('No se recibió contenido');
+      // Pedimos la respuesta completa para poder leer headers (Last-Modified) o metadata
+      let httpResp = await this.systemService.getTermsWithResponse().toPromise();
+      let responseBody = httpResp?.body;
+
+      // Debug: mostrar status, header Last-Modified y body (solo en desarrollo)
+      if (!environment.production) {
+        console.log('[TermsModal] initial httpResp.status=', httpResp?.status, 'last-modified=', httpResp?.headers?.get?.('last-modified'));
+        console.log('[TermsModal] initial response body preview:', responseBody ? (typeof responseBody === 'object' ? { hasTerms: !!responseBody.terms } : responseBody) : responseBody);
       }
 
-      const termsText = response.terms;
+      if (!httpResp || !responseBody || !responseBody.terms) {
+        // Si el servidor responde 304 (Not Modified) puede venir sin body.
+        // Intentamos forzar una petición sin caché para obtener el body real.
+        if (httpResp && httpResp.status === 304) {
+          if (!environment.production) {
+            console.log('[TermsModal] initial response was 304 — retrying with cache-buster...');
+          }
+          const forced = await this.systemService.getTermsWithResponse(true).toPromise();
+          const forcedBody = forced?.body;
+          if (!environment.production) {
+            console.log('[TermsModal] forced httpResp.status=', forced?.status, 'last-modified=', forced?.headers?.get?.('last-modified'));
+            console.log('[TermsModal] forced response body preview:', forcedBody ? (typeof forcedBody === 'object' ? { hasTerms: !!forcedBody.terms } : forcedBody) : forcedBody);
+          }
+          if (forced && forcedBody && forcedBody.terms) {
+            // reasignar las variables para continuar el flujo con la respuesta forzada
+            httpResp = forced;
+            responseBody = forcedBody;
+          } else {
+            throw new Error('No se recibió contenido (304 y sin body)');
+          }
+        } else {
+          throw new Error('No se recibió contenido');
+        }
+      }
+
+      const termsText = responseBody.terms;
 
       // Validar que el contenido tenga markdown real
       const hasMarkdown = termsText.includes('#') || 
@@ -59,10 +89,23 @@ export class TermsModalComponent implements OnInit {
 
       // Convertir markdown a HTML
       const html = await marked.parse(termsText) as string;
-      
+
       // Sanitizar el HTML para prevenir XSS
       this.termsContent = this.sanitizer.bypassSecurityTrustHtml(html);
-      this.lastUpdated = this.formatDate(new Date());
+
+      // Priorizar la fecha que venga desde el servidor: header Last-Modified o campo lastUpdated en body
+      let serverDate: string | null = null;
+      const lastModifiedHeader = httpResp.headers?.get('last-modified');
+      if (lastModifiedHeader) {
+        const parsed = Date.parse(lastModifiedHeader);
+        serverDate = !isNaN(parsed) ? this.formatDate(new Date(parsed)) : lastModifiedHeader;
+      } else if ((responseBody as any).lastUpdated) {
+        const parsed = Date.parse((responseBody as any).lastUpdated);
+        serverDate = !isNaN(parsed) ? this.formatDate(new Date(parsed)) : (responseBody as any).lastUpdated;
+      }
+
+      // Si no hay fecha desde el servidor, intentar extraerla del markdown; si no, fallback a hoy
+      this.lastUpdated = serverDate || this.extractLastUpdatedFromMarkdown(termsText) || this.formatDate(new Date());
       this.loading = false;
     } catch (err: any) {
       console.error('Error loading terms:', err);
@@ -72,9 +115,10 @@ export class TermsModalComponent implements OnInit {
 
   private async loadDefaultTerms(): Promise<void> {
     try {
-      const defaultHtml = await marked.parse(this.getDefaultTerms());
+      const defaultMarkdown = this.getDefaultTerms();
+      const defaultHtml = await marked.parse(defaultMarkdown);
       this.termsContent = this.sanitizer.bypassSecurityTrustHtml(defaultHtml);
-      this.lastUpdated = this.formatDate(new Date());
+      this.lastUpdated = this.extractLastUpdatedFromMarkdown(defaultMarkdown) || this.formatDate(new Date());
       this.loading = false;
     } catch (err) {
       this.error = 'Error al cargar los términos y condiciones';
@@ -91,6 +135,38 @@ export class TermsModalComponent implements OnInit {
       month: 'long',
       day: 'numeric'
     });
+  }
+
+  /**
+   * Extrae la fecha de "Última actualización" desde el texto Markdown.
+   * Si encuentra una fecha en formato legible la normaliza usando `formatDate`.
+   * Si no puede parsear la fecha devuelve la cadena encontrada tal cual.
+   */
+  private extractLastUpdatedFromMarkdown(text: string): string | null {
+    if (!text) return null;
+
+    // Buscar una línea tipo: Última actualización: 24 de noviembre de 2025
+    const regex = /Última actualización:\s*\*?([^\n\*]+)\*?/i;
+    const match = text.match(regex);
+    if (match && match[1]) {
+      const raw = match[1].trim();
+      const parsed = Date.parse(raw);
+      if (!isNaN(parsed)) {
+        return this.formatDate(new Date(parsed));
+      }
+      return raw;
+    }
+
+    // Buscar metadato tipo YAML o clave lastUpdated: 2025-11-24
+    const yamlMatch = text.match(/lastUpdated:\s*([^\n\r]+)/i);
+    if (yamlMatch && yamlMatch[1]) {
+      const raw = yamlMatch[1].trim();
+      const parsed = Date.parse(raw);
+      if (!isNaN(parsed)) return this.formatDate(new Date(parsed));
+      return raw;
+    }
+
+    return null;
   }
 
   /**

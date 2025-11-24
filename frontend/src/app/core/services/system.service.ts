@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -80,6 +80,15 @@ export class SystemService {
   }
 
   /**
+   * Obtener términos y condiciones con la respuesta completa (headers + body)
+   * Útil para leer encabezados como `Last-Modified` o metadatos.
+   */
+  getTermsWithResponse(force: boolean = false): Observable<HttpResponse<{ terms: string }>> {
+    const url = force ? `${this.apiUrl}/terms?_=${Date.now()}` : `${this.apiUrl}/terms`;
+    return this.http.get<{ terms: string }>(url, { observe: 'response' });
+  }
+
+  /**
    * Actualizar términos y condiciones
    */
   updateTerms(data: UpdateSystemContentDTO): Observable<{ terms: string }> {
@@ -91,6 +100,14 @@ export class SystemService {
    */
   getAboutUs(): Observable<{ aboutUs: string }> {
     return this.http.get<{ aboutUs: string }>(`${this.apiUrl}/about-us`);
+  }
+
+  /**
+   * Obtener políticas con la respuesta completa (headers + body)
+   */
+  getPoliciesWithResponse(force: boolean = false): Observable<HttpResponse<{ policies: string }>> {
+    const url = force ? `${this.apiUrl}/policies?_=${Date.now()}` : `${this.apiUrl}/policies`;
+    return this.http.get<{ policies: string }>(url, { observe: 'response' });
   }
 
   /**
