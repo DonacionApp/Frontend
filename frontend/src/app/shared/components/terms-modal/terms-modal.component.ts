@@ -17,7 +17,7 @@ export class TermsModalComponent implements OnInit {
   termsContent: SafeHtml = '';
   loading: boolean = true;
   error: string = '';
-  lastUpdated: string = '';
+  
 
   constructor(
     public dialogRef: MatDialogRef<TermsModalComponent>,
@@ -103,9 +103,7 @@ export class TermsModalComponent implements OnInit {
         const parsed = Date.parse((responseBody as any).lastUpdated);
         serverDate = !isNaN(parsed) ? this.formatDate(new Date(parsed)) : (responseBody as any).lastUpdated;
       }
-
-      // Si no hay fecha desde el servidor, intentar extraerla del markdown; si no, fallback a hoy
-      this.lastUpdated = serverDate || this.extractLastUpdatedFromMarkdown(termsText) || this.formatDate(new Date());
+     
       this.loading = false;
     } catch (err: any) {
       console.error('Error loading terms:', err);
@@ -118,7 +116,6 @@ export class TermsModalComponent implements OnInit {
       const defaultMarkdown = this.getDefaultTerms();
       const defaultHtml = await marked.parse(defaultMarkdown);
       this.termsContent = this.sanitizer.bypassSecurityTrustHtml(defaultHtml);
-      this.lastUpdated = this.extractLastUpdatedFromMarkdown(defaultMarkdown) || this.formatDate(new Date());
       this.loading = false;
     } catch (err) {
       this.error = 'Error al cargar los términos y condiciones';

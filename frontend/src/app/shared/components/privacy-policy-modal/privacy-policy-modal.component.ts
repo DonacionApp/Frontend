@@ -17,7 +17,7 @@ export class PrivacyPolicyModalComponent implements OnInit {
   policyContent: SafeHtml = '';
   loading: boolean = true;
   error: string = '';
-  lastUpdated: string = '';
+  
 
   constructor(
     public dialogRef: MatDialogRef<PrivacyPolicyModalComponent>,
@@ -106,8 +106,6 @@ export class PrivacyPolicyModalComponent implements OnInit {
         const parsed = Date.parse((responseBody as any).lastUpdated);
         serverDate = !isNaN(parsed) ? this.formatDate(new Date(parsed)) : (responseBody as any).lastUpdated;
       }
-
-      this.lastUpdated = serverDate || this.extractLastUpdatedFromMarkdown(policyText) || this.formatDate(new Date());
       this.loading = false;
     } catch (err: any) {
       console.error('Error loading privacy policy:', err);
@@ -121,7 +119,6 @@ export class PrivacyPolicyModalComponent implements OnInit {
       const defaultMarkdown = this.getDefaultPolicy();
       const defaultHtml = await marked.parse(defaultMarkdown);
       this.policyContent = this.sanitizer.bypassSecurityTrustHtml(defaultHtml);
-      this.lastUpdated = this.extractLastUpdatedFromMarkdown(defaultMarkdown) || this.formatDate(new Date());
       this.loading = false;
     } catch (err) {
       this.error = 'Error al cargar la política de privacidad';
