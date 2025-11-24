@@ -1,0 +1,11 @@
+frontend/node_modules
+frontend/dist
+.git
+.gitignore
+npm-debug.log
+Dockerfile
+build
+coverage
+/.idea
+/.vscode
+frontend/src/environments
