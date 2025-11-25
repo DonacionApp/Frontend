@@ -108,7 +108,7 @@ export class PrivacyPolicyModalComponent implements OnInit {
       }
       this.loading = false;
     } catch (err: any) {
-      console.error('Error loading privacy policy:', err);
+      console.error('Error loading privacy policy:', err)
       this.error = err?.message || 'No se pudo cargar la política de privacidad. Por favor, intenta más tarde.';
       this.loadDefaultPolicy();
     }

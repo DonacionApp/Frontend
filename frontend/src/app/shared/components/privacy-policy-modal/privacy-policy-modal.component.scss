@@ -1,10 +1,10 @@
 // Privacy Policy Modal Styles
 // Variables compartidas
 $font-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-$primary-orange: #f97316;
-$dark-orange: #ea580c;
-$darker-orange: #c2410c;
-$light-orange: #fb923c;
+$primary-orange: #000000;
+$dark-orange: #3a3938;
+$darker-orange: #47403d;
+$light-orange: #29221c;
 
 // Mixin para ocultar scrollbar
 @mixin hide-scrollbar {
@@ -42,7 +42,7 @@ $light-orange: #fb923c;
   -moz-osx-font-smoothing: grayscale;
 
   * { font-family: inherit; }
-  code, pre, kbd, samp { font-family: 'Courier New', monospace !important; }
+  code, pre, kbd, samp { font-family: 'Roboto Mono', monospace !important; }
 
   .markdown-content {
     line-height: 1.8;

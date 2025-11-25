@@ -1,8 +1,8 @@
 // Variables
 $font-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-$primary-orange: #f97316;
-$dark-orange: #ea580c;
-$darker-orange: #c2410c;
+$primary-orange: #000000;
+$dark-orange: #4e4e4e;
+$darker-orange: #3b3735;
 
 // Mixin para ocultar scrollbar
 @mixin hide-scrollbar {
@@ -35,7 +35,7 @@ $darker-orange: #c2410c;
   -moz-osx-font-smoothing: grayscale;
 
   * { font-family: inherit; }
-  code, pre, kbd, samp { font-family: 'Courier New', monospace !important; }
+  code, pre, kbd, samp { font-family: 'Roboto Mono', monospace !important; }
 
   .markdown-content {
     line-height: 1.8;
@@ -71,7 +71,7 @@ $darker-orange: #c2410c;
           margin: -2px -4px;
         }
         &:active { color: $darker-orange; }
-        &:visited { color: #fb923c; }
+        &:visited { color: #616161; }
       }
 
       strong, b { font-weight: 700; color: $darker-orange; }
