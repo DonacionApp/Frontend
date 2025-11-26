@@ -50,10 +50,13 @@ export class PostCommentService {
    * Crear un nuevo comentario en una publicación
    */
   createComment(data: CreatePostCommentDTO): Observable<PostComment> {
-    return this.http.post<PostComment>(`${this.apiUrl}/create`, data).pipe(
+    // Agregar header para invalidar caché de comentarios después de crear
+    const headers = { 'X-Cache-Invalidate': '/postcomment' };
+    
+    return this.http.post<PostComment>(`${this.apiUrl}/create`, data, { headers }).pipe(
       catchError((err) => {
         if (err?.status === 404) {
-          return this.http.post<PostComment>(`${this.apiUrl}/create/new`, data);
+          return this.http.post<PostComment>(`${this.apiUrl}/create/new`, data, { headers });
         }
         return throwError(() => err);
       })
@@ -63,16 +66,19 @@ export class PostCommentService {
   /**
    * Obtener todos los comentarios de una publicación
    */
-  getCommentsByPost(postId: number): Observable<PostComment[]> {
+  getCommentsByPost(postId: number, bypassCache: boolean = false): Observable<PostComment[]> {
+    // Permitir bypass de caché después de mutaciones
+    const options = bypassCache ? { headers: { 'X-No-Cache': 'true' } } : {};
+    
     // Intentar diferentes formatos de endpoint según el backend
     // Opción 1: /postcomment/post/:postId
     // Opción 2: /post/:postId/comments
     // Opción 3: /comment/post/:postId
-    return this.http.get<PostComment[]>(`${this.apiUrl}/post/${postId}`).pipe(
+    return this.http.get<PostComment[]>(`${this.apiUrl}/post/${postId}`, options).pipe(
       // Si falla, intentar formato alternativo
       catchError(() => {
         // Intentar formato alternativo: /post/:postId/comments
-        return this.http.get<PostComment[]>(`${environment.apiBackendUrl}/post/${postId}/comments`);
+        return this.http.get<PostComment[]>(`${environment.apiBackendUrl}/post/${postId}/comments`, options);
       })
     );
   }
@@ -88,14 +94,20 @@ export class PostCommentService {
    * Actualizar un comentario
    */
   updateComment(commentId: number, data: UpdatePostCommentDTO): Observable<{ message: string; success: boolean }> {
-    return this.http.post<{ message: string; success: boolean }>(`${this.apiUrl}/update/${commentId}`, data);
+    // Agregar header para invalidar caché de comentarios después de actualizar
+    const headers = { 'X-Cache-Invalidate': '/postcomment' };
+    
+    return this.http.post<{ message: string; success: boolean }>(`${this.apiUrl}/update/${commentId}`, data, { headers });
   }
 
   /**
    * Eliminar un comentario
    */
   deleteComment(commentId: number): Observable<{ message: string; success: boolean }> {
-    return this.http.delete<{ message: string; success: boolean }>(`${this.apiUrl}/delete/${commentId}`);
+    // Agregar header para invalidar caché de comentarios después de eliminar
+    const headers = { 'X-Cache-Invalidate': '/postcomment' };
+    
+    return this.http.delete<{ message: string; success: boolean }>(`${this.apiUrl}/delete/${commentId}`, { headers });
   }
 
   /**

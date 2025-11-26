@@ -48,11 +48,12 @@ export class CommentListComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['refreshTrigger'] && !changes['refreshTrigger'].firstChange) {
-      this.loadComments();
+      // Forzar bypass de caché cuando se solicita refresh explícito
+      this.loadComments(true);
     }
   }
 
-  loadComments(): void {
+  loadComments(bypassCache: boolean = false): void {
     if (!this.postId) {
       this.error = 'Se requiere un ID de publicación';
       return;
@@ -61,7 +62,7 @@ export class CommentListComponent implements OnInit, OnDestroy, OnChanges {
     this.loading = true;
     this.error = '';
 
-    this.commentService.getCommentsByPost(this.postId)
+    this.commentService.getCommentsByPost(this.postId, bypassCache)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
@@ -104,7 +105,8 @@ export class CommentListComponent implements OnInit, OnDestroy, OnChanges {
         next: () => {
           this.toastService.success('Éxito', 'Comentario eliminado exitosamente');
           this.commentDeleted.emit(comment.id);
-          this.loadComments();
+          // Forzar bypass de caché después de eliminar
+          this.loadComments(true);
           this.deletingId = null;
         },
         error: (err) => {

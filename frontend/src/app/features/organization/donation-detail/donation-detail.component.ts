@@ -65,11 +65,11 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
-  private loadDonation(id: number): void {
+  private loadDonation(id: number, bypassCache: boolean = false): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.donationService.getDonationById(id).subscribe({
+    this.donationService.getDonationById(id, bypassCache).subscribe({
       next: (donation) => {
         this.donation = donation;
         this.selectedStatusId = donation.statusDonation.id;
@@ -130,8 +130,9 @@ export class DonationDetailComponent implements OnInit {
   loadAcknowledgments(): void {
     // Este método se llama cuando se crea un nuevo agradecimiento
     // Recargar la donación completa para obtener los reviews actualizados
+    // Forzar bypass de caché para obtener datos frescos
     if (this.donation?.id) {
-      this.loadDonation(this.donation.id);
+      this.loadDonation(this.donation.id, true);
     }
   }
 
@@ -391,6 +392,11 @@ export class DonationDetailComponent implements OnInit {
         this.selectedStatusId = updatedDonation.statusDonation.id;
         this.updatingStatus = false;
         this.checkPermissions();
+        
+        // Recargar con bypass de caché para asegurar datos frescos
+        if (this.donation?.id) {
+          this.loadDonation(this.donation.id, true);
+        }
       },
       error: (error) => {
         this.updatingStatus = false;

@@ -158,6 +158,8 @@ export class CacheInterceptor implements HttpInterceptor {
    * - POST /api/posts → invalida /api/posts*
    * - PUT /api/posts/123 → invalida /api/posts*
    * - DELETE /api/donation/456 → invalida /api/donation*
+   * - POST /api/postcomment/create → invalida /api/postcomment* (todos los comentarios)
+   * - POST /api/donation/update/123 → invalida /api/donation* (todas las donaciones)
    */
   private autoInvalidateCache(url: string): void {
     try {
@@ -166,6 +168,30 @@ export class CacheInterceptor implements HttpInterceptor {
       
       // Remover posibles IDs numéricos al final del path
       basePath = basePath.replace(/\/\d+$/, '');
+      
+      // Para endpoints de comentarios, invalidar TODO el recurso base
+      // Ejemplo: /postcomment/create/123 → /postcomment
+      // Esto asegura que GET /postcomment/post/:postId se invalide correctamente
+      if (basePath.includes('/postcomment/')) {
+        basePath = basePath.substring(0, basePath.indexOf('/postcomment/') + '/postcomment'.length);
+      }
+      
+      // Para endpoints de donación con acciones (update, delete, etc.), invalidar TODO el recurso
+      // Ejemplo: /donation/update/123 → /donation (invalida tanto /donation/:id como /donation/users/:userId)
+      if (basePath.match(/\/donation\/(update|delete|create)/)) {
+        basePath = basePath.substring(0, basePath.indexOf('/donation/') + '/donation'.length);
+      }
+      
+      // También manejar /post/:postId/comments (formato alternativo)
+      if (basePath.match(/\/post\/\d+\/comments/)) {
+        // Invalidar tanto /postcomment como /post/*/comments
+        const postCommentPattern = /\/postcomment/;
+        const postCommentsPattern = /\/post\/.*\/comments/;
+        this.cacheService.invalidatePattern(postCommentPattern);
+        this.cacheService.invalidatePattern(postCommentsPattern);
+        console.log(`🔄 [CacheInterceptor] Auto-invalidación: /postcomment* y /post/*/comments`);
+        return;
+      }
       
       // Crear patrón que coincida con todas las URLs relacionadas
       const pattern = new RegExp(basePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
