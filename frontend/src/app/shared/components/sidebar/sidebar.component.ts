@@ -9,6 +9,8 @@ import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MessageService } from '../../../core/services/message.service';
 import { WebsocketService } from '../../../core/services/websocket.service';
+import { DonationService } from '../../../core/services/donation.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 interface Chat {
   id: number;
@@ -65,10 +67,10 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   quickActions: QuickAction[] = [
     { icon: 'document', label: 'Publicaciones', color: 'text-blue-500' },
-    { icon: 'heart', label: 'Mis donaciones', count: 12, color: 'text-red-500' },
+    { icon: 'heart', label: 'Mis donaciones', color: 'text-red-500' },
     { icon: 'users', label: 'Organizaciones', color: 'text-purple-500' },
     { icon: 'message', label: 'Mensajes', color: 'text-indigo-500' },
-    { icon: 'bell', label: 'Notificaciones', count: 3, color: 'text-yellow-500' },
+    { icon: 'bell', label: 'Notificaciones', color: 'text-yellow-500' },
     { icon: 'chart', label: 'Estadísticas', color: 'text-orange-500' }
   ];
 
@@ -76,10 +78,11 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     public authService: AuthService,
     private alertService: AlertService,
-    private messageService: MessageService
-    ,
+    private messageService: MessageService,
     private websocketService: WebsocketService,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private donationService: DonationService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -91,6 +94,8 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isAuthenticated = !!user;
         if (this.isAuthenticated) {
           this.loadChats(true);
+          this.loadDonationsCount();
+          this.loadNotificationsCount();
           try {
             const token = this.authService.getAccessToken();
             if (token && !this.websocketService.isMessageConnected()) {
@@ -783,6 +788,36 @@ export class SidebarComponent implements OnInit, AfterViewInit, OnDestroy {
       chart: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
     };
     return icons[icon] || '';
+  }
+
+  private loadDonationsCount(): void {
+    this.donationService.getMyDonations()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (donations) => {
+          const count = donations?.length || 0;
+          const donationAction = this.quickActions.find(a => a.label === 'Mis donaciones');
+          if (donationAction) {
+            donationAction.count = count > 0 ? count : undefined;
+          }
+        },
+        error: (err) => {
+          console.error('Error cargando conteo de donaciones:', err);
+        }
+      });
+  }
+
+  private loadNotificationsCount(): void {
+    this.notificationService.unreadCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (count) => {
+          const notificationAction = this.quickActions.find(a => a.label === 'Notificaciones');
+          if (notificationAction) {
+            notificationAction.count = count > 0 ? count : undefined;
+          }
+        }
+      });
   }
 }
 
