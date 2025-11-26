@@ -261,8 +261,9 @@ export class DonationDetailComponent implements OnInit {
     this.messageService.createChatFromDonation(this.donation.id).subscribe({
       next: async (res) => {
         try {
+          // Forzar bypass de caché para obtener la donación actualizada con el chat
           const fresh = await new Promise<Donation>((resolve, reject) => {
-            this.donationService.getDonationById(this.donation!.id).subscribe({ next: d => resolve(d), error: e => reject(e) });
+            this.donationService.getDonationById(this.donation!.id, true).subscribe({ next: d => resolve(d), error: e => reject(e) });
           });
           this.donation = fresh;
           this.checkPermissions();
