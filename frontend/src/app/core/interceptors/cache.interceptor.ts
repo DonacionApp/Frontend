@@ -98,13 +98,10 @@ export class CacheInterceptor implements HttpInterceptor {
     const cachedResponse = this.cacheService.get(req.urlWithParams);
     
     if (cachedResponse) {
-      console.log(`💾 [CacheInterceptor] HIT: ${req.urlWithParams}`);
       return of(cachedResponse.clone());
     }
 
-    // No está en caché, ejecutar petición y guardar respuesta
-    console.log(`🔍 [CacheInterceptor] MISS: ${req.urlWithParams}`);
-    
+  
     return next.handle(req).pipe(
       tap(event => {
         if (event instanceof HttpResponse) {
@@ -119,7 +116,7 @@ export class CacheInterceptor implements HttpInterceptor {
             { ttl }
           );
           
-          console.log(`✅ [CacheInterceptor] CACHED: ${req.urlWithParams}${ttl ? ` (TTL: ${ttl}ms)` : ''}`);
+         
         }
       })
     );
