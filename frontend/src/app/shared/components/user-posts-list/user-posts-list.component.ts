@@ -217,6 +217,9 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
 
   donateToCampaign(post: Post, event: Event): void {
     event.stopPropagation();
+    if (!this.hasAvailableArticles(post)) {
+      return;
+    }
     this.router.navigate(['/donor/donate'], {
       queryParams: { campaign: post.id }
     });
@@ -236,5 +239,26 @@ export class UserPostsListComponent implements OnChanges, OnDestroy {
       'articulos para donar': 'bg-pink-100 text-pink-800'
     };
     return typeColors[typeName.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  }
+
+  hasAvailableArticles(post?: Post): boolean {
+    if (!post || !post.postArticle || post.postArticle.length === 0) {
+      return false;
+    }
+
+    return post.postArticle.some(article => this.getArticleQuantity(article?.quantity) > 0);
+  }
+
+  private getArticleQuantity(value: unknown): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    return 0;
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -47,6 +48,8 @@ export interface ReportAcknowledgmentDTO {
 })
 export class AcknowledgmentService {
   private apiUrl = `${environment.apiBackendUrl}/acknowledgment`;
+  private acknowledgmentCreatedSubject = new Subject<{ donationId?: number; postId?: number }>();
+  acknowledgmentCreated$ = this.acknowledgmentCreatedSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -54,7 +57,14 @@ export class AcknowledgmentService {
    * Crear un nuevo agradecimiento/comentario
    */
   createAcknowledgment(data: CreateAcknowledgmentDTO): Observable<Acknowledgment> {
-    return this.http.post<Acknowledgment>(`${this.apiUrl}/create`, data);
+    return this.http.post<Acknowledgment>(`${this.apiUrl}/create`, data).pipe(
+      tap((acknowledgment) => {
+        this.acknowledgmentCreatedSubject.next({
+          donationId: acknowledgment?.donationId ?? data.donationId,
+          postId: acknowledgment?.postId ?? data.postId
+        });
+      })
+    );
   }
 
   /**
@@ -62,10 +72,16 @@ export class AcknowledgmentService {
    */
   createDonationReview(donationId: number, review: string): Observable<any> {
     const reviewUrl = `${environment.apiBackendUrl}/donationreview/create`;
+    // Invalidar caché de donaciones después de crear review
+    const headers = { 'X-Cache-Invalidate': '/donation' };
     return this.http.post<any>(reviewUrl, {
       review: review.trim(),
       donationId: donationId
-    });
+    }, { headers }).pipe(
+      tap(() => {
+        this.acknowledgmentCreatedSubject.next({ donationId });
+      })
+    );
   }
 
   /**

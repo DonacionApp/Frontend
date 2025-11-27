@@ -59,7 +59,7 @@ export class CacheInterceptor implements HttpInterceptor {
     '/user/notify',     // Notificaciones del usuario
     '/my-notifications', // Notificaciones del usuario actual
     '/me/',             // Recursos propios del usuario
-    '/websocket'
+    '/websocket'        // WebSockets
   ];
 
   /**
@@ -180,6 +180,15 @@ export class CacheInterceptor implements HttpInterceptor {
       // Ejemplo: /donation/update/123 → /donation (invalida tanto /donation/:id como /donation/users/:userId)
       if (basePath.match(/\/donation\/(update|delete|create)/)) {
         basePath = basePath.substring(0, basePath.indexOf('/donation/') + '/donation'.length);
+      }
+      
+      // Para endpoints de donationreview, invalidar el caché de donaciones
+      // Ejemplo: /donationreview/create → invalida /donation* (para que recargue con los nuevos reviews)
+      if (basePath.includes('/donationreview')) {
+        const donationPattern = /\/donation/;
+        this.cacheService.invalidatePattern(donationPattern);
+        console.log(`🔄 [CacheInterceptor] Auto-invalidación: /donation* (por review)`);
+        return;
       }
       
       // También manejar /post/:postId/comments (formato alternativo)

@@ -243,7 +243,9 @@ export class DonationService {
    */
   getMyDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<any>(`${this.apiUrl}/me/all`).pipe(
+    // Siempre forzar datos frescos para donaciones propias (no cachear)
+    const headers = { 'X-No-Cache': 'true' };
+    return this.http.get<any>(`${this.apiUrl}/me/all`, { headers }).pipe(
       map(raw => this.normalizeGenericArray<Donation>(raw)),
       tap(donations => {
         this.donationsSubject.next(donations);
@@ -261,7 +263,7 @@ export class DonationService {
    * Obtener una donación por ID
    */
   getDonationById(id: number, bypassCache: boolean = false): Observable<Donation> {
-    // Permitir bypass de caché después de mutaciones
+    // Permitir bypass de caché cuando se solicita datos frescos (ej: después de crear review)
     const options = bypassCache ? { headers: { 'X-No-Cache': 'true' } } : {};
     
     return this.http.get<Donation>(`${this.apiUrl}/${id}`, options).pipe(
