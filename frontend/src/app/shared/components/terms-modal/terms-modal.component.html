@@ -1,90 +1,77 @@
-<div class="terms-modal">
-  <!-- Header del Modal -->
-  <div class="modal-header">
-    <div class="header-content">
-      <h1 mat-dialog-title class="modal-title">
-        <span class="title-icon">📜</span>
-        Términos y Condiciones
-      </h1>
-      <p class="modal-subtitle" *ngIf="lastUpdated">
-        Última actualización: {{ lastUpdated }}
-      </p>
+<div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full" style="max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+  <!-- Header con gradiente verde -->
+  <div class="relative bg-gradient-to-r from-green-500 to-green-600 px-4 sm:px-8 py-4 sm:py-6">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white">Términos y Condiciones de Uso</h2>
+        </div>
+      </div>
+      <button 
+        type="button"
+        (click)="close()" 
+        class="close-button text-white hover:bg-white-600/80 hover:text-white-500 hover:bg-white/10 p-2 rounded-lg transition-all duration-200 z-50 relative">
+        <svg class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
     </div>
-    <button 
-      mat-icon-button 
-      class="close-button" 
-      (click)="close()"
-      aria-label="Cerrar">
-      <span class="close-icon">✕</span>
-    </button>
+    <!-- Decoración -->
+    <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+    <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
   </div>
 
-  <!-- Contenido del Modal -->
-  <mat-dialog-content class="modal-content">
-    <!-- Estado de Carga -->
-    <div class="loading-container" *ngIf="loading">
-      <mat-spinner diameter="50"></mat-spinner>
-      <p class="loading-text">Cargando términos y condiciones...</p>
+  <!-- Content -->
+  <div class="p-4 sm:p-8 overflow-y-auto modal-scroll bg-gradient-to-b from-orange-50 to-white" style="flex: 1; max-height: calc(90vh - 200px); min-height: 200px;">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando términos y condiciones...</p>
+      </div>
     </div>
 
-    <!-- Estado de Error -->
-    <div class="error-container" *ngIf="error && !loading">
-      <div class="error-icon">⚠️</div>
-      <p class="error-text">{{ error }}</p>
-      <button mat-raised-button color="primary" (click)="reload()">
-        🔄 Reintentar
-      </button>
-    </div>
-
-    <!-- Contenido de los Términos -->
-    <div 
-      class="terms-content markdown-body" 
-      *ngIf="!loading && !error"
-      [innerHTML]="termsContent">
-    </div>
-
-    <!-- Scroll Indicator -->
-    <div class="scroll-indicator" *ngIf="!loading && !error">
-      <span class="scroll-text">↓ Desplázate para leer todo</span>
-    </div>
-  </mat-dialog-content>
-
-  <!-- Footer con Acciones -->
-  <mat-dialog-actions class="modal-actions" *ngIf="!loading">
-    <div class="actions-left">
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+      <p class="text-red-700 mb-3">{{ error }}</p>
       <button 
-        mat-button 
-        class="action-button"
-        (click)="print()"
-        title="Imprimir términos">
-        🖨️ Imprimir
-      </button>
-      <button 
-        mat-button 
-        class="action-button"
-        (click)="downloadAsText()"
-        title="Descargar como texto">
-        💾 Descargar
+        type="button"
+        (click)="reload()"
+        style="background-color: #f57474; color: white; font-weight: 600; padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: all 0.2s; display: inline-block; margin-top: 12px; font-size: 14px;"
+        onmouseover="this.style.backgroundColor='#ea580c'; this.style.transform='scale(1.05)'"
+        onmouseout="this.style.backgroundColor='#f97316'; this.style.transform='scale(1)'">
+        Reintentar
       </button>
     </div>
-    
-    <div class="actions-right">
-      <button 
-        mat-button 
-        class="cancel-button"
-        (click)="close()">
-        Cerrar
-      </button>
-      <button 
-        mat-raised-button 
-        color="primary"
-        class="accept-button"
-        (click)="close()">
-        Aceptar
-      </button>
-    </div>
-  </mat-dialog-actions>
 
-  <!-- Indicador de Progreso de Lectura -->
-  <div class="read-progress-bar"></div>
+    <!-- Content State -->
+    <div *ngIf="!loading && !error" class="text-gray-700 markdown-content">
+      <div [innerHTML]="termsContent"></div>
+    </div>
+  </div>
+
+  <!-- Footer - SIEMPRE VISIBLE -->
+  <div class="flex flex-col sm:flex-row justify-between items-center gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50" style="position: relative; z-index: 1000; background-color: #f9fafb !important; min-height: 70px;">
+    <p class="text-xs text-gray-500 flex items-center gap-2 order-2 sm:order-1">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+      </svg>
+      <span class="hidden sm:inline">Términos y Condiciones de Uso</span>
+      <span class="sm:hidden">Términos y Condiciones</span>
+    </p>
+    <button 
+      type="button"
+      (click)="close()"
+      style="background-color: #3faf34 !important; color: white !important; font-weight: 600 !important; padding: 8px 20px !important; border-radius: 8px !important; border: none !important; cursor: pointer !important; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; transition: all 0.2s !important; width: 100% !important; display: block !important; visibility: visible !important; opacity: 1 !important; z-index: 1001 !important; position: relative !important; min-width: 100px !important; font-size: 14px !important;"
+      class="order-1 sm:order-2 sm:w-auto"
+      onmouseover="this.style.backgroundColor='#ea580c'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 12px rgba(249, 115, 22, 0.3)'"
+      onmouseout="this.style.backgroundColor='#f97316'; this.style.transform='scale(1)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'">
+      Entendido
+    </button>
+  </div>
 </div>
