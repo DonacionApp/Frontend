@@ -54,6 +54,14 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy, OnChanges
         this.currentUserRole = user?.role || null;
       });
 
+    this.acknowledgmentService.acknowledgmentCreated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ donationId, postId }) => {
+        if (this.shouldRefreshAfterCreation(donationId, postId)) {
+          this.loadAcknowledgments(true);
+        }
+      });
+
     // Si hay reviews pasados directamente, usarlos; si no, cargar desde API
     if (this.reviews && this.reviews.length > 0) {
       this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
@@ -64,10 +72,14 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy, OnChanges
 
   ngOnChanges(changes: SimpleChanges): void {
     // Si cambian los reviews, actualizar la lista
-    if (changes['reviews'] && this.reviews && this.reviews.length > 0) {
-      this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
-      this.loading = false;
-      this.error = '';
+    if (changes['reviews']) {
+      if (this.reviews && this.reviews.length > 0) {
+        this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
+        this.loading = false;
+        this.error = '';
+      } else {
+        this.acknowledgments = [];
+      }
     }
   }
 
@@ -98,9 +110,9 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy, OnChanges
     this.destroy$.complete();
   }
 
-  loadAcknowledgments(): void {
+  loadAcknowledgments(forceReload: boolean = false): void {
     // Si ya tenemos reviews pasados directamente, no hacer petición HTTP
-    if (this.reviews && this.reviews.length > 0) {
+    if (!forceReload && this.reviews && this.reviews.length > 0) {
       this.acknowledgments = this.convertReviewsToAcknowledgments(this.reviews);
       this.loading = false;
       return;
@@ -131,6 +143,18 @@ export class AcknowledgmentListComponent implements OnInit, OnDestroy, OnChanges
         this.toastService.error('Error', this.error);
       }
     });
+  }
+
+  private shouldRefreshAfterCreation(eventDonationId?: number, eventPostId?: number): boolean {
+    if (this.donationId && eventDonationId) {
+      return this.donationId === eventDonationId;
+    }
+
+    if (this.postId && eventPostId) {
+      return this.postId === eventPostId;
+    }
+
+    return false;
   }
 
   openReportModal(acknowledgment: Acknowledgment): void {

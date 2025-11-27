@@ -836,6 +836,10 @@ export class ListComponent implements OnInit, OnDestroy {
   }
 
   donateToCampaign(post: Post): void {
+    if (!this.hasAvailableArticles(post)) {
+      this.toastService.warning('Sin artículos disponibles', 'Esta solicitud ya no tiene artículos por cubrir.');
+      return;
+    }
     // Navegar a la página de donación con el ID del post
     this.router.navigate(['/organization/donations/create'], {
       queryParams: { post: post.id }
@@ -932,6 +936,27 @@ export class ListComponent implements OnInit, OnDestroy {
       'articulos para donar': 'bg-pink-100 text-pink-800'
     };
     return typeColors[typeName] || 'bg-gray-100 text-gray-800';
+  }
+
+  hasAvailableArticles(post?: Post): boolean {
+    if (!post || !post.postArticle || post.postArticle.length === 0) {
+      return false;
+    }
+
+    return post.postArticle.some(article => this.parseArticleQuantity(article?.quantity) > 0);
+  }
+
+  private parseArticleQuantity(value: unknown): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    return 0;
   }
 
   navigateToProfile(userId: number, event: Event): void {

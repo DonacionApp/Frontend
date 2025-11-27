@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +10,8 @@ import { AlertService } from '../../../shared/services/alert.service';
 import { environment } from '../../../../environments/environment';
 import { AcknowledgmentFormComponent } from '../../../shared/components/acknowledgment-form/acknowledgment-form.component';
 import { AcknowledgmentListComponent } from '../../../shared/components/acknowledgment-list/acknowledgment-list.component';
+import { AcknowledgmentService } from '../../../core/services/acknowledgment.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-donation-detail',
@@ -18,7 +20,7 @@ import { AcknowledgmentListComponent } from '../../../shared/components/acknowle
   templateUrl: './donation-detail.component.html',
   styleUrls: ['./donation-detail.component.scss']
 })
-export class DonationDetailComponent implements OnInit {
+export class DonationDetailComponent implements OnInit, OnDestroy {
   donation: Donation | null = null;
   loading = false;
   errorMessage = '';
@@ -31,6 +33,7 @@ export class DonationDetailComponent implements OnInit {
   allStatuses: StatusDonation[] = [];
   selectedStatusId: number = 0;
   updatingStatus = false;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
@@ -41,7 +44,8 @@ export class DonationDetailComponent implements OnInit {
     private http: HttpClient,
     private alertService: AlertService
     ,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private acknowledgmentService: AcknowledgmentService
   ) { }
 
   ngOnInit(): void {
@@ -49,9 +53,15 @@ export class DonationDetailComponent implements OnInit {
     if (id) {
       this.loadDonation(parseInt(id));
       this.loadStatuses();
+      this.listenAcknowledgmentsEvents(parseInt(id));
     } else {
       this.errorMessage = 'ID de donación no válido';
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private loadStatuses(): void {
@@ -65,11 +75,22 @@ export class DonationDetailComponent implements OnInit {
     });
   }
 
-  private loadDonation(id: number): void {
+  private listenAcknowledgmentsEvents(initialDonationId: number): void {
+    this.acknowledgmentService.acknowledgmentCreated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ donationId }) => {
+        const currentId = this.donation?.id ?? initialDonationId;
+        if (donationId && donationId === currentId) {
+          this.loadDonation(currentId, true);
+        }
+      });
+  }
+
+  private loadDonation(id: number, bypassCache: boolean = false): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.donationService.getDonationById(id).subscribe({
+    this.donationService.getDonationById(id, bypassCache).subscribe({
       next: (donation) => {
         this.donation = donation;
         this.selectedStatusId = donation.statusDonation.id;
@@ -130,8 +151,9 @@ export class DonationDetailComponent implements OnInit {
   loadAcknowledgments(): void {
     // Este método se llama cuando se crea un nuevo agradecimiento
     // Recargar la donación completa para obtener los reviews actualizados
+    // FORZAR bypass de caché para obtener datos frescos del servidor
     if (this.donation?.id) {
-      this.loadDonation(this.donation.id);
+      this.loadDonation(this.donation.id, true);
     }
   }
 
@@ -260,8 +282,9 @@ export class DonationDetailComponent implements OnInit {
     this.messageService.createChatFromDonation(this.donation.id).subscribe({
       next: async (res) => {
         try {
+          // Recargar la donación con bypass de caché para obtener el chat actualizado
           const fresh = await new Promise<Donation>((resolve, reject) => {
-            this.donationService.getDonationById(this.donation!.id).subscribe({ next: d => resolve(d), error: e => reject(e) });
+            this.donationService.getDonationById(this.donation!.id, true).subscribe({ next: d => resolve(d), error: e => reject(e) });
           });
           this.donation = fresh;
           this.checkPermissions();
@@ -387,10 +410,9 @@ export class DonationDetailComponent implements OnInit {
 
     this.donationService.updateDonationStatus(this.donation.id, { status: this.selectedStatusId }).subscribe({
       next: (updatedDonation) => {
-        this.donation = updatedDonation;
-        this.selectedStatusId = updatedDonation.statusDonation.id;
+        // Recargar con bypass de caché para asegurar datos frescos
+        this.loadDonation(this.donation!.id, true);
         this.updatingStatus = false;
-        this.checkPermissions();
       },
       error: (error) => {
         this.updatingStatus = false;

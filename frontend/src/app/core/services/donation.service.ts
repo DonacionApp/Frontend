@@ -243,7 +243,9 @@ export class DonationService {
    */
   getMyDonations(): Observable<Donation[]> {
     this.loadingSubject.next(true);
-    return this.http.get<any>(`${this.apiUrl}/me/all`).pipe(
+    // Siempre forzar datos frescos para donaciones propias (no cachear)
+    const headers = { 'X-No-Cache': 'true' };
+    return this.http.get<any>(`${this.apiUrl}/me/all`, { headers }).pipe(
       map(raw => this.normalizeGenericArray<Donation>(raw)),
       tap(donations => {
         this.donationsSubject.next(donations);
@@ -260,8 +262,11 @@ export class DonationService {
   /**
    * Obtener una donación por ID
    */
-  getDonationById(id: number): Observable<Donation> {
-    return this.http.get<Donation>(`${this.apiUrl}/${id}`).pipe(
+  getDonationById(id: number, bypassCache: boolean = false): Observable<Donation> {
+    // Permitir bypass de caché cuando se solicita datos frescos (ej: después de crear review)
+    const options = bypassCache ? { headers: { 'X-No-Cache': 'true' } } : {};
+    
+    return this.http.get<Donation>(`${this.apiUrl}/${id}`, options).pipe(
       catchError(error => {
         console.error('Error al obtener donación:', error);
         return throwError(() => error);
@@ -323,7 +328,10 @@ export class DonationService {
   updateDonation(id: number, updates: UpdateDonationDTO): Observable<Donation> {
     this.loadingSubject.next(true);
     const url = `${this.apiUrl}/update/${id}`;
-    return this.http.post<Donation>(url, updates).pipe(
+    // Agregar header para invalidar caché de donaciones después de actualizar
+    const headers = { 'X-Cache-Invalidate': '/donation' };
+    
+    return this.http.post<Donation>(url, updates, { headers }).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;
@@ -433,7 +441,10 @@ export class DonationService {
   updateDonationStatus(idDonation: number, statusData: UpdateDonationStatusDTO): Observable<Donation> {
     this.loadingSubject.next(true);
     const url = `${this.apiUrl}/${idDonation}/status`;
-    return this.http.post<Donation>(url, statusData).pipe(
+    // Agregar header para invalidar caché de donaciones después de actualizar estado
+    const headers = { 'X-Cache-Invalidate': '/donation' };
+    
+    return this.http.post<Donation>(url, statusData, { headers }).pipe(
       tap(updatedDonation => {
         // Actualizar en el estado local
         const currentDonations = this.donationsSubject.value;

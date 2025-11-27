@@ -85,24 +85,38 @@ export class DonationStatusDonutChartComponent implements OnInit, OnChanges {
   private processData(): void {
     if (!this.data || this.data.length === 0) {
       this.hasData = false;
+      this.totalCount = 0;
+      this.statusBreakdown = [];
       return;
     }
 
-    // Agrupar por estado
+    // Agrupar por estado considerando los distintos formatos de entrada
     const statusMap = new Map<string, number>();
-    
-    this.data.forEach((donation: any) => {
-      const status = this.normalizeStatus(donation.statusDonation?.status || donation.status || 'Desconocido');
-      statusMap.set(status, (statusMap.get(status) || 0) + 1);
+
+    this.data.forEach((record: any) => {
+      const status = this.extractStatus(record);
+      const count = this.extractCount(record);
+
+      if (count <= 0) {
+        return;
+      }
+
+      statusMap.set(status, (statusMap.get(status) || 0) + count);
     });
 
-    this.totalCount = this.data.length;
+    this.totalCount = Array.from(statusMap.values()).reduce((sum, value) => sum + value, 0);
+
+    if (this.totalCount === 0) {
+      this.statusBreakdown = [];
+      this.hasData = false;
+      return;
+    }
 
     // Convertir a array y calcular porcentajes
     this.statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({
       status,
       count,
-      percentage: this.totalCount > 0 ? (count / this.totalCount) * 100 : 0
+      percentage: (count / this.totalCount) * 100
     }));
 
     // Ordenar por cantidad descendente
@@ -110,7 +124,6 @@ export class DonationStatusDonutChartComponent implements OnInit, OnChanges {
 
     // Preparar datos para el gráfico
     this.doughnutChartLabels = this.statusBreakdown.map(item => item.status);
-    
     this.doughnutChartData = {
       labels: this.doughnutChartLabels,
       datasets: [{
@@ -124,8 +137,7 @@ export class DonationStatusDonutChartComponent implements OnInit, OnChanges {
 
     // Aplicar cutout para efecto de dona
     (this.doughnutChartOptions as any).cutout = '65%';
-
-    this.hasData = this.statusBreakdown.length > 0;
+    this.hasData = true;
   }
 
   /**
@@ -152,6 +164,41 @@ export class DonationStatusDonutChartComponent implements OnInit, OnChanges {
     };
 
     return statusMap[normalized] || status;
+  }
+
+  /**
+   * Extrae el nombre estandarizado del estado, sin importar el formato de entrada
+   */
+  private extractStatus(record: any): string {
+    const rawStatus = record?.statusDonation?.status
+      || record?.status
+      || record?.name
+      || 'Desconocido';
+    return this.normalizeStatus(rawStatus);
+  }
+
+  /**
+   * Determina la cantidad asociada al registro recibido.
+   * Soporta objetos agregados (count/value), listas de donaciones o registros individuales.
+   */
+  private extractCount(record: any): number {
+    if (!record) {
+      return 0;
+    }
+
+    if (typeof record.count === 'number' && !isNaN(record.count)) {
+      return record.count;
+    }
+
+    if (typeof record.value === 'number' && !isNaN(record.value)) {
+      return record.value;
+    }
+
+    if (Array.isArray(record.donations)) {
+      return record.donations.length;
+    }
+
+    return 1; // Registro individual
   }
 
   /**

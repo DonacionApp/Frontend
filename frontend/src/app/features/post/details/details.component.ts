@@ -178,6 +178,12 @@ export class DetailsComponent implements OnInit, OnDestroy {
 
   donateToCampaign(): void {
     if (!this.post) return;
+
+    if (!this.hasAvailableArticles(this.post)) {
+      this.alertService.showAlert('Sin artículos disponibles', 'warning');
+      return;
+    }
+
     this.router.navigate(['/donor/donate'], {
       queryParams: { campaign: this.post.id }
     });
@@ -396,6 +402,27 @@ export class DetailsComponent implements OnInit, OnDestroy {
       'articulos para donar': 'bg-pink-100 text-pink-800'
     };
     return typeColors[typeName] || 'bg-gray-100 text-gray-800';
+  }
+
+  hasAvailableArticles(post?: Post): boolean {
+    if (!post || !post.postArticle || post.postArticle.length === 0) {
+      return false;
+    }
+
+    return post.postArticle.some(article => this.parseArticleQuantity(article?.quantity) > 0);
+  }
+
+  private parseArticleQuantity(value: unknown): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    return 0;
   }
 
   getAvatarUrl(username: string, profilePhoto?: string): string {
