@@ -55,7 +55,7 @@ jobs:
   deploy_if_passed:
     name: Llamar al CD (Despliegue)
     needs: ci-frontend
-    if: success() && github.ref == 'refs/heads/main'
+    if: success() && github.ref == 'refs/heads/main' || github.ref == 'refs/heads/143-frontend-configurar-cd-de-frontend'
     
     uses: ./.github/workflows/frontend-cd.yml
     secrets:
