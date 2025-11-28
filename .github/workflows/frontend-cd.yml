@@ -31,7 +31,7 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: us-central1
       SERVICE_NAME: donaapp-angular-frontend
-      REGISTRY_NAME: donaapp-frontend
+      REGISTRY_NAME: frontend-repo-donarapp
       
     steps:
       - name: Checkout del código
