@@ -46,6 +46,11 @@ COPY --from=builder /app/frontend/dist/front/browser /usr/share/nginx/html
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 4200
+# Script de inicio que configura el puerto dinámicamente
+COPY start-nginx.sh /start-nginx.sh
+RUN chmod +x /start-nginx.sh
 
-CMD ["nginx", "-g", "daemon off;"]
+# Cloud Run usa PORT=8080, pero también soportamos otros puertos
+EXPOSE 8080
+
+CMD ["/start-nginx.sh"]
