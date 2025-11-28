@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Get configuration from environment variables or use defaults
-const API_URL = process.env['API_URL'] || 'http://localhost:5000';
-const SOCKET_URL = process.env['SOCKET_URL'] || 'http://localhost:5000';
+const API_URL = process.env['API_URL'] || 'http://localhost:8080';
+const SOCKET_URL = process.env['SOCKET_URL'] || 'http://localhost:8080';
 const GOOGLE_MAPS_API_KEY = process.env['GOOGLE_MAPS_API_KEY'] || 'AIzaSyC55ytCYBbBKrqbm10kHQBmwXNyYoxCogE';
 const GOOGLE_MAPS_MAP_ID = process.env['GOOGLE_MAPS_MAP_ID'] || 'a576f9d07a3eb6be92fc5da3';
 

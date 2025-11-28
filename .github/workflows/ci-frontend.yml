@@ -1,7 +1,7 @@
 name: CI-Frontend(Angular)
 on:
   push:
-    branches: [ "main", "64-frontend-configurar-ci" ]
+    branches: [ "main", "143-frontend-configurar-cd-de-frontend" ]
   pull_request:
     branches: [ "main" ]
     paths:
@@ -48,5 +48,20 @@ jobs:
           name: angular-build
           path: frontend/dist/**
           retention-days: 1
+          
       - name: Verificación final
         run: echo "CI Frontend completado correctamente "
+
+  deploy_if_passed:
+    name: Llamar al CD (Despliegue)
+    needs: ci-frontend
+    if: success() && github.ref == 'refs/heads/main'
+    
+    uses: ./.github/workflows/frontend-cd.yml
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      PROD_API_URL: ${{ secrets.PROD_API_URL }}
+      PROD_SOCKET_URL: ${{ secrets.PROD_SOCKET_URL }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      GOOGLE_MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
