@@ -254,7 +254,21 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private isBackendRequest(url: string): boolean {
-    return url.includes('localhost:5000') || url.includes('/auth/') || url.includes('/api/');
+    // Usar las URLs del environment para determinar si es una petición al backend
+    const apiUrl = environment.apiUrl || environment.apiBackendUrl || '';
+    
+    // Si la URL es absoluta, verificar si contiene el dominio del backend
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const backendDomain = apiUrl.replace(/^https?:\/\//, '').split('/')[0];
+      return url.includes(backendDomain);
+    }
+    
+    if (url.startsWith('/')) {
+      return !url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map)$/);
+    }
+    
+    // Por defecto, si contiene rutas comunes del backend
+    return url.includes('/auth/') || url.includes('/api/');
   }
 
   private isAuthRequest(url: string): boolean {

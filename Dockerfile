@@ -17,9 +17,28 @@ ENV API_URL=${API_URL:-http://localhost:8080} \
     GOOGLE_MAPS_API_KEY=${API_KEY_GOOGLE_MAPS:-} \
     GOOGLE_MAPS_MAP_ID=${MAPS_MAP_ID:-}
 
-RUN if [ -f scripts/generate-env.js ]; then node scripts/generate-env.js; fi
+# Generar archivos de environment antes del build
+RUN echo "Generating environment files with:" && \
+    echo "API_URL=${API_URL}" && \
+    echo "SOCKET_URL=${SOCKET_URL}" && \
+    echo "GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}" && \
+    echo "GOOGLE_MAPS_MAP_ID=${GOOGLE_MAPS_MAP_ID}" && \
+    if [ -f scripts/generate-env.js ]; then \
+      node scripts/generate-env.js && \
+      echo "Environment files generated successfully" && \
+      echo "--- environment.prod.ts content ---" && \
+      cat src/environments/environment.prod.ts && \
+      echo "--- end environment.prod.ts ---"; \
+    else \
+      echo "ERROR: generate-env.js not found!"; \
+      exit 1; \
+    fi
 
-RUN npm run build -- --configuration=production || npm run build
+# Verificar que los archivos de environment existen antes del build
+RUN echo "=== Verifying environment files ===" && \
+    ls -la src/environments/ && \
+    echo "=== Building Angular application ===" && \
+    npm run build -- --configuration=production || npm run build
 
 FROM nginx:alpine
 
@@ -27,6 +46,6 @@ COPY --from=builder /app/frontend/dist/front/browser /usr/share/nginx/html
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 8080
+EXPOSE 4200
 
 CMD ["nginx", "-g", "daemon off;"]
