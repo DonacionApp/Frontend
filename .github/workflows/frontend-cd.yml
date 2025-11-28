@@ -4,6 +4,8 @@ on:
   workflow_call:
     inputs: {}
     secrets:
+      PRODUCTION:
+        required: true
       GCP_SA_KEY:
         required: true
       GCP_PROJECT_ID:
@@ -21,6 +23,12 @@ jobs:
   deploy_frontend:
     name: Despliegue a Producción (Cloud Run)
     runs-on: ubuntu-latest
+    env:
+      PRODUCTION: ${{ secrets.PRODUCTION }}
+      API_URL: ${{ secrets.PROD_API_URL }}
+      SOCKET_URL: ${{ secrets.PROD_SOCKET_URL }}
+      API_KEY_GOOGLE_MAPS: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
     
     defaults:
       run:
@@ -44,19 +52,16 @@ jobs:
       # 2. CONSTRUCCIÓN Y ALMACENAMIENTO DE LA IMAGEN DOCKER
       - name: Construir y Empujar Imagen a Artifact Registry
         run: |
-          # Configura Docker para autenticarse en Artifact Registry de us-central1
           gcloud --quiet auth configure-docker us-central1-docker.pkg.dev
           
           IMAGE_URL=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/frontend-repo-donarapp/angular-app:latest
           echo "Building image: $IMAGE_URL"
           
-          # Construye la imagen desde la raíz usando el Dockerfile que está en la raíz
-          # Pasa las variables de entorno como build args
           docker build \
-            --build-arg API_URL=${{ secrets.PROD_API_URL }} \
-            --build-arg SOCKET_URL=${{ secrets.PROD_SOCKET_URL }} \
-            --build-arg API_KEY_GOOGLE_MAPS=${{ secrets.GOOGLE_MAPS_API_KEY }} \
-            --build-arg MAPS_MAP_ID=${{ secrets.GOOGLE_MAPS_MAP_ID }} \
+            --build-arg API_URL=${API_URL} \
+            --build-arg SOCKET_URL=${SOCKET_URL} \
+            --build-arg API_KEY_GOOGLE_MAPS=${API_KEY_GOOGLE_MAPS} \
+            --build-arg MAPS_MAP_ID=${MAPS_MAP_ID} \
             -f ../Dockerfile \
             -t $IMAGE_URL \
             ..
@@ -79,3 +84,8 @@ jobs:
           # las incluimos por si acaso se necesitan en runtime)
           env_vars: |
             NODE_ENV=production
+            PRODUCTION=${{ secrets.PRODUCTION }}
+            API_URL=${{ secrets.PROD_API_URL }}
+            SOCKET_URL=${{ secrets.PROD_SOCKET_URL }}
+            GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+            GOOGLE_MAPS_MAP_ID=${{ secrets.GOOGLE_MAPS_MAP_ID }}

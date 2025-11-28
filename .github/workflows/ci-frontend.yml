@@ -59,6 +59,7 @@ jobs:
     
     uses: ./.github/workflows/frontend-cd.yml
     secrets:
+      PRODUCTION: ${{ secrets.PROD_PRODUCTION }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       PROD_API_URL: ${{ secrets.PROD_API_URL }}
