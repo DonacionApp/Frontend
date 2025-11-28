@@ -27,10 +27,6 @@ jobs:
     name: Deploy Frontend to Cloud Run
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./frontend
-
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: us-central1
