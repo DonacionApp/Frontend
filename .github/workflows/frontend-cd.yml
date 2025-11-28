@@ -1,91 +1,67 @@
-name: CD Frontend (Angular a Cloud Run)
-
+name: CI-Frontend(Angular)
 on:
-  workflow_call:
-    inputs: {}
-    secrets:
-      PRODUCTION:
-        required: true
-      GCP_SA_KEY:
-        required: true
-      GCP_PROJECT_ID:
-        required: true
-      PROD_API_URL:
-        required: true
-      PROD_SOCKET_URL:
-        required: true
-      GOOGLE_MAPS_API_KEY:
-        required: true
-      GOOGLE_MAPS_MAP_ID:
-        required: true
+  push:
+    branches: [ "main", "143-frontend-configurar-cd-de-frontend" ]
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
 
 jobs:
-  deploy_frontend:
-    name: Despliegue a Producción (Cloud Run)
+  ci-frontend:
     runs-on: ubuntu-latest
-    env:
-      PRODUCTION: ${{ secrets.PRODUCTION }}
-      API_URL: ${{ secrets.PROD_API_URL }}
-      SOCKET_URL: ${{ secrets.PROD_SOCKET_URL }}
-      API_KEY_GOOGLE_MAPS: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-      MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
-    
+
     defaults:
       run:
         working-directory: ./frontend
+
+    env:
+      PRODUCTION: ${{vars.PRODUCTION}}
+      API_URL: ${{vars.API_URL}}
+      API_BASE_URL: ${{vars.API_BASE_URL}}
+      API_BACKEND_URL: ${{vars.API_BACKEND_URL}}
+      SOCKET_URL: ${{vars.SOCKET_URL}}
+      API_KEY_GOOGLE_MAPS: ${{secrets.API_KEY_GOOGLE_MAPS}}
+      MAPS_MAP_ID: ${{secrets.MAPS_MAP_ID}}
 
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      # 1. AUTENTICACIÓN GCP
-      - name: Autenticación en Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          node-version: 22
 
-      - name: Configurar GCloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          
-      # 2. CONSTRUCCIÓN Y ALMACENAMIENTO DE LA IMAGEN DOCKER
-      - name: Construir y Empujar Imagen a Artifact Registry
-        run: |
-          gcloud --quiet auth configure-docker us-central1-docker.pkg.dev
-          
-          IMAGE_URL=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/frontend-repo-donarapp/angular-app:latest
-          echo "Building image: $IMAGE_URL"
-          
-          docker build \
-            --build-arg API_URL=${API_URL} \
-            --build-arg SOCKET_URL=${SOCKET_URL} \
-            --build-arg API_KEY_GOOGLE_MAPS=${API_KEY_GOOGLE_MAPS} \
-            --build-arg MAPS_MAP_ID=${MAPS_MAP_ID} \
-            -f ../Dockerfile \
-            -t $IMAGE_URL \
-            ..
-          
-          docker push $IMAGE_URL
+      - name: Instalar dependencias
+        run: npm install
 
-      # 3. DESPLIEGUE A CLOUD RUN
-      - name: Desplegar a Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
+      - name: Verificar linting
+        run: npm run lint --if-present
+
+      - name: Compilar aplicación Angular
+        run: npm run build --if-present
+
+      - name: Subir artefacto de build (opcional)
+        uses: actions/upload-artifact@v4
         with:
-          service: donaapp-angular-frontend
-          region: us-central1
+          name: angular-build
+          path: frontend/dist/**
+          retention-days: 1
           
-          image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/frontend-repo-donarapp/angular-app:latest
-          
-          # Configuración del servicio
-          flags: --allow-unauthenticated --timeout=300s --memory=512Mi --cpu=1 --min-instances=0 --max-instances=3
-          
-          # Variables de entorno (aunque Angular las tiene en build-time, 
-          # las incluimos por si acaso se necesitan en runtime)
-          env_vars: |
-            NODE_ENV=production
-            PRODUCTION=${{ secrets.PRODUCTION }}
-            API_URL=${{ secrets.PROD_API_URL }}
-            SOCKET_URL=${{ secrets.PROD_SOCKET_URL }}
-            GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
-            GOOGLE_MAPS_MAP_ID=${{ secrets.GOOGLE_MAPS_MAP_ID }}
+      - name: Verificación final
+        run: echo "CI Frontend completado correctamente "
+
+  deploy_if_passed:
+    name: Llamar al CD (Despliegue)
+    needs: ci-frontend
+    if: success() && github.ref == 'refs/heads/main'
+    
+    uses: ./.github/workflows/frontend-cd.yml
+    secrets:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      PROD_API_URL: ${{ secrets.PROD_API_URL }}
+      PROD_SOCKET_URL: ${{ secrets.PROD_SOCKET_URL }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      GOOGLE_MAPS_MAP_ID: ${{ secrets.GOOGLE_MAPS_MAP_ID }}
