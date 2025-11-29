@@ -5,6 +5,7 @@ import { HasRoleDirective } from './directives/has-role.directive';
 import { AccessDeniedComponent } from './components/access-denied/access-denied.component';
 import { ChatsComponent } from './components/chats/chats.component';
 import { PublicStatsComponent } from './components/public-stats/public-stats.component';
+import { AdsenseBlockComponent } from './adsense-block/adsense-block.component';
 
 /**
  * SharedModule contiene componentes, directivas y pipes reutilizables
@@ -14,7 +15,9 @@ import { PublicStatsComponent } from './components/public-stats/public-stats.com
  * y se importan directamente donde se necesiten
  */
 @NgModule({
-  declarations: [],
+  declarations: [
+    AdsenseBlockComponent
+  ],
   imports: [
     CommonModule,
     SpinnerComponent,

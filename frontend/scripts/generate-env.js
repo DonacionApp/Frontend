@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-// Get configuration from environment variables or use defaults
+// Load .env if present so that local development can use it
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Get configuration from environment variables (possibly loaded from .env) or use defaults
 const API_URL = process.env['API_URL'] || 'http://localhost:8080';
 const SOCKET_URL = process.env['SOCKET_URL'] || 'http://localhost:8080';
 const GOOGLE_MAPS_API_KEY = process.env['GOOGLE_MAPS_API_KEY'] || 'AIzaSyC55ytCYBbBKrqbm10kHQBmwXNyYoxCogE';
@@ -34,3 +37,15 @@ console.log('Generated environment.ts');
 
 fs.writeFileSync(envProdPath, createEnvConfig(true));
 console.log('Generated environment.prod.ts');
+
+// Helpful log for debugging where values came from
+const envFile = fs.existsSync(path.join(__dirname, '../.env')) ? '.env' : 'process environment';
+console.log(`Env values loaded from: ${envFile}`);
+
+// Warn if defaults are used for key values (helps catch missing CI variables)
+const defaultsUsed = [];
+if (!process.env['API_URL']) defaultsUsed.push('API_URL');
+if (!process.env['GOOGLE_MAPS_API_KEY']) defaultsUsed.push('GOOGLE_MAPS_API_KEY');
+if (defaultsUsed.length > 0) {
+  console.warn(`Warning: using default values for: ${defaultsUsed.join(', ')}. Set these in your CI or in .env to avoid defaults.`);
+}
