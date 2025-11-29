@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Sitemap generated for production: https://donaapp-angular-frontend-494288399460.us-central1.run.app -->
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/home</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/about</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/post</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/privacy-policy</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/register</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/register/donor</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/register/organization</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <!-- Example profile/user-stat URLs (placeholders). To include all real profiles, generate these dynamically at build or runtime. -->
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/profile/1</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/profile/2</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/usuario/1/stats</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <url>
+    <loc>https://donaapp-angular-frontend-494288399460.us-central1.run.app/usuario/2/stats</loc>
+    <lastmod>2025-11-28</lastmod>
+  </url>
+  <!-- NOTE: Replace or extend the example profile IDs with real IDs via a build script or server endpoint to cover all public profiles -->
+</urlset>
