@@ -56,8 +56,8 @@ export class HelpComponent {
     {
       title: 'Gestión de donaciones recibidas',
       description: 'El proceso correcto para confirmar la recepción de donaciones y generar confianza.',
-      videoUrl: '#',
-      thumbnailUrl: ''
+      videoUrl: 'https://www.youtube.com/embed/PQ1KC85mzBE',
+      thumbnailUrl: 'https://img.youtube.com/vi/PQ1KC85mzBE/maxresdefault.jpg'
     }
   ];
 
