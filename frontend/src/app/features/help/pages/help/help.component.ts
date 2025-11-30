@@ -34,9 +34,9 @@ export class HelpComponent {
     },
     {
       title: 'Configurar tu perfil',
-      description: 'Guía rápida para mantener tu información de contacto y preferencias actualizadas.',
+      description: 'Configuracion de tu perfil',
       videoUrl: '#',
-      thumbnailUrl: 'https://img.youtube.com/vi/K9yV3ZcMS-w/maxresdefault.jpg'
+      thumbnailUrl: '#'
     }
   ];
 
@@ -48,10 +48,10 @@ export class HelpComponent {
       thumbnailUrl: 'https://img.youtube.com/vi/Bjp5jAtR_3g/maxresdefault.jpg'
     },
     {
-      title: 'Cómo publicar necesidades',
-      description: 'Aprende a crear publicaciones efectivas para solicitar donaciones de alimentos o recursos.',
+      title: 'Chat en linea',
+      description: 'Chat en linea',
       videoUrl: '#',
-      thumbnailUrl: 'https://img.youtube.com/vi/K9yV3ZcMS-w/maxresdefault.jpg'
+      thumbnailUrl: '#'
     },
     {
       title: 'Gestión de donaciones recibidas',

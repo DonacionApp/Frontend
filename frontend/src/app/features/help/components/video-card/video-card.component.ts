@@ -27,6 +27,27 @@ export class VideoCardComponent implements OnInit {
   }
 
   playVideo(): void {
-    this.showVideo = true;
+    // Si el videoUrl es de YouTube, reproducir en la tarjeta
+    if (this.videoUrl && this.videoUrl.includes('youtube.com')) {
+      this.showVideo = true;
+    } else if (this.videoUrl) {
+      // Si es otra URL, abrir en nueva pestaña
+      window.open(this.videoUrl, '_blank');
+    }
+  }
+
+  openInYouTube(): void {
+    // Extraer el ID del video de YouTube y abrir en nueva pestaña
+    if (this.videoUrl) {
+      let youtubeUrl = this.videoUrl;
+      
+      // Si es una URL de embed, convertirla a URL normal de YouTube
+      if (this.videoUrl.includes('youtube.com/embed/')) {
+        const videoId = this.videoUrl.split('embed/')[1]?.split('?')[0];
+        youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      }
+      
+      window.open(youtubeUrl, '_blank');
+    }
   }
 }
