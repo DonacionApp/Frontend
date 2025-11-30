@@ -21,6 +21,9 @@ on:
       GOOGLE_MAPS_MAP_ID:
         required: true
         description: 'Google Maps Map ID'
+      APP_ENV:
+        required: true
+        description: 'Application Environment'
 
 jobs:
   deploy-to-cloud-run:
@@ -32,7 +35,7 @@ jobs:
       GCP_REGION: us-central1
       SERVICE_NAME: donaapp-angular-frontend
       REGISTRY_NAME: frontend-repo-donarapp
-      
+      APP_ENV: ${{ secrets.APP_ENV }}
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
@@ -58,6 +61,7 @@ jobs:
             --build-arg SOCKET_URL=${{ secrets.PROD_SOCKET_URL }} \
             --build-arg GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
             --build-arg GOOGLE_MAPS_MAP_ID=${{ secrets.GOOGLE_MAPS_MAP_ID }} \
+            --build-arg APP_ENV=${{ secrets.APP_ENV }} \
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.SERVICE_NAME }}:latest \
             .

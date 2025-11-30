@@ -16,6 +16,7 @@ jobs:
         working-directory: ./frontend
 
     env:
+      APP_ENV: ${{secrets.APP_ENV}}
       PRODUCTION: ${{vars.PRODUCTION}}
       API_URL: ${{vars.API_URL}}
       API_BASE_URL: ${{vars.API_BASE_URL}}
@@ -59,6 +60,7 @@ jobs:
     
     uses: ./.github/workflows/frontend-cd.yml
     secrets:
+      APP_ENV: ${{ secrets.APP_ENV }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       PROD_API_URL: ${{ secrets.PROD_API_URL }}
