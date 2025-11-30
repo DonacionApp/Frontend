@@ -50,8 +50,8 @@ export class HelpComponent {
     {
       title: 'Chat en linea',
       description: 'Chat en linea',
-      videoUrl: '#',
-      thumbnailUrl: '#'
+      videoUrl: 'https://www.youtube.com/embed/VOIPMcaO-_4',
+      thumbnailUrl: 'https://img.youtube.com/vi/VOIPMcaO-_4/maxresdefault.jpg'
     },
     {
       title: 'Gestión de donaciones recibidas',
