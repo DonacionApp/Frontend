@@ -33,10 +33,10 @@ export class HelpComponent {
       thumbnailUrl: 'https://img.youtube.com/vi/tT4ctZrRk8Y/maxresdefault.jpg'
     },
     {
-      title: 'Configurar tu perfil',
+      title: 'Crear tu primer donación',
       description: 'Configuracion de tu perfil',
-      videoUrl: '#',
-      thumbnailUrl: '#'
+      videoUrl: 'https://www.youtube.com/embed/8efWTvmFgWU',
+      thumbnailUrl: 'https://img.youtube.com/vi/8efWTvmFgWU/maxresdefault.jpg'
     }
   ];
 
@@ -57,7 +57,7 @@ export class HelpComponent {
       title: 'Gestión de donaciones recibidas',
       description: 'El proceso correcto para confirmar la recepción de donaciones y generar confianza.',
       videoUrl: '#',
-      thumbnailUrl: 'https://img.youtube.com/vi/K9yV3ZcMS-w/maxresdefault.jpg'
+      thumbnailUrl: ''
     }
   ];
 
