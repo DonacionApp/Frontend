@@ -254,7 +254,43 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private isBackendRequest(url: string): boolean {
-    return url.includes('localhost:5000') || url.includes('/auth/') || url.includes('/api/');
+    // Usar las URLs del environment para determinar si es una petición al backend
+    const apiUrl = (environment as any).apiUrl || (environment as any).apiBackendUrl || '';
+ console.log('AuthInterceptor isBackendRequest check:', url, 'against apiUrl:', apiUrl);
+    // Helper: extrae hostname de una URL absoluta
+    const getHostname = (u: string): string | null => {
+      try {
+        return new URL(u).hostname;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Si la URL es absoluta, comparar por hostname (ignorar puerto)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const reqHost = getHostname(url) || '';
+      const backendHost = getHostname(apiUrl) || '';
+
+      // Coincide exactamente el host (sin tener en cuenta puerto)
+      if (backendHost && reqHost && reqHost === backendHost) return true;
+
+      // Considerar localhost/127.0.0.1 y el hostname actual del navegador como backend válido
+      const browserHost = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+      if (reqHost === 'localhost' || reqHost === '127.0.0.1' || (browserHost && reqHost === browserHost)) return true;
+
+      // Fallback: comprobar si la URL contiene el dominio backend completo
+      if (backendHost && url.includes(backendHost)) return true;
+
+      return false;
+    }
+
+    // Rutas relativas que no son assets estáticos se consideran peticiones al backend
+    if (url.startsWith('/')) {
+      return !url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map)$/);
+    }
+
+    // Por defecto, si contiene rutas comunes del backend
+    return url.includes('/auth/') || url.includes('/api/') || url.includes('/post/') || url.includes('/user-notify/');
   }
 
   private isAuthRequest(url: string): boolean {

@@ -12,8 +12,8 @@ ARG SOCKET_URL
 ARG API_KEY_GOOGLE_MAPS
 ARG MAPS_MAP_ID
 
-ENV API_URL=${API_URL:-http://localhost:5000} \
-    SOCKET_URL=${SOCKET_URL:-http://localhost:5000} \
+ENV API_URL=${API_URL:-http://localhost:8080} \
+    SOCKET_URL=${SOCKET_URL:-http://localhost:8080} \
     GOOGLE_MAPS_API_KEY=${API_KEY_GOOGLE_MAPS:-} \
     GOOGLE_MAPS_MAP_ID=${MAPS_MAP_ID:-}
 
@@ -23,7 +23,7 @@ RUN npm run build -- --configuration=production || npm run build
 
 FROM nginx:alpine
 
-COPY --from=builder /app/frontend/dist/front/browser /usr/share/nginx/html
+COPY --from=builder /app/frontend/dist/front/browser/ /usr/share/nginx/html/
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
