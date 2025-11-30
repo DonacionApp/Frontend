@@ -6,11 +6,12 @@ import { FooterComponent } from '../../shared/components/footer/footer.component
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ImpactMetricsComponent, type ImpactStats } from '../../shared/components/impact-metrics/impact-metrics.component';
 import { PublicStatsService, FALLBACK_STATS } from '../../core/services/public-stats.service';
+import { AdsenseBlockComponent } from '../../shared/adsense-block/adsense-block.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, FooterComponent, ModalComponent, ImpactMetricsComponent],
+  imports: [CommonModule, ButtonComponent, FooterComponent, ModalComponent, ImpactMetricsComponent,AdsenseBlockComponent],
   templateUrl: './home.component.html'
 })
 export class HomeComponent implements OnInit {
