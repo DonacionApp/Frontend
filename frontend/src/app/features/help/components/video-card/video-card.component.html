@@ -1,0 +1,71 @@
+<div class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col group">
+  <!-- Video Area -->
+  <div class="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-800">
+    <ng-container *ngIf="showVideo && safeVideoUrl; else thumbnail">
+      <iframe 
+        [src]="safeVideoUrl" 
+        class="w-full h-full" 
+        frameborder="0" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowfullscreen>
+      </iframe>
+    </ng-container>
+
+    <ng-template #thumbnail>
+      <img 
+        [src]="thumbnailUrl || 'assets/images/video-placeholder.jpg'" 
+        [alt]="title" 
+        class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity">
+      
+      <!-- Play Button Overlay -->
+      <button 
+        (click)="playVideo()"
+        class="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-black/30 to-transparent group-hover:from-black/50 group-hover:via-black/20 transition-all cursor-pointer">
+        <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 md:w-10 md:h-10 text-white ml-1">
+            <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </button>
+
+      <!-- Duration Badge (optional) -->
+      <div class="absolute bottom-3 right-3 bg-black/80 text-white text-xs font-semibold px-2 py-1 rounded">
+        Video
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Content Area -->
+  <div class="p-6 flex-1 flex flex-col bg-gradient-to-b from-white to-gray-50">
+    <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-green-600 transition-colors">
+      {{ title }}
+    </h3>
+    <p class="text-sm text-gray-600 line-clamp-3 mb-4 flex-1 leading-relaxed">
+      {{ description }}
+    </p>
+    
+    <!-- Action Buttons -->
+    <div class="mt-auto pt-4 border-t border-gray-100 space-y-2">
+      <!-- Ver aquí (reproducir en tarjeta) -->
+      <button 
+        (click)="playVideo()"
+        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Ver Tutorial
+      </button>
+
+      <!-- Abrir en YouTube -->
+      <button 
+        (click)="openInYouTube()"
+        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+        Abrir en YouTube
+      </button>
+    </div>
+  </div>
+</div>

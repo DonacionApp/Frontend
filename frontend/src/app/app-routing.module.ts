@@ -21,6 +21,10 @@ const routes: Routes = [
     loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent)
   },
   {
+    path: 'ayuda',
+    loadComponent: () => import('./features/help/pages/help/help.component').then(m => m.HelpComponent)
+  },
+  {
     path: 'post', 
     loadChildren:()=>import('./features/post/post.module').then(m=>m.PostModule)
   },
