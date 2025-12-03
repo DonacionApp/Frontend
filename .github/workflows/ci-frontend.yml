@@ -1,7 +1,7 @@
 name: CI-Frontend(Angular)
 on:
   push:
-    branches: [ "main", "143-frontend-configurar-cd-de-frontend" ]
+    branches: [ "main"]
   pull_request:
     branches: [ "main" ]
     paths:
@@ -56,7 +56,8 @@ jobs:
   deploy_if_passed:
     name: Llamar al CD (Despliegue)
     needs: ci-frontend
-    if: success() && github.ref == 'refs/heads/main' || github.ref == 'refs/heads/143-frontend-configurar-cd-de-frontend'
+   #if: success() && github.ref == 'refs/heads/main'
+    if: false  
     
     uses: ./.github/workflows/frontend-cd.yml
     secrets:
