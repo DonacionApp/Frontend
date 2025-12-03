@@ -224,7 +224,7 @@ export class NavComponent implements OnInit, OnDestroy {
     if (this.user?.role === 'organization') {
       this.router.navigate(['/organization']);
     } else if (this.user?.role === 'donor') {
-      this.router.navigate(['/organization']);
+      this.router.navigate(['/donor']);
     } else {
       this.router.navigate(['/post']);
     }
