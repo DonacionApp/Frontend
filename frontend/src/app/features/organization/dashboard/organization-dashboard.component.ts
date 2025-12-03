@@ -108,7 +108,16 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
         this.applyTabFilteringIfNeeded();
       });
 
-    // Cargar perfil de la organización
+    // Suscribirse al perfil de organización (reactivo)
+    this.organizationProfileService.profile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(profile => {
+        if (profile) {
+          this.organizationProfile = profile;
+        }
+      });
+
+    // Cargar perfil de la organización (esto actualizará el observable)
     this.loadOrganizationProfile();
     // Leer query param 'section' y actualizar pestaña activa
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
@@ -133,7 +142,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.loadRecentDonations();
     this.loadAllDonations();
     this.loadMyNeeds(); // Cargar necesidades para calcular métricas
-    this.loadMetrics();
+    // loadMetrics() se llama automáticamente después de cargar los datos en cada método
 
     // Suscribirse a cambios de pestaña
     this.activeTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => {
@@ -316,7 +325,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    * Navegar a publicar necesidad
    */
   onPublishNeed(): void {
-    this.router.navigate(['/post/create-edit'], { queryParams: { type: 'solicitud' } });
+    this.router.navigate(['/post/create']);
   }
 
   /**
@@ -370,6 +379,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
         this.loadingMyNeeds = false;
         // Actualizar métrica
         this.publishedNeedsCount = this.myNeeds.length;
+        // Recalcular métricas después de cargar necesidades
+        this.loadMetrics();
       },
       error: (error) => {
         console.error('Error al cargar mis necesidades:', error);
@@ -383,7 +394,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    */
   loadMetrics(): void {
     // Solicitudes enviadas: donaciones donde soy donador
-    if (this.allDonations.length > 0) {
+    if (this.allDonations.length > 0 && this.currentUser) {
       this.computeSolicitudes();
     }
     this.sentRequestsCount = this.solicitudes.length;
@@ -396,7 +407,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     }
     
     // Necesidades publicadas: se actualiza en loadMyNeeds
-    // Mensajes: viene del stats
+    // Ya está actualizado en loadMyNeeds()
+    
+    // Mensajes: viene del stats (ahora obtiene el valor real del backend)
     if (this.stats) {
       this.messagesCount = this.stats.unreadMessages || 0;
     }
@@ -406,8 +419,20 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    * Solicitar una donación disponible
    */
   requestAvailableDonation(post: Post): void {
-    // Navegar al detalle del post para solicitar
-    this.router.navigate(['/post', post.id]);
+    // Validar permisos antes de navegar
+    if (!this.authService.canRequestDonation()) {
+      if (!this.authService.isAuthenticated()) {
+        this.router.navigate(['/auth/login']);
+      } else {
+        this.toast.error('Verificación requerida', 'Debes verificar tu cuenta para solicitar donaciones');
+      }
+      return;
+    }
+    
+    // Navegar al formulario de solicitud de donación
+    this.router.navigate(['/organization/donations/create'], {
+      queryParams: { post: post.id }
+    });
   }
   
   /**
@@ -645,8 +670,20 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    * Obtener nombre de la organización
    */
   get organizationName(): string {
-    // Usar el nombre de la organización del perfil, no el username
-    return this.organizationProfile?.name || this.currentUser?.name || 'Organización';
+    // Prioridad: nombre del perfil > nombre del usuario > username del perfil > username del usuario > fallback
+    if (this.organizationProfile?.name && this.organizationProfile.name.trim()) {
+      return this.organizationProfile.name;
+    }
+    if (this.currentUser?.name && this.currentUser.name.trim()) {
+      return this.currentUser.name;
+    }
+    if (this.organizationProfile?.username && this.organizationProfile.username.trim()) {
+      return this.organizationProfile.username;
+    }
+    if (this.currentUser?.username && this.currentUser.username.trim()) {
+      return this.currentUser.username;
+    }
+    return 'Organización';
   }
 
   /**
