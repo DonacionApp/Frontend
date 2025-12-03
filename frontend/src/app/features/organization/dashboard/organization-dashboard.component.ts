@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -96,7 +96,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private organizationProfileService: OrganizationProfileService,
     private toast: ToastService,
-    private postsService: PostsService
+    private postsService: PostsService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -373,12 +374,27 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.loadingMyNeeds = true;
     this.postsService.getMyPosts().pipe(takeUntil(this.destroy$)).subscribe({
       next: (myPosts) => {
-        // Filtrar solo posts de tipo "solicitud de donacion"
-        this.myNeeds = myPosts.filter(post => post.typePost?.type === 'solicitud de donacion');
+        console.log('loadMyNeeds - Total posts recibidos:', myPosts.length);
+        console.log('loadMyNeeds - Posts con tipos:', myPosts.map(p => ({ id: p.id, title: p.title, type: p.typePost?.type })));
+        
+        // Filtrar solo posts de tipo "solicitud de donacion" (case insensitive)
+        this.myNeeds = myPosts.filter(post => {
+          const postType = post.typePost?.type?.toLowerCase()?.trim();
+          const match = postType === 'solicitud de donacion';
+          if (postType) {
+            console.log(`Post ${post.id} (${post.title}): tipo="${postType}", coincide=${match}`);
+          }
+          return match;
+        });
+        
+        console.log('loadMyNeeds - Necesidades encontradas:', this.myNeeds.length);
         this.filteredMyNeeds = [...this.myNeeds];
         this.loadingMyNeeds = false;
         // Actualizar métrica
         this.publishedNeedsCount = this.myNeeds.length;
+        console.log('loadMyNeeds - publishedNeedsCount actualizado a:', this.publishedNeedsCount);
+        // Forzar detección de cambios para actualizar la vista
+        this.cdr.detectChanges();
         // Recalcular métricas después de cargar necesidades
         this.loadMetrics();
       },
@@ -393,6 +409,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
    * Cargar métricas del dashboard
    */
   loadMetrics(): void {
+    console.log('loadMetrics() - publishedNeedsCount ANTES:', this.publishedNeedsCount);
+    
     // Solicitudes enviadas: donaciones donde soy donador
     if (this.allDonations.length > 0 && this.currentUser) {
       this.computeSolicitudes();
@@ -407,7 +425,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     }
     
     // Necesidades publicadas: se actualiza en loadMyNeeds
-    // Ya está actualizado en loadMyNeeds()
+    // NO sobrescribir aquí, ya está actualizado en loadMyNeeds()
+    console.log('loadMetrics() - publishedNeedsCount DESPUÉS (no se modifica):', this.publishedNeedsCount);
     
     // Mensajes: viene del stats (ahora obtiene el valor real del backend)
     if (this.stats) {
