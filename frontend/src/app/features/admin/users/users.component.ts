@@ -347,7 +347,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       ...(user.people ? [
         { label: 'Nombre', value: user.people.name },
         { label: 'Apellido', value: user.people.lastName || '-' },
-        { label: 'DNI', value: user.people.dni || '-' },
+        { label: 'Número de identificación', value: user.people.dni || '-' },
         { label: 'Teléfono', value: user.people.telefono || '-' }
       ] : [])
     ];
@@ -1339,7 +1339,7 @@ export class UsersComponent implements OnInit, OnDestroy {
           this.typeDniOptions = types || [];
         },
         error: (error) => {
-          console.error('Error loading DNI types:', error);
+          console.error('Error loading identification types:', error);
         }
       });
   }

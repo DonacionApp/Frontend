@@ -86,7 +86,7 @@ export class UserSystemComponent implements OnInit, OnDestroy {
     },
     { 
       key: 'people.dni', 
-      label: 'DNI', 
+      label: 'Número de identificación', 
       sortable: false,
       render: (value, row) => row.people?.dni || '-'
     }

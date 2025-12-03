@@ -181,7 +181,7 @@
           </div>
 
           <div class="form-field">
-            <label class="field-label" for="tipodDni">Tipo de Documento</label>
+          <label class="field-label" for="tipodDni">Tipo de identificación</label>
             <select id="tipodDni" formControlName="tipodDni" class="field-select">
               <option [value]="1">NIT</option>
               <option [value]="2">Cédula</option>
@@ -191,13 +191,13 @@
         </div>
 
         <div class="form-field">
-          <label class="field-label" for="dni">Documento (DNI / NIT) (opcional)</label>
+          <label class="field-label" for="dni">Número de identificación (opcional)</label>
           <input 
             id="dni"
             type="text" 
             formControlName="dni" 
             class="field-input"
-            placeholder="Número de identificación"
+          placeholder="Número de ID"
           />
         </div>
       </div>

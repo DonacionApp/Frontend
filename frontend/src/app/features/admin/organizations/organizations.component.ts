@@ -385,7 +385,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
       ...(organization.people ? [
         { label: 'Nombre', value: organization.people.name },
         { label: 'Descripción', value: description },
-        { label: 'DNI', value: organization.people.dni || '-' },
+        { label: 'Número de identificación', value: organization.people.dni || '-' },
         { label: 'Teléfono', value: organization.people.telefono || '-' }
       ] : [])
     ];
@@ -1328,7 +1328,7 @@ export class OrganizationsComponent implements OnInit, OnDestroy {
           this.typeDniOptions = types || [];
         },
         error: (error) => {
-          console.error('Error loading DNI types:', error);
+          console.error('Error loading identification types:', error);
         }
       });
   }
