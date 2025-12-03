@@ -2,13 +2,14 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, Subject, takeUntil, forkJoin } from 'rxjs';
 import { DonationService, OrganizationStats, Donation, DonationArticle, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { PostsService, Post } from '../../../core/services/posts.service';
 
-type TabType = 'resumen' | 'mis-donaciones' | 'donadas-a-mi' | 'solicitudes';
+type TabType = 'resumen' | 'donaciones-disponibles' | 'mis-solicitudes' | 'mis-necesidades';
 
 @Component({
   selector: 'app-organization-dashboard',
@@ -35,10 +36,26 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   loading = true;
   loadingDonations = false;
   loadingSolicitudes = false;
+  loadingAvailableDonations = false;
+  loadingMyNeeds = false;
   errorMessage = '';
 
   // Solicitudes donde soy donador
   solicitudes: Donation[] = [];
+  
+  // Donaciones disponibles para solicitar (posts de tipo "articulos para donar")
+  availableDonations: Post[] = [];
+  filteredAvailableDonations: Post[] = [];
+  
+  // Mis necesidades publicadas (posts de tipo "solicitud de donacion")
+  myNeeds: Post[] = [];
+  filteredMyNeeds: Post[] = [];
+  
+  // Métricas calculadas
+  sentRequestsCount = 0;
+  receivedDonationsCount = 0;
+  publishedNeedsCount = 0;
+  messagesCount = 0;
 
   // Filtros (cliente)
   filters: {
@@ -78,7 +95,8 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     private donationService: DonationService,
     private authService: AuthService,
     private organizationProfileService: OrganizationProfileService,
-    private toast: ToastService
+    private toast: ToastService,
+    private postsService: PostsService
   ) {}
 
   ngOnInit(): void {
@@ -101,9 +119,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       this.page = !isNaN(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
       let tab: TabType = 'resumen'; // default
-      if (section === 'myDonations') tab = 'mis-donaciones';
-      else if (section === 'requests') tab = 'solicitudes';
-      else if (section === 'donatedToMe') tab = 'donadas-a-mi';
+      if (section === 'availableDonations') tab = 'donaciones-disponibles';
+      else if (section === 'myRequests') tab = 'mis-solicitudes';
+      else if (section === 'myNeeds') tab = 'mis-necesidades';
       else if (section === 'overview') tab = 'resumen';
 
       this.activeTabSubject.next(tab);
@@ -113,20 +131,17 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.loadStats();
     this.loadStatusCatalog();
     this.loadRecentDonations();
-    // Precalcular solicitudes después de cargar (cuando se entra a ese tab)
     this.loadAllDonations();
+    this.loadMyNeeds(); // Cargar necesidades para calcular métricas
+    this.loadMetrics();
 
     // Suscribirse a cambios de pestaña
     this.activeTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => {
-      // When switching to tabs that require the full donations list, ensure we have it
-      if ((tab === 'mis-donaciones' || tab === 'donadas-a-mi' || tab === 'solicitudes') && this.allDonations.length === 0) {
-        this.loadAllDonations();
-      } else {
-        // If we already have donations loaded, re-apply any tab-specific filtering
-        this.applyTabFilteringIfNeeded();
-      }
-
-      if (tab === 'solicitudes') {
+      if (tab === 'donaciones-disponibles' && this.availableDonations.length === 0) {
+        this.loadAvailableDonations();
+      } else if (tab === 'mis-necesidades' && this.myNeeds.length === 0) {
+        this.loadMyNeeds();
+      } else if (tab === 'mis-solicitudes') {
         this.computeSolicitudes();
       }
     });
@@ -149,7 +164,11 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (stats) => {
           this.stats = stats;
+          // Actualizar métricas
+          this.messagesCount = stats.unreadMessages || 0;
           this.loading = false;
+          // Recalcular métricas después de cargar stats
+          this.loadMetrics();
         },
         error: (error) => {
           console.error('Error al cargar estadísticas:', error);
@@ -195,8 +214,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
           this.buildFilterOptions();
           this.applyFilters();
           this.loadingDonations = false;
-          // Recalcular solicitudes
+          // Recalcular solicitudes y métricas
           this.computeSolicitudes();
+          this.loadMetrics();
         },
         error: (error) => {
           console.error('Error al cargar donaciones:', error);
@@ -214,23 +234,29 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     // Default to showing all donations
     let list = Array.isArray(this.allDonations) ? [...this.allDonations] : [];
 
-    if (this.activeTab === 'donadas-a-mi' && this.currentUser) {
-      const myId = (this.currentUser.id || '').toString();
-      list = list.filter(d => (d.beneficiary?.id || '').toString() === myId);
+    // Para el tab de resumen, mostrar todas las donaciones
+    if (this.activeTab === 'resumen') {
+      this.donations = list;
     }
-
-    // For other tabs we keep the full list; assign to this.donations for downstream filters
-    this.donations = list;
+    // Para otros tabs, mantener la lista completa
+    else {
+      this.donations = list;
+    }
   }
 
   /**
    * Calcular solicitudes donde el usuario autenticado es el donador
    */
   private computeSolicitudes(): void {
-    if (!this.currentUser) { this.solicitudes = []; return; }
+    if (!this.currentUser) { 
+      this.solicitudes = []; 
+      this.sentRequestsCount = 0;
+      return; 
+    }
     this.loadingSolicitudes = true;
     const myId = (this.currentUser.id || '').toString();
-    this.solicitudes = (this.donations || []).filter(d => (d.donator?.id || '').toString() === myId);
+    this.solicitudes = (this.allDonations || []).filter(d => (d.donator?.id || '').toString() === myId);
+    this.sentRequestsCount = this.solicitudes.length;
     this.loadingSolicitudes = false;
   }
 
@@ -260,9 +286,9 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.activeTabSubject.next(tab);
     // Actualizar query param según la pestaña
     let sectionParam = 'overview';
-    if (tab === 'mis-donaciones') sectionParam = 'myDonations';
-    else if (tab === 'donadas-a-mi') sectionParam = 'donatedToMe';
-    else if (tab === 'solicitudes') sectionParam = 'requests';
+    if (tab === 'donaciones-disponibles') sectionParam = 'availableDonations';
+    else if (tab === 'mis-solicitudes') sectionParam = 'myRequests';
+    else if (tab === 'mis-necesidades') sectionParam = 'myNeeds';
     // Reset page to 1 when switching tabs for a consistent starting point
     this.page = 1;
     this.router.navigate([], {
@@ -286,8 +312,127 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/organization/donations/create']);
   }
 
+  /**
+   * Navegar a publicar necesidad
+   */
+  onPublishNeed(): void {
+    this.router.navigate(['/post/create-edit'], { queryParams: { type: 'solicitud' } });
+  }
+
+  /**
+   * Buscar donaciones (búsqueda avanzada)
+   */
+  onSearchDonations(): void {
+    this.setActiveTab('donaciones-disponibles');
+  }
+
   goToReceivedDonations(): void {
     this.router.navigate(['/organization/donations/received']);
+  }
+  
+  /**
+   * Cargar donaciones disponibles para solicitar (posts de tipo "articulos para donar")
+   */
+  loadAvailableDonations(): void {
+    this.loadingAvailableDonations = true;
+    // Cargar todos los posts y filtrar
+    this.postsService.getAllPosts().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (allPosts) => {
+        // Filtrar posts de tipo "articulos para donar" que no sean del usuario actual
+        this.availableDonations = allPosts.filter(post => {
+          const isDonationType = post.typePost?.type === 'articulos para donar';
+          const isNotMine = post.user?.id?.toString() !== this.currentUser?.id?.toString();
+          return isDonationType && isNotMine;
+        });
+        // Ordenar por fecha más reciente
+        this.availableDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        this.filteredAvailableDonations = [...this.availableDonations];
+        this.loadingAvailableDonations = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar donaciones disponibles:', error);
+        this.loadingAvailableDonations = false;
+        this.toast.error('Error', 'No se pudieron cargar las donaciones disponibles');
+      }
+    });
+  }
+  
+  /**
+   * Cargar mis necesidades publicadas (posts de tipo "solicitud de donacion")
+   */
+  loadMyNeeds(): void {
+    this.loadingMyNeeds = true;
+    this.postsService.getMyPosts().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (myPosts) => {
+        // Filtrar solo posts de tipo "solicitud de donacion"
+        this.myNeeds = myPosts.filter(post => post.typePost?.type === 'solicitud de donacion');
+        this.filteredMyNeeds = [...this.myNeeds];
+        this.loadingMyNeeds = false;
+        // Actualizar métrica
+        this.publishedNeedsCount = this.myNeeds.length;
+      },
+      error: (error) => {
+        console.error('Error al cargar mis necesidades:', error);
+        this.loadingMyNeeds = false;
+      }
+    });
+  }
+  
+  /**
+   * Cargar métricas del dashboard
+   */
+  loadMetrics(): void {
+    // Solicitudes enviadas: donaciones donde soy donador
+    if (this.allDonations.length > 0) {
+      this.computeSolicitudes();
+    }
+    this.sentRequestsCount = this.solicitudes.length;
+    
+    // Donaciones recibidas: donaciones donde soy beneficiario
+    if (this.currentUser && this.allDonations.length > 0) {
+      const myId = (this.currentUser.id || '').toString();
+      const received = this.allDonations.filter(d => (d.beneficiary?.id || '').toString() === myId);
+      this.receivedDonationsCount = received.length;
+    }
+    
+    // Necesidades publicadas: se actualiza en loadMyNeeds
+    // Mensajes: viene del stats
+    if (this.stats) {
+      this.messagesCount = this.stats.unreadMessages || 0;
+    }
+  }
+  
+  /**
+   * Solicitar una donación disponible
+   */
+  requestAvailableDonation(post: Post): void {
+    // Navegar al detalle del post para solicitar
+    this.router.navigate(['/post', post.id]);
+  }
+  
+  /**
+   * Contactar al donante de una donación disponible
+   */
+  contactDonor(post: Post): void {
+    // Navegar al perfil del donante o abrir chat
+    if (post.user?.id) {
+      this.router.navigate(['/profile', post.user.id]);
+    }
+  }
+  
+  /**
+   * Ver detalle de un post
+   */
+  viewPost(postId: number): void {
+    this.router.navigate(['/post', postId]);
+  }
+  
+  /**
+   * Calcular la cantidad total de artículos en un post
+   */
+  getTotalArticlesQuantity(postArticles: any[]): number {
+    if (!postArticles || postArticles.length === 0) return 0;
+    return postArticles.reduce((sum, pa) => sum + parseInt(pa.quantity || '0', 10), 0);
   }
 
   /**
