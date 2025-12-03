@@ -146,7 +146,7 @@
               </div>
 
               <header class="mt-6">
-                <h3 id="mission-heading" class="text-2xl font-semibold text-emerald-900">
+                <h3 id="mission-heading" class="text-3xl font-bold uppercase tracking-[0.2em] text-emerald-800">
                   Nuestra Misión
                 </h3>
               </header>
@@ -186,7 +186,7 @@
               </div>
 
               <header class="mt-6">
-                <h3 id="vision-heading" class="text-2xl font-semibold text-emerald-900">
+                <h3 id="vision-heading" class="text-3xl font-bold uppercase tracking-[0.2em] text-emerald-800">
                   Nuestra Visión
                 </h3>
               </header>
@@ -197,6 +197,22 @@
             </div>
           </article>
         </div>
+      </div>
+    </section>
+
+    <section class="px-4 sm:px-8 lg:px-10 xl:px-16 pb-16 sm:pb-20 lg:pb-24" aria-labelledby="history-heading">
+      <div class="mx-auto max-w-5xl rounded-[36px] border border-emerald-100/80 bg-white/95 p-10 shadow-[0_24px_56px_rgba(24,92,70,0.08)]">
+        <div class="flex flex-col items-center text-center">
+          <div class="flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-emerald-100/80 shadow-lg">
+            <span class="text-4xl" aria-hidden="true">📜</span>
+          </div>
+          <p id="history-heading" class="mt-4 text-3xl font-bold uppercase tracking-[0.3em] text-emerald-700">
+            Nuestra historia
+          </p>
+        </div>
+        <p class="mt-6 text-lg leading-8 text-slate-700">
+          DonacionApp nació como trabajo de grado en la UniPutumayo tras evidenciar que las donaciones llegaban por múltiples canales informales. Identificamos tres barreras críticas: ausencia de verificación de donantes, nula trazabilidad de los artículos entregados y logística improvisada para coordinar entregas. La plataforma responde a estas necesidades al validar perfiles, publicar requerimientos específicos, coordinar entregas mediante chat y notificaciones, y documentar cada donación con estados y métricas públicas, convirtiendo la buena voluntad en impacto verificable y sostenible para las comunidades del departamento.
+        </p>
       </div>
     </section>
 
@@ -227,7 +243,7 @@
 
           <div class="lg:w-3/5">
             <h3 class="text-2xl font-semibold text-emerald-900">
-              Equipo de proyecto
+              Equipo de trabajo
             </h3>
             <p class="mt-2 text-base text-slate-600">
               Integrantes del equipo que impulsa DonacionApp.
@@ -244,8 +260,7 @@
                   </div>
                   <div>
                     <p class="text-lg font-semibold text-slate-900">{{ member.name }}</p>
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">{{ member.role }}</p>
-                  </div>
+                   </div>
                 </div>
               </li>
             </ul>

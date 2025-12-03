@@ -16,12 +16,12 @@ export class AboutComponent implements OnInit, OnDestroy {
   aboutUsContent: string = 'Bienvenido a DonacionApp. Somos la plataforma que conecta de forma segura y transparente a personas solidarias con organizaciones que necesitan bienes materiales, agilizando cada entrega para generar impacto real y un futuro solidario.';
   isLoading: boolean = true;
   hasError: boolean = false;
-  teamMembers: Array<{ name: string; role: string }> = [
-    { name: 'Breiner Andres Iles Sambony', role: 'Integrante del proyecto' },
-    { name: 'Emerson Esneyder Iles Sambony', role: 'Integrante del proyecto' },
-    { name: 'Abel Audino Pantoja Rodriguez', role: 'Integrante del proyecto' },
-    { name: 'Kevin Alexander Chanchi Lopez', role: 'Integrante del proyecto' },
-    { name: 'Juan Carlos Pastuzan Quinchoa', role: 'Integrante del proyecto' }
+  teamMembers: Array<{ name: string}> = [
+    { name: 'Breiner Andres Iles Sambony'},
+    { name: 'Emerson Esneyder Iles Sambony'},
+    { name: 'Abel Audino Pantoja Rodriguez'},
+    { name: 'Kevin Alexander Chanchi Lopez'},
+    { name: 'Juan Carlos Pastuzan Quinchoa'}
   ];
 
   constructor(private systemService: SystemService) {}
