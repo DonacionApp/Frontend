@@ -1,7 +1,7 @@
 name: CI-Frontend(Angular)
 on:
   push:
-    branches: [ "main", "146-fix-frontend-eliminar-despliegue-automatico)"]
+    branches: [ "main", "146-fix-frontend-eliminar-despliegue-automatico"]
   pull_request:
     branches: [ "main" ]
     paths:
