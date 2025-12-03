@@ -70,16 +70,16 @@
           </div>
 
           <!-- Estado de error (muestra contenido por defecto) -->
-          <p 
-            *ngIf="!isLoading && hasError" 
+          <p
+            *ngIf="!isLoading && hasError"
             class="text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
           >
             Bienvenido a DonacionApp. Somos la plataforma que conecta de forma segura y transparente a personas solidarias con organizaciones que necesitan bienes materiales, agilizando cada entrega para generar impacto real y un futuro solidario.
           </p>
 
           <!-- Contenido dinámico del backend -->
-          <p 
-            *ngIf="!isLoading && !hasError" 
+          <p
+            *ngIf="!isLoading && !hasError"
             class="whitespace-pre-line text-base leading-7 text-gray-600 sm:text-lg md:text-xl"
           >
             {{ aboutUsContent }}
@@ -192,10 +192,64 @@
               </header>
 
               <p class="mt-4 text-base leading-7 text-gray-600">
-                Ser el puente tecnológico que conecta de forma directa y ágil a quienes desean ayudar con las organizaciones que lo necesitan. Buscamos catalizar el cambio social , asegurando que cada acto de bondad se traduzca en una ayuda real y tangible, optimizando recursos y fomentando un ecosistema de confianza y corresponsabilidad comunitaria.
+                Ser el puente tecnológico que conecta de forma directa y ágil a quienes desean ayudar con las organizaciones que lo necesitan. Buscamos catalizar el cambio social, asegurando que cada acto de bondad se traduzca en una ayuda real y tangible, optimizando recursos y fomentando un ecosistema de confianza y corresponsabilidad comunitaria.
               </p>
             </div>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="px-4 sm:px-8 lg:px-10 xl:px-16 pb-20 sm:pb-24 lg:pb-28"
+      aria-labelledby="alliances-heading"
+    >
+      <div class="mx-auto max-w-6xl rounded-[36px] border border-emerald-100/80 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,66,100,0.08)]">
+        <div class="flex flex-col gap-10 lg:flex-row lg:items-end">
+          <div class="lg:w-2/5">
+            <p class="text-xs font-bold uppercase tracking-[0.4em] text-emerald-600" id="alliances-heading">
+              Aliado académico
+            </p>
+            <figure class="mt-4 inline-flex flex-col items-start gap-3 rounded-3xl border border-emerald-100/70 bg-white px-8 py-6">
+              <img
+                src="assets/images/logo-uniputumayo.webp"
+                alt="Logo Institución Universitaria del Putumayo"
+                class="max-h-24 w-full max-w-[320px] object-contain"
+                loading="lazy"
+                width="320"
+                height="110"
+              />
+              <figcaption class="text-sm font-medium text-slate-500">
+                Institución Universitaria del Putumayo
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="lg:w-3/5">
+            <h3 class="text-2xl font-semibold text-emerald-900">
+              Equipo de proyecto
+            </h3>
+            <p class="mt-2 text-base text-slate-600">
+              Integrantes del equipo que impulsa DonacionApp.
+            </p>
+
+            <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+              <li
+                *ngFor="let member of teamMembers"
+                class="rounded-2xl border border-emerald-100/80 bg-white/90 px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <div class="flex items-center gap-4">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600/10 text-base font-semibold uppercase tracking-wide text-emerald-700">
+                    {{ getInitials(member.name) }}
+                  </div>
+                  <div>
+                    <p class="text-lg font-semibold text-slate-900">{{ member.name }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">{{ member.role }}</p>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
