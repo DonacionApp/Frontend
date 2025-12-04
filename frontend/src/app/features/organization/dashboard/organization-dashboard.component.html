@@ -352,9 +352,13 @@
     <div *ngIf="!loadingAvailableDonations && filteredAvailableDonations.length > 0" 
      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
    <div *ngFor="let post of filteredAvailableDonations" 
-               class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
+               class="donation-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
                [attr.aria-label]="'Donación ' + post.title"
-               tabindex="0">
+               (click)="viewPost(post.id)"
+               tabindex="0"
+               role="button"
+               (keydown.enter)="viewPost(post.id)"
+               (keydown.space)="viewPost(post.id)">
             
             <!-- Header con imagen o placeholder -->
             <div class="relative h-48 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 overflow-hidden">
@@ -416,22 +420,12 @@
                 </div>
               </div>
 
-              <!-- Botones de acción -->
-              <div class="flex gap-2">
-                <button 
-                  (click)="contactDonor(post)"
-                  class="flex-1 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-100 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                  </svg>
-                  Contactar
-                </button>
-                <button 
-                  (click)="requestAvailableDonation(post)"
-                  class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-700 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple">
-                  Solicitar
-                </button>
-              </div>
+              <!-- Botón de acción -->
+              <button 
+                (click)="requestAvailableDonation(post); $event.stopPropagation()"
+                class="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-700 transition-all duration-200 flex items-center justify-center focus-ring btn-ripple">
+                Solicitar
+              </button>
             </div>
           </div>
         </div>
