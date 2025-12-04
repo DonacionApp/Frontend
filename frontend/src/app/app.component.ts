@@ -11,6 +11,7 @@ import { filter } from 'rxjs/operators';
 import { NavComponent } from './shared/components/nav/nav.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { RetryIndicatorComponent } from './shared/components/retry-indicator/retry-indicator.component';
+import { BackButtonComponent } from './shared/components/back-button/back-button.component';
 // Servicios integrados directamente
 import { BehaviorSubject, Observable } from 'rxjs';
 import { WebsocketService, ToastService, NotificationService, AuthService } from './core/services';
@@ -118,13 +119,16 @@ interface ApiResponse {
     RouterModule,
     NavComponent,
     ToastContainerComponent,
-    RetryIndicatorComponent
+    RetryIndicatorComponent,
+    BackButtonComponent
   ],
   providers: [HttpClient, AppStateService, RegistrationStateService],
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'DonacionApp';
+  showGlobalBackButton = false;
+  private readonly backButtonExcludedRoutes = ['/', '/home', '/admin'];
   
   // Inyección de servicios de estado
   private appState: AppStateService;
@@ -219,6 +223,22 @@ export class AppComponent implements OnInit, OnDestroy {
         // Inicialización básica
         this.initializeWebSocket();
         this.subscribeToNotifications();
+        this.updateBackButtonVisibility(this.router.url);
+        this.router.events
+          .pipe(filter(event => event instanceof NavigationEnd))
+          .subscribe((event: NavigationEnd) => {
+            this.updateBackButtonVisibility(event.urlAfterRedirects);
+          });
+      }
+
+      private updateBackButtonVisibility(url: string): void {
+        const normalizedUrl = url.split('?')[0] || '/';
+        this.showGlobalBackButton = !this.backButtonExcludedRoutes.some(route => {
+          if (route === '/') {
+            return normalizedUrl === '/';
+          }
+          return normalizedUrl === route || normalizedUrl.startsWith(route + '/');
+        });
       }
 
       // (temporary debug subscription removed)
