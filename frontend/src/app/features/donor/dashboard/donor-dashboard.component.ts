@@ -45,7 +45,7 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
   loadingDonations = false;
   loadingSolicitudes = false;
   errorMessage = '';
-  showFilters = true; // Control de visibilidad del panel de filtros
+  showFilters = false; // Control de visibilidad del panel de filtros (oculto por defecto)
 
   // Solicitudes donde soy donador
   solicitudes: Donation[] = [];
