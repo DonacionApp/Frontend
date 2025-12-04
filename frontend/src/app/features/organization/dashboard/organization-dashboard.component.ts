@@ -330,10 +330,10 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Buscar donaciones (búsqueda avanzada)
+   * Buscar donaciones - redirige a la página de publicaciones
    */
   onSearchDonations(): void {
-    this.setActiveTab('donaciones-disponibles');
+    this.router.navigate(['/post']);
   }
 
   goToReceivedDonations(): void {
