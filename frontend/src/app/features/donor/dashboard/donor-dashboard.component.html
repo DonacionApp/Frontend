@@ -105,22 +105,16 @@
       </div>
 
       <!-- Card 4: Mensajes -->
-      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring opacity-75 relative" tabindex="0">
+      <div class="stat-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer focus-ring" tabindex="0">
         <div class="flex items-center justify-between mb-4">
           <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
           </div>
-          <span *ngIf="stats.unreadMessages > 0" 
-                class="bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-semibold badge-glow"
-                [attr.aria-label]="stats.unreadMessages + ' mensajes sin leer'">
-            {{ stats.unreadMessages }}
-          </span>
         </div>
         <p class="text-sm text-gray-600 mb-1">Mensajes</p>
-        <p class="text-3xl font-bold text-gray-900 count-animation">{{ stats.unreadMessages }}</p>
-        <p class="text-xs text-purple-600 font-semibold mt-1">Próximamente</p>
+        <p class="text-3xl font-bold text-gray-900 count-animation" [attr.aria-label]="stats.unreadMessages + ' mensajes sin leer'">{{ stats.unreadMessages }}</p>
       </div>
 
     </div>
@@ -303,11 +297,24 @@
         <div class="mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <h2 class="text-2xl font-bold text-gray-900">Mis Donaciones</h2>
-            <span class="text-sm text-gray-500">{{ filteredDonations.length }} / {{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-500">{{ filteredDonations.length }} / {{ donations.length }} {{ donations.length === 1 ? 'donación' : 'donaciones' }}</span>
+              <button 
+                (click)="toggleFilters()" 
+                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors focus-ring shadow-sm">
+                <svg *ngIf="showFilters" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                </svg>
+                <svg *ngIf="!showFilters" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+                {{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros
+              </button>
+            </div>
           </div>
 
           <!-- Filtros Mejorados -->
-          <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div *ngIf="showFilters" class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm animate-fade-in">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-semibold text-gray-700 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
