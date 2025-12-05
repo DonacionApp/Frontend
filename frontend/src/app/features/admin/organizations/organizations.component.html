@@ -234,14 +234,14 @@
 
             <div>
               <label for="editPeopleTipodDni" class="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Documento
+              Tipo de identificación
               </label>
               <select
                 id="editPeopleTipodDni"
                 formControlName="tipodDni"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option [value]="''">Seleccione tipo de documento...</option>
+              <option [value]="''">Seleccione tipo de identificación...</option>
                 <option *ngFor="let type of typeDniOptions" [value]="type.id">
                   {{ type.type }}
                 </option>
@@ -250,7 +250,7 @@
 
             <div>
               <label for="editPeopleDni" class="block text-sm font-medium text-gray-700 mb-1">
-                DNI/NIT
+              Número de identificación
               </label>
               <input
                 id="editPeopleDni"
@@ -640,14 +640,14 @@
 
           <div>
             <label for="createOrgPeopleTipodDni" class="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Documento
+            Tipo de identificación
             </label>
             <select
               id="createOrgPeopleTipodDni"
               formControlName="tipodDni"
               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option [value]="''">Seleccione tipo de documento...</option>
+            <option [value]="''">Seleccione tipo de identificación...</option>
               <option *ngFor="let type of typeDniOptions" [value]="type.id">
                 {{ type.type }}
               </option>
@@ -656,7 +656,7 @@
 
           <div>
             <label for="createOrgPeopleDni" class="block text-sm font-medium text-gray-700 mb-1">
-              DNI/NIT
+            Número de identificación
             </label>
             <input
               id="createOrgPeopleDni"

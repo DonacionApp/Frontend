@@ -12,6 +12,9 @@
 
   <!-- Main Content -->
   <div class="flex-1">
+    <div *ngIf="showGlobalBackButton" class="px-4 pt-4 sm:px-6 lg:px-8">
+      <app-back-button></app-back-button>
+    </div>
     <!-- Router Outlet for all routes -->
     <router-outlet></router-outlet>
   </div>

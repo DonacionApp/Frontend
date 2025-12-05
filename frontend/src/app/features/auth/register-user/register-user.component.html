@@ -107,17 +107,17 @@
 												<input formControlName="birdthDate" type="date" placeholder="dd-mm-yyyy" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
 											</div>
 											<div>
-												<label class="block text-sm font-medium text-gray-700">Tipo de DNI</label>
+												<label class="block text-sm font-medium text-gray-700">Tipo de identificación</label>
 												<select formControlName="tipodDni" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white">
-													<option [ngValue]="''">Selecciona tipo de DNI...</option>
+													<option [ngValue]="''">Selecciona tipo de identificación...</option>
 													<option *ngFor="let t of typeOptions" [ngValue]="t.id">{{ t.type }}</option>
 												</select>
-												<div *ngIf="registerForm.get(['people','tipodDni'])?.touched && registerForm.get(['people','tipodDni'])?.invalid" class="text-xs text-red-500 mt-1">Selecciona un tipo de DNI</div>
+												<div *ngIf="registerForm.get(['people','tipodDni'])?.touched && registerForm.get(['people','tipodDni'])?.invalid" class="text-xs text-red-500 mt-1">Selecciona un tipo de identificación</div>
 											</div>
 											<div>
-												<label class="block text-sm font-medium text-gray-700">DNI</label>
-												<input formControlName="dni" type="text" maxlength="10" placeholder="DNI" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
-												<div *ngIf="registerForm.get(['people','dni'])?.touched && registerForm.get(['people','dni'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El DNI no puede tener más de 10 caracteres</div>
+												<label class="block text-sm font-medium text-gray-700">Número de identificación</label>
+												<input formControlName="dni" type="text" maxlength="10" placeholder="Número de ID" class="mt-1 block w-full rounded-md border border-gray-200 p-2 text-sm bg-white" />
+												<div *ngIf="registerForm.get(['people','dni'])?.touched && registerForm.get(['people','dni'])?.errors?.['maxlength']" class="text-xs text-red-500 mt-1">El número de identificación no puede tener más de 10 caracteres</div>
 											</div>
 										</div>
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" role="img" aria-label="Logo Uniputumayo">
+  <defs>
+    <linearGradient id="uni-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6cb43f" />
+      <stop offset="100%" stop-color="#ade25d" />
+    </linearGradient>
+  </defs>
+  <rect width="520" height="160" fill="none" />
+  <!-- Símbolo principal -->
+  <path d="M80 25h35v70c0 20 16 36 36 36s36-16 36-36V25h35v70c0 39-32 71-71 71s-71-32-71-71z" fill="#0d7490" />
+  <circle cx="115" cy="32" r="24" fill="url(#uni-emerald)" />
+  <circle cx="115" cy="32" r="12" fill="#f5fdf7" />
+  <circle cx="115" cy="32" r="5" fill="#0d7490" />
+  <!-- Texto institucional -->
+  <text x="190" y="72" font-size="46" font-family="'Poppins','Segoe UI',Arial,sans-serif" font-weight="700" fill="#0f4264" letter-spacing="5">UNI</text>
+  <text x="325" y="72" font-size="46" font-family="'Poppins','Segoe UI',Arial,sans-serif" font-weight="700" fill="#1d75a5" letter-spacing="3">PUTUMAYO</text>
+  <text x="190" y="110" font-size="18" font-family="'Poppins','Segoe UI',Arial,sans-serif" fill="#4b5563" letter-spacing="3">INSTITUCIÓN UNIVERSITARIA DEL PUTUMAYO</text>
+</svg>

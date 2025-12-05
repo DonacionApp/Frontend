@@ -299,18 +299,28 @@ export class ListComponent implements OnInit, OnDestroy {
           } else {
             this.posts = normalizedPosts;
           }
-          
-          this.hasMore = posts.length === this.limit;
-          if (posts.length > 0) {
-            this.cursor = posts[posts.length - 1].id;
-          }
-          
+
+          this.hasMore = normalizedPosts.length === this.limit;
+          this.cursor = normalizedPosts.length > 0
+            ? normalizedPosts[normalizedPosts.length - 1].id
+            : null;
+
           this.isLoading = false;
           this.restoreScrollPosition();
         },
         error: (err) => {
           console.error('Error loading posts:', err);
-          this.errorMessage = 'Error al cargar las publicaciones';
+
+          if (err?.status === 404) {
+            // El backend usa 404 cuando no hay publicaciones
+            this.posts = [];
+            this.errorMessage = '';
+            this.hasMore = false;
+            this.cursor = null;
+          } else {
+            this.errorMessage = 'Error al cargar las publicaciones';
+          }
+
           this.isLoading = false;
         }
       });
