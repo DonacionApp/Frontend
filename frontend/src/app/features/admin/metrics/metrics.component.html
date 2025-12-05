@@ -1,0 +1,52 @@
+<div *ngIf="loading">Cargando métricas...</div>
+<div *ngIf="error">{{ error }}</div>
+<div *ngIf="!loading && !error">
+    <h2>Dashboard Grafana (Prueba)</h2>
+    <div style="margin-top:2rem;">
+        <h4>Health cpu</h4>
+        <iframe
+            src="http://localhost:3000/d-solo/adnvgtb/health-server?orgId=1&from=1764817222707&to=1764903622707&timezone=browser&panelId=panel-1&__feature.dashboardSceneSolo=true"
+            width="450" height="200" frameborder="0"></iframe>
+    </div>
+    <div style="margin-top:2rem;">
+        <h4>Health Memory</h4>
+        <iframe
+            src="http://localhost:3000/d-solo/adbplrk/health-memeory?orgId=1&from=1764882149557&to=1764903749557&timezone=browser&panelId=panel-1&__feature.dashboardSceneSolo=true"
+            width="450" height="200" frameborder="0"></iframe>
+    </div>
+    <div style="margin-top:2rem;">
+        <h4>procesos por segundo</h4>
+        <iframe
+            src="http://localhost:3000/d-solo/ad4rktx/process-second?orgId=1&from=1764882266618&to=1764903866618&timezone=browser&panelId=panel-1&__feature.dashboardSceneSolo=true"
+            width="450" height="200" frameborder="0"></iframe>
+    </div>
+    <h2>Métricas Prometheus</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Labels</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let metric of metrics">
+                <td>{{ metric.name }}</td>
+                <td>{{ metric.type }}</td>
+                <td>{{ metric.value }}</td>
+                <td>
+                    <ng-container *ngIf="metric.labels; else noLabels">
+                        <span *ngFor="let key of (metric.labels | keyvalue)">
+                            {{key.key}}: {{key.value}}<br />
+                        </span>
+                    </ng-container>
+                    <ng-template #noLabels>-</ng-template>
+                </td>
+                <td>{{ metric.help }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

@@ -47,7 +47,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Notificaciones', icon: 'notification', route: '/admin/notifications' },
     { label: 'Reportes', icon: 'report', route: '/admin/reports' },
     { label: 'Chats', icon: 'chat', route: '/admin/chats' },
-    {label: "auditoria",icon:"auditoria", route:'/admin/auditoria'}
+    {label: "auditoria",icon:"auditoria", route:'/admin/auditoria'},
+    {label: "Métricas", icon: "bar_chart", route: "/admin/metrics"}
   ];
 
   constructor(

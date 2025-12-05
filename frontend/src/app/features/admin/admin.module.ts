@@ -104,9 +104,13 @@ const routes: Routes = [
         path: 'auditoria',
         component:AuditoriaComponent,
         canActivate: [AdminGuard]
-      }
-      ,
+      },
       // Route for per-user audit detail removed: dialog is used instead
+      {
+        path: 'metrics',
+        loadComponent: () => import('./metrics/metrics.component').then(m => m.MetricsComponent),
+        canActivate: [AdminGuard]
+      }
     ]
   }
 ];
@@ -114,6 +118,7 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     AuditoriaComponent
+    // El componente de métricas es standalone y se carga por lazy loading
   ],
   imports: [
     CommonModule,
