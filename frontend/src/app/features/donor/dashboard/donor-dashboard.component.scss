@@ -251,3 +251,22 @@
     animation: spin 0.6s linear infinite;
   }
 }
+
+/* Animación suave para mostrar/ocultar filtros */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+    transform: translateY(0);
+  }
+}
+
+/* Mejora para la animación fade-in cuando se usa con filtros */
+.animate-fade-in[class*="filter"] {
+  animation: slide-down 0.3s ease-out forwards;
+}

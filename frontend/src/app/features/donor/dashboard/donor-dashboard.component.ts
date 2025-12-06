@@ -2,11 +2,13 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
+import { BehaviorSubject, Subject, takeUntil, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { DonationService, Donation, DonationArticle, StatusDonation } from '../../../core/services/donation.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService, UserProfile } from '../../../core/services/user-profile.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { ChatService } from '../../../core/services/chat.service';
 
 type TabType = 'resumen' | 'mis-donaciones' | 'solicitudes';
 
@@ -43,6 +45,7 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
   loadingDonations = false;
   loadingSolicitudes = false;
   errorMessage = '';
+  showFilters = false; // Control de visibilidad del panel de filtros (oculto por defecto)
 
   // Solicitudes donde soy donador
   solicitudes: Donation[] = [];
@@ -85,7 +88,8 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
     private donationService: DonationService,
     private authService: AuthService,
     private userProfileService: UserProfileService,
-    private toast: ToastService
+    private toast: ToastService,
+    private chatService: ChatService
   ) {}
 
   ngOnInit(): void {
@@ -154,10 +158,19 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorMessage = '';
 
-    this.donationService.getMyDonations()
+    // Combinar donaciones y mensajes sin leer
+    forkJoin({
+      donations: this.donationService.getMyDonations(),
+      unreadMessages: this.chatService.getUnreadMessagesCount().pipe(
+        catchError(error => {
+          console.warn('Error al obtener mensajes sin leer, usando 0:', error);
+          return of(0);
+        })
+      )
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (donations) => {
+        next: ({ donations, unreadMessages }) => {
           // Calcular estadísticas para donador
           const totalDonations = donations.length;
           const activeDonations = donations.filter(d => {
@@ -173,7 +186,7 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
             activeDonations,
             totalDonations,
             completedDonations,
-            unreadMessages: 0 // Placeholder for future feature
+            unreadMessages: unreadMessages || 0
           };
           this.loading = false;
         },
@@ -442,6 +455,13 @@ export class DonorDashboardComponent implements OnInit, OnDestroy {
     };
     this.page = 1;
     this.applyFilters();
+  }
+
+  /**
+   * Toggle para mostrar/ocultar filtros
+   */
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
   }
 
   /** Paginación en cliente */

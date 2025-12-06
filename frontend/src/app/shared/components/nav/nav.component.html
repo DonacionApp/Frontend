@@ -66,14 +66,24 @@
             <span class="ml-1 hidden xl:inline whitespace-nowrap">Publicaciones</span>
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Posts</span>
           </button>
+          <!-- Dashboard para organizaciones, Mis Donaciones para donantes -->
           <button 
             (click)="onMyDonationsClick()"
             class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center group">
-            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <!-- Icono Dashboard para organizaciones (cuadrícula/panel) -->
+            <svg *ngIf="user?.role === 'organization'" class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
             </svg>
-            <span class="ml-1 hidden xl:inline whitespace-nowrap">Mis Donaciones</span>
-            <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Donaciones</span>
+            <!-- Icono Donaciones para donantes -->
+            <svg *ngIf="user?.role === 'donor'" class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+            </svg>
+            <span class="ml-1 hidden xl:inline whitespace-nowrap">
+              {{ user?.role === 'organization' ? 'Dashboard' : 'Mis Donaciones' }}
+            </span>
+            <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">
+              {{ user?.role === 'organization' ? 'Dashboard' : 'Donaciones' }}
+            </span>
           </button>
           <button 
             *ngIf="user?.role === 'organization'"
@@ -82,7 +92,7 @@
             <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
             </svg>
-            <span class="ml-1 hidden xl:inline whitespace-nowrap">Artículos Recibidos</span>
+            <span class="ml-1 hidden xl:inline whitespace-nowrap">donaciones Recibidos</span>
             <span class="ml-1 hidden lg:inline xl:hidden text-[10px] whitespace-nowrap">Recibidos</span>
           </button>
           <button
@@ -103,11 +113,11 @@
           </button>
           <button 
             (click)="onNotificationsClick()"
-            class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center relative">
-            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group">
+            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
-            Notificaciones
+            <span class="ml-1 hidden lg:inline whitespace-nowrap">Notificaciones</span>
             <span *ngIf="unreadNotificationsCount > 0" 
                   class="absolute top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
               {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
@@ -358,10 +368,15 @@
           <button 
             (click)="onMyDonationsClick()"
             class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left">
-            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <!-- Icono Dashboard para organizaciones (cuadrícula/panel) -->
+            <svg *ngIf="user?.role === 'organization'" class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
             </svg>
-            <span>Mis Donaciones</span>
+            <!-- Icono Donaciones para donantes -->
+            <svg *ngIf="user?.role === 'donor'" class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+            </svg>
+            <span>{{ user?.role === 'organization' ? 'Dashboard' : 'Mis Donaciones' }}</span>
           </button>
           <button 
             *ngIf="user?.role === 'organization'"

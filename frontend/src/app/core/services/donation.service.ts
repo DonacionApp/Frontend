@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError, forkJoin, of } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { ChatService } from './chat.service';
 
 // Interfaces para donaciones
 
@@ -178,13 +179,13 @@ export class DonationService {
 
   // Estado de las donaciones
   private donationsSubject = new BehaviorSubject<Donation[]>([]);
+
+  constructor(private http: HttpClient, private chatService: ChatService) {}
   public donations$ = this.donationsSubject.asObservable();
 
   // Estado de carga
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Normalizar respuestas que pueden venir como array, wrapper o objeto numerado
@@ -416,8 +417,17 @@ export class DonationService {
    * Obtener estadísticas de la organización
    */
   getOrganizationStats(): Observable<OrganizationStats> {
-    return this.getMyDonations().pipe(
-      map(donations => {
+    // Combinar donaciones y mensajes sin leer
+    return forkJoin({
+      donations: this.getMyDonations(),
+      unreadMessages: this.chatService.getUnreadMessagesCount().pipe(
+        catchError(error => {
+          console.warn('Error al obtener mensajes sin leer, usando 0:', error);
+          return of(0);
+        })
+      )
+    }).pipe(
+      map(({ donations, unreadMessages }) => {
         // Calcular estadísticas basadas en las donaciones del usuario
         const activeDonations = donations.filter(d => {
           const status = d.statusDonation.status.toLowerCase();
@@ -428,7 +438,7 @@ export class DonationService {
           activeDonations,
           totalDonations: donations.length,
           requestsReceived: 0, // Implementación futura
-          unreadMessages: 0    // Implementación futura
+          unreadMessages: unreadMessages || 0
         };
       }),
       catchError(error => {
