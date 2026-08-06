@@ -37,15 +37,16 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   loadingDonations = false;
   loadingSolicitudes = false;
   loadingAvailableDonations = false;
+  showFiltersReceived = false; // Control de visibilidad del panel de filtros para donaciones recibidas
   loadingMyNeeds = false;
   errorMessage = '';
 
   // Solicitudes donde soy donador
   solicitudes: Donation[] = [];
   
-  // Donaciones disponibles para solicitar (posts de tipo "articulos para donar")
-  availableDonations: Post[] = [];
-  filteredAvailableDonations: Post[] = [];
+  // Donaciones recibidas (donde la organización es beneficiaria)
+  receivedDonations: Donation[] = [];
+  filteredReceivedDonations: Donation[] = [];
   
   // Mis necesidades publicadas (posts de tipo "solicitud de donacion")
   myNeeds: Post[] = [];
@@ -147,7 +148,7 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
 
     // Suscribirse a cambios de pestaña
     this.activeTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => {
-      if (tab === 'donaciones-disponibles' && this.availableDonations.length === 0) {
+      if (tab === 'donaciones-disponibles' && this.receivedDonations.length === 0) {
         this.loadAvailableDonations();
       } else if (tab === 'mis-necesidades' && this.myNeeds.length === 0) {
         this.loadMyNeeds();
@@ -341,30 +342,151 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   }
   
   /**
-   * Cargar donaciones disponibles para solicitar (posts de tipo "articulos para donar")
+   * Cargar donaciones recibidas (donde la organización es beneficiaria)
    */
   loadAvailableDonations(): void {
     this.loadingAvailableDonations = true;
-    // Cargar todos los posts y filtrar
-    this.postsService.getAllPosts().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (allPosts) => {
-        // Filtrar posts de tipo "articulos para donar" que no sean del usuario actual
-        this.availableDonations = allPosts.filter(post => {
-          const isDonationType = post.typePost?.type === 'articulos para donar';
-          const isNotMine = post.user?.id?.toString() !== this.currentUser?.id?.toString();
-          return isDonationType && isNotMine;
-        });
-        // Ordenar por fecha más reciente
-        this.availableDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        this.filteredAvailableDonations = [...this.availableDonations];
-        this.loadingAvailableDonations = false;
-      },
-      error: (error) => {
-        console.error('Error al cargar donaciones disponibles:', error);
-        this.loadingAvailableDonations = false;
-        this.toast.error('Error', 'No se pudieron cargar las donaciones disponibles');
+    this.donationService.getMyDonationsAsBeneficiary()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (donations) => {
+          // Ordenar por fecha más reciente
+          this.receivedDonations = donations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          // Construir opciones de filtros y aplicar filtros
+          this.buildFilterOptionsForReceived();
+          this.applyFiltersForReceived();
+          this.loadingAvailableDonations = false;
+        },
+        error: (error) => {
+          console.error('Error al cargar donaciones recibidas:', error);
+          this.loadingAvailableDonations = false;
+          this.toast.error('Error', 'No se pudieron cargar las donaciones recibidas');
+        }
+      });
+  }
+
+  /**
+   * Toggle para mostrar/ocultar filtros de donaciones recibidas
+   */
+  toggleFiltersReceived(): void {
+    this.showFiltersReceived = !this.showFiltersReceived;
+  }
+
+  /**
+   * Construir opciones de filtros para donaciones recibidas
+   */
+  private buildFilterOptionsForReceived(): void {
+    const statusSet = new Set<string>();
+    const locationSet = new Set<string>();
+    const articleSet = new Set<string>();
+
+    for (const d of this.receivedDonations) {
+      // Status normalizado a como se muestra en badge
+      const badge = this.getStatusBadge(d.statusDonation);
+      if (badge?.text) statusSet.add(badge.text);
+
+      // Lugares
+      if (d.lugarRecogida) locationSet.add(d.lugarRecogida.trim());
+      if ((d as any).lugarDonacion) {
+        const ld = (d as any).lugarDonacion;
+        if (ld) locationSet.add(String(ld).trim());
       }
+
+      // Artículos
+      if (d.articles && d.articles.length > 0) {
+        for (const a of d.articles) {
+          if (a?.article?.name) articleSet.add(a.article.name.trim());
+        }
+      }
+    }
+
+    this.statusOptions = Array.from(statusSet).sort();
+    this.locationOptions = Array.from(locationSet).sort();
+    this.articleOptions = Array.from(articleSet).sort();
+  }
+
+  /**
+   * Aplicar filtros para donaciones recibidas
+   */
+  applyFiltersForReceived(): void {
+    const search = this.filters.search.trim().toLowerCase();
+    const statusSel = this.filters.status;
+    const locSel = this.filters.location;
+    const artSel = this.filters.article;
+    const from = this.filters.dateFrom ? new Date(this.filters.dateFrom + 'T00:00:00') : null;
+    const to = this.filters.dateTo ? new Date(this.filters.dateTo + 'T23:59:59') : null;
+
+    this.filteredReceivedDonations = this.receivedDonations.filter(d => {
+      // Status
+      if (statusSel !== 'all') {
+        const badge = this.getStatusBadge(d.statusDonation);
+        if (badge.text !== statusSel) return false;
+      }
+
+      // Location
+      if (locSel !== 'all') {
+        const lr = (d.lugarRecogida || '').toString().trim();
+        const ld = ((d as any).lugarDonacion || '').toString().trim();
+        if (lr !== locSel && ld !== locSel) return false;
+      }
+
+      // Article name
+      if (artSel !== 'all') {
+        const names = (d.articles || []).map(a => a?.article?.name?.trim()).filter(Boolean);
+        if (!names.includes(artSel)) return false;
+      }
+
+      // Date range (createdAt)
+      if (from || to) {
+        const created = new Date(d.createdAt);
+        if (from && created < from) return false;
+        if (to && created > to) return false;
+      }
+
+      // Search across title, locations, articles
+      if (search) {
+        const title = (d.post?.title || '').toString().toLowerCase();
+        const lr = (d.lugarRecogida || '').toString().toLowerCase();
+        const ld = ((d as any).lugarDonacion || '').toString().toLowerCase();
+        const arts = (d.articles || []).map(a => a?.article?.name?.toLowerCase()).filter(Boolean).join(' ');
+        const creator = (d.user?.username || '').toLowerCase();
+        const beneficiary = (d.beneficiary?.username || '').toLowerCase();
+        const donator = (d.donator?.username || '').toLowerCase();
+        const haystack = `${title} ${lr} ${ld} ${arts} ${creator} ${beneficiary} ${donator}`;
+        if (!haystack.includes(search)) return false;
+      }
+
+      return true;
     });
+    this.updatePaginationForReceived();
+  }
+
+  /**
+   * Limpiar filtros de donaciones recibidas
+   */
+  clearFiltersForReceived(): void {
+    this.filters = {
+      search: '',
+      status: 'all',
+      location: 'all',
+      article: 'all',
+      dateFrom: null,
+      dateTo: null,
+    };
+    this.page = 1;
+    this.applyFiltersForReceived();
+  }
+
+  /**
+   * Paginación para donaciones recibidas
+   */
+  private updatePaginationForReceived(): void {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredReceivedDonations.length / this.pageSize));
+    if (this.page > this.totalPages) this.page = this.totalPages;
+    if (this.page < 1) this.page = 1;
+    const start = (this.page - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.pagedDonations = this.filteredReceivedDonations.slice(start, end);
   }
   
   /**
@@ -615,7 +737,12 @@ export class OrganizationDashboardComponent implements OnInit, OnDestroy {
   goToPage(p: number): void {
     if (p < 1 || p > this.totalPages) return;
     this.page = p;
-    this.updatePagination();
+    // Actualizar paginación según el tab activo
+    if (this.activeTab === 'donaciones-disponibles') {
+      this.updatePaginationForReceived();
+    } else {
+      this.updatePagination();
+    }
     // push page into the url so back/forward preserves it
     this.router.navigate([], {
       relativeTo: this.route,

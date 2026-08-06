@@ -261,6 +261,25 @@ export class DonationService {
   }
 
   /**
+   * Obtener donaciones donde el usuario autenticado es beneficiario (organización)
+   */
+  getMyDonationsAsBeneficiary(): Observable<Donation[]> {
+    this.loadingSubject.next(true);
+    const headers = { 'X-No-Cache': 'true' };
+    return this.http.get<any>(`${this.apiUrl}/me/beneficiary`, { headers }).pipe(
+      map(raw => this.normalizeGenericArray<Donation>(raw)),
+      tap(donations => {
+        this.loadingSubject.next(false);
+      }),
+      catchError(error => {
+        this.loadingSubject.next(false);
+        console.error('Error al obtener donaciones como beneficiario:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Obtener una donación por ID
    */
   getDonationById(id: number, bypassCache: boolean = false): Observable<Donation> {
