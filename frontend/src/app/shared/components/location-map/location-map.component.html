@@ -10,7 +10,7 @@
       <p *ngIf="error" class="text-sm text-red-600">{{ error }}</p>
       <div *ngIf="location" class="mt-2">
         <!-- Prefer Google Static Maps if we have a key, otherwise use OpenStreetMap embed -->
-        <ng-container *ngIf="apiKey; else osmEmbed">
+        <ng-container *ngIf="useGoogleMaps; else osmEmbed">
           <img [src]="getStaticMapUrl()" alt="Mapa estático" class="w-full rounded" />
         </ng-container>
         <ng-template #osmEmbed>

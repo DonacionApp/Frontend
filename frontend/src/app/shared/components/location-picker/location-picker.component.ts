@@ -27,6 +27,7 @@ export class LocationPickerComponent implements OnInit, OnChanges {
   leafletMap: any = null;
   leafletMarker: any = null;
   isBrowser = false;
+  useGoogleMaps = false;
 
   constructor(
     private zone: NgZone, 
@@ -38,9 +39,10 @@ export class LocationPickerComponent implements OnInit, OnChanges {
 
   async ngOnInit(): Promise<void> {
     const win: any = window as any;
-    const hasKey = !!(this.apiKey || win.__GMAPS_API_KEY__);
+    const key = this.apiKey || win.__GMAPS_API_KEY__;
+    this.useGoogleMaps = !!(key && key !== 'AIzaSyC55ytCYBbBKrqbm10kHQBmwXNyYoxCogE');
 
-    if (!hasKey) {
+    if (!this.useGoogleMaps) {
       this.loading = false;
       if (this.isBrowser) {
         setTimeout(() => {
@@ -64,7 +66,7 @@ export class LocationPickerComponent implements OnInit, OnChanges {
       }
       return;
     } finally {
-      if (hasKey) {
+      if (this.useGoogleMaps) {
         this.loading = false;
         setTimeout(() => {
           try { this.initMap(); } catch (err) { console.error('initMap error:', err); }
@@ -268,6 +270,12 @@ export class LocationPickerComponent implements OnInit, OnChanges {
           this.leafletMarker.setLatLng(pos);
         }
       });
+
+      setTimeout(() => {
+        if (this.leafletMap) {
+          this.leafletMap.invalidateSize();
+        }
+      }, 250);
     } catch (e) {
       console.error('Error initializing Leaflet map:', e);
       this.error = 'No se pudo cargar el mapa';
