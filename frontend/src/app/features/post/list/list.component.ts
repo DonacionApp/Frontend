@@ -13,6 +13,7 @@ import { SpinnerComponent } from '../../../shared/components/spinner/spinner.com
 import { FormsModule } from '@angular/forms';
 import { ReportService } from '../../../core/services/report.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { MarkdownViewComponent } from '../../../shared/components/markdown-view/markdown-view.component';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -32,7 +33,8 @@ export class SafeUrlPipe implements PipeTransform {
     SidebarComponent,
     SafeUrlPipe,
     SpinnerComponent,
-    FormsModule
+    FormsModule,
+    MarkdownViewComponent
   ],
   templateUrl: './list.component.html',
   styleUrl: './list.component.scss'

@@ -394,9 +394,11 @@
               </h3>
 
               <!-- Descripción -->
-              <p class="text-sm text-gray-600 mb-3 line-clamp-2">
-                {{ post.message }}
-              </p>
+              <app-markdown-view
+                [content]="post.message"
+                mode="plain"
+                cssClass="text-sm text-gray-600 mb-3 line-clamp-2"
+              ></app-markdown-view>
 
               <!-- Información adicional -->
               <div class="space-y-2 mb-4">

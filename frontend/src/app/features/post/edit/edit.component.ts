@@ -8,6 +8,7 @@ import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/o
 import { PostsService, Tag } from '../../../core/services/posts.service';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { MarkdownEditorComponent } from '../../../shared/components/markdown-editor/markdown-editor.component';
 
 interface ExistingImage {
   id: number;
@@ -25,7 +26,7 @@ export class SafeUrlPipe implements PipeTransform {
 @Component({
   selector: 'app-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, SpinnerComponent, ButtonComponent, SafeUrlPipe],
+  imports: [CommonModule, FormsModule, SpinnerComponent, ButtonComponent, SafeUrlPipe, MarkdownEditorComponent],
   templateUrl: './edit.component.html',
   styleUrls: ['./edit.component.scss']
 })

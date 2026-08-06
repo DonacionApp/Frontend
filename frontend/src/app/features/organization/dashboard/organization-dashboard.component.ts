@@ -8,13 +8,14 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { OrganizationProfileService, OrganizationProfile } from '../../../core/services/organization-profile.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PostsService, Post } from '../../../core/services/posts.service';
+import { MarkdownViewComponent } from '../../../shared/components/markdown-view/markdown-view.component';
 
 type TabType = 'resumen' | 'donaciones-disponibles' | 'mis-solicitudes' | 'mis-necesidades';
 
 @Component({
   selector: 'app-organization-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MarkdownViewComponent],
   templateUrl: './organization-dashboard.component.html',
   styleUrls: ['./organization-dashboard.component.scss']
 })

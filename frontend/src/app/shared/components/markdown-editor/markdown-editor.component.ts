@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter, forwardRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, forwardRef, ViewChild, ElementRef, SecurityContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { marked } from 'marked';
 
 interface FormatButton {
@@ -35,7 +35,7 @@ export class MarkdownEditorComponent implements ControlValueAccessor {
   
   value: string = '';
   showPreviewMode: boolean = false;
-  previewHtml: SafeHtml = '';
+  previewHtml: string = '';
   
   // ControlValueAccessor
   private onChange: (value: string) => void = () => {};
@@ -229,13 +229,12 @@ export class MarkdownEditorComponent implements ControlValueAccessor {
     
     try {
       const html = await marked.parse(this.value);
-      this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(html);
-      console.log('✅ Markdown convertido a HTML');
+      // Se sanitiza en vez de usar bypassSecurityTrustHtml: el preview debe
+      // comportarse igual que la vista pública, que sí recibe texto de terceros
+      this.previewHtml = this.sanitizer.sanitize(SecurityContext.HTML, html) || '';
     } catch (err) {
-      console.error('❌ Error convirtiendo markdown:', err);
-      this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(
-        '<p class="text-red-500">Error al convertir markdown</p>'
-      );
+      console.error('Error convirtiendo markdown:', err);
+      this.previewHtml = '<p class="text-red-500">Error al convertir markdown</p>';
     }
   }
 

@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { AlertService } from '../../../shared/services/alert.service';
+import { MarkdownViewComponent } from '../../../shared/components/markdown-view/markdown-view.component';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -20,7 +21,7 @@ export class SafeUrlPipe implements PipeTransform {
 @Component({
   selector: 'app-details',
   standalone: true,
-  imports: [CommonModule, RouterModule, SidebarComponent, ButtonComponent, SafeUrlPipe],
+  imports: [CommonModule, RouterModule, SidebarComponent, ButtonComponent, SafeUrlPipe, MarkdownViewComponent],
   templateUrl: './details.component.html',
   styleUrl: './details.component.scss'
 })
