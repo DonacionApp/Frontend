@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -14,6 +14,8 @@ import {
   SendMessageDTO
 } from '../../../core/services/chat.service';
 import { UserManagementService, UserManagement } from '../../../core/services/user-management.service';
+import { WebsocketService } from '../../../core/services/websocket.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import { MessageModalComponent } from '../../../shared/components/message-modal/message-modal.component';
 
@@ -71,6 +73,9 @@ export class ChatsComponent implements OnInit, OnDestroy {
   // Archivos para mensaje
   selectedFiles: File[] = [];
 
+  // Sala de websocket a la que está unido el admin
+  private joinedChatId: number | null = null;
+
   // Modales de confirmación y mensaje
   showConfirmModal = false;
   showMessageModal = false;
@@ -89,6 +94,9 @@ export class ChatsComponent implements OnInit, OnDestroy {
   constructor(
     private chatService: ChatService,
     private userService: UserManagementService,
+    private websocketService: WebsocketService,
+    private authService: AuthService,
+    private cd: ChangeDetectorRef,
     private fb: FormBuilder
   ) {
     this.initForms();
@@ -96,9 +104,11 @@ export class ChatsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadChats();
+    this.setupRealtime();
   }
 
   ngOnDestroy(): void {
+    this.leaveChatRoom();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -170,18 +180,116 @@ export class ChatsComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Suscribirse a los eventos de mensajes en tiempo real
+   */
+  private setupRealtime(): void {
+    this.ensureMessageSocket();
+
+    this.websocketService.onMessageNew()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(payload => {
+        if (!this.isCurrentChat(this.getPayloadChatId(payload))) return;
+        this.insertMessages(this.extractMessages(payload));
+        this.cd.detectChanges();
+      });
+
+    this.websocketService.onMessageEdited()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(payload => {
+        if (!this.isCurrentChat(this.getPayloadChatId(payload))) return;
+        const edited = payload?.message ?? payload?.msg;
+        if (!edited?.id) return;
+        // El backend emite un mensaje mínimo (sin username ni type), así que
+        // solo se parchea el texto sobre el mensaje que ya está en pantalla
+        this.messages = this.messages.map(m =>
+          Number(m.id) === Number(edited.id)
+            ? { ...m, message: edited.message ?? m.message }
+            : m
+        );
+        this.cd.detectChanges();
+      });
+
+    this.websocketService.onMessageDeleted()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(payload => {
+        if (!this.isCurrentChat(this.getPayloadChatId(payload))) return;
+        const messageId = Number(payload?.messageId ?? payload?.message_id ?? payload?.id);
+        if (!messageId) return;
+        this.removeMessageLocally(messageId);
+        this.cd.detectChanges();
+      });
+  }
+
+  private ensureMessageSocket(): void {
+    const token = this.authService.getAccessToken();
+    if (token && !this.websocketService.isMessageConnected()) {
+      this.websocketService.connectMessages(token);
+    }
+  }
+
+  private joinChatRoom(chatId: number): void {
+    this.ensureMessageSocket();
+    if (this.joinedChatId !== null && this.joinedChatId !== chatId) {
+      this.websocketService.leaveChat(this.joinedChatId);
+    }
+    this.websocketService.joinChat(chatId);
+    this.joinedChatId = chatId;
+  }
+
+  private leaveChatRoom(): void {
+    if (this.joinedChatId === null) return;
+    this.websocketService.leaveChat(this.joinedChatId);
+    this.joinedChatId = null;
+  }
+
+  private isCurrentChat(chatId: number): boolean {
+    return !!this.selectedChat && !isNaN(chatId) && Number(this.selectedChat.id) === chatId;
+  }
+
+  private getPayloadChatId(payload: any): number {
+    return Number(payload?.chatId ?? payload?.chatID ?? payload?.chat_id ?? payload?.message?.chatId);
+  }
+
+  private extractMessages(payload: any): Message[] {
+    if (Array.isArray(payload?.messages)) return payload.messages;
+    if (payload?.message) return Array.isArray(payload.message) ? payload.message : [payload.message];
+    return [];
+  }
+
+  /**
+   * Insertar mensajes evitando duplicados, respetando el orden actual de la lista
+   */
+  private insertMessages(incoming: Message[]): void {
+    if (!incoming || incoming.length === 0) return;
+
+    const existingIds = new Set(this.messages.map(m => Number(m.id)));
+    const fresh = incoming.filter(m => m && m.id && !existingIds.has(Number(m.id)));
+    if (fresh.length === 0) return;
+
+    this.messages = this.messageOrder === 'DESC'
+      ? [...[...fresh].reverse(), ...this.messages]
+      : [...this.messages, ...fresh];
+  }
+
+  private removeMessageLocally(messageId: number): void {
+    this.messages = this.messages.filter(m => Number(m.id) !== Number(messageId));
+  }
+
+  /**
    * Seleccionar chat y ver detalles
    */
   selectChat(chat: Chat): void {
     this.selectedChat = chat;
     this.currentView = 'details';
     this.loadChatMessages();
+    this.joinChatRoom(chat.id);
   }
 
   /**
    * Volver a la lista de chats
    */
   goBackToList(): void {
+    this.leaveChatRoom();
     this.currentView = 'list';
     this.selectedChat = null;
     this.messages = [];
@@ -492,10 +600,11 @@ export class ChatsComponent implements OnInit, OnDestroy {
     this.chatService.sendMessage(data)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: (response) => {
           this.sendMessageForm.patchValue({ messageText: '' });
           this.selectedFiles = [];
-          this.loadChatMessages();
+          // El socket también emitirá estos mensajes; insertMessages deduplica por id
+          this.insertMessages(response?.messages || []);
           this.sendingMessage = false;
         },
         error: (error: any) => {
@@ -532,7 +641,7 @@ export class ChatsComponent implements OnInit, OnDestroy {
             message: 'Mensaje eliminado exitosamente',
             type: 'success'
           };
-          this.loadChatMessages();
+          this.removeMessageLocally(messageId);
         },
         error: (error: any) => {
           console.error('Error deleting message:', error);
