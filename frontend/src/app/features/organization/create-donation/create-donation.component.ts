@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, Abs
 import { Router, ActivatedRoute } from '@angular/router';
 import { DonationService, CreateDonationDTO, ArticleInput, Comment } from '../../../core/services/donation.service';
 import { PostsService, Post, PostArticle } from '../../../core/services/posts.service';
+import { MarkdownViewComponent } from '../../../shared/components/markdown-view/markdown-view.component';
 
 /**
  * Validador personalizado para asegurar que la fecha no sea anterior a hoy
@@ -25,7 +26,7 @@ function minDateValidator(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-create-donation',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, MarkdownViewComponent],
   templateUrl: './create-donation.component.html',
   styleUrls: ['./create-donation.component.scss']
 })

@@ -255,7 +255,10 @@
         <!-- Title & Message -->
         <div class="px-3 lg:px-4 pt-3 lg:pt-4">
           <h3 class="text-lg lg:text-xl font-bold text-gray-900 mb-2">{{ post.title }}</h3>
-          <p class="text-sm lg:text-base text-gray-700 whitespace-pre-line">{{ post.message }}</p>
+          <app-markdown-view
+            [content]="post.message"
+            cssClass="text-sm lg:text-base text-gray-700"
+          ></app-markdown-view>
         </div>
 
         <!-- Articles (for types "articulos para donar" and "solicitud de donacion") -->

@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ScrollRestorationService } from '../../../core/services/scroll-restoration.service';
 import { AcknowledgmentFormComponent } from '../acknowledgment-form/acknowledgment-form.component';
 import { AcknowledgmentListComponent } from '../acknowledgment-list/acknowledgment-list.component';
+import { MarkdownViewComponent } from '../markdown-view/markdown-view.component';
 
 @Pipe({ name: 'safeUrl' })
 export class SafeUrlPipe implements PipeTransform {
@@ -20,7 +21,7 @@ export class SafeUrlPipe implements PipeTransform {
 @Component({
   selector: 'app-user-posts-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, SafeUrlPipe, AcknowledgmentFormComponent, AcknowledgmentListComponent],
+  imports: [CommonModule, RouterModule, SafeUrlPipe, AcknowledgmentFormComponent, AcknowledgmentListComponent, MarkdownViewComponent],
   templateUrl: './user-posts-list.component.html',
   styleUrls: ['./user-posts-list.component.scss']
 })
