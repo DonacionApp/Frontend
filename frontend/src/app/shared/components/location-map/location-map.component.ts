@@ -29,14 +29,19 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
 
   private destroyed = false;
 
+  useGoogleMaps = false;
+
   constructor(private zone: NgZone, private sanitizer: DomSanitizer) {}
 
   async ngOnInit(): Promise<void> {
     const win: any = window as any;
-    const hasKey = !!(this.apiKey || win.__GMAPS_API_KEY__);
-    if (!hasKey) {
+    const key = this.apiKey || win.__GMAPS_API_KEY__;
+    this.useGoogleMaps = !!(key && key !== 'AIzaSyC55ytCYBbBKrqbm10kHQBmwXNyYoxCogE');
+
+    if (!this.useGoogleMaps) {
       this.loading = false;
-      this.error = 'Falta clave de Google Maps';
+      this.showStaticFallback = true;
+      this.error = null;
       return;
     }
 

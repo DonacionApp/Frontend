@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output, SimpleChanges, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
@@ -24,24 +24,54 @@ export class LocationPickerComponent implements OnInit, OnChanges {
   error: string | null = null;
   saving = false;
 
-  constructor(private zone: NgZone, private http: HttpClient) {}
+  leafletMap: any = null;
+  leafletMarker: any = null;
+  isBrowser = false;
+  useGoogleMaps = false;
+
+  constructor(
+    private zone: NgZone, 
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   async ngOnInit(): Promise<void> {
+    const win: any = window as any;
+    const key = this.apiKey || win.__GMAPS_API_KEY__;
+    this.useGoogleMaps = !!(key && key !== 'AIzaSyC55ytCYBbBKrqbm10kHQBmwXNyYoxCogE');
+
+    if (!this.useGoogleMaps) {
+      this.loading = false;
+      if (this.isBrowser) {
+        setTimeout(() => {
+          try { this.initLeafletMap(); } catch (err) { console.error('initLeafletMap error:', err); }
+        }, 0);
+      }
+      return;
+    }
+
     try {
       await this.loadMaps();
     } catch (e: any) {
       console.error('Error cargando Maps:', e);
-      this.error = e?.message || 'No se pudo cargar el mapa';
+      if (this.isBrowser) {
+        this.zone.run(() => {
+          this.loading = false;
+          setTimeout(() => {
+            try { this.initLeafletMap(); } catch (err) { console.error('initLeafletMap error:', err); }
+          }, 0);
+        });
+      }
+      return;
     } finally {
-      // Mark loading false so the template can render the internal map container
-      // (the map div is only present when loading === false). We defer initMap
-      // to the next tick so Angular has time to render the DOM node with
-      // id="shared-location-picker-map" before Google Maps attaches to it.
-      this.loading = false;
-      // Defer initialization to ensure the inner div exists in the DOM.
-      setTimeout(() => {
-        try { this.initMap(); } catch (err) { console.error('initMap error:', err); }
-      }, 0);
+      if (this.useGoogleMaps) {
+        this.loading = false;
+        setTimeout(() => {
+          try { this.initMap(); } catch (err) { console.error('initMap error:', err); }
+        }, 0);
+      }
     }
   }
 
@@ -60,24 +90,36 @@ export class LocationPickerComponent implements OnInit, OnChanges {
   /** Set marker position and recenter map to the given location */
   private setLocation(loc: { lat: number; lng: number } | null | undefined): void {
     const win: any = window as any;
-    if (!loc || !this.map) return;
+    if (!loc) return;
     const pos = { lat: loc.lat, lng: loc.lng };
-    try {
-      if (this.marker) {
-        if (typeof this.marker.setPosition === 'function') {
-          this.marker.setPosition(pos);
-        } else if ('position' in this.marker) {
-          (this.marker as any).position = pos;
-        } else if (typeof (this.marker as any).set === 'function') {
-          (this.marker as any).set('position', pos);
+
+    if (this.map) {
+      try {
+        if (this.marker) {
+          if (typeof this.marker.setPosition === 'function') {
+            this.marker.setPosition(pos);
+          } else if ('position' in this.marker) {
+            (this.marker as any).position = pos;
+          } else if (typeof (this.marker as any).set === 'function') {
+            (this.marker as any).set('position', pos);
+          }
         }
+        // Recenter map
+        if (win.google && win.google.maps && this.map) {
+          this.map.setCenter(pos);
+        }
+      } catch (e) {
+        console.error('Error setting location on Google map:', e);
       }
-      // Recenter map
-      if (win.google && win.google.maps && this.map) {
-        this.map.setCenter(pos);
+    }
+
+    if (this.leafletMap && this.leafletMarker) {
+      try {
+        this.leafletMarker.setLatLng([pos.lat, pos.lng]);
+        this.leafletMap.setView([pos.lat, pos.lng], this.leafletMap.getZoom());
+      } catch (e) {
+        console.error('Error setting location on Leaflet map:', e);
       }
-    } catch (e) {
-      console.error('Error setting location on map:', e);
     }
   }
 
@@ -192,24 +234,79 @@ export class LocationPickerComponent implements OnInit, OnChanges {
     }, 100);
   }
 
+  private async initLeafletMap(): Promise<void> {
+    if (!this.isBrowser) return;
+
+    try {
+      const L = await import('leaflet');
+      const center = this.initialLocation || { lat: 4.6150, lng: -74.0500 };
+      const mapEl = document.getElementById('shared-location-picker-map');
+      if (!mapEl) {
+        console.error("LocationPicker: map container with id 'shared-location-picker-map' not found in DOM.");
+        return;
+      }
+
+      this.leafletMap = L.map(mapEl).setView([center.lat, center.lng], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.leafletMap);
+
+      const customIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      this.leafletMarker = L.marker([center.lat, center.lng], {
+        draggable: true,
+        icon: customIcon
+      }).addTo(this.leafletMap);
+
+      this.leafletMap.on('click', (e: any) => {
+        const pos = e.latlng;
+        if (this.leafletMarker) {
+          this.leafletMarker.setLatLng(pos);
+        }
+      });
+
+      setTimeout(() => {
+        if (this.leafletMap) {
+          this.leafletMap.invalidateSize();
+        }
+      }, 250);
+    } catch (e) {
+      console.error('Error initializing Leaflet map:', e);
+      this.error = 'No se pudo cargar el mapa';
+    }
+  }
+
   save(): void {
-    if (!this.marker) return;
     try {
       let lat: number | null = null;
       let lng: number | null = null;
-      if (typeof this.marker.getPosition === 'function') {
-        const p: any = this.marker.getPosition();
-        lat = typeof p.lat === 'function' ? p.lat() : p.lat;
-        lng = typeof p.lng === 'function' ? p.lng() : p.lng;
-      } else if (this.marker.position) {
-        const p: any = this.marker.position;
-        lat = typeof p.lat === 'function' ? p.lat() : p.lat;
-        lng = typeof p.lng === 'function' ? p.lng() : p.lng;
-      } else if ((this.marker as any).geometry && (this.marker as any).geometry.location) {
-        const p: any = (this.marker as any).geometry.location;
-        lat = typeof p.lat === 'function' ? p.lat() : p.lat;
-        lng = typeof p.lng === 'function' ? p.lng() : p.lng;
+
+      if (this.leafletMarker) {
+        const pos = this.leafletMarker.getLatLng();
+        lat = pos.lat;
+        lng = pos.lng;
+      } else if (this.marker) {
+        if (typeof this.marker.getPosition === 'function') {
+          const p: any = this.marker.getPosition();
+          lat = typeof p.lat === 'function' ? p.lat() : p.lat;
+          lng = typeof p.lng === 'function' ? p.lng() : p.lng;
+        } else if (this.marker.position) {
+          const p: any = this.marker.position;
+          lat = typeof p.lat === 'function' ? p.lat() : p.lat;
+          lng = typeof p.lng === 'function' ? p.lng() : p.lng;
+        } else if ((this.marker as any).geometry && (this.marker as any).geometry.location) {
+          const p: any = (this.marker as any).geometry.location;
+          lat = typeof p.lat === 'function' ? p.lat() : p.lat;
+          lng = typeof p.lng === 'function' ? p.lng() : p.lng;
+        }
       }
+
       if (lat == null || lng == null) {
         console.warn('LocationPicker.save: could not determine marker coordinates');
         return;
