@@ -1,6 +1,6 @@
-import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -63,7 +63,16 @@ export class OrganizationListComponent implements OnInit {
     orderBy: '' as string | null
   };
 
-  constructor(private http: HttpClient, private zone: NgZone, private router: Router) {}
+  isBrowser = false;
+
+  constructor(
+    private http: HttpClient, 
+    private zone: NgZone, 
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   ngOnInit(): void {
     this.loadOrgs();
@@ -135,118 +144,75 @@ export class OrganizationListComponent implements OnInit {
     this.search$.next(String(term || ''));
   }
 
-  private loadMapsScript(): Promise<void> {
-    const win: any = window as any;
-    if (win.google && win.google.maps) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const cb = '__initOrgList_' + Math.random().toString(36).slice(2);
-      (win as any)[cb] = () => { try { resolve(); } finally { try { delete (win as any)[cb]; } catch (e) {} } };
-      const key = encodeURIComponent(environment.apiKeyGoogleMaps || '');
-      const mapId = environment.mapsMapId ? `&map_ids=${encodeURIComponent(environment.mapsMapId)}` : '';
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=${cb}${mapId}&libraries=marker&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onerror = () => reject(new Error('Failed to load Google Maps script'));
-      document.head.appendChild(script);
-    });
-  }
-
   private async ensureMapAndMarkers(): Promise<void> {
+    if (!this.isBrowser) return;
     try {
-      await this.loadMapsScript();
-      // Optionally suppress the Google Maps deprecation warning for google.maps.Marker
-      try {
-        if (typeof console !== 'undefined' && !(console as any).__suppressGoogleMarkerDeprecated) {
-          const _warn = console.warn.bind(console);
-          console.warn = (...args: any[]) => {
-            try {
-              const first = args && args[0];
-              if (typeof first === 'string' && first.includes('google.maps.Marker is deprecated')) {
-                return; 
-              }
-            } catch (e) {}
-            _warn(...args);
-          };
-          (console as any).__suppressGoogleMarkerDeprecated = true;
-        }
-      } catch (e) {}
-
       this.zone.run(() => this.initMap());
     } catch (e) {
+      console.error('ensureMapAndMarkers error', e);
     }
   }
 
-  private initMap(): void {
-    const win: any = window as any;
+  private async initMap(): Promise<void> {
+    if (!this.isBrowser) return;
+
     const container = document.getElementById('org-list-map');
-    if (!container || !win.google || !win.google.maps) return;
-    if (!this.map) {
-      const center = this.orgs.length && this.orgs[0].location ? this.orgs[0].location : { lat: 4.615, lng: -74.05 };
-      this.map = new win.google.maps.Map(container, { center, zoom: 5, mapId: environment.mapsMapId || undefined });
-    }
-    // clear markers
-    this.markers.forEach(m => { try { m.setMap(null); } catch (e) {} });
-    this.markers = [];
+    if (!container) return;
 
-    this.orgs.forEach(o => {
-      // support `location` or `locationJson`
-      const loc = (o.location && o.location.lat != null && o.location.lng != null) ? o.location : ((o as any).locationJson || null);
-      if (!loc) return;
-      try {
-        const Adv = win.google?.maps?.marker?.AdvancedMarkerElement;
-        let marker: any = null;
-        if (Adv) {
-          const content = document.createElement('div');
-          const img = document.createElement('img');
-          img.src = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
-          img.style.width = '28px';
-          img.style.height = '40px';
-          img.style.transform = 'translateY(-10px) scale(1)';
-          img.style.display = 'block';
-          img.style.cursor = 'pointer';
-          img.style.transition = 'transform 140ms ease, box-shadow 140ms ease';
-          try { img.addEventListener('mouseenter', () => { img.style.transform = 'translateY(-14px) scale(1.18)'; img.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)'; }); } catch (e) {}
-          try { img.addEventListener('mouseleave', () => { img.style.transform = 'translateY(-10px) scale(1)'; img.style.boxShadow = 'none'; }); } catch (e) {}
-          content.appendChild(img);
-          marker = new Adv({ map: this.map, position: loc, title: o.username, content });
-          try { content.addEventListener('click', () => this.zone.run(() => this.openSidebar(o, loc))); } catch (e) {}
-        } else {
-          // fallback: classic Marker (may emit deprecation warning)
-          marker = new win.google.maps.Marker({ position: loc, map: this.map, title: o.username });
-          try { win.google.maps.event.addListener(marker, 'click', () => { this.zone.run(() => this.openSidebar(o, loc)); }); } catch (e) {}
-        }
-        this.markers.push(marker);
-      } catch (e) {}
-    });
+    try {
+      const L = await import('leaflet');
 
-    if (this.markers.length) {
-      try {
-        if (this.markers.length === 1) {
-          const single = this.markers[0];
-          let pos: any = null;
-          try { pos = (typeof single.getPosition === 'function') ? single.getPosition() : (single.position || null); } catch (e) { pos = null; }
-          if (pos) {
-            try { this.map.setCenter(pos); this.map.setZoom(8); } catch (e) { try { this.map.setCenter({ lat: pos.lat || pos.lat(), lng: pos.lng || pos.lng() }); this.map.setZoom(8); } catch (e2) {} }
-          }
-        } else {
-          const bounds = new win.google.maps.LatLngBounds();
-          this.markers.forEach(m => {
-            try { bounds.extend(m.getPosition()); } catch (e) {
-              try {
-                // find a matching org by title
-                const title = m && m.getTitle ? m.getTitle() : (m && m.title) || null;
-                const org = title ? this.orgs.find(x => String(x.username) === String(title)) : null;
-                const loc = org ? (org.location || (org as any).locationJson) : null;
-                if (loc) bounds.extend(loc as any);
-              } catch (e2) {}
-            }
-          });
-          this.map.fitBounds(bounds);
-        }
-      } catch (e) {
-        try { this.map.fitBounds(new win.google.maps.LatLngBounds()); } catch (e2) {}
+      if (!this.map) {
+        const center = this.orgs.length && this.orgs[0].location ? this.orgs[0].location : { lat: 4.615, lng: -74.05 };
+        this.map = L.map(container).setView([center.lat, center.lng], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(this.map);
       }
+
+      // clear markers
+      this.markers.forEach(m => { try { m.remove(); } catch (e) {} });
+      this.markers = [];
+
+      const customIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      this.orgs.forEach(o => {
+        const loc = (o.location && o.location.lat != null && o.location.lng != null) ? o.location : ((o as any).locationJson || null);
+        if (!loc) return;
+        try {
+          const marker = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(this.map);
+
+          marker.on('click', () => {
+            this.zone.run(() => this.openSidebar(o, loc));
+          });
+
+          this.markers.push(marker);
+        } catch (e) {
+          console.error('Error adding Leaflet marker:', e);
+        }
+      });
+
+      if (this.markers.length) {
+        try {
+          if (this.markers.length === 1) {
+            const single = this.markers[0];
+            this.map.setView(single.getLatLng(), 8);
+          } else {
+            const group = L.featureGroup(this.markers);
+            this.map.fitBounds(group.getBounds());
+          }
+        } catch (e) {
+          console.error('Error fitting Leaflet bounds:', e);
+        }
+      }
+    } catch (e) {
+      console.error('Error initializing Leaflet in initMap:', e);
     }
   }
 

@@ -36,7 +36,8 @@ export class LocationMapComponent implements OnInit, AfterViewInit, OnChanges, O
     const hasKey = !!(this.apiKey || win.__GMAPS_API_KEY__);
     if (!hasKey) {
       this.loading = false;
-      this.error = 'Falta clave de Google Maps';
+      this.showStaticFallback = true;
+      this.error = null;
       return;
     }
 

@@ -20,6 +20,9 @@ $my-theme: mat.m2-define-light-theme((
 /* Font Awesome */
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
+/* Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
 /* Tailwind CSS */
 @tailwind base;
 @tailwind components;
