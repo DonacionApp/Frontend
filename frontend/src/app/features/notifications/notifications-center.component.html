@@ -186,7 +186,9 @@
     </div>
 
     <!-- Notifications List -->
-    <div class="space-y-3">
+    <div #notificationsScroll
+         (scroll)="onContainerScroll($event)"
+         class="space-y-3 max-h-[70vh] overflow-y-auto pr-1 overscroll-contain">
       <!-- Loading State -->
       <div *ngIf="isLoading" class="bg-white rounded-lg shadow-sm p-8 text-center">
         <div class="flex flex-col items-center justify-center space-y-4">
@@ -352,6 +354,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
           </button>
+        </div>
+      </div>
+
+      <!-- Scroll infinito: indicador de carga de más notificaciones -->
+      <div *ngIf="hasMore && !isLoading && !hasError" class="py-6 flex justify-center">
+        <div *ngIf="loadingMore" class="flex items-center space-x-2 text-gray-500">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+          <span class="text-sm">Cargando más notificaciones...</span>
         </div>
       </div>
     </div>
