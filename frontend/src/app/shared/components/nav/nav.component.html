@@ -111,18 +111,80 @@
             </svg>
             <span class="ml-1 hidden lg:inline whitespace-nowrap">Mensajes</span>
           </button>
-          <button 
-            (click)="onNotificationsClick()"
-            class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group">
-            <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-            </svg>
-            <span class="ml-1 hidden lg:inline whitespace-nowrap">Notificaciones</span>
-            <span *ngIf="unreadNotificationsCount > 0" 
-                  class="absolute top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
-            </span>
-          </button>
+          <div class="relative notifications-dropdown-container">
+            <button
+              (click)="onNotificationsClick()"
+              [attr.aria-expanded]="showNotificationsDropdown"
+              aria-haspopup="true"
+              class="text-gray-700 hover:text-green-600 px-1.5 md:px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors flex items-center relative group"
+              [class.text-green-600]="showNotificationsDropdown">
+              <svg class="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span class="ml-1 hidden lg:inline whitespace-nowrap">Notificaciones</span>
+              <span *ngIf="unreadNotificationsCount > 0"
+                    class="absolute top-1 -right-3 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+              </span>
+            </button>
+
+            <div
+              *ngIf="showNotificationsDropdown"
+              class="notifications-dropdown-panel absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+
+              <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2 bg-green-50">
+                <h3 class="text-sm font-semibold text-gray-900">Notificaciones</h3>
+                <button
+                  *ngIf="unreadNotificationsCount > 0"
+                  (click)="markAllPreviewAsRead($event)"
+                  class="text-xs font-medium text-green-700 hover:text-green-800 hover:underline whitespace-nowrap">
+                  Marcar todas como leídas
+                </button>
+              </div>
+
+              <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                <button
+                  *ngFor="let notification of previewNotifications"
+                  type="button"
+                  (click)="onPreviewNotificationClick(notification)"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                  [class.bg-green-50]="!notification.read">
+                  <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full"
+                        [class.bg-green-500]="!notification.read"
+                        [class.bg-gray-300]="notification.read"></span>
+                  <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-medium text-gray-900 truncate">{{ notification.title }}</span>
+                    <span class="block text-xs text-gray-500 mt-0.5 line-clamp-2">{{ notification.message }}</span>
+                    <span class="block text-[11px] text-gray-400 mt-1">{{ notification.createdAt | date:'short' }}</span>
+                  </span>
+                  <span
+                    *ngIf="!notification.read"
+                    (click)="markPreviewAsRead(notification, $event)"
+                    title="Marcar como leída"
+                    class="flex-shrink-0 text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </span>
+                </button>
+
+                <div *ngIf="previewNotifications.length === 0" class="px-4 py-8 text-center">
+                  <svg class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                  </svg>
+                  <p class="text-sm text-gray-500">No tienes notificaciones nuevas</p>
+                </div>
+              </div>
+
+              <div class="border-t border-gray-100 p-2">
+                <button
+                  (click)="goToNotificationsCenter()"
+                  class="w-full text-center text-sm font-semibold text-green-600 hover:text-white hover:bg-green-500 py-2 rounded-lg transition-colors">
+                  Ver todas las notificaciones
+                </button>
+              </div>
+            </div>
+          </div>
           <button 
             (click)="onStatisticsClick()"
             class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors flex items-center">
@@ -403,8 +465,8 @@
             </svg>
             <span>Mensajes</span>
           </button>
-          <button 
-            (click)="onNotificationsClick()"
+          <button
+            (click)="onMobileNotificationsClick()"
             class="text-gray-700 hover:text-green-600 hover:bg-gray-50 flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all w-full text-left relative">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
