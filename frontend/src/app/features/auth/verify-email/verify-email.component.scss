@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f9fafb;
   padding: 20px;
 }
 
@@ -12,7 +12,7 @@
 .verify-card {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   max-width: 480px;
   width: 100%;
   overflow: hidden;
@@ -34,7 +34,7 @@
 .card-header {
   padding: 40px 32px 24px;
   text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
 }
 
@@ -187,8 +187,9 @@
 }
 
 .success-message {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
 }
 
 .error-message {
@@ -232,8 +233,8 @@
 
     &:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
     }
 
     &.invalid {
@@ -282,12 +283,12 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
   width: 100%;
 
   &:not(:disabled):hover {
-    background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   }
 }
 
@@ -309,11 +310,11 @@
 
 .btn-link {
   background: transparent;
-  color: #667eea;
+  color: #16a34a;
   padding: 8px 16px;
 
   &:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(34, 197, 94, 0.1);
     transform: none;
     box-shadow: none;
   }
@@ -336,7 +337,7 @@
   transition: color 0.3s ease;
 
   &:hover {
-    color: #667eea;
+    color: #16a34a;
   }
 }
 
