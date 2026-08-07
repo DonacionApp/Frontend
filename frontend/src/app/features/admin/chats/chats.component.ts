@@ -73,7 +73,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
   // Archivos para mensaje
   selectedFiles: File[] = [];
 
-  // Sala de websocket a la que está unido el admin
   private joinedChatId: number | null = null;
 
   // Modales de confirmación y mensaje
@@ -179,9 +178,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Suscribirse a los eventos de mensajes en tiempo real
-   */
   private setupRealtime(): void {
     this.ensureMessageSocket();
 
@@ -199,8 +195,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
         if (!this.isCurrentChat(this.getPayloadChatId(payload))) return;
         const edited = payload?.message ?? payload?.msg;
         if (!edited?.id) return;
-        // El backend emite un mensaje mínimo (sin username ni type), así que
-        // solo se parchea el texto sobre el mensaje que ya está en pantalla
         this.messages = this.messages.map(m =>
           Number(m.id) === Number(edited.id)
             ? { ...m, message: edited.message ?? m.message }
@@ -256,9 +250,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
     return [];
   }
 
-  /**
-   * Insertar mensajes evitando duplicados, respetando el orden actual de la lista
-   */
   private insertMessages(incoming: Message[]): void {
     if (!incoming || incoming.length === 0) return;
 
@@ -603,7 +594,6 @@ export class ChatsComponent implements OnInit, OnDestroy {
         next: (response) => {
           this.sendMessageForm.patchValue({ messageText: '' });
           this.selectedFiles = [];
-          // El socket también emitirá estos mensajes; insertMessages deduplica por id
           this.insertMessages(response?.messages || []);
           this.sendingMessage = false;
         },
