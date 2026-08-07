@@ -394,6 +394,12 @@ export class NotificationService {
    */
   clearNotifications(): void {
     this.notificationsSubject.next([]);
+    this.unreadCountSubject.next(0);
+    this.currentPage = 1;
+    this.hasMoreValue = false;
+    this.loadingMoreValue = false;
+    this.total = 0;
+    this.activeFilters = null;
   }
 
   /**

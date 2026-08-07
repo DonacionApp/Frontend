@@ -58,6 +58,8 @@ export class NavComponent implements OnInit, OnDestroy {
           this.userProfileImage = null;
           this.userFullName = '';
           this.unreadNotificationsCount = 0;
+          this.previewNotifications = [];
+          this.showNotificationsDropdown = false;
         }
       });
     
@@ -247,19 +249,35 @@ export class NavComponent implements OnInit, OnDestroy {
       this.markPreviewAsRead(notification, null);
     }
 
-    const link = notification.link;
-    if (link && link.trim() !== '') {
-      this.closeNotificationsDropdown();
-      const trimmed = link.trim();
-      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-        window.open(trimmed, '_blank');
-        return;
-      }
-      this.router.navigateByUrl(trimmed.startsWith('/') ? trimmed : `/${trimmed}`);
+    const target = this.resolveNotificationLink(notification.link);
+    if (!target) {
+      this.goToNotificationsCenter();
       return;
     }
 
-    this.goToNotificationsCenter();
+    this.closeNotificationsDropdown();
+    if (target.external) {
+      window.open(target.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    this.router.navigateByUrl(target.url);
+  }
+
+  private resolveNotificationLink(rawLink?: string | null): { external: boolean; url: string } | null {
+    const link = (rawLink || '').trim();
+    if (!link) return null;
+
+    const normalized = link.replace(/\\/g, '/');
+
+    if (normalized.startsWith('//')) return null;
+
+    if (/^https?:\/\//i.test(normalized)) {
+      return { external: true, url: normalized };
+    }
+
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(normalized)) return null;
+
+    return { external: false, url: normalized.startsWith('/') ? normalized : `/${normalized}` };
   }
 
   markPreviewAsRead(notification: Notify, event: Event | null): void {

@@ -143,30 +143,35 @@
               </div>
 
               <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                <button
+                <div
                   *ngFor="let notification of previewNotifications"
-                  type="button"
-                  (click)="onPreviewNotificationClick(notification)"
-                  class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                  class="flex items-start gap-2 pr-2 hover:bg-gray-50 transition-colors"
                   [class.bg-green-50]="!notification.read">
-                  <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full"
-                        [class.bg-green-500]="!notification.read"
-                        [class.bg-gray-300]="notification.read"></span>
-                  <span class="flex-1 min-w-0">
-                    <span class="block text-sm font-medium text-gray-900 truncate">{{ notification.title }}</span>
-                    <span class="block text-xs text-gray-500 mt-0.5 line-clamp-2">{{ notification.message }}</span>
-                    <span class="block text-[11px] text-gray-400 mt-1">{{ notification.createdAt | date:'short' }}</span>
-                  </span>
-                  <span
+                  <button
+                    type="button"
+                    (click)="onPreviewNotificationClick(notification)"
+                    class="flex-1 min-w-0 text-left pl-4 py-3 flex items-start gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-lg">
+                    <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full"
+                          [class.bg-green-500]="!notification.read"
+                          [class.bg-gray-300]="notification.read"></span>
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-medium text-gray-900 truncate">{{ notification.title }}</span>
+                      <span class="block text-xs text-gray-500 mt-0.5 line-clamp-2">{{ notification.message }}</span>
+                      <span class="block text-[11px] text-gray-400 mt-1">{{ notification.createdAt | date:'short' }}</span>
+                    </span>
+                  </button>
+                  <button
                     *ngIf="!notification.read"
+                    type="button"
                     (click)="markPreviewAsRead(notification, $event)"
+                    [attr.aria-label]="'Marcar como leída: ' + notification.title"
                     title="Marcar como leída"
-                    class="flex-shrink-0 text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="flex-shrink-0 mt-3 text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 <div *ngIf="previewNotifications.length === 0" class="px-4 py-8 text-center">
                   <svg class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
