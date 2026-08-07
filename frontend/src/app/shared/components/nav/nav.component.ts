@@ -5,6 +5,7 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { UserProfileService } from '../../../core/services/user-profile.service';
 import { OrganizationProfileService } from '../../../core/services/organization-profile.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { Notify } from '../../model/notification.model';
 import { AlertService } from '../../services/alert.service';
 import { Subject, takeUntil, filter } from 'rxjs';
 
@@ -13,7 +14,7 @@ import { Subject, takeUntil, filter } from 'rxjs';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './nav.component.html',
-  styleUrls: []
+  styleUrls: ['./nav.component.scss']
 })
 export class NavComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -27,7 +28,10 @@ export class NavComponent implements OnInit, OnDestroy {
   isOnProfilePage = false;
   isDocumentVerified = false;
   unreadNotificationsCount = 0;
-  
+  showNotificationsDropdown = false;
+  previewNotifications: Notify[] = [];
+  private readonly previewLimit = 5;
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -54,6 +58,8 @@ export class NavComponent implements OnInit, OnDestroy {
           this.userProfileImage = null;
           this.userFullName = '';
           this.unreadNotificationsCount = 0;
+          this.previewNotifications = [];
+          this.showNotificationsDropdown = false;
         }
       });
     
@@ -61,6 +67,12 @@ export class NavComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(count => {
         this.unreadNotificationsCount = count;
+      });
+
+    this.notificationService.notifications$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(items => {
+        this.previewNotifications = (items || []).slice(0, this.previewLimit);
       });
     
     this.router.events
@@ -210,8 +222,84 @@ export class NavComponent implements OnInit, OnDestroy {
   }
 
   onNotificationsClick(): void {
+    this.showNotificationsDropdown = !this.showNotificationsDropdown;
+    if (this.showNotificationsDropdown) {
+      this.loadNotifications();
+    }
+  }
+
+  onMobileNotificationsClick(): void {
+    this.showNotificationsDropdown = false;
     this.closeMobileMenu();
     this.router.navigate(['/notifications']);
+  }
+
+  closeNotificationsDropdown(): void {
+    this.showNotificationsDropdown = false;
+  }
+
+  goToNotificationsCenter(): void {
+    this.closeNotificationsDropdown();
+    this.closeMobileMenu();
+    this.router.navigate(['/notifications']);
+  }
+
+  onPreviewNotificationClick(notification: Notify): void {
+    if (!notification.read) {
+      this.markPreviewAsRead(notification, null);
+    }
+
+    const target = this.resolveNotificationLink(notification.link);
+    if (!target) {
+      this.goToNotificationsCenter();
+      return;
+    }
+
+    this.closeNotificationsDropdown();
+    if (target.external) {
+      window.open(target.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    this.router.navigateByUrl(target.url);
+  }
+
+  private resolveNotificationLink(rawLink?: string | null): { external: boolean; url: string } | null {
+    const link = (rawLink || '').trim();
+    if (!link) return null;
+
+    const normalized = link.replace(/\\/g, '/');
+
+    if (normalized.startsWith('//')) return null;
+
+    if (/^https?:\/\//i.test(normalized)) {
+      return { external: true, url: normalized };
+    }
+
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(normalized)) return null;
+
+    return { external: false, url: normalized.startsWith('/') ? normalized : `/${normalized}` };
+  }
+
+  markPreviewAsRead(notification: Notify, event: Event | null): void {
+    event?.stopPropagation();
+    if (notification.read) return;
+
+    this.notificationService.markNotificationAsRead(notification.id).subscribe({
+      error: (error) => {
+        console.error('Error al marcar la notificación como leída:', error);
+      }
+    });
+  }
+
+  markAllPreviewAsRead(event: Event): void {
+    event.stopPropagation();
+    if (this.unreadNotificationsCount === 0) return;
+
+    this.notificationService.markAllNotificationsAsRead().subscribe({
+      error: (error) => {
+        console.error('Error al marcar todas las notificaciones como leídas:', error);
+      }
+    });
   }
 
   onPostsClick(): void {
@@ -279,10 +367,20 @@ export class NavComponent implements OnInit, OnDestroy {
     const mobileMenu = document.querySelector('.mobile-menu');
     const mobileMenuButton = document.querySelector('.mobile-menu-button');
     
-    if (this.isMobileMenuOpen && 
-        !mobileMenu?.contains(target) && 
+    if (this.isMobileMenuOpen &&
+        !mobileMenu?.contains(target) &&
         !mobileMenuButton?.contains(target)) {
       this.closeMobileMenu();
     }
+
+    const notificationsContainer = document.querySelector('.notifications-dropdown-container');
+    if (this.showNotificationsDropdown && !notificationsContainer?.contains(target)) {
+      this.closeNotificationsDropdown();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.closeNotificationsDropdown();
   }
 }

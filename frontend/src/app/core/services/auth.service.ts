@@ -390,6 +390,12 @@ export class AuthService {
     try {
       this.websocketService.disconnect();
     } catch (e) {}
+
+    try {
+      this.notificationService.clearNotifications();
+    } catch (e) {
+      console.warn('No se pudo limpiar el estado de notificaciones:', e);
+    }
     
     // Limpiar el caché cuando se cierra sesión
     this.cacheService.clear();
