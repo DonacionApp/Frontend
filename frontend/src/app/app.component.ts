@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, PLATFORM_ID, Inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Router, NavigationEnd } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
@@ -140,7 +140,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private websocketService: WebsocketService,
     private toastService: ToastService,
     private notificationService: NotificationService,
-    private authService: AuthService
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.appState = new AppStateService();
     this.registrationState = new RegistrationStateService();
@@ -221,6 +222,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
       ngOnInit(): void {
         // Inicialización básica
+        this.handleSocialCallback();
         this.initializeWebSocket();
         this.subscribeToNotifications();
         this.updateBackButtonVisibility(this.router.url);
@@ -242,6 +244,55 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       // (temporary debug subscription removed)
+
+  private handleSocialCallback(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const social = params.get('social');
+    if (!social) return;
+
+    const provider = params.get('provider') === 'microsoft' ? 'Microsoft' : 'Google';
+
+    if (social === 'success') {
+      const token = params.get('token') || '';
+      if (this.authService.loginWithSocialToken(token)) {
+        this.clearSocialParams();
+        this.toastService.show({
+          title: 'Sesión iniciada',
+          message: `Bienvenido, entraste con ${provider}.`,
+          type: 'success'
+        });
+        this.authService.redirectAfterLogin();
+        return;
+      }
+      this.clearSocialParams();
+      this.toastService.show({
+        title: 'No se pudo iniciar sesión',
+        message: `${provider} devolvió una respuesta inválida. Inténtalo de nuevo.`,
+        type: 'error'
+      });
+      return;
+    }
+
+    this.clearSocialParams();
+    this.toastService.show({
+      title: `Error al entrar con ${provider}`,
+      message: params.get('code') || 'No se pudo completar el inicio de sesión.',
+      type: 'error'
+    });
+    this.router.navigate(['/auth/login']);
+  }
+
+  private clearSocialParams(): void {
+    try {
+      const url = new URL(window.location.href);
+      ['social', 'provider', 'token', 'code'].forEach(k => url.searchParams.delete(k));
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    } catch (e) {
+      console.warn('No se pudieron limpiar los parámetros sociales de la URL:', e);
+    }
+  }
 
   /**
    * Inicializar WebSocket cuando hay un token guardado y válido

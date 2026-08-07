@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -26,7 +26,6 @@ export class LoginComponent implements OnDestroy {
   private sub = new Subscription();
 
   constructor(
-    private router: Router,
     private fb: FormBuilder,
     private auth: AuthService
   ) {
@@ -64,32 +63,7 @@ export class LoginComponent implements OnDestroy {
       this.auth.login(email, password).subscribe({
         next: (res) => {
           this.isSubmitting = false;
-          // Obtener el usuario actual con toda la información
-          const user = this.auth.currentUserValue;
-          
-          // login successful
-          
-          // Si el usuario NO está verificado (isDocumentVerified === false), redirigir al perfil
-          if (user?.isDocumentVerified === false) {
-            // usuario sin verificar, redirigiendo al perfil para subir documento
-            if (user.role === 'organization') {
-              this.router.navigate(['/organization/profile']);
-            } else if (user.role === 'donor') {
-              this.router.navigate(['/donor/profile']);
-            } else if (user.role === 'admin') {
-              this.router.navigate(['/admin']);
-            }
-          } else {
-            // Usuario ya verificado, redirigir al dashboard normal
-            // usuario verificado, se redirige al dashboard
-            if (user?.role === 'admin') {
-              this.router.navigate(['/admin']);
-            } else if (user?.role === 'organization') {
-              this.router.navigate(['/organization/dashboard']);
-            } else {
-              this.router.navigate(['/donor/profile']);
-            }
-          }
+          this.auth.redirectAfterLogin();
         },
         error: (err) => {
           this.isSubmitting = false;
@@ -115,6 +89,14 @@ export class LoginComponent implements OnDestroy {
         }
       })
     );
+  }
+
+  loginWithGoogle(): void {
+    this.auth.startSocialLogin('google');
+  }
+
+  loginWithMicrosoft(): void {
+    this.auth.startSocialLogin('microsoft');
   }
 
   toggleShowPassword(): void {

@@ -8,6 +8,8 @@ import { WebsocketService } from './websocket.service';
 import { NotificationService } from './notification.service';
 import { CacheService } from './cache.service';
 
+export type SocialProvider = 'google' | 'microsoft';
+
 export interface User {
   id: string;
   email: string;
@@ -218,49 +220,67 @@ export class AuthService {
       tap(res => {
         const token = res.access_token || res.accessToken || res.token;
         const refresh = res.refresh_token || res.refreshToken;
-        if (token) {
-          this.setAccessToken(token);
-          this.websocketService.connect(token);
-          this.websocketService.connectMessages(token);
-        }
         if (refresh) {
           localStorage.setItem('refreshToken', refresh);
         }
-
-          if (token) {
-          const payload = this.decodeToken(token);
-          const rawRole = payload?.role || payload?.roles || payload?.rol || 'donor';
-          const normalizedRole = this.normalizeRole(rawRole);
-          const user: User = {
-            id: payload?.sub || payload?.id || '',
-            email: payload?.email || '',
-            role: normalizedRole,
-            name: payload?.name || '',
-            firstLogin: res.firstLogin || payload?.firstLogin || false,
-            isDocumentVerified: res.isDocumentVerified || payload?.isDocumentVerified || false,
-            verified: payload?.verified || res.verified || false
-          };
-          
-          // Limpiar caché si es un usuario diferente al anterior
-          try {
-            const lastUserId = sessionStorage.getItem('lastUserId');
-            if (lastUserId && lastUserId !== user.id.toString()) {
-              // Usuario diferente, limpiar caché
-              this.cacheService.clear();
-              console.log('🧹 Caché limpiado debido a cambio de usuario');
-            }
-            sessionStorage.setItem('lastUserId', user.id.toString());
-          } catch (e) {
-            console.warn('Error al verificar cambio de usuario:', e);
-          }
-          
-          this.setCurrentUser(user);
+        if (token) {
+          this.establishSession(token, res);
         }
       }),
       catchError(err => {
         throw err;
       })
     );
+  }
+
+  private establishSession(token: string, res: any = {}): void {
+    this.setAccessToken(token);
+    this.websocketService.connect(token);
+    this.websocketService.connectMessages(token);
+
+    const payload = this.decodeToken(token);
+    const rawRole = payload?.role || payload?.roles || payload?.rol || 'donor';
+    const normalizedRole = this.normalizeRole(rawRole);
+    const user: User = {
+      id: payload?.sub || payload?.id || '',
+      email: payload?.email || '',
+      role: normalizedRole,
+      name: payload?.name || '',
+      firstLogin: res?.firstLogin || payload?.firstLogin || false,
+      isDocumentVerified: res?.isDocumentVerified || payload?.isDocumentVerified || false,
+      verified: payload?.verified || res?.verified || false
+    };
+
+    // Limpiar caché si es un usuario diferente al anterior
+    try {
+      const lastUserId = sessionStorage.getItem('lastUserId');
+      if (lastUserId && lastUserId !== user.id.toString()) {
+        // Usuario diferente, limpiar caché
+        this.cacheService.clear();
+        console.log('🧹 Caché limpiado debido a cambio de usuario');
+      }
+      sessionStorage.setItem('lastUserId', user.id.toString());
+    } catch (e) {
+      console.warn('Error al verificar cambio de usuario:', e);
+    }
+
+    this.setCurrentUser(user);
+  }
+
+  startSocialLogin(provider: SocialProvider): void {
+    if (typeof window === 'undefined') return;
+    window.location.href = `${this.baseUrl}/${provider}/login`;
+  }
+
+  loginWithSocialToken(token: string, extra: any = {}): boolean {
+    if (!token) return false;
+    const payload = this.decodeToken(token);
+    if (!payload || !payload.sub) {
+      console.error('Token social inválido');
+      return false;
+    }
+    this.establishSession(token, extra);
+    return true;
   }
 
   logout(): void {
@@ -389,6 +409,32 @@ export class AuthService {
       }
     });
     
+  }
+
+  redirectAfterLogin(): void {
+    if (!this.router) {
+      this.router = this.injector.get(Router);
+    }
+    const user = this.currentUserValue;
+
+    if (user?.isDocumentVerified === false) {
+      if (user.role === 'organization') {
+        this.router?.navigate(['/organization/profile']);
+      } else if (user.role === 'donor') {
+        this.router?.navigate(['/donor/profile']);
+      } else if (user.role === 'admin') {
+        this.router?.navigate(['/admin']);
+      }
+      return;
+    }
+
+    if (user?.role === 'admin') {
+      this.router?.navigate(['/admin']);
+    } else if (user?.role === 'organization') {
+      this.router?.navigate(['/organization/dashboard']);
+    } else {
+      this.router?.navigate(['/donor/profile']);
+    }
   }
 
   get currentUserValue(): User | null {
