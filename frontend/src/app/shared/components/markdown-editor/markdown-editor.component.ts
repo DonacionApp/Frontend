@@ -229,8 +229,6 @@ export class MarkdownEditorComponent implements ControlValueAccessor {
     
     try {
       const html = await marked.parse(this.value);
-      // Se sanitiza en vez de usar bypassSecurityTrustHtml: el preview debe
-      // comportarse igual que la vista pública, que sí recibe texto de terceros
       this.previewHtml = this.sanitizer.sanitize(SecurityContext.HTML, html) || '';
     } catch (err) {
       console.error('Error convirtiendo markdown:', err);

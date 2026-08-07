@@ -2,16 +2,6 @@ import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { marked } from 'marked';
 
-/**
- * Renderiza markdown de forma segura.
- *
- * mode="rich"  -> convierte el markdown a HTML (vistas completas: detalle, feed)
- * mode="plain" -> quita la sintaxis y deja texto plano (tarjetas con line-clamp)
- *
- * El HTML se pasa a [innerHTML] como string normal, de modo que Angular lo
- * sanitiza automáticamente. No se usa bypassSecurityTrustHtml porque el
- * contenido lo escriben los usuarios.
- */
 @Component({
   selector: 'app-markdown-view',
   standalone: true,
