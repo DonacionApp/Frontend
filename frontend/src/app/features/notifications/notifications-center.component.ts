@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { NotificationService } from '../../core/services';
 import { Notify } from '../../shared/model/notification.model'; 
 import { Subject, takeUntil } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 
@@ -17,7 +18,6 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 })
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  private isFirstLoad = true;
   private hasLoadedNotifications = false; // Rastrea si alguna vez se cargaron notificaciones
   
   notifications: Notify[] = [];
@@ -52,14 +52,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.notifications$
       .pipe(takeUntil(this.destroy$))
       .subscribe(nots => {
-  this.notifications = Array.isArray(nots) ? nots : [];
-  this.isLoading = false;
-  this.hasError = false;
-        if (!this.isFirstLoad) {
-          this.notifications = nots;
-          this.isLoading = false;
-          this.hasError = false;
-        }
+        this.notifications = Array.isArray(nots) ? nots : [];
+        this.isLoading = false;
+        this.hasError = false;
       });
 
     this.notificationService.unreadCount$
@@ -75,7 +70,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Carga las notificaciones del backend
+   * Carga las notificaciones del backend (primera página)
    */
   loadNotifications(): void {
     this.notifications = [];
@@ -85,20 +80,19 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.getMyNotifications()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (notifications: Notify[]) => {
-          this.notifications = notifications;
+        next: () => {
           this.isLoading = false;
-          this.isFirstLoad = false;
           // Marcar que se cargaron notificaciones si hay al menos una
-          if (notifications.length > 0) {
+          if (this.notificationService.getCurrentNotifications().length > 0) {
             this.hasLoadedNotifications = true;
           }
           // Cargar tipos después de que las notificaciones se hayan cargado
           this.loadNotificationTypes();
+          // Auto-cargar más si el contenido aún no llena la ventana
+          this.checkInfiniteScroll();
         },
         error: (error: any) => {
           this.isLoading = false;
-          this.isFirstLoad = false;
           if (error.status === 404) {
             this.notifications = [];
             this.hasError = false;
@@ -116,6 +110,49 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
           }
         }
       });
+  }
+
+  get hasMore(): boolean {
+    return this.notificationService.hasMore;
+  }
+
+  get loadingMore(): boolean {
+    return this.notificationService.loadingMore;
+  }
+
+  /**
+   * Carga la siguiente página cuando el usuario llega al final de la lista
+   */
+  loadMore(): void {
+    const request = this.notificationService.loadMoreNotifications();
+    if (!request) return;
+
+    request.pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.checkInfiniteScroll())
+    ).subscribe({
+      error: (error) => {
+        console.error('Error al cargar más notificaciones:', error);
+      }
+    });
+  }
+
+  @HostListener('window:scroll', ['$event'])
+  onScroll(): void {
+    this.checkInfiniteScroll();
+  }
+
+  /**
+   * Verifica si el usuario está cerca del final de la página para cargar más
+   */
+  private checkInfiniteScroll(): void {
+    if (!this.hasMore || this.loadingMore || this.isLoading) return;
+
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const documentHeight = document.documentElement.scrollHeight;
+    if (scrollPosition >= documentHeight - 120) {
+      this.loadMore();
+    }
   }
 
   /**
@@ -253,13 +290,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.notificationService.filterNotifications(filters)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (notifications) => {
-          this.notifications = notifications;
+        next: () => {
           this.isLoading = false;
           // Marcar que se cargaron notificaciones si hay al menos una
-          if (notifications.length > 0) {
+          if (this.notificationService.getCurrentNotifications().length > 0) {
             this.hasLoadedNotifications = true;
           }
+          this.checkInfiniteScroll();
         },
         error: (error) => {
           this.isLoading = false;

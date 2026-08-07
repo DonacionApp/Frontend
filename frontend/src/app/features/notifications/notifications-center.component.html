@@ -354,6 +354,14 @@
           </button>
         </div>
       </div>
+
+      <!-- Scroll infinito: indicador de carga de más notificaciones -->
+      <div *ngIf="hasMore && !isLoading && !hasError" class="py-6 flex justify-center">
+        <div *ngIf="loadingMore" class="flex items-center space-x-2 text-gray-500">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+          <span class="text-sm">Cargando más notificaciones...</span>
+        </div>
+      </div>
     </div>
   </div>
 
