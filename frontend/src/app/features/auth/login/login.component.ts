@@ -1,9 +1,10 @@
-import { Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { RecaptchaService } from '../../../core/services/recaptcha.service';
 import { Subscription, interval } from 'rxjs';
 
 @Component({
@@ -13,7 +14,7 @@ import { Subscription, interval } from 'rxjs';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnDestroy {
+export class LoginComponent implements AfterViewInit, OnDestroy {
   form!: FormGroup;
 
   isSubmitting = false;
@@ -22,18 +23,48 @@ export class LoginComponent implements OnDestroy {
   remainingLockSeconds = 0;
   showPassword = false;
 
+  @ViewChild('recaptchaContainer') recaptchaContainer?: ElementRef<HTMLDivElement>;
+  captchaRequired = false;
+  captchaToken: string | null = null;
+  private captchaWidgetId: number | null = null;
+
   private timerSub?: Subscription;
   private sub = new Subscription();
 
   constructor(
     private fb: FormBuilder,
-    private auth: AuthService
+    private auth: AuthService,
+    private recaptcha: RecaptchaService,
+    private cd: ChangeDetectorRef
   ) {
     // Inicializar el formulario aquí para evitar usar `fb` antes de inicializar
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(4)]]
     });
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    if (!this.recaptcha.isEnabled || !this.recaptchaContainer) return;
+
+    this.captchaWidgetId = await this.recaptcha.render(this.recaptchaContainer.nativeElement, {
+      onToken: (token) => {
+        this.captchaToken = token;
+        this.serverMessage = '';
+        this.cd.detectChanges();
+      },
+      onExpired: () => {
+        this.captchaToken = null;
+        this.cd.detectChanges();
+      },
+      onError: () => {
+        this.captchaToken = null;
+        this.cd.detectChanges();
+      }
+    });
+
+    this.captchaRequired = this.captchaWidgetId !== null;
+    this.cd.detectChanges();
   }
 
   get email() { return this.form.get('email')!; }
@@ -54,19 +85,24 @@ export class LoginComponent implements OnDestroy {
       this.form.markAllAsTouched();
       return;
     }
+    if (this.captchaRequired && !this.captchaToken) {
+      this.serverMessage = 'Por favor confirma que no eres un robot.';
+      return;
+    }
 
     this.isSubmitting = true;
     const email = this.email.value || '';
     const password = this.password.value || '';
 
     this.sub.add(
-      this.auth.login(email, password).subscribe({
+      this.auth.login(email, password, this.captchaToken || undefined).subscribe({
         next: (res) => {
           this.isSubmitting = false;
           this.auth.redirectAfterLogin();
         },
         error: (err) => {
           this.isSubmitting = false;
+          this.resetCaptcha();
           const status = err.status;
           const message = err.error?.message || err.message || 'Error en la autenticación.';
           if (status === 400) {
@@ -89,6 +125,12 @@ export class LoginComponent implements OnDestroy {
         }
       })
     );
+  }
+
+  private resetCaptcha(): void {
+    if (!this.captchaRequired) return;
+    this.captchaToken = null;
+    this.recaptcha.reset(this.captchaWidgetId);
   }
 
   loginWithGoogle(): void {
