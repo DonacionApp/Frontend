@@ -1,9 +1,7 @@
-// Sin esto el host sería inline y rompería line-clamp / márgenes en las tarjetas
 :host {
   display: block;
 }
 
-// El contenido llega por [innerHTML], así que necesita ::ng-deep para recibir estilos
 .markdown-body {
   word-break: break-word;
   overflow-wrap: anywhere;

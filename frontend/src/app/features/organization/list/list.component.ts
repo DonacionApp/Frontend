@@ -48,6 +48,7 @@ export class OrganizationListComponent implements OnInit {
   orgs: OrgMinimal[] = [];
   loading = false;
   error: string | null = null;
+  emptyResult = false;
   map: any = null;
   markers: any[] = [];
   selectedOrg: OrgMinimal | null = null;
@@ -94,6 +95,7 @@ export class OrganizationListComponent implements OnInit {
   loadOrgs(): void {
     this.loading = true;
     this.error = null;
+    this.emptyResult = false;
     let httpParams = new HttpParams();
     // build params; ignore `limit` for map rendering
     Object.keys(this.params).forEach(k => {
@@ -108,15 +110,13 @@ export class OrganizationListComponent implements OnInit {
       next: (data) => {
         this.orgs = Array.isArray(data) ? data : [];
         this.loading = false;
-        if (!this.orgs.length) {
-          this.error = 'No se encontraron organizaciones para la búsqueda.';
-        } else {
-          this.error = null;
-        }
+        this.error = null;
+        this.emptyResult = this.orgs.length === 0;
         this.zone.runOutsideAngular(() => { this.ensureMapAndMarkers(); });
       },
       error: (err) => {
         this.loading = false;
+        this.emptyResult = false;
         if (!err || typeof err !== 'object') {
           this.error = 'Error desconocido al conectar con el servidor.';
           return;
@@ -124,10 +124,6 @@ export class OrganizationListComponent implements OnInit {
         // network error
         if (err.status === 0) {
           this.error = 'No hay conexión con el servidor. Verifica tu red e inténtalo de nuevo.';
-          return;
-        }
-        if (err.status === 404) {
-          this.error = 'No se encontraron organizaciones (404).';
           return;
         }
         // other errors
@@ -142,6 +138,15 @@ export class OrganizationListComponent implements OnInit {
 
   onSearchTerm(term: string) {
     this.search$.next(String(term || ''));
+  }
+
+  clearSearch(): void {
+    this.params.searchParam = '';
+    this.search$.next('');
+  }
+
+  get hasSearchTerm(): boolean {
+    return !!(this.params.searchParam && this.params.searchParam.trim());
   }
 
   private async ensureMapAndMarkers(): Promise<void> {
