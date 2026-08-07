@@ -214,9 +214,13 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string): Observable<any> {
+  login(email: string, password: string, captchaToken?: string): Observable<any> {
     const url = `${this.baseUrl}/login`;
-    return this.http.post<any>(url, { email, password }).pipe(
+    const body: any = { email, password };
+    if (captchaToken) {
+      body.captchaToken = captchaToken;
+    }
+    return this.http.post<any>(url, body).pipe(
       tap(res => {
         const token = res.access_token || res.accessToken || res.token;
         const refresh = res.refresh_token || res.refreshToken;

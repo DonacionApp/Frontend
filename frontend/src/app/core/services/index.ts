@@ -22,3 +22,4 @@ export * from './cache.service';
 export * from './acknowledgment.service';
 export * from './report.service';
 export * from './post-comment.service';
+export * from './recaptcha.service';
