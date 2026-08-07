@@ -1,11 +1,20 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, map, catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Notify } from '../../shared/model/notification.model';
 import { WebsocketService } from './websocket.service';
 import { NotificationService as SharedNotificationService } from '../../shared/services/notification.service';
+
+export interface NotificationsPage {
+  items: Notify[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  unreadTotal: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -14,9 +23,24 @@ export class NotificationService {
   private baseUrl = environment.apiBackendUrl;
   private notificationsSubject = new BehaviorSubject<Notify[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
-  
+
+  private currentPage = 1;
+  private readonly pageLimit = 20;
+  private hasMoreValue = false;
+  private loadingMoreValue = false;
+  private total = 0;
+  private activeFilters: any = null;
+
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
+
+  get hasMore(): boolean {
+    return this.hasMoreValue;
+  }
+
+  get loadingMore(): boolean {
+    return this.loadingMoreValue;
+  }
 
   constructor(
     private http: HttpClient,
@@ -81,19 +105,23 @@ export class NotificationService {
   }
 
   /**
-   * Obtiene todas las notificaciones del usuario autenticado
+   * Obtiene las notificaciones del usuario autenticado con paginación.
+   * Si `page === 1` reemplaza el estado; si es mayor, acumula la siguiente página.
    */
-  getMyNotifications(): Observable<Notify[]> {
+  getMyNotifications(page = 1, limit = this.pageLimit): Observable<Notify[]> {
     const url = `${this.baseUrl}/user-notify/my-notifications`;
+    const params = new HttpParams()
+      .set('page', String(page))
+      .set('limit', String(limit));
 
-    return this.http.get<Notify[]>(url).pipe(
-      tap(raw => {
-        const notifications = this.normalizeNotificationsPayload(raw);
-        this.notificationsSubject.next(notifications);
-        this.updateUnreadCount(notifications);
+    return this.http.get<any>(url, { params }).pipe(
+      map(raw => this.applyNotificationsPage(raw, page)),
+      tap(() => {
+        this.activeFilters = null;
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
+          this.resetPagination();
           this.notificationsSubject.next([]);
           return throwError(() => ({
             status: 404,
@@ -211,10 +239,10 @@ export class NotificationService {
     type?: number;
     minDate?: string;
     maxDate?: string;
-  }): Observable<Notify[]> {
+  }, page = 1, limit = this.pageLimit): Observable<Notify[]> {
     const url = `${this.baseUrl}/user-notify/my-notifications/filters`;
     
-    const body: any = {};
+    const body: any = { page, limit };
     
     if (filters.search && filters.search.trim() !== '') {
       body.search = filters.search.trim();
@@ -234,15 +262,17 @@ export class NotificationService {
       body.maxDate = maxDateObj.toISOString();
     }
 
-    return this.http.post<Notify[]>(url, body).pipe(
-      tap(raw => {
-        const notifications = this.normalizeNotificationsPayload(raw);
-        this.notificationsSubject.next(notifications);
-        this.updateUnreadCount(notifications);
+    return this.http.post<any>(url, body).pipe(
+      map(raw => this.applyNotificationsPage(raw, page)),
+      tap(() => {
+        this.activeFilters = filters;
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
-          this.notificationsSubject.next([]);
+          if (page <= 1) {
+            this.resetPagination();
+            this.notificationsSubject.next([]);
+          }
           return throwError(() => ({
             status: 404,
             message: 'No se encontraron notificaciones con los filtros aplicados'
@@ -259,6 +289,97 @@ export class NotificationService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Carga la siguiente página de notificaciones (scroll infinito),
+   * respetando los filtros activos si los hay.
+   */
+  loadMoreNotifications(): Observable<Notify[]> | null {
+    if (this.loadingMoreValue || !this.hasMoreValue) return null;
+
+    this.loadingMoreValue = true;
+    const nextPage = this.currentPage + 1;
+
+    let request: Observable<Notify[]>;
+    if (this.activeFilters) {
+      request = this.filterNotifications(this.activeFilters, nextPage, this.pageLimit);
+    } else {
+      request = this.getMyNotifications(nextPage, this.pageLimit);
+    }
+
+    return request.pipe(
+      finalize(() => {
+        this.loadingMoreValue = false;
+      })
+    );
+  }
+
+  /**
+   * Aplica una página de respuesta (envelope o array plano) al estado interno,
+   * acumulando cuando proviene de una página posterior.
+   */
+  private applyNotificationsPage(raw: any, page: number): Notify[] {
+    const paged = this.extractNotificationsPage(raw, page);
+
+    const current = this.notificationsSubject.value;
+    const merged = page > 1 ? this.mergeById(current, paged.items) : paged.items;
+
+    this.notificationsSubject.next(merged);
+    this.currentPage = paged.page;
+    this.total = paged.total;
+    this.hasMoreValue = paged.hasMore;
+
+    if (paged.unreadTotal >= 0) {
+      this.unreadCountSubject.next(paged.unreadTotal);
+    } else if (page <= 1) {
+      this.updateUnreadCount(merged);
+    }
+
+    return merged;
+  }
+
+  /**
+   * Normaliza la respuesta del backend a una página de notificaciones.
+   */
+  private extractNotificationsPage(payload: any, requestedPage: number): NotificationsPage {
+    if (payload && Array.isArray(payload.items)) {
+      const limit = Number(payload.limit) || this.pageLimit;
+      const page = Number(payload.page) || requestedPage;
+      return {
+        items: payload.items as Notify[],
+        total: Number(payload.total) || payload.items.length,
+        page,
+        limit,
+        hasMore: payload.hasMore !== undefined
+          ? !!payload.hasMore
+          : Number(payload.total) > page * limit,
+        unreadTotal: payload.unreadTotal !== undefined ? Number(payload.unreadTotal) : -1,
+      };
+    }
+
+    const items = this.normalizeNotificationsPayload(payload);
+    return {
+      items,
+      total: items.length,
+      page: 1,
+      limit: this.pageLimit,
+      hasMore: false,
+      unreadTotal: -1,
+    };
+  }
+
+  private mergeById(current: Notify[], incoming: Notify[]): Notify[] {
+    const seen = new Set(current.map(n => n.id));
+    const unique = incoming.filter(n => !seen.has(n.id));
+    return [...current, ...unique];
+  }
+
+  private resetPagination(): void {
+    this.currentPage = 1;
+    this.total = 0;
+    this.hasMoreValue = false;
+    this.loadingMoreValue = false;
   }
 
   /**
