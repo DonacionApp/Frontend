@@ -143,10 +143,13 @@
               </div>
 
               <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                <button
+                <div
                   *ngFor="let notification of previewNotifications"
-                  type="button"
+                  role="button"
+                  tabindex="0"
                   (click)="onPreviewNotificationClick(notification)"
+                  (keydown.enter)="onPreviewNotificationClick(notification)"
+                  (keydown.space)="onPreviewNotificationClick(notification); $event.preventDefault()"
                   class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
                   [class.bg-green-50]="!notification.read">
                   <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full"
@@ -157,16 +160,17 @@
                     <span class="block text-xs text-gray-500 mt-0.5 line-clamp-2">{{ notification.message }}</span>
                     <span class="block text-[11px] text-gray-400 mt-1">{{ notification.createdAt | date:'short' }}</span>
                   </span>
-                  <span
+                  <button
                     *ngIf="!notification.read"
+                    type="button"
                     (click)="markPreviewAsRead(notification, $event)"
-                    title="Marcar como leída"
+                    aria-label="Marcar como leída"
                     class="flex-shrink-0 text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-100">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 <div *ngIf="previewNotifications.length === 0" class="px-4 py-8 text-center">
                   <svg class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
