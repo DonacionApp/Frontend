@@ -251,8 +251,8 @@ export class NavComponent implements OnInit, OnDestroy {
     if (link && link.trim() !== '') {
       this.closeNotificationsDropdown();
       const trimmed = link.trim();
-      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-        window.open(trimmed, '_blank');
+      if (trimmed.startsWith('//') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        window.open(trimmed, '_blank', 'noopener,noreferrer');
         return;
       }
       this.router.navigateByUrl(trimmed.startsWith('/') ? trimmed : `/${trimmed}`);
