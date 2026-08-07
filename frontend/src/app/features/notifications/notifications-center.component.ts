@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -34,6 +34,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   // Modal de confirmación de eliminación
   showDeleteModal = false;
   notificationToDelete: number | null = null;
+
+  // Contenedor scrolleable de la lista de notificaciones
+  @ViewChild('notificationsScroll') notificationsScroll?: ElementRef<HTMLElement>;
 
   // Filtros
   showFilters = false;
@@ -137,20 +140,27 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener('window:scroll', ['$event'])
-  onScroll(): void {
-    this.checkInfiniteScroll();
+  /**
+   * Detecta el scroll dentro del contenedor de la lista
+   */
+  onContainerScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    this.checkInfiniteScroll(el);
   }
 
   /**
-   * Verifica si el usuario está cerca del final de la página para cargar más
+   * Verifica si el usuario está cerca del final del contenedor para cargar más
    */
-  private checkInfiniteScroll(): void {
+  private checkInfiniteScroll(container?: HTMLElement): void {
     if (!this.hasMore || this.loadingMore || this.isLoading) return;
 
-    const scrollPosition = window.innerHeight + window.scrollY;
-    const documentHeight = document.documentElement.scrollHeight;
-    if (scrollPosition >= documentHeight - 120) {
+    if (!container) {
+      container = this.notificationsScroll?.nativeElement ?? undefined;
+    }
+    if (!container) return;
+
+    const threshold = 120;
+    if (container.scrollHeight - container.scrollTop - container.clientHeight < threshold) {
       this.loadMore();
     }
   }

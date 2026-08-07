@@ -186,7 +186,9 @@
     </div>
 
     <!-- Notifications List -->
-    <div class="space-y-3">
+    <div #notificationsScroll
+         (scroll)="onContainerScroll($event)"
+         class="space-y-3 max-h-[70vh] overflow-y-auto pr-1 overscroll-contain">
       <!-- Loading State -->
       <div *ngIf="isLoading" class="bg-white rounded-lg shadow-sm p-8 text-center">
         <div class="flex flex-col items-center justify-center space-y-4">
